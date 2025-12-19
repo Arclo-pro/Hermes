@@ -170,3 +170,27 @@ export const insertConfigSchema = createInsertSchema(config).omit({
 });
 export type InsertConfig = z.infer<typeof insertConfigSchema>;
 export type Config = typeof config.$inferSelect;
+
+// Diagnostic Runs History
+export const runs = pgTable("runs", {
+  id: serial("id").primaryKey(),
+  runId: text("run_id").notNull().unique(),
+  runType: text("run_type").notNull(), // 'full', 'smoke', 'scheduled'
+  status: text("status").notNull(), // 'running', 'completed', 'failed'
+  startedAt: timestamp("started_at").notNull(),
+  finishedAt: timestamp("finished_at"),
+  summary: text("summary"),
+  anomaliesDetected: integer("anomalies_detected").default(0),
+  reportId: integer("report_id"),
+  ticketCount: integer("ticket_count").default(0),
+  errors: jsonb("errors"),
+  sourceStatuses: jsonb("source_statuses"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertRunSchema = createInsertSchema(runs).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertRun = z.infer<typeof insertRunSchema>;
+export type Run = typeof runs.$inferSelect;

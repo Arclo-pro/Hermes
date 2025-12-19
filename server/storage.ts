@@ -8,6 +8,7 @@ import {
   reports,
   tickets,
   config,
+  runs,
   type OAuthToken,
   type InsertOAuthToken,
   type GA4Daily,
@@ -23,7 +24,9 @@ import {
   type Ticket,
   type InsertTicket,
   type Config,
-  type InsertConfig
+  type InsertConfig,
+  type Run,
+  type InsertRun
 } from "@shared/schema";
 import { eq, desc, and, gte, sql } from "drizzle-orm";
 
@@ -64,6 +67,13 @@ export interface IStorage {
   // Config
   getConfig(key: string): Promise<string | undefined>;
   setConfig(key: string, value: string): Promise<void>;
+  
+  // Runs
+  saveRun(run: InsertRun): Promise<Run>;
+  updateRun(runId: string, updates: Partial<InsertRun>): Promise<Run | undefined>;
+  getLatestRun(): Promise<Run | undefined>;
+  getRunById(runId: string): Promise<Run | undefined>;
+  getRunsByDateRange(startDate: Date, endDate: Date): Promise<Run[]>;
 }
 
 class DBStorage implements IStorage {
@@ -226,6 +236,45 @@ class DBStorage implements IStorage {
     } else {
       await db.insert(config).values({ key, value });
     }
+  }
+
+  async saveRun(run: InsertRun): Promise<Run> {
+    const [newRun] = await db.insert(runs).values(run).returning();
+    return newRun;
+  }
+
+  async updateRun(runId: string, updates: Partial<InsertRun>): Promise<Run | undefined> {
+    await db
+      .update(runs)
+      .set(updates)
+      .where(eq(runs.runId, runId));
+    return this.getRunById(runId);
+  }
+
+  async getLatestRun(): Promise<Run | undefined> {
+    const [run] = await db
+      .select()
+      .from(runs)
+      .orderBy(desc(runs.createdAt))
+      .limit(1);
+    return run;
+  }
+
+  async getRunById(runId: string): Promise<Run | undefined> {
+    const [run] = await db
+      .select()
+      .from(runs)
+      .where(eq(runs.runId, runId))
+      .limit(1);
+    return run;
+  }
+
+  async getRunsByDateRange(startDate: Date, endDate: Date): Promise<Run[]> {
+    return db
+      .select()
+      .from(runs)
+      .where(and(gte(runs.startedAt, startDate), sql`${runs.startedAt} <= ${endDate}`))
+      .orderBy(desc(runs.startedAt));
   }
 }
 
