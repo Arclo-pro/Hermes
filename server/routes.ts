@@ -24,6 +24,129 @@ export async function registerRoutes(
 
   app.use(apiKeyAuth);
 
+  app.get("/briefing", async (req, res) => {
+    try {
+      const [latestRun, report, tickets] = await Promise.all([
+        storage.getLatestRun(),
+        storage.getLatestReport(),
+        storage.getLatestTickets(10),
+      ]);
+
+      const dropDates = report?.dropDates 
+        ? (typeof report.dropDates === 'string' ? JSON.parse(report.dropDates) : report.dropDates)
+        : [];
+      const rootCauses = report?.rootCauses
+        ? (typeof report.rootCauses === 'string' ? JSON.parse(report.rootCauses) : report.rootCauses)
+        : [];
+
+      const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Traffic Doctor Briefing</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; padding: 20px; max-width: 900px; margin: 0 auto; background: #f8fafc; color: #1e293b; }
+    h1 { font-size: 24px; margin-bottom: 8px; color: #0f172a; }
+    h2 { font-size: 18px; margin: 24px 0 12px; color: #334155; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; }
+    .meta { color: #64748b; font-size: 14px; margin-bottom: 20px; }
+    .card { background: white; border-radius: 8px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .status { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+    .status-completed { background: #dcfce7; color: #166534; }
+    .status-failed { background: #fee2e2; color: #991b1b; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+    th { background: #f1f5f9; font-weight: 600; color: #475569; }
+    .priority-high { color: #dc2626; font-weight: 600; }
+    .priority-medium { color: #d97706; font-weight: 600; }
+    .priority-low { color: #16a34a; }
+    .drop { color: #dc2626; font-weight: 600; }
+    .owner { background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+    .hypothesis { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px; margin-bottom: 8px; }
+    .no-data { color: #94a3b8; font-style: italic; }
+    pre { background: #1e293b; color: #e2e8f0; padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>Traffic & Spend Doctor Briefing</h1>
+  <p class="meta">Generated: ${new Date().toISOString()} | Domain: empathyhealthclinic.com</p>
+
+  <div class="card">
+    <h2 style="margin-top:0">Last Run</h2>
+    ${latestRun ? `
+      <p><strong>Run ID:</strong> ${latestRun.runId}</p>
+      <p><strong>Started:</strong> ${latestRun.startedAt}</p>
+      <p><strong>Finished:</strong> ${latestRun.finishedAt || 'In progress'}</p>
+      <p><strong>Status:</strong> <span class="status status-${latestRun.status}">${latestRun.status}</span></p>
+      <p><strong>Anomalies Detected:</strong> ${latestRun.anomaliesDetected || 0}</p>
+    ` : '<p class="no-data">No runs yet</p>'}
+  </div>
+
+  <h2>Key Metric Drops</h2>
+  <div class="card">
+    ${dropDates.length > 0 ? `
+      <table>
+        <thead><tr><th>Date</th><th>Source</th><th>Metric</th><th>Drop</th></tr></thead>
+        <tbody>
+          ${dropDates.map((d: any) => `
+            <tr>
+              <td>${d.date}</td>
+              <td>${d.source}</td>
+              <td>${d.metric}</td>
+              <td class="drop">${d.drop}%</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    ` : '<p class="no-data">No significant drops detected</p>'}
+  </div>
+
+  <h2>Top Hypotheses</h2>
+  <div class="card">
+    ${rootCauses.length > 0 ? rootCauses.map((h: any, i: number) => `
+      <div class="hypothesis">
+        <strong>${i + 1}. ${h.hypothesis || h.category}</strong><br>
+        <small>Category: ${h.category} | Confidence: ${h.confidence} | Owner: <span class="owner">${h.owner}</span></small>
+      </div>
+    `).join('') : '<p class="no-data">No hypotheses generated</p>'}
+  </div>
+
+  <h2>Top 10 Tickets</h2>
+  <div class="card">
+    ${tickets.length > 0 ? `
+      <table>
+        <thead><tr><th>ID</th><th>Title</th><th>Owner</th><th>Priority</th><th>Status</th></tr></thead>
+        <tbody>
+          ${tickets.map(t => `
+            <tr>
+              <td>${t.ticketId}</td>
+              <td>${t.title}</td>
+              <td><span class="owner">${t.owner}</span></td>
+              <td class="priority-${t.priority.toLowerCase()}">${t.priority}</td>
+              <td>${t.status}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    ` : '<p class="no-data">No tickets yet</p>'}
+  </div>
+
+  <h2>Summary</h2>
+  <div class="card">
+    <p>${report?.summary || 'No report available yet. Run diagnostics to generate a report.'}</p>
+  </div>
+</body>
+</html>`;
+
+      res.setHeader('Content-Type', 'text/html');
+      res.send(html);
+    } catch (error: any) {
+      logger.error("API", "Briefing page failed", { error: error.message });
+      res.status(500).send(`<html><body><h1>Error</h1><p>${error.message}</p></body></html>`);
+    }
+  });
+
   app.get("/api/health", async (req, res) => {
     try {
       let dbConnected = false;

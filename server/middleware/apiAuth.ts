@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { logger } from "../utils/logger";
 
 const PUBLIC_PATHS = [
+  "/briefing",
   "/api/health",
   "/api/status",
   "/api/report/latest",
