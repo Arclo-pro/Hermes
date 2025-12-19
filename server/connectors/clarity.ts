@@ -24,16 +24,18 @@ export interface ClarityInsights {
 
 export class ClarityConnector {
   private projectId: string;
+  private apiKey: string;
 
   constructor() {
     this.projectId = process.env.CLARITY_PROJECT_ID || '';
-    if (!this.projectId) {
-      logger.warn('Clarity', 'CLARITY_PROJECT_ID not set');
+    this.apiKey = process.env.CLARITY_API_KEY || '';
+    if (!this.projectId && !this.apiKey) {
+      logger.warn('Clarity', 'CLARITY_PROJECT_ID or CLARITY_API_KEY not set');
     }
   }
 
   isConfigured(): boolean {
-    return !!this.projectId;
+    return !!(this.projectId || this.apiKey);
   }
 
   async getTopSessions(limit: number = 10): Promise<ClaritySession[]> {
