@@ -12,5 +12,28 @@ export const client = new pg.Client({
   connectionString: process.env.DATABASE_URL,
 });
 
-await client.connect();
-export const db = drizzle(client, { schema });
+let dbInstance: ReturnType<typeof drizzle<typeof schema>> | null = null;
+
+export async function initializeDatabase() {
+  if (!dbInstance) {
+    await client.connect();
+    dbInstance = drizzle(client, { schema });
+  }
+  return dbInstance;
+}
+
+export function getDb() {
+  if (!dbInstance) {
+    throw new Error("Database not initialized. Call initializeDatabase() first.");
+  }
+  return dbInstance;
+}
+
+export const db = new Proxy({} as ReturnType<typeof drizzle<typeof schema>>, {
+  get(_, prop) {
+    if (!dbInstance) {
+      throw new Error("Database not initialized. Call initializeDatabase() first.");
+    }
+    return (dbInstance as any)[prop];
+  },
+});
