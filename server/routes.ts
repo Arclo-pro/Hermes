@@ -574,27 +574,51 @@ export async function registerRoutes(
 
   app.get("/api/dashboard/stats", async (req, res) => {
     try {
-      const endDate = new Date().toISOString().split("T")[0];
-      const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+      const now = new Date();
+      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      
+      const formatDate = (d: Date) => d.toISOString().split("T")[0].replace(/-/g, "");
+      const endDate = formatDate(now);
+      const startDate = formatDate(weekAgo);
+      
+      const endDateDash = now.toISOString().split("T")[0];
 
       const [ga4Data, adsData, webChecks] = await Promise.all([
         storage.getGA4DataByDateRange(startDate, endDate),
         storage.getAdsDataByDateRange(startDate, endDate),
-        storage.getWebChecksByDate(endDate),
+        storage.getWebChecksByDate(endDateDash),
       ]);
 
       const totalSessions = ga4Data.reduce((sum, d) => sum + d.sessions, 0);
       const totalSpend = adsData.reduce((sum, d) => sum + d.spend, 0);
       const healthScore = webChecks.filter(c => c.statusCode === 200).length / Math.max(webChecks.length, 1) * 100;
 
+      // Aggregate sessions by date
+      const ga4ByDate = ga4Data.reduce((acc, d) => {
+        acc[d.date] = (acc[d.date] || 0) + d.sessions;
+        return acc;
+      }, {} as Record<string, number>);
+      const ga4Trend = Object.entries(ga4ByDate)
+        .map(([date, value]) => ({ date, value }))
+        .sort((a, b) => a.date.localeCompare(b.date));
+
+      // Aggregate spend by date
+      const adsByDate = adsData.reduce((acc, d) => {
+        acc[d.date] = (acc[d.date] || 0) + d.spend;
+        return acc;
+      }, {} as Record<string, number>);
+      const adsTrend = Object.entries(adsByDate)
+        .map(([date, value]) => ({ date, value }))
+        .sort((a, b) => a.date.localeCompare(b.date));
+
       res.json({
         organicTraffic: {
           total: totalSessions,
-          trend: ga4Data.map(d => ({ date: d.date, value: d.sessions })),
+          trend: ga4Trend,
         },
         adsSpend: {
           total: totalSpend,
-          trend: adsData.map(d => ({ date: d.date, value: d.spend })),
+          trend: adsTrend,
         },
         healthScore: Math.round(healthScore),
         webChecks: {
