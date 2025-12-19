@@ -41,12 +41,40 @@ GOOGLE_REDIRECT_URI=http://localhost:5000/api/auth/callback
 
 # Google API Configuration
 GA4_PROPERTY_ID=your_ga4_property_id
-GSC_SITE=sc-domain:empathyhealthclinic.com
+GSC_SITE=sc-domain:empathyhealthclinic.com  # or https://empathyhealthclinic.com/ for URL-prefix
 ADS_CUSTOMER_ID=123-456-7890
+
+# Microsoft Clarity (optional, for session recordings)
+CLARITY_PROJECT_ID=your_clarity_project_id
 
 # Database (automatically set by Replit)
 DATABASE_URL=postgresql://...
 ```
+
+### Configuration Values Checklist
+
+After setup, verify these values are correct:
+- **GA4_PROPERTY_ID**: Numeric property ID (e.g., `345678901`)
+- **GSC_SITE**: Exact format matters:
+  - Domain property: `sc-domain:empathyhealthclinic.com`
+  - URL-prefix: `https://empathyhealthclinic.com/`
+- **ADS_CUSTOMER_ID**: Format `123-456-7890` (with or without dashes)
+- **GOOGLE_REDIRECT_URI**: Must match exactly in Google Cloud Console
+
+### Google Ads API (Additional Requirements)
+
+For full Google Ads integration, you also need:
+
+```bash
+# Apply for a Developer Token at:
+# https://developers.google.com/google-ads/api/docs/get-started/dev-token
+GOOGLE_ADS_DEVELOPER_TOKEN=your_developer_token
+
+# Required if using MCC (Manager) account
+GOOGLE_ADS_LOGIN_CUSTOMER_ID=123-456-7890
+```
+
+**Note:** The Google Ads API has additional approval requirements. Without a Developer Token, the Ads connector will show placeholder data with instructions to check the Google Ads dashboard directly.
 
 ### 2. Google Cloud Platform Setup
 

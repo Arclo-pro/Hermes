@@ -7,6 +7,37 @@ import { withRetry, RateLimiter } from "../utils/retry";
 
 const rateLimiter = new RateLimiter(10, 1);
 
+export interface RealtimeData {
+  activeUsers: number;
+  eventCount: number;
+  lastEventTime?: string;
+  isHealthy: boolean;
+}
+
+export interface EngagementMetrics {
+  engagementRate: number;
+  engagedSessions: number;
+  averageSessionDuration: number;
+  bounceRate: number;
+  sessionsPerUser: number;
+}
+
+export interface ChannelPerformance {
+  channel: string;
+  sessions: number;
+  users: number;
+  conversions: number;
+  engagementRate: number;
+}
+
+export interface LandingPagePerformance {
+  landingPage: string;
+  sessions: number;
+  users: number;
+  bounceRate: number;
+  conversions: number;
+}
+
 export class GA4Connector {
   private propertyId: string;
 
@@ -73,6 +104,257 @@ export class GA4Connector {
       },
       { maxAttempts: 3, delayMs: 2000 },
       'GA4 fetchDailyData'
+    );
+  }
+
+  async checkRealtimeHealth(): Promise<RealtimeData> {
+    if (!this.propertyId) {
+      throw new Error('GA4_PROPERTY_ID environment variable is required');
+    }
+
+    logger.info('GA4', 'Checking realtime tag health');
+    
+    await rateLimiter.acquire();
+
+    return withRetry(
+      async () => {
+        const auth = await googleAuth.getAuthenticatedClient();
+        const analyticsData = google.analyticsdata('v1beta');
+
+        const response = await analyticsData.properties.runRealtimeReport({
+          auth,
+          property: `properties/${this.propertyId}`,
+          requestBody: {
+            metrics: [
+              { name: 'activeUsers' },
+              { name: 'eventCount' },
+            ],
+          },
+        });
+
+        const row = response.data.rows?.[0];
+        const activeUsers = parseInt(row?.metricValues?.[0]?.value || '0');
+        const eventCount = parseInt(row?.metricValues?.[1]?.value || '0');
+
+        const result: RealtimeData = {
+          activeUsers,
+          eventCount,
+          isHealthy: activeUsers > 0 || eventCount > 0,
+        };
+
+        logger.info('GA4', `Realtime health check: ${result.isHealthy ? 'HEALTHY' : 'NO ACTIVITY'}`, {
+          activeUsers,
+          eventCount,
+        });
+
+        return result;
+      },
+      { maxAttempts: 2, delayMs: 1000 },
+      'GA4 checkRealtimeHealth'
+    );
+  }
+
+  async getEngagementMetrics(startDate: string, endDate: string): Promise<EngagementMetrics> {
+    if (!this.propertyId) {
+      throw new Error('GA4_PROPERTY_ID environment variable is required');
+    }
+
+    await rateLimiter.acquire();
+
+    return withRetry(
+      async () => {
+        const auth = await googleAuth.getAuthenticatedClient();
+        const analyticsData = google.analyticsdata('v1beta');
+
+        const response = await analyticsData.properties.runReport({
+          auth,
+          property: `properties/${this.propertyId}`,
+          requestBody: {
+            dateRanges: [{ startDate, endDate }],
+            metrics: [
+              { name: 'engagementRate' },
+              { name: 'engagedSessions' },
+              { name: 'averageSessionDuration' },
+              { name: 'bounceRate' },
+              { name: 'sessionsPerUser' },
+            ],
+          },
+        });
+
+        const row = response.data.rows?.[0];
+        
+        return {
+          engagementRate: parseFloat(row?.metricValues?.[0]?.value || '0'),
+          engagedSessions: parseInt(row?.metricValues?.[1]?.value || '0'),
+          averageSessionDuration: parseFloat(row?.metricValues?.[2]?.value || '0'),
+          bounceRate: parseFloat(row?.metricValues?.[3]?.value || '0'),
+          sessionsPerUser: parseFloat(row?.metricValues?.[4]?.value || '0'),
+        };
+      },
+      { maxAttempts: 3, delayMs: 2000 },
+      'GA4 getEngagementMetrics'
+    );
+  }
+
+  async getChannelPerformance(startDate: string, endDate: string): Promise<ChannelPerformance[]> {
+    if (!this.propertyId) {
+      throw new Error('GA4_PROPERTY_ID environment variable is required');
+    }
+
+    await rateLimiter.acquire();
+
+    return withRetry(
+      async () => {
+        const auth = await googleAuth.getAuthenticatedClient();
+        const analyticsData = google.analyticsdata('v1beta');
+
+        const response = await analyticsData.properties.runReport({
+          auth,
+          property: `properties/${this.propertyId}`,
+          requestBody: {
+            dateRanges: [{ startDate, endDate }],
+            dimensions: [{ name: 'sessionDefaultChannelGroup' }],
+            metrics: [
+              { name: 'sessions' },
+              { name: 'activeUsers' },
+              { name: 'conversions' },
+              { name: 'engagementRate' },
+            ],
+            orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
+            limit: 20,
+          },
+        });
+
+        return (response.data.rows || []).map(row => ({
+          channel: row.dimensionValues?.[0]?.value || 'Unknown',
+          sessions: parseInt(row.metricValues?.[0]?.value || '0'),
+          users: parseInt(row.metricValues?.[1]?.value || '0'),
+          conversions: parseInt(row.metricValues?.[2]?.value || '0'),
+          engagementRate: parseFloat(row.metricValues?.[3]?.value || '0'),
+        }));
+      },
+      { maxAttempts: 3, delayMs: 2000 },
+      'GA4 getChannelPerformance'
+    );
+  }
+
+  async getLandingPagePerformance(startDate: string, endDate: string, limit: number = 50): Promise<LandingPagePerformance[]> {
+    if (!this.propertyId) {
+      throw new Error('GA4_PROPERTY_ID environment variable is required');
+    }
+
+    await rateLimiter.acquire();
+
+    return withRetry(
+      async () => {
+        const auth = await googleAuth.getAuthenticatedClient();
+        const analyticsData = google.analyticsdata('v1beta');
+
+        const response = await analyticsData.properties.runReport({
+          auth,
+          property: `properties/${this.propertyId}`,
+          requestBody: {
+            dateRanges: [{ startDate, endDate }],
+            dimensions: [{ name: 'landingPage' }],
+            metrics: [
+              { name: 'sessions' },
+              { name: 'activeUsers' },
+              { name: 'bounceRate' },
+              { name: 'conversions' },
+            ],
+            orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
+            limit,
+          },
+        });
+
+        return (response.data.rows || []).map(row => ({
+          landingPage: row.dimensionValues?.[0]?.value || 'Unknown',
+          sessions: parseInt(row.metricValues?.[0]?.value || '0'),
+          users: parseInt(row.metricValues?.[1]?.value || '0'),
+          bounceRate: parseFloat(row.metricValues?.[2]?.value || '0'),
+          conversions: parseInt(row.metricValues?.[3]?.value || '0'),
+        }));
+      },
+      { maxAttempts: 3, delayMs: 2000 },
+      'GA4 getLandingPagePerformance'
+    );
+  }
+
+  async getDeviceBreakdown(startDate: string, endDate: string) {
+    if (!this.propertyId) {
+      throw new Error('GA4_PROPERTY_ID environment variable is required');
+    }
+
+    await rateLimiter.acquire();
+
+    return withRetry(
+      async () => {
+        const auth = await googleAuth.getAuthenticatedClient();
+        const analyticsData = google.analyticsdata('v1beta');
+
+        const response = await analyticsData.properties.runReport({
+          auth,
+          property: `properties/${this.propertyId}`,
+          requestBody: {
+            dateRanges: [{ startDate, endDate }],
+            dimensions: [{ name: 'deviceCategory' }],
+            metrics: [
+              { name: 'sessions' },
+              { name: 'activeUsers' },
+              { name: 'conversions' },
+            ],
+          },
+        });
+
+        return (response.data.rows || []).map(row => ({
+          device: row.dimensionValues?.[0]?.value || 'Unknown',
+          sessions: parseInt(row.metricValues?.[0]?.value || '0'),
+          users: parseInt(row.metricValues?.[1]?.value || '0'),
+          conversions: parseInt(row.metricValues?.[2]?.value || '0'),
+        }));
+      },
+      { maxAttempts: 3, delayMs: 2000 },
+      'GA4 getDeviceBreakdown'
+    );
+  }
+
+  async getGeoBreakdown(startDate: string, endDate: string, limit: number = 20) {
+    if (!this.propertyId) {
+      throw new Error('GA4_PROPERTY_ID environment variable is required');
+    }
+
+    await rateLimiter.acquire();
+
+    return withRetry(
+      async () => {
+        const auth = await googleAuth.getAuthenticatedClient();
+        const analyticsData = google.analyticsdata('v1beta');
+
+        const response = await analyticsData.properties.runReport({
+          auth,
+          property: `properties/${this.propertyId}`,
+          requestBody: {
+            dateRanges: [{ startDate, endDate }],
+            dimensions: [{ name: 'country' }],
+            metrics: [
+              { name: 'sessions' },
+              { name: 'activeUsers' },
+              { name: 'conversions' },
+            ],
+            orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
+            limit,
+          },
+        });
+
+        return (response.data.rows || []).map(row => ({
+          country: row.dimensionValues?.[0]?.value || 'Unknown',
+          sessions: parseInt(row.metricValues?.[0]?.value || '0'),
+          users: parseInt(row.metricValues?.[1]?.value || '0'),
+          conversions: parseInt(row.metricValues?.[2]?.value || '0'),
+        }));
+      },
+      { maxAttempts: 3, delayMs: 2000 },
+      'GA4 getGeoBreakdown'
     );
   }
 

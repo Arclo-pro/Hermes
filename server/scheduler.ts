@@ -30,9 +30,28 @@ async function runDailyDiagnostics() {
           logger.error('Scheduler', 'Ads fetch failed', { error: e.message })
         ),
       ]);
+
+      await Promise.all([
+        ga4Connector.checkRealtimeHealth().catch(e =>
+          logger.error('Scheduler', 'GA4 realtime check failed', { error: e.message })
+        ),
+        gscConnector.fetchSitemaps().catch(e =>
+          logger.error('Scheduler', 'GSC sitemaps fetch failed', { error: e.message })
+        ),
+        adsConnector.getCampaignStatuses().catch(e =>
+          logger.error('Scheduler', 'Ads campaign status check failed', { error: e.message })
+        ),
+        adsConnector.getPolicyIssues().catch(e =>
+          logger.error('Scheduler', 'Ads policy issues check failed', { error: e.message })
+        ),
+      ]);
     }
 
-    await websiteChecker.runDailyChecks();
+    const topPages = await ga4Connector.getLandingPagePerformance(startDate, endDate, 20)
+      .then(pages => pages.map(p => `https://${process.env.DOMAIN || 'empathyhealthclinic.com'}${p.landingPage}`))
+      .catch(() => []);
+    
+    await websiteChecker.runDailyChecks(topPages);
 
     const report = await analysisEngine.generateReport(startDate, endDate);
 

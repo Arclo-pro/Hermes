@@ -41,15 +41,37 @@ Preferred communication style: Simple, everyday language.
 
 ### Data Connectors
 The system has modular connectors for each data source:
-- **GA4 Connector**: Google Analytics Data API for sessions, users, events, conversions
-- **GSC Connector**: Search Console API for clicks, impressions, CTR, positions
-- **Ads Connector**: Google Ads API for spend, campaigns, policy issues
-- **Website Checker**: HTTP-based health checks for robots.txt, sitemap, page status
+- **GA4 Connector**: Google Analytics Data API
+  - Sessions, users, events, conversions by date/channel/landing page/device/geo
+  - Realtime tag health check (are events firing?)
+  - Channel and landing page performance trends
+  - Engagement metrics (bounce rate, session duration)
+- **GSC Connector**: Search Console API
+  - Clicks, impressions, CTR, positions by query and page
+  - Sitemaps list with submission/download timestamps
+  - URL inspection for indexing status
+- **Ads Connector**: Google Ads API (requires Developer Token)
+  - Spend, clicks, impressions, CPC by campaign
+  - Campaign status (paused, limited, budget)
+  - Policy issues and disapprovals
+  - Conversion action tracking status
+- **Website Checker**: HTTP-based health checks
+  - robots.txt parsing (disallowed paths, sitemap links)
+  - Sitemap.xml validation and URL extraction
+  - HTTP headers capture (x-robots-tag, cache-control)
+  - Redirect chain detection
+  - Canonical tag verification
+  - Uptime monitoring
+- **Clarity Connector**: Microsoft Clarity integration
+  - Dashboard links for session recordings and heatmaps
+  - Evidence links in reports for user behavior analysis
 
 ### Analysis Engine
 - Detects drops using 7-day rolling averages
-- Calculates z-scores for statistical significance
+- Calculates z-scores for statistical significance (-2 threshold)
+- Multi-source diagnostic context (tag health, sitemaps, page errors)
 - Generates ranked root cause hypotheses with confidence levels
+- Categories: Tracking, Server Errors, Missing Pages, Indexing, Canonicalization, Paid Traffic
 - Creates actionable tickets assigned to SEO/Dev/Ads teams
 
 ### Authentication
