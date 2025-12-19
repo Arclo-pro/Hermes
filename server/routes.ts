@@ -8,19 +8,358 @@ import { adsConnector } from "./connectors/ads";
 import { websiteChecker } from "./website_checks";
 import { analysisEngine } from "./analysis";
 import { logger } from "./utils/logger";
+import { apiKeyAuth } from "./middleware/apiAuth";
+import { randomUUID } from "crypto";
+
+const APP_VERSION = "1.0.0";
+
+function generateRunId(): string {
+  return `run_${Date.now()}_${randomUUID().slice(0, 8)}`;
+}
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  
-  // OAuth Authentication Routes
+
+  app.use(apiKeyAuth);
+
+  app.get("/api/health", async (req, res) => {
+    try {
+      let dbConnected = false;
+      try {
+        await storage.getConfig("test");
+        dbConnected = true;
+      } catch {
+        dbConnected = false;
+      }
+
+      const latestRun = await storage.getLatestRun();
+
+      res.json({
+        ok: true,
+        version: APP_VERSION,
+        env: process.env.NODE_ENV || "development",
+        serverTime: new Date().toISOString(),
+        dbConnected,
+        lastRunAt: latestRun?.startedAt || null,
+        lastRunStatus: latestRun?.status || null,
+      });
+    } catch (error: any) {
+      res.status(500).json({ 
+        ok: false, 
+        error: error.message,
+        serverTime: new Date().toISOString(),
+      });
+    }
+  });
+
+  app.get("/api/status", async (req, res) => {
+    try {
+      const token = await storage.getToken("google");
+      const latestRun = await storage.getLatestRun();
+      const sourceStatuses = latestRun?.sourceStatuses as any || {};
+
+      const endDate = new Date().toISOString().split("T")[0];
+      const startDate = new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+
+      const [ga4Data, gscData, adsData, webChecks] = await Promise.all([
+        storage.getGA4DataByDateRange(startDate, endDate),
+        storage.getGSCDataByDateRange(startDate, endDate),
+        storage.getAdsDataByDateRange(startDate, endDate),
+        storage.getWebChecksByDate(endDate),
+      ]);
+
+      res.json({
+        authenticated: !!token,
+        tokenExpiry: token?.expiresAt || null,
+        sources: {
+          ga4: {
+            lastFetchAt: ga4Data.length > 0 ? ga4Data[ga4Data.length - 1].createdAt : null,
+            recordCount: ga4Data.length,
+            lastError: sourceStatuses.ga4?.error || null,
+          },
+          gsc: {
+            lastFetchAt: gscData.length > 0 ? gscData[gscData.length - 1].createdAt : null,
+            recordCount: gscData.length,
+            lastError: sourceStatuses.gsc?.error || null,
+          },
+          ads: {
+            lastFetchAt: adsData.length > 0 ? adsData[adsData.length - 1].createdAt : null,
+            recordCount: adsData.length,
+            lastError: sourceStatuses.ads?.error || null,
+          },
+          websiteChecks: {
+            lastFetchAt: webChecks.length > 0 ? webChecks[0].createdAt : null,
+            recordCount: webChecks.length,
+            passed: webChecks.filter(c => c.statusCode === 200).length,
+            lastError: sourceStatuses.websiteChecks?.error || null,
+          },
+        },
+      });
+    } catch (error: any) {
+      logger.error("API", "Status check failed", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/run", async (req, res) => {
+    const runId = generateRunId();
+    const startedAt = new Date();
+
+    try {
+      logger.info("API", "Starting diagnostic run", { runId });
+
+      await storage.saveRun({
+        runId,
+        runType: "full",
+        status: "running",
+        startedAt,
+      });
+
+      const endDate = new Date().toISOString().split("T")[0];
+      const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+
+      const isAuthenticated = await googleAuth.isAuthenticated();
+      const sourceStatuses: Record<string, any> = {};
+
+      if (!isAuthenticated) {
+        logger.warn("API", "Not authenticated, skipping API data fetch");
+        sourceStatuses.auth = { error: "Not authenticated" };
+      } else {
+        const results = await Promise.allSettled([
+          ga4Connector.fetchDailyData(startDate, endDate),
+          gscConnector.fetchDailyData(startDate, endDate),
+          adsConnector.fetchDailyData(startDate, endDate),
+        ]);
+
+        sourceStatuses.ga4 = results[0].status === "fulfilled" 
+          ? { ok: true, count: results[0].value.length }
+          : { ok: false, error: (results[0] as PromiseRejectedResult).reason?.message };
+        sourceStatuses.gsc = results[1].status === "fulfilled"
+          ? { ok: true, count: results[1].value.length }
+          : { ok: false, error: (results[1] as PromiseRejectedResult).reason?.message };
+        sourceStatuses.ads = results[2].status === "fulfilled"
+          ? { ok: true, count: results[2].value.length }
+          : { ok: false, error: (results[2] as PromiseRejectedResult).reason?.message };
+      }
+
+      await websiteChecker.runDailyChecks();
+      sourceStatuses.websiteChecks = { ok: true };
+
+      const report = await analysisEngine.generateReport(startDate, endDate);
+
+      let rootCauses: any[] = [];
+      try {
+        rootCauses = typeof report.rootCauses === "string"
+          ? JSON.parse(report.rootCauses)
+          : (report.rootCauses || []);
+      } catch {
+        rootCauses = [];
+      }
+
+      let ticketCount = 0;
+      if (rootCauses.length > 0) {
+        const tickets = await analysisEngine.generateTickets(report.id, rootCauses);
+        ticketCount = tickets.length;
+      }
+
+      const dropDates = typeof report.dropDates === "string"
+        ? JSON.parse(report.dropDates)
+        : (report.dropDates || []);
+
+      const finishedAt = new Date();
+
+      await storage.updateRun(runId, {
+        status: "completed",
+        finishedAt,
+        summary: report.summary,
+        anomaliesDetected: dropDates.length,
+        reportId: report.id,
+        ticketCount,
+        sourceStatuses,
+      });
+
+      logger.info("API", "Diagnostic run completed", { runId, reportId: report.id });
+
+      res.json({
+        runId,
+        startedAt: startedAt.toISOString(),
+        finishedAt: finishedAt.toISOString(),
+        summary: report.summary,
+        anomaliesDetected: dropDates.length,
+        reportId: report.id,
+        ticketCount,
+      });
+    } catch (error: any) {
+      logger.error("API", "Diagnostic run failed", { runId, error: error.message });
+
+      await storage.updateRun(runId, {
+        status: "failed",
+        finishedAt: new Date(),
+        errors: { message: error.message },
+      });
+
+      res.status(500).json({ 
+        runId,
+        error: error.message,
+        startedAt: startedAt.toISOString(),
+        finishedAt: new Date().toISOString(),
+      });
+    }
+  });
+
+  app.post("/api/run/smoke", async (req, res) => {
+    const runId = generateRunId();
+    const startedAt = new Date();
+
+    try {
+      logger.info("API", "Starting smoke test", { runId });
+
+      await storage.saveRun({
+        runId,
+        runType: "smoke",
+        status: "running",
+        startedAt,
+      });
+
+      const results: Record<string, any> = {
+        env: {
+          GOOGLE_CLIENT_ID: !!process.env.GOOGLE_CLIENT_ID,
+          GOOGLE_CLIENT_SECRET: !!process.env.GOOGLE_CLIENT_SECRET,
+          GA4_PROPERTY_ID: !!process.env.GA4_PROPERTY_ID,
+          GSC_SITE: !!process.env.GSC_SITE,
+          ADS_CUSTOMER_ID: !!process.env.ADS_CUSTOMER_ID,
+          GOOGLE_ADS_DEVELOPER_TOKEN: !!process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
+          DATABASE_URL: !!process.env.DATABASE_URL,
+          TRAFFIC_DOCTOR_API_KEY: !!process.env.TRAFFIC_DOCTOR_API_KEY,
+        },
+        sources: {},
+      };
+
+      const isAuthenticated = await googleAuth.isAuthenticated();
+      results.authenticated = isAuthenticated;
+
+      if (!isAuthenticated) {
+        results.sources = {
+          ga4: { ok: false, error: "Not authenticated" },
+          gsc: { ok: false, error: "Not authenticated" },
+          ads: { ok: false, error: "Not authenticated" },
+        };
+      } else {
+        const yesterday = new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+        const today = new Date().toISOString().split("T")[0];
+
+        const [ga4Result, gscResult, adsResult] = await Promise.allSettled([
+          ga4Connector.fetchDailyData(yesterday, today),
+          gscConnector.fetchDailyData(yesterday, today),
+          adsConnector.fetchDailyData(yesterday, today),
+        ]);
+
+        results.sources.ga4 = ga4Result.status === "fulfilled"
+          ? { ok: true, sampleCount: ga4Result.value.length }
+          : { ok: false, error: (ga4Result as PromiseRejectedResult).reason?.message };
+
+        results.sources.gsc = gscResult.status === "fulfilled"
+          ? { ok: true, sampleCount: gscResult.value.length }
+          : { ok: false, error: (gscResult as PromiseRejectedResult).reason?.message };
+
+        results.sources.ads = adsResult.status === "fulfilled"
+          ? { ok: true, sampleCount: adsResult.value.length }
+          : { ok: false, error: (adsResult as PromiseRejectedResult).reason?.message };
+      }
+
+      const finishedAt = new Date();
+
+      await storage.updateRun(runId, {
+        status: "completed",
+        finishedAt,
+        summary: "Smoke test completed",
+        sourceStatuses: results.sources,
+      });
+
+      res.json({
+        runId,
+        startedAt: startedAt.toISOString(),
+        finishedAt: finishedAt.toISOString(),
+        ...results,
+      });
+    } catch (error: any) {
+      logger.error("API", "Smoke test failed", { runId, error: error.message });
+
+      await storage.updateRun(runId, {
+        status: "failed",
+        finishedAt: new Date(),
+        errors: { message: error.message },
+      });
+
+      res.status(500).json({
+        runId,
+        error: error.message,
+        startedAt: startedAt.toISOString(),
+        finishedAt: new Date().toISOString(),
+      });
+    }
+  });
+
+  app.get("/api/report/latest", async (req, res) => {
+    try {
+      const report = await storage.getLatestReport();
+
+      if (!report) {
+        return res.status(404).json({ error: "No reports found" });
+      }
+
+      res.json({
+        id: report.id,
+        date: report.date,
+        reportType: report.reportType,
+        summary: report.summary,
+        dropDates: report.dropDates,
+        rootCauses: report.rootCauses,
+        markdownReport: report.markdownReport,
+        createdAt: report.createdAt,
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to fetch latest report", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/tickets/latest", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const tickets = await storage.getLatestTickets(limit);
+
+      res.json({
+        count: tickets.length,
+        tickets: tickets.map(t => ({
+          id: t.id,
+          ticketId: t.ticketId,
+          title: t.title,
+          owner: t.owner,
+          priority: t.priority,
+          status: t.status,
+          steps: t.steps,
+          expectedImpact: t.expectedImpact,
+          evidence: t.evidence,
+          reportId: t.reportId,
+          createdAt: t.createdAt,
+          updatedAt: t.updatedAt,
+        })),
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to fetch latest tickets", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/auth/status", async (req, res) => {
     try {
       const isAuthenticated = await googleAuth.isAuthenticated();
       res.json({ authenticated: isAuthenticated });
     } catch (error: any) {
-      logger.error('API', 'Auth status check failed', { error: error.message });
+      logger.error("API", "Auth status check failed", { error: error.message });
       res.status(500).json({ error: error.message });
     }
   });
@@ -30,7 +369,7 @@ export async function registerRoutes(
       const url = googleAuth.getAuthUrl();
       res.json({ url });
     } catch (error: any) {
-      logger.error('API', 'Failed to generate auth URL', { error: error.message });
+      logger.error("API", "Failed to generate auth URL", { error: error.message });
       res.status(500).json({ error: error.message });
     }
   });
@@ -38,103 +377,24 @@ export async function registerRoutes(
   app.get("/api/auth/callback", async (req, res) => {
     try {
       const code = req.query.code as string;
-      
+
       if (!code) {
-        return res.redirect('/dashboard?auth=error&message=Authorization+code+required');
+        return res.redirect("/dashboard?auth=error&message=Authorization+code+required");
       }
 
       await googleAuth.exchangeCodeForTokens(code);
-      logger.info('API', 'OAuth authentication successful');
-      res.redirect('/dashboard?auth=success');
+      logger.info("API", "OAuth authentication successful");
+      res.redirect("/dashboard?auth=success");
     } catch (error: any) {
-      logger.error('API', 'OAuth callback failed', { error: error.message });
-      res.redirect('/dashboard?auth=error&message=' + encodeURIComponent(error.message));
+      logger.error("API", "OAuth callback failed", { error: error.message });
+      res.redirect("/dashboard?auth=error&message=" + encodeURIComponent(error.message));
     }
   });
 
-  // Run Diagnostics
-  app.post("/api/run", async (req, res) => {
-    try {
-      logger.info('API', 'Starting diagnostic run');
-      
-      const endDate = new Date().toISOString().split('T')[0];
-      const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
-      const isAuthenticated = await googleAuth.isAuthenticated();
-      
-      if (!isAuthenticated) {
-        logger.warn('API', 'Not authenticated, skipping API data fetch');
-      } else {
-        await Promise.all([
-          ga4Connector.fetchDailyData(startDate, endDate).catch(e => logger.error('API', 'GA4 fetch failed', { error: e.message })),
-          gscConnector.fetchDailyData(startDate, endDate).catch(e => logger.error('API', 'GSC fetch failed', { error: e.message })),
-          adsConnector.fetchDailyData(startDate, endDate).catch(e => logger.error('API', 'Ads fetch failed', { error: e.message })),
-        ]);
-      }
-
-      await websiteChecker.runDailyChecks();
-
-      const report = await analysisEngine.generateReport(startDate, endDate);
-
-      let rootCauses = [];
-      try {
-        rootCauses = typeof report.rootCauses === 'string' 
-          ? JSON.parse(report.rootCauses) 
-          : (report.rootCauses || []);
-      } catch {
-        rootCauses = [];
-      }
-      
-      if (rootCauses && rootCauses.length > 0) {
-        await analysisEngine.generateTickets(report.id, rootCauses);
-      }
-
-      logger.info('API', 'Diagnostic run completed', { reportId: report.id });
-      
-      res.json({
-        success: true,
-        reportId: report.id,
-        summary: report.summary,
-      });
-    } catch (error: any) {
-      logger.error('API', 'Diagnostic run failed', { error: error.message });
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Get Latest Report
-  app.get("/api/report/latest", async (req, res) => {
-    try {
-      const report = await storage.getLatestReport();
-      
-      if (!report) {
-        return res.status(404).json({ error: 'No reports found' });
-      }
-
-      res.json(report);
-    } catch (error: any) {
-      logger.error('API', 'Failed to fetch latest report', { error: error.message });
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Get Latest Tickets
-  app.get("/api/tickets/latest", async (req, res) => {
-    try {
-      const limit = parseInt(req.query.limit as string) || 10;
-      const tickets = await storage.getLatestTickets(limit);
-      res.json(tickets);
-    } catch (error: any) {
-      logger.error('API', 'Failed to fetch latest tickets', { error: error.message });
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Get Dashboard Summary Stats
   app.get("/api/dashboard/stats", async (req, res) => {
     try {
-      const endDate = new Date().toISOString().split('T')[0];
-      const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const endDate = new Date().toISOString().split("T")[0];
+      const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
       const [ga4Data, adsData, webChecks] = await Promise.all([
         storage.getGA4DataByDateRange(startDate, endDate),
@@ -162,19 +422,18 @@ export async function registerRoutes(
         },
       });
     } catch (error: any) {
-      logger.error('API', 'Failed to fetch dashboard stats', { error: error.message });
+      logger.error("API", "Failed to fetch dashboard stats", { error: error.message });
       res.status(500).json({ error: error.message });
     }
   });
 
-  // Update Ticket Status
   app.patch("/api/tickets/:ticketId/status", async (req, res) => {
     try {
       const { ticketId } = req.params;
       const { status } = req.body;
 
       if (!status) {
-        return res.status(400).json({ error: 'Status required' });
+        return res.status(400).json({ error: "Status required" });
       }
 
       await storage.updateTicketStatus(ticketId, status);
@@ -182,7 +441,7 @@ export async function registerRoutes(
 
       res.json(ticket);
     } catch (error: any) {
-      logger.error('API', 'Failed to update ticket status', { error: error.message });
+      logger.error("API", "Failed to update ticket status", { error: error.message });
       res.status(500).json({ error: error.message });
     }
   });
