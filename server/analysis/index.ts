@@ -412,27 +412,44 @@ export class AnalysisEngine {
     return md;
   }
 
-  async generateTickets(reportId: number, rootCauses: RootCause[]): Promise<InsertTicket[]> {
+  async generateTickets(reportId: number, rootCauses: any[]): Promise<InsertTicket[]> {
+    if (!rootCauses || rootCauses.length === 0) {
+      logger.info('Analysis', 'No root causes to generate tickets for');
+      return [];
+    }
+
     const ticketCounter = await storage.getLatestTickets(1);
     let nextId = ticketCounter.length > 0 
       ? parseInt(ticketCounter[0].ticketId.split('-')[1]) + 1 
       : 1000;
 
-    const tickets: InsertTicket[] = rootCauses.map(cause => ({
-      ticketId: `TICK-${nextId++}`,
-      title: cause.hypothesis,
-      owner: cause.owner,
-      priority: cause.priority,
-      status: 'Open',
-      steps: cause.evidence.map((e, i) => ({ step: i + 1, action: e })),
-      expectedImpact: `Resolve ${cause.category.toLowerCase()} issue - ${cause.priority.toLowerCase()} priority`,
-      evidence: { 
-        sources: cause.evidence, 
-        confidence: cause.confidence,
-        category: cause.category,
-      },
-      reportId,
-    }));
+    const tickets: InsertTicket[] = rootCauses
+      .filter(cause => cause && cause.hypothesis)
+      .map(cause => {
+        const evidence = cause.evidence || [];
+        return {
+          ticketId: `TICK-${nextId++}`,
+          title: cause.hypothesis,
+          owner: cause.owner || 'SEO',
+          priority: cause.priority || 'Medium',
+          status: 'Open',
+          steps: Array.isArray(evidence) 
+            ? evidence.map((e: string, i: number) => ({ step: i + 1, action: e }))
+            : [{ step: 1, action: 'Investigate issue' }],
+          expectedImpact: `Resolve ${(cause.category || 'unknown').toLowerCase()} issue - ${(cause.priority || 'medium').toLowerCase()} priority`,
+          evidence: { 
+            sources: evidence, 
+            confidence: cause.confidence || 'Medium',
+            category: cause.category || 'Unknown',
+          },
+          reportId,
+        };
+      });
+
+    if (tickets.length === 0) {
+      logger.info('Analysis', 'No valid tickets to generate');
+      return [];
+    }
 
     const savedTickets = await storage.saveTickets(tickets);
     logger.info('Analysis', `Generated ${savedTickets.length} tickets`);

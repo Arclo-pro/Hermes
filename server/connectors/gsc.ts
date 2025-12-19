@@ -47,21 +47,34 @@ export class GSCConnector {
     return withRetry(
       async () => {
         const auth = await googleAuth.getAuthenticatedClient();
-        const searchConsole = google.searchconsole('v1');
-
-        const response = await searchConsole.searchanalytics.query({
-          auth,
-          siteUrl: this.siteUrl,
-          requestBody: {
+        
+        const url = `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(this.siteUrl)}/searchAnalytics/query`;
+        
+        const accessToken = (auth.credentials as any).access_token;
+        
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
             startDate,
             endDate,
             dimensions: ['date', 'query', 'page'],
-            rowLimit: 25000,
-          },
+            rowLimit: 5000,
+          }),
         });
 
-        const rows = response.data.rows || [];
-        const results: InsertGSCDaily[] = rows.map(row => ({
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`GSC API error: ${response.status} - ${errorText}`);
+        }
+
+        const data = await response.json();
+        const rows = data.rows || [];
+        
+        const results: InsertGSCDaily[] = rows.map((row: any) => ({
           date: row.keys?.[0] || startDate,
           clicks: row.clicks || 0,
           impressions: row.impressions || 0,
@@ -69,13 +82,13 @@ export class GSCConnector {
           position: row.position || 0,
           query: row.keys?.[1] || null,
           page: row.keys?.[2] || null,
-          rawData: JSON.parse(JSON.stringify({
+          rawData: {
             keys: row.keys,
             clicks: row.clicks,
             impressions: row.impressions,
             ctr: row.ctr,
             position: row.position,
-          })),
+          },
         }));
 
         await storage.saveGSCData(results);

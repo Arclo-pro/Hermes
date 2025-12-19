@@ -76,11 +76,18 @@ export async function registerRoutes(
 
       const report = await analysisEngine.generateReport(startDate, endDate);
 
-      const rootCauses = typeof report.rootCauses === 'string' 
-        ? JSON.parse(report.rootCauses) 
-        : report.rootCauses;
+      let rootCauses = [];
+      try {
+        rootCauses = typeof report.rootCauses === 'string' 
+          ? JSON.parse(report.rootCauses) 
+          : (report.rootCauses || []);
+      } catch {
+        rootCauses = [];
+      }
       
-      await analysisEngine.generateTickets(report.id, rootCauses);
+      if (rootCauses && rootCauses.length > 0) {
+        await analysisEngine.generateTickets(report.id, rootCauses);
+      }
 
       logger.info('API', 'Diagnostic run completed', { reportId: report.id });
       
