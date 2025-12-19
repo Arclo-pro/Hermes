@@ -1,0 +1,214 @@
+# Traffic & Spend Doctor
+
+Production-ready web service for diagnosing organic traffic drops and Google Ads spend anomalies for **empathyhealthclinic.com**.
+
+## Features
+
+- **Daily Automated Diagnostics**: Runs at 7am America/Chicago timezone
+- **On-Demand Analysis**: Trigger diagnostics anytime via API or dashboard
+- **Multi-Source Data Collection**:
+  - Google Analytics 4 (GA4) - Sessions, users, events, conversions
+  - Google Search Console (GSC) - Clicks, impressions, CTR, positions  
+  - Google Ads - Spend, campaigns, disapprovals, policy issues
+  - Website Health Checks - Status codes, redirects, canonical tags, meta robots
+- **Smart Drop Detection**: Rolling averages + z-score analysis
+- **Root Cause Classification**: Ranked hypotheses with evidence
+- **Automated Ticketing**: Ready-to-file tickets with prioritization (SEO/Dev/Ads)
+- **Dashboard UI**: Minimal interface at `/dashboard`
+
+## Stack
+
+- **Backend**: Node.js + TypeScript + Express
+- **Database**: PostgreSQL (with Drizzle ORM)
+- **Scheduler**: node-cron
+- **APIs**: Google Analytics Data API, Search Console API, Ads API
+- **Frontend**: React + Vite + TailwindCSS
+
+## Setup Instructions
+
+### 1. Environment Variables
+
+Create or update your environment variables with the following:
+
+```bash
+# Domain to monitor
+DOMAIN=empathyhealthclinic.com
+
+# Google OAuth Credentials (required for API access)
+GOOGLE_CLIENT_ID=your_client_id_here
+GOOGLE_CLIENT_SECRET=your_client_secret_here
+GOOGLE_REDIRECT_URI=http://localhost:5000/api/auth/callback
+
+# Google API Configuration
+GA4_PROPERTY_ID=your_ga4_property_id
+GSC_SITE=sc-domain:empathyhealthclinic.com
+ADS_CUSTOMER_ID=123-456-7890
+
+# Database (automatically set by Replit)
+DATABASE_URL=postgresql://...
+```
+
+### 2. Google Cloud Platform Setup
+
+1. **Create a Google Cloud Project**:
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Create a new project or select existing
+
+2. **Enable Required APIs**:
+   - Google Analytics Data API (GA4)
+   - Google Search Console API
+   - Google Ads API
+
+3. **Create OAuth 2.0 Credentials**:
+   - Go to "APIs & Services" > "Credentials"
+   - Click "Create Credentials" > "OAuth 2.0 Client ID"
+   - Application type: Web application
+   - Authorized redirect URIs: Add your `GOOGLE_REDIRECT_URI`
+   - Copy Client ID and Client Secret to environment variables
+
+4. **Grant Access**:
+   - GA4: Ensure OAuth account has Viewer access to GA4 property
+   - GSC: Ensure OAuth account is verified owner/user in Search Console
+   - Ads: Link Google Ads account with OAuth email
+
+### 3. Database Setup
+
+The database is automatically provisioned. To push the schema:
+
+```bash
+npm run db:push
+```
+
+### 4. Running the Application
+
+**Development:**
+```bash
+npm run dev
+```
+
+**Production:**
+```bash
+npm run build
+npm start
+```
+
+The app serves on port 5000 at `http://localhost:5000`
+
+### 5. Authentication Flow
+
+1. Navigate to `/dashboard`
+2. If not authenticated, click "Authenticate with Google"
+3. Complete OAuth flow
+4. Service will store refresh tokens and auto-refresh as needed
+
+## API Endpoints
+
+### Authentication
+- `GET /api/auth/status` - Check authentication status
+- `GET /api/auth/url` - Get OAuth authorization URL
+- `POST /api/auth/callback` - OAuth callback handler
+  ```json
+  { "code": "authorization_code" }
+  ```
+
+### Diagnostics
+- `POST /api/run` - Run diagnostics now
+  ```json
+  {
+    "success": true,
+    "reportId": 123,
+    "summary": "Detected 2 significant traffic drop(s)..."
+  }
+  ```
+
+### Reports & Tickets
+- `GET /api/report/latest` - Get latest diagnostic report
+- `GET /api/tickets/latest?limit=10` - Get recent tickets
+- `PATCH /api/tickets/:ticketId/status` - Update ticket status
+  ```json
+  { "status": "In Progress" }
+  ```
+
+### Dashboard
+- `GET /api/dashboard/stats` - Get summary stats for dashboard
+
+## Scheduler
+
+The service automatically runs daily diagnostics at **7:00 AM America/Chicago** timezone.
+
+To modify the schedule, edit `server/scheduler.ts`:
+
+```typescript
+cron.schedule('0 7 * * *', runDailyDiagnostics, {
+  timezone: 'America/Chicago',
+});
+```
+
+## Data Storage
+
+All data is persisted in PostgreSQL:
+
+- **oauth_tokens**: OAuth refresh tokens
+- **ga4_daily**: Daily GA4 snapshots
+- **gsc_daily**: Daily Search Console snapshots
+- **ads_daily**: Daily Google Ads snapshots
+- **web_checks_daily**: Daily website health checks
+- **reports**: Analysis reports with drop detection
+- **tickets**: Diagnostic tickets with prioritization
+
+## Architecture
+
+```
+server/
+├── auth/              # Google OAuth 2.0 manager
+├── connectors/        # GA4, GSC, Ads API clients
+├── website_checks/    # robots.txt, sitemap, page validation
+├── analysis/          # Drop detection & root-cause engine
+├── utils/             # Logger, retry logic, rate limiting
+├── routes.ts          # API endpoints
+├── scheduler.ts       # Daily cron job
+└── storage.ts         # Database interface (Drizzle ORM)
+
+client/
+├── src/
+│   ├── components/
+│   │   ├── dashboard/   # Stats, tickets, connectors
+│   │   └── layout/      # Dashboard shell
+│   └── pages/           # Dashboard page
+```
+
+## Example Outputs
+
+See `/examples` directory for:
+- `daily_report.md` - Sample markdown report
+- `tickets.json` - Sample ticket export
+
+## Troubleshooting
+
+**Service won't start:**
+- Ensure `DATABASE_URL` is set (auto-configured in Replit)
+- Check Google OAuth credentials are valid
+
+**No data in dashboard:**
+- Run authentication flow first
+- Trigger manual run via `POST /api/run`
+- Check logs for API errors
+
+**Authentication errors:**
+- Verify OAuth redirect URI matches exactly
+- Ensure APIs are enabled in Google Cloud Console
+- Check scopes are granted during OAuth flow
+
+## Production Deployment
+
+When deploying to production:
+
+1. Update `GOOGLE_REDIRECT_URI` to production URL
+2. Add production URI to Google Cloud Console redirect list
+3. Set all environment variables in production environment
+4. Run `npm run db:push` to sync database schema
+5. Ensure port 5000 is accessible
+
+## License
+
+MIT

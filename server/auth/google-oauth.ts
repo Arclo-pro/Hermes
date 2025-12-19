@@ -9,20 +9,28 @@ const SCOPES = [
 
 export class GoogleOAuthManager {
   private oauth2Client;
+  private isConfigured: boolean;
 
   constructor() {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-    const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/api/auth/callback';
+    const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:5000/api/auth/callback';
 
     if (!clientId || !clientSecret) {
-      throw new Error('GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set');
+      console.warn('[OAuth] GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET not set. OAuth features will be disabled.');
+      this.isConfigured = false;
+      this.oauth2Client = new google.auth.OAuth2('', '', '');
+      return;
     }
 
+    this.isConfigured = true;
     this.oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
   }
 
   getAuthUrl(): string {
+    if (!this.isConfigured) {
+      throw new Error('OAuth not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.');
+    }
     return this.oauth2Client.generateAuthUrl({
       access_type: 'offline',
       scope: SCOPES,
@@ -31,6 +39,9 @@ export class GoogleOAuthManager {
   }
 
   async exchangeCodeForTokens(code: string): Promise<void> {
+    if (!this.isConfigured) {
+      throw new Error('OAuth not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.');
+    }
     const { tokens } = await this.oauth2Client.getToken(code);
     
     if (!tokens.access_token || !tokens.expiry_date) {
@@ -49,6 +60,9 @@ export class GoogleOAuthManager {
   }
 
   async getAuthenticatedClient() {
+    if (!this.isConfigured) {
+      throw new Error('OAuth not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.');
+    }
     const token = await storage.getToken('google');
 
     if (!token) {

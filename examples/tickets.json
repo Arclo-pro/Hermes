@@ -1,0 +1,76 @@
+[
+  {
+    "ticketId": "TICK-1024",
+    "title": "3 pages returning non-200 status codes",
+    "owner": "Dev",
+    "priority": "High",
+    "status": "Open",
+    "steps": [
+      { "step": 1, "action": "https://empathyhealthclinic.com/services/cardiology: 404" },
+      { "step": 2, "action": "https://empathyhealthclinic.com/blog/health-tips-2024: 500" },
+      { "step": 3, "action": "https://empathyhealthclinic.com/locations/downtown: 301" }
+    ],
+    "expectedImpact": "Resolve high priority issue",
+    "evidence": {
+      "sources": [
+        "https://empathyhealthclinic.com/services/cardiology: 404",
+        "https://empathyhealthclinic.com/blog/health-tips-2024: 500",
+        "https://empathyhealthclinic.com/locations/downtown: 301"
+      ],
+      "confidence": "High"
+    },
+    "reportId": 1,
+    "createdAt": "2024-12-19T20:05:00.000Z"
+  },
+  {
+    "ticketId": "TICK-1025",
+    "title": "5 pages missing canonical tags",
+    "owner": "SEO",
+    "priority": "Medium",
+    "status": "Open",
+    "steps": [
+      { "step": 1, "action": "https://empathyhealthclinic.com/about" },
+      { "step": 2, "action": "https://empathyhealthclinic.com/careers" },
+      { "step": 3, "action": "https://empathyhealthclinic.com/contact" },
+      { "step": 4, "action": "https://empathyhealthclinic.com/privacy" },
+      { "step": 5, "action": "https://empathyhealthclinic.com/terms" }
+    ],
+    "expectedImpact": "Resolve medium priority issue",
+    "evidence": {
+      "sources": [
+        "https://empathyhealthclinic.com/about",
+        "https://empathyhealthclinic.com/careers",
+        "https://empathyhealthclinic.com/contact",
+        "https://empathyhealthclinic.com/privacy",
+        "https://empathyhealthclinic.com/terms"
+      ],
+      "confidence": "Medium"
+    },
+    "reportId": 1,
+    "createdAt": "2024-12-19T20:05:00.000Z"
+  },
+  {
+    "ticketId": "TICK-1026",
+    "title": "Google Ads Campaign 'Brand_Exact' showing low spend",
+    "owner": "Ads",
+    "priority": "High",
+    "status": "Open",
+    "steps": [
+      { "step": 1, "action": "Check campaign budget settings" },
+      { "step": 2, "action": "Review bidding strategy" },
+      { "step": 3, "action": "Verify targeting parameters" },
+      { "step": 4, "action": "Check for policy violations or disapprovals" }
+    ],
+    "expectedImpact": "Resolve high priority issue",
+    "evidence": {
+      "sources": [
+        "Campaign ID: 12345",
+        "Target daily spend: $200",
+        "Actual spend: $15"
+      ],
+      "confidence": "High"
+    },
+    "reportId": 1,
+    "createdAt": "2024-12-19T20:05:00.000Z"
+  }
+]
