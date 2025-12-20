@@ -1593,20 +1593,32 @@ When answering:
       const { siteId, type } = req.params;
       const integration = await storage.getSiteIntegration(siteId, type);
       
-      if (!integration) {
-        return res.status(404).json({ error: "Integration not configured" });
-      }
-      
+      // Allow testing even without pre-configured integration (uses env fallback)
       let success = false;
       let message = "";
       
-      // Test based on integration type
+      // Resolve secrets from vault or env
+      const { resolveIntegrationSecrets } = await import("./vault");
+      const secrets = await resolveIntegrationSecrets(
+        type,
+        integration?.vaultProvider || "env",
+        integration?.vaultItemId || null,
+        integration?.metaJson || {}
+      );
+      
+      // Test based on integration type using resolved secrets
       switch (type) {
         case "ga4":
           try {
+            // Check if we have the required credentials
+            const propertyId = secrets.propertyId || process.env.GA4_PROPERTY_ID;
+            if (!propertyId) {
+              message = "GA4 property ID not configured";
+              break;
+            }
             const ga4Result = await ga4Connector.fetchRealtimeUsers?.();
             success = ga4Result !== undefined;
-            message = success ? "GA4 connection successful" : "GA4 connection failed";
+            message = success ? `GA4 connected (Property: ${propertyId})` : "GA4 connection failed";
           } catch (e: any) {
             message = e.message;
           }
@@ -1614,29 +1626,68 @@ When answering:
           
         case "gsc":
           try {
+            const siteUrl = secrets.siteUrl || process.env.GSC_SITE;
+            if (!siteUrl) {
+              message = "GSC site URL not configured";
+              break;
+            }
             const gscResult = await gscConnector.getSitemaps?.();
             success = gscResult !== undefined;
-            message = success ? "GSC connection successful" : "GSC connection failed";
+            message = success ? `GSC connected (${siteUrl})` : "GSC connection failed";
+          } catch (e: any) {
+            message = e.message;
+          }
+          break;
+          
+        case "google_ads":
+          try {
+            const customerId = secrets.customerId || process.env.ADS_CUSTOMER_ID;
+            const developerToken = secrets.developerToken || process.env.GOOGLE_ADS_DEVELOPER_TOKEN;
+            if (!customerId || !developerToken) {
+              message = "Google Ads credentials incomplete";
+              break;
+            }
+            success = true;
+            message = `Google Ads configured (Customer: ${customerId.slice(-4)})`;
           } catch (e: any) {
             message = e.message;
           }
           break;
           
         case "serp":
-          success = !!process.env.SERP_API_KEY;
+          const serpKey = secrets.apiKey || process.env.SERP_API_KEY;
+          success = !!serpKey;
           message = success ? "SERP API key configured" : "SERP API key missing";
+          break;
+          
+        case "clarity":
+          const clarityKey = secrets.apiKey || process.env.CLARITY_API_KEY;
+          success = !!clarityKey;
+          message = success ? "Clarity configured" : "Clarity API key missing";
           break;
           
         default:
           message = "Unknown integration type";
       }
       
-      // Update integration status
-      await storage.updateSiteIntegration(integration.id, {
-        status: success ? "connected" : "error",
-        lastCheckedAt: new Date(),
-        lastError: success ? null : message,
-      });
+      // Create/update integration record with status
+      if (integration) {
+        await storage.updateSiteIntegration(integration.id, {
+          status: success ? "connected" : "error",
+          lastCheckedAt: new Date(),
+          lastError: success ? null : message,
+        });
+      } else {
+        // Auto-create integration record if it doesn't exist
+        await storage.saveSiteIntegration({
+          siteId,
+          integrationType: type,
+          vaultProvider: "env",
+          status: success ? "connected" : "error",
+          lastCheckedAt: new Date(),
+          lastError: success ? null : message,
+        });
+      }
       
       res.json({ success, message });
     } catch (error: any) {
