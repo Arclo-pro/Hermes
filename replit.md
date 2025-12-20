@@ -1,15 +1,25 @@
-# Traffic & Spend Doctor
+# SEO Doctor Orchestrator
 
 ## Overview
 
-Traffic & Spend Doctor is a production-ready web service that diagnoses organic traffic drops and Google Ads spend anomalies for empathyhealthclinic.com. The system collects data from multiple sources (GA4, Search Console, Google Ads), performs automated analysis using rolling averages and z-score detection, generates root cause hypotheses, and creates actionable tickets for SEO, Dev, and Ads teams.
+SEO Doctor Orchestrator is a production-ready multi-site SEO monitoring and diagnosis platform. Originally built for empathyhealthclinic.com, it now supports multiple sites through a comprehensive site registry system. The system collects data from multiple sources (GA4, Search Console, Google Ads, SERP tracking), performs automated analysis using rolling averages and z-score detection, generates root cause hypotheses, and creates actionable tickets for SEO, Dev, and Ads teams.
 
 Key capabilities:
+- **Multi-Site Registry**: Configure and manage multiple websites with full config including tech stack, repo/deploy settings, integrations, and guardrails
 - Daily automated diagnostics at 7am America/Chicago timezone
 - On-demand analysis via API or dashboard
 - Multi-source data collection from Google APIs and website health checks
+- SERP tracking with SerpApi integration
 - Smart drop detection with statistical analysis
 - Automated ticket generation with prioritization
+
+### Sites Registry (NEW)
+The platform now supports orchestrating SEO diagnostics across multiple sites:
+- Full site configuration (tech stack, repository, deployment method)
+- Per-site integration credentials (GA4, GSC, Google Ads, Clarity)
+- Crawl settings and guardrails for automated fixes
+- Health score tracking and audit logging
+- Soft delete for preserving historical data
 
 ## User Preferences
 
