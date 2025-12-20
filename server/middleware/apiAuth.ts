@@ -19,12 +19,24 @@ const PUBLIC_PATHS = [
   "/api/ai/ask",
 ];
 
+const SESSION_ALLOWED_PATHS = [
+  "/api/run",
+  "/api/run/smoke",
+];
+
 export function apiKeyAuth(req: Request, res: Response, next: NextFunction) {
   if (PUBLIC_PATHS.some(path => req.path === path || req.path.startsWith(path + "?"))) {
     return next();
   }
 
   if (!req.path.startsWith("/api/")) {
+    return next();
+  }
+
+  const isSessionAllowedPath = SESSION_ALLOWED_PATHS.some(
+    path => req.path === path || req.path.startsWith(path + "?")
+  );
+  if (isSessionAllowedPath && (req.session as any)?.authenticated) {
     return next();
   }
 

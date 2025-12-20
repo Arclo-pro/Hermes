@@ -40,7 +40,10 @@ export default function Dashboard() {
 
   const runDiagnostics = useMutation({
     mutationFn: async () => {
-      const res = await fetch('/api/run', { method: 'POST' });
+      const res = await fetch('/api/run', { 
+        method: 'POST',
+        credentials: 'include'
+      });
       if (!res.ok) {
         const error = await res.json();
         throw new Error(error.error || 'Failed to run diagnostics');
