@@ -9,7 +9,8 @@ import {
   LogOut,
   Menu,
   X,
-  Search
+  Search,
+  Globe
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logoImage from "@assets/generated_images/minimalist_cross_symbol_with_data_graph_lines.png";
@@ -24,6 +25,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/sites", label: "Sites", icon: Globe },
     { href: "/tickets", label: "Tickets", icon: FileText },
     { href: "/analysis", label: "Analysis", icon: Activity },
     { href: "/serp", label: "SERP Tracking", icon: Search },

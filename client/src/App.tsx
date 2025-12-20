@@ -9,11 +9,16 @@ import Tickets from "@/pages/Tickets";
 import Analysis from "@/pages/Analysis";
 import Settings from "@/pages/Settings";
 import SERP from "@/pages/SERP";
+import Sites from "@/pages/Sites";
+import SiteDetail from "@/pages/SiteDetail";
 
 function Router() {
   return (
     <Switch>
       <Route path="/dashboard" component={Dashboard} />
+      <Route path="/sites" component={Sites} />
+      <Route path="/sites/new" component={SiteDetail} />
+      <Route path="/sites/:siteId" component={SiteDetail} />
       <Route path="/tickets" component={Tickets} />
       <Route path="/analysis" component={Analysis} />
       <Route path="/serp" component={SERP} />
