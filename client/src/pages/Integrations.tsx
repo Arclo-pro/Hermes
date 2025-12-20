@@ -199,6 +199,15 @@ export default function Integrations() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => queryClient.invalidateQueries({ queryKey: ["platformIntegrations"] })}
+              disabled={isLoading}
+              data-testid="button-refresh-integrations"
+            >
+              <RefreshCw className={cn("w-4 h-4 mr-2", isLoading && "animate-spin")} />
+              Refresh
+            </Button>
             {(!integrations || integrations.length === 0) && (
               <Button
                 variant="outline"
