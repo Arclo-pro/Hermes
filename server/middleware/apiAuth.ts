@@ -17,11 +17,16 @@ const PUBLIC_PATHS = [
   "/api/auth/callback",
   "/api/campaigns",
   "/api/ai/ask",
+  "/api/serp/keywords",
+  "/api/serp/rankings",
+  "/api/serp/overview",
 ];
 
 const SESSION_ALLOWED_PATHS = [
   "/api/run",
   "/api/run/smoke",
+  "/api/serp/run",
+  "/api/serp/seed",
 ];
 
 export function apiKeyAuth(req: Request, res: Response, next: NextFunction) {

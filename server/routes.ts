@@ -5,6 +5,7 @@ import { googleAuth } from "./auth/google-oauth";
 import { ga4Connector } from "./connectors/ga4";
 import { gscConnector } from "./connectors/gsc";
 import { adsConnector } from "./connectors/ads";
+import { serpConnector } from "./connectors/serp";
 import { websiteChecker } from "./website_checks";
 import { analysisEngine } from "./analysis";
 import { runFullDiagnostic } from "./analysis/orchestrator";
@@ -997,6 +998,298 @@ When answering:
       res.json(ticket);
     } catch (error: any) {
       logger.error("API", "Failed to update ticket status", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // SERP Tracking Endpoints
+  app.get("/api/serp/keywords", async (req, res) => {
+    try {
+      const activeOnly = req.query.active !== 'false';
+      const keywords = await storage.getSerpKeywords(activeOnly);
+      res.json({ keywords, count: keywords.length });
+    } catch (error: any) {
+      logger.error("API", "Failed to fetch SERP keywords", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/serp/keywords", async (req, res) => {
+    try {
+      const { keywords } = req.body;
+      if (!keywords || !Array.isArray(keywords)) {
+        return res.status(400).json({ error: "Keywords array required" });
+      }
+      const saved = await storage.saveSerpKeywords(keywords);
+      res.json({ saved: saved.length, keywords: saved });
+    } catch (error: any) {
+      logger.error("API", "Failed to save SERP keywords", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/serp/seed", async (req, res) => {
+    try {
+      const mentalHealthKeywords = [
+        { keyword: "therapy orlando", intent: "transactional", priority: 100, tags: ["local", "therapy"] },
+        { keyword: "therapist near me", intent: "transactional", priority: 95, tags: ["local", "therapy"] },
+        { keyword: "online therapy florida", intent: "transactional", priority: 90, tags: ["local", "virtual"] },
+        { keyword: "mental health clinic orlando", intent: "transactional", priority: 90, tags: ["local", "clinic"] },
+        { keyword: "anxiety therapist orlando", intent: "transactional", priority: 85, tags: ["local", "anxiety"] },
+        { keyword: "depression counseling orlando", intent: "transactional", priority: 85, tags: ["local", "depression"] },
+        { keyword: "couples therapy orlando", intent: "transactional", priority: 85, tags: ["local", "couples"] },
+        { keyword: "psychiatrist orlando", intent: "transactional", priority: 85, tags: ["local", "psychiatry"] },
+        { keyword: "virtual therapy", intent: "transactional", priority: 80, tags: ["virtual"] },
+        { keyword: "telehealth therapy", intent: "transactional", priority: 80, tags: ["virtual"] },
+        { keyword: "signs of anxiety", intent: "informational", priority: 75, tags: ["informational", "anxiety"] },
+        { keyword: "signs of depression", intent: "informational", priority: 75, tags: ["informational", "depression"] },
+        { keyword: "how to find a therapist", intent: "informational", priority: 70, tags: ["informational"] },
+        { keyword: "what is cognitive behavioral therapy", intent: "informational", priority: 70, tags: ["informational", "cbt"] },
+        { keyword: "emdr therapy", intent: "informational", priority: 70, tags: ["informational", "emdr"] },
+        { keyword: "adhd in adults", intent: "informational", priority: 70, tags: ["informational", "adhd"] },
+        { keyword: "social exhaustion adhd", intent: "informational", priority: 70, tags: ["informational", "adhd"] },
+        { keyword: "signs guy pretending straight", intent: "informational", priority: 65, tags: ["informational", "lgbtq"] },
+        { keyword: "how long to fall in love", intent: "informational", priority: 65, tags: ["informational", "relationships"] },
+        { keyword: "what is a short term relationship", intent: "informational", priority: 65, tags: ["informational", "relationships"] },
+        { keyword: "low stress jobs", intent: "informational", priority: 60, tags: ["informational", "career"] },
+        { keyword: "jobs for people with anxiety", intent: "informational", priority: 60, tags: ["informational", "anxiety", "career"] },
+        { keyword: "attention seeking behavior", intent: "informational", priority: 60, tags: ["informational", "behavior"] },
+        { keyword: "ltr relationship meaning", intent: "informational", priority: 55, tags: ["informational", "relationships"] },
+        { keyword: "one sided relationship signs", intent: "informational", priority: 55, tags: ["informational", "relationships"] },
+        { keyword: "who cheats more men or women", intent: "informational", priority: 55, tags: ["informational", "relationships"] },
+        { keyword: "marriage counseling orlando", intent: "transactional", priority: 85, tags: ["local", "marriage"] },
+        { keyword: "family therapy orlando", intent: "transactional", priority: 80, tags: ["local", "family"] },
+        { keyword: "child therapist orlando", intent: "transactional", priority: 80, tags: ["local", "child"] },
+        { keyword: "teen therapist orlando", intent: "transactional", priority: 80, tags: ["local", "teen"] },
+        { keyword: "trauma therapy orlando", intent: "transactional", priority: 80, tags: ["local", "trauma"] },
+        { keyword: "ptsd treatment orlando", intent: "transactional", priority: 75, tags: ["local", "ptsd"] },
+        { keyword: "grief counseling orlando", intent: "transactional", priority: 75, tags: ["local", "grief"] },
+        { keyword: "stress management therapy", intent: "informational", priority: 65, tags: ["informational", "stress"] },
+        { keyword: "burnout symptoms", intent: "informational", priority: 65, tags: ["informational", "burnout"] },
+        { keyword: "relationship anxiety", intent: "informational", priority: 65, tags: ["informational", "anxiety", "relationships"] },
+        { keyword: "attachment styles", intent: "informational", priority: 60, tags: ["informational", "attachment"] },
+        { keyword: "anxious attachment", intent: "informational", priority: 60, tags: ["informational", "attachment"] },
+        { keyword: "avoidant attachment", intent: "informational", priority: 60, tags: ["informational", "attachment"] },
+        { keyword: "secure attachment", intent: "informational", priority: 55, tags: ["informational", "attachment"] },
+        { keyword: "therapy for introverts", intent: "informational", priority: 55, tags: ["informational"] },
+        { keyword: "online psychiatrist florida", intent: "transactional", priority: 80, tags: ["local", "virtual", "psychiatry"] },
+        { keyword: "medication management orlando", intent: "transactional", priority: 75, tags: ["local", "psychiatry"] },
+        { keyword: "adhd testing orlando", intent: "transactional", priority: 75, tags: ["local", "adhd", "testing"] },
+        { keyword: "psychological testing orlando", intent: "transactional", priority: 70, tags: ["local", "testing"] },
+        { keyword: "therapy that takes insurance", intent: "transactional", priority: 85, tags: ["insurance"] },
+        { keyword: "therapist that accepts aetna", intent: "transactional", priority: 70, tags: ["insurance"] },
+        { keyword: "therapist that accepts cigna", intent: "transactional", priority: 70, tags: ["insurance"] },
+        { keyword: "therapist that accepts united healthcare", intent: "transactional", priority: 70, tags: ["insurance"] },
+        { keyword: "therapist that accepts blue cross", intent: "transactional", priority: 70, tags: ["insurance"] },
+        { keyword: "empathy health clinic", intent: "navigational", priority: 100, tags: ["branded"] },
+        { keyword: "empathy health orlando", intent: "navigational", priority: 95, tags: ["branded", "local"] },
+        { keyword: "narcissistic personality disorder", intent: "informational", priority: 55, tags: ["informational", "personality"] },
+        { keyword: "borderline personality disorder", intent: "informational", priority: 55, tags: ["informational", "personality"] },
+        { keyword: "bipolar disorder symptoms", intent: "informational", priority: 55, tags: ["informational", "bipolar"] },
+        { keyword: "ocd symptoms", intent: "informational", priority: 55, tags: ["informational", "ocd"] },
+        { keyword: "panic attack vs anxiety attack", intent: "informational", priority: 60, tags: ["informational", "anxiety"] },
+        { keyword: "how to stop a panic attack", intent: "informational", priority: 60, tags: ["informational", "anxiety"] },
+        { keyword: "therapy for perfectionism", intent: "informational", priority: 50, tags: ["informational"] },
+        { keyword: "imposter syndrome", intent: "informational", priority: 55, tags: ["informational", "career"] },
+        { keyword: "work life balance", intent: "informational", priority: 50, tags: ["informational", "career"] },
+        { keyword: "emotional intelligence", intent: "informational", priority: 50, tags: ["informational"] },
+        { keyword: "self esteem therapy", intent: "informational", priority: 55, tags: ["informational", "self-esteem"] },
+        { keyword: "confidence building exercises", intent: "informational", priority: 50, tags: ["informational", "self-esteem"] },
+        { keyword: "anger management therapy", intent: "transactional", priority: 65, tags: ["therapy", "anger"] },
+        { keyword: "addiction counseling orlando", intent: "transactional", priority: 70, tags: ["local", "addiction"] },
+        { keyword: "substance abuse treatment orlando", intent: "transactional", priority: 65, tags: ["local", "addiction"] },
+        { keyword: "eating disorder treatment orlando", intent: "transactional", priority: 65, tags: ["local", "eating-disorder"] },
+        { keyword: "body dysmorphia", intent: "informational", priority: 55, tags: ["informational", "body-image"] },
+        { keyword: "postpartum depression treatment", intent: "transactional", priority: 70, tags: ["postpartum", "depression"] },
+        { keyword: "postpartum anxiety", intent: "informational", priority: 65, tags: ["informational", "postpartum"] },
+        { keyword: "perinatal mental health", intent: "informational", priority: 60, tags: ["informational", "perinatal"] },
+        { keyword: "lgbtq therapist orlando", intent: "transactional", priority: 75, tags: ["local", "lgbtq"] },
+        { keyword: "gender affirming therapy", intent: "transactional", priority: 70, tags: ["lgbtq"] },
+        { keyword: "veteran therapy orlando", intent: "transactional", priority: 65, tags: ["local", "veteran"] },
+        { keyword: "first responder mental health", intent: "informational", priority: 60, tags: ["informational", "first-responder"] },
+        { keyword: "mindfulness therapy", intent: "informational", priority: 55, tags: ["informational", "mindfulness"] },
+        { keyword: "dbt therapy orlando", intent: "transactional", priority: 70, tags: ["local", "dbt"] },
+        { keyword: "dialectical behavior therapy", intent: "informational", priority: 60, tags: ["informational", "dbt"] },
+        { keyword: "acceptance commitment therapy", intent: "informational", priority: 55, tags: ["informational", "act"] },
+        { keyword: "art therapy orlando", intent: "transactional", priority: 60, tags: ["local", "art-therapy"] },
+        { keyword: "play therapy orlando", intent: "transactional", priority: 65, tags: ["local", "child", "play-therapy"] },
+        { keyword: "therapy for highly sensitive person", intent: "informational", priority: 50, tags: ["informational", "hsp"] },
+        { keyword: "neurodivergent therapy", intent: "informational", priority: 55, tags: ["informational", "neurodivergent"] },
+        { keyword: "autism therapy orlando", intent: "transactional", priority: 65, tags: ["local", "autism"] },
+        { keyword: "relationship coach vs therapist", intent: "informational", priority: 45, tags: ["informational", "relationships"] },
+        { keyword: "when to see a therapist", intent: "informational", priority: 60, tags: ["informational"] },
+        { keyword: "cost of therapy without insurance", intent: "informational", priority: 55, tags: ["informational", "cost"] },
+        { keyword: "sliding scale therapy orlando", intent: "transactional", priority: 60, tags: ["local", "affordable"] },
+        { keyword: "affordable therapy orlando", intent: "transactional", priority: 65, tags: ["local", "affordable"] },
+        { keyword: "therapist vs psychologist", intent: "informational", priority: 50, tags: ["informational"] },
+        { keyword: "psychologist vs psychiatrist", intent: "informational", priority: 55, tags: ["informational"] },
+        { keyword: "cbt for anxiety", intent: "informational", priority: 60, tags: ["informational", "cbt", "anxiety"] },
+        { keyword: "therapy for overthinking", intent: "informational", priority: 55, tags: ["informational", "anxiety"] },
+        { keyword: "rumination ocd", intent: "informational", priority: 50, tags: ["informational", "ocd"] },
+        { keyword: "health anxiety symptoms", intent: "informational", priority: 55, tags: ["informational", "anxiety"] },
+      ];
+
+      const saved = await storage.saveSerpKeywords(mentalHealthKeywords);
+      res.json({ 
+        message: "Seeded SERP keywords", 
+        saved: saved.length,
+        total: mentalHealthKeywords.length 
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to seed SERP keywords", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/serp/rankings", async (req, res) => {
+    try {
+      const rankings = await storage.getLatestRankings();
+      const lastCheck = rankings.length > 0 ? rankings[0].date : null;
+      
+      const inTop10 = rankings.filter(r => r.position && r.position <= 10).length;
+      const inTop20 = rankings.filter(r => r.position && r.position <= 20).length;
+      const inTop100 = rankings.filter(r => r.position !== null).length;
+      const notRanking = rankings.filter(r => r.position === null).length;
+      
+      const avgPosition = inTop100 > 0 
+        ? Math.round(rankings.filter(r => r.position).reduce((sum, r) => sum + (r.position || 0), 0) / inTop100)
+        : null;
+
+      res.json({
+        rankings,
+        lastCheck,
+        stats: {
+          total: rankings.length,
+          inTop10,
+          inTop20,
+          inTop100,
+          notRanking,
+          avgPosition,
+        }
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to fetch SERP rankings", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/serp/keyword/:id/history", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const limit = parseInt(req.query.limit as string) || 30;
+      const history = await storage.getRankingHistoryByKeyword(parseInt(id), limit);
+      const keyword = await storage.getSerpKeywordById(parseInt(id));
+      res.json({ keyword, history });
+    } catch (error: any) {
+      logger.error("API", "Failed to fetch keyword history", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/serp/run", async (req, res) => {
+    try {
+      if (!serpConnector.isConfigured()) {
+        return res.status(400).json({ error: "SERP_API_KEY not configured" });
+      }
+
+      const keywords = await storage.getSerpKeywords(true);
+      if (keywords.length === 0) {
+        return res.status(400).json({ error: "No keywords to check. Seed keywords first." });
+      }
+
+      const limit = Math.min(parseInt(req.query.limit as string) || 10, 100);
+      const keywordsToCheck = keywords.slice(0, limit);
+      
+      logger.info("SERP", `Starting SERP check for ${keywordsToCheck.length} keywords`);
+      
+      const domain = process.env.DOMAIN || "empathyhealthclinic.com";
+      const results = await serpConnector.checkMultipleKeywords(
+        keywordsToCheck.map(k => ({ id: k.id, keyword: k.keyword })),
+        domain
+      );
+
+      const today = new Date().toISOString().split('T')[0];
+      const previousRankings = await storage.getRankingsByDate(
+        new Date(Date.now() - 86400000).toISOString().split('T')[0]
+      );
+
+      const rankingsToSave = results.map(r => {
+        const prevRanking = previousRankings.find(p => p.keywordId === r.keywordId);
+        let change = null;
+        if (r.position && prevRanking?.position) {
+          change = prevRanking.position - r.position;
+        }
+
+        return {
+          keywordId: r.keywordId,
+          date: today,
+          position: r.position,
+          url: r.url,
+          change,
+          serpFeatures: r.serpFeatures,
+        };
+      });
+
+      const saved = await storage.saveSerpRankings(rankingsToSave);
+      
+      const inTop10 = saved.filter(r => r.position && r.position <= 10).length;
+      const ranking = saved.filter(r => r.position !== null).length;
+
+      res.json({
+        checked: results.length,
+        saved: saved.length,
+        stats: {
+          ranking,
+          inTop10,
+          notFound: results.length - ranking,
+        }
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to run SERP check", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/serp/overview", async (req, res) => {
+    try {
+      const [keywords, rankings] = await Promise.all([
+        storage.getSerpKeywords(true),
+        storage.getLatestRankings(),
+      ]);
+
+      const lastCheck = rankings.length > 0 ? rankings[0].date : null;
+      const inTop10 = rankings.filter(r => r.position && r.position <= 10).length;
+      const inTop20 = rankings.filter(r => r.position && r.position <= 20).length;
+      const ranking = rankings.filter(r => r.position !== null).length;
+      const notRanking = rankings.filter(r => r.position === null).length;
+      
+      const avgPosition = ranking > 0 
+        ? Math.round(rankings.filter(r => r.position).reduce((sum, r) => sum + (r.position || 0), 0) / ranking)
+        : null;
+
+      const winners = rankings.filter(r => r.change && r.change > 0).length;
+      const losers = rankings.filter(r => r.change && r.change < 0).length;
+
+      res.json({
+        configured: serpConnector.isConfigured(),
+        totalKeywords: keywords.length,
+        lastCheck,
+        stats: {
+          ranking,
+          notRanking,
+          inTop10,
+          inTop20,
+          avgPosition,
+          winners,
+          losers,
+        },
+        topKeywords: rankings.filter(r => r.position).slice(0, 10),
+        recentChanges: rankings.filter(r => r.change && r.change !== 0)
+          .sort((a, b) => Math.abs(b.change || 0) - Math.abs(a.change || 0))
+          .slice(0, 10),
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to fetch SERP overview", { error: error.message });
       res.status(500).json({ error: error.message });
     }
   });
