@@ -164,6 +164,101 @@ export class SerpConnector {
       competitors,
     };
   }
+
+  async checkKeywordRanking(keyword: string, domain: string, options: {
+    location?: string;
+    device?: 'desktop' | 'mobile';
+  } = {}): Promise<{
+    position: number | null;
+    url: string | null;
+    serpFeatures: {
+      featuredSnippet: boolean;
+      localPack: boolean;
+      relatedQuestions: boolean;
+    };
+  }> {
+    if (!this.apiKey) {
+      throw new Error('SERP_API_KEY environment variable is required');
+    }
+
+    const { location = 'Orlando, Florida, United States', device = 'desktop' } = options;
+
+    const params = new URLSearchParams({
+      api_key: this.apiKey,
+      engine: 'google',
+      q: keyword,
+      location,
+      device,
+      num: '100',
+    });
+
+    const response = await fetch(`${this.baseUrl}?${params}`);
+    
+    if (!response.ok) {
+      throw new Error(`SerpAPI error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    const organicResults = data.organic_results || [];
+    const domainMatch = organicResults.find((r: any) => 
+      r.link && r.link.includes(domain)
+    );
+
+    return {
+      position: domainMatch?.position || null,
+      url: domainMatch?.link || null,
+      serpFeatures: {
+        featuredSnippet: !!(data.answer_box || data.featured_snippet),
+        localPack: !!(data.local_results?.places?.length),
+        relatedQuestions: !!(data.related_questions?.length),
+      },
+    };
+  }
+
+  async checkMultipleKeywords(keywords: { id: number; keyword: string }[], domain: string): Promise<{
+    keywordId: number;
+    keyword: string;
+    position: number | null;
+    url: string | null;
+    serpFeatures: any;
+  }[]> {
+    if (!this.apiKey) {
+      throw new Error('SERP_API_KEY environment variable is required');
+    }
+
+    logger.info('SERP', `Checking ${keywords.length} keywords for ${domain}`);
+    const results = [];
+    
+    for (const { id, keyword } of keywords) {
+      try {
+        const result = await this.checkKeywordRanking(keyword, domain);
+        results.push({
+          keywordId: id,
+          keyword,
+          position: result.position,
+          url: result.url,
+          serpFeatures: result.serpFeatures,
+        });
+        
+        await new Promise(resolve => setTimeout(resolve, 500));
+      } catch (error: any) {
+        logger.error('SERP', `Failed to check keyword: ${keyword}`, { error: error.message });
+        results.push({
+          keywordId: id,
+          keyword,
+          position: null,
+          url: null,
+          serpFeatures: null,
+        });
+      }
+    }
+
+    const found = results.filter(r => r.position !== null).length;
+    logger.info('SERP', `Completed keyword check: ${found}/${keywords.length} ranking`);
+
+    return results;
+  }
 }
 
 export const serpConnector = new SerpConnector();
