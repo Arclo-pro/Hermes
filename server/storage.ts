@@ -16,6 +16,9 @@ import {
   hypotheses,
   serpKeywords,
   serpRankings,
+  sites,
+  findings,
+  auditLogs,
   type OAuthToken,
   type InsertOAuthToken,
   type GA4Daily,
@@ -48,6 +51,12 @@ import {
   type InsertSerpKeyword,
   type SerpRanking,
   type InsertSerpRanking,
+  type Site,
+  type InsertSite,
+  type Finding,
+  type InsertFinding,
+  type AuditLog,
+  type InsertAuditLog,
 } from "@shared/schema";
 import { eq, desc, and, gte, sql, asc } from "drizzle-orm";
 
@@ -135,6 +144,24 @@ export interface IStorage {
   getLatestRankings(): Promise<(SerpRanking & { keyword: string })[]>;
   getRankingHistoryByKeyword(keywordId: number, limit?: number): Promise<SerpRanking[]>;
   getRankingsByDate(date: string): Promise<SerpRanking[]>;
+  
+  // Sites Registry
+  getSites(activeOnly?: boolean): Promise<Site[]>;
+  getSiteById(siteId: string): Promise<Site | undefined>;
+  createSite(site: InsertSite): Promise<Site>;
+  updateSite(siteId: string, updates: Partial<InsertSite>): Promise<Site | undefined>;
+  deleteSite(siteId: string): Promise<void>;
+  updateSiteHealthScore(siteId: string, score: number): Promise<void>;
+  updateSiteLastDiagnosis(siteId: string): Promise<void>;
+  
+  // Findings
+  saveFindings(findings: InsertFinding[]): Promise<Finding[]>;
+  getFindingsBySite(siteId: string, status?: string): Promise<Finding[]>;
+  updateFindingStatus(findingId: string, status: string): Promise<void>;
+  
+  // Audit Logs
+  saveAuditLog(log: InsertAuditLog): Promise<AuditLog>;
+  getAuditLogsBySite(siteId: string, limit?: number): Promise<AuditLog[]>;
 }
 
 class DBStorage implements IStorage {
@@ -546,6 +573,72 @@ class DBStorage implements IStorage {
       .from(serpRankings)
       .where(eq(serpRankings.date, date))
       .orderBy(asc(serpRankings.position));
+  }
+
+  // Sites Registry
+  async getSites(activeOnly = true): Promise<Site[]> {
+    if (activeOnly) {
+      return db.select().from(sites).where(eq(sites.active, true)).orderBy(desc(sites.createdAt));
+    }
+    return db.select().from(sites).orderBy(desc(sites.createdAt));
+  }
+
+  async getSiteById(siteId: string): Promise<Site | undefined> {
+    const [site] = await db.select().from(sites).where(eq(sites.siteId, siteId)).limit(1);
+    return site;
+  }
+
+  async createSite(site: InsertSite): Promise<Site> {
+    const [newSite] = await db.insert(sites).values(site).returning();
+    return newSite;
+  }
+
+  async updateSite(siteId: string, updates: Partial<InsertSite>): Promise<Site | undefined> {
+    const [updated] = await db
+      .update(sites)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(sites.siteId, siteId))
+      .returning();
+    return updated;
+  }
+
+  async deleteSite(siteId: string): Promise<void> {
+    await db.update(sites).set({ active: false, updatedAt: new Date() }).where(eq(sites.siteId, siteId));
+  }
+
+  async updateSiteHealthScore(siteId: string, score: number): Promise<void> {
+    await db.update(sites).set({ healthScore: score, updatedAt: new Date() }).where(eq(sites.siteId, siteId));
+  }
+
+  async updateSiteLastDiagnosis(siteId: string): Promise<void> {
+    await db.update(sites).set({ lastDiagnosisAt: new Date(), updatedAt: new Date() }).where(eq(sites.siteId, siteId));
+  }
+
+  // Findings
+  async saveFindings(findingsData: InsertFinding[]): Promise<Finding[]> {
+    if (findingsData.length === 0) return [];
+    return db.insert(findings).values(findingsData).returning();
+  }
+
+  async getFindingsBySite(siteId: string, status?: string): Promise<Finding[]> {
+    if (status) {
+      return db.select().from(findings).where(and(eq(findings.siteId, siteId), eq(findings.status, status))).orderBy(desc(findings.createdAt));
+    }
+    return db.select().from(findings).where(eq(findings.siteId, siteId)).orderBy(desc(findings.createdAt));
+  }
+
+  async updateFindingStatus(findingId: string, status: string): Promise<void> {
+    await db.update(findings).set({ status, updatedAt: new Date() }).where(eq(findings.findingId, findingId));
+  }
+
+  // Audit Logs
+  async saveAuditLog(log: InsertAuditLog): Promise<AuditLog> {
+    const [newLog] = await db.insert(auditLogs).values(log).returning();
+    return newLog;
+  }
+
+  async getAuditLogsBySite(siteId: string, limit = 50): Promise<AuditLog[]> {
+    return db.select().from(auditLogs).where(eq(auditLogs.siteId, siteId)).orderBy(desc(auditLogs.createdAt)).limit(limit);
   }
 }
 
