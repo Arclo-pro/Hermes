@@ -13,6 +13,50 @@ import { logger } from "./utils/logger";
 import { apiKeyAuth } from "./middleware/apiAuth";
 import { randomUUID } from "crypto";
 import OpenAI from "openai";
+import { z } from "zod";
+
+const createSiteSchema = z.object({
+  displayName: z.string().min(1, "Display name is required"),
+  baseUrl: z.string().url("Valid URL is required"),
+  category: z.string().optional().nullable(),
+  techStack: z.string().optional().nullable(),
+  repoProvider: z.string().optional().nullable(),
+  repoIdentifier: z.string().optional().nullable(),
+  deployMethod: z.string().optional().nullable(),
+  crawlSettings: z.object({
+    crawl_depth_limit: z.number().optional(),
+    max_pages: z.number().optional(),
+    respect_robots: z.boolean().optional(),
+    user_agent: z.string().optional(),
+  }).optional().nullable(),
+  sitemaps: z.array(z.string()).optional().nullable(),
+  keyPages: z.array(z.string()).optional().nullable(),
+  integrations: z.object({
+    ga4: z.object({ property_id: z.string() }).optional().nullable(),
+    gsc: z.object({ property: z.string() }).optional().nullable(),
+    google_ads: z.object({ customer_id: z.string() }).optional().nullable(),
+    clarity: z.object({ site_id: z.string() }).optional().nullable(),
+  }).optional().nullable(),
+  guardrails: z.object({
+    allowed_edit_paths: z.array(z.string()).optional(),
+    blocked_edit_paths: z.array(z.string()).optional(),
+    max_files_changed_per_run: z.number().optional(),
+    max_lines_changed_per_run: z.number().optional(),
+    require_human_approval: z.boolean().optional(),
+    auto_merge_categories: z.array(z.string()).optional(),
+  }).optional().nullable(),
+  cadence: z.object({
+    diagnose_frequency: z.string().optional(),
+    auto_fix_frequency: z.string().optional(),
+    content_frequency: z.string().optional(),
+    quiet_hours: z.string().optional(),
+  }).optional().nullable(),
+  ownerName: z.string().optional().nullable(),
+  ownerContact: z.string().optional().nullable(),
+  status: z.enum(["active", "paused", "onboarding"]).optional(),
+});
+
+const updateSiteSchema = createSiteSchema.partial();
 
 const APP_VERSION = "1.0.0";
 
@@ -1322,32 +1366,33 @@ When answering:
 
   app.post("/api/sites", async (req, res) => {
     try {
-      const { displayName, baseUrl, category, techStack, repoProvider, repoIdentifier, deployMethod, crawlSettings, sitemaps, keyPages, integrations, guardrails, cadence, ownerName, ownerContact, status } = req.body;
-      
-      if (!displayName || !baseUrl) {
-        return res.status(400).json({ error: "displayName and baseUrl are required" });
+      const parseResult = createSiteSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        const errors = parseResult.error.errors.map(e => `${e.path.join('.')}: ${e.message}`);
+        return res.status(400).json({ error: "Validation failed", details: errors });
       }
 
+      const data = parseResult.data;
       const siteId = `site_${Date.now()}_${randomUUID().slice(0, 8)}`;
       
       const newSite = await storage.createSite({
         siteId,
-        displayName,
-        baseUrl,
-        category,
-        techStack,
-        repoProvider,
-        repoIdentifier,
-        deployMethod,
-        crawlSettings,
-        sitemaps,
-        keyPages,
-        integrations,
-        guardrails,
-        cadence,
-        ownerName,
-        ownerContact,
-        status: status || "onboarding",
+        displayName: data.displayName,
+        baseUrl: data.baseUrl,
+        category: data.category || null,
+        techStack: data.techStack || null,
+        repoProvider: data.repoProvider || null,
+        repoIdentifier: data.repoIdentifier || null,
+        deployMethod: data.deployMethod || null,
+        crawlSettings: data.crawlSettings || null,
+        sitemaps: data.sitemaps || null,
+        keyPages: data.keyPages || null,
+        integrations: data.integrations || null,
+        guardrails: data.guardrails || null,
+        cadence: data.cadence || null,
+        ownerName: data.ownerName || null,
+        ownerContact: data.ownerContact || null,
+        status: data.status || "onboarding",
         active: true,
         healthScore: null,
       });
@@ -1356,10 +1401,10 @@ When answering:
         siteId: newSite.siteId,
         action: "site_created",
         actor: "api",
-        details: { displayName, baseUrl },
+        details: { displayName: data.displayName, baseUrl: data.baseUrl },
       });
 
-      logger.info("API", "Site created", { siteId: newSite.siteId, displayName });
+      logger.info("API", "Site created", { siteId: newSite.siteId, displayName: data.displayName });
       res.status(201).json(newSite);
     } catch (error: any) {
       logger.error("API", "Failed to create site", { error: error.message });
@@ -1374,13 +1419,20 @@ When answering:
         return res.status(404).json({ error: "Site not found" });
       }
 
-      const updated = await storage.updateSite(req.params.siteId, req.body);
+      const parseResult = updateSiteSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        const errors = parseResult.error.errors.map(e => `${e.path.join('.')}: ${e.message}`);
+        return res.status(400).json({ error: "Validation failed", details: errors });
+      }
+
+      const data = parseResult.data;
+      const updated = await storage.updateSite(req.params.siteId, data as any);
       
       await storage.saveAuditLog({
         siteId: req.params.siteId,
         action: "site_updated",
         actor: "api",
-        details: { updatedFields: Object.keys(req.body) },
+        details: { updatedFields: Object.keys(data) },
       });
 
       logger.info("API", "Site updated", { siteId: req.params.siteId });

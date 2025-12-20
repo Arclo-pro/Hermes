@@ -594,9 +594,39 @@ class DBStorage implements IStorage {
   }
 
   async updateSite(siteId: string, updates: Partial<InsertSite>): Promise<Site | undefined> {
+    const existing = await this.getSiteById(siteId);
+    if (!existing) return undefined;
+
+    const mergedUpdates: Partial<InsertSite> = { ...updates };
+
+    if (updates.integrations !== undefined) {
+      mergedUpdates.integrations = {
+        ...(existing.integrations as object || {}),
+        ...(updates.integrations as object || {}),
+      };
+    }
+    if (updates.crawlSettings !== undefined) {
+      mergedUpdates.crawlSettings = {
+        ...(existing.crawlSettings as object || {}),
+        ...(updates.crawlSettings as object || {}),
+      };
+    }
+    if (updates.guardrails !== undefined) {
+      mergedUpdates.guardrails = {
+        ...(existing.guardrails as object || {}),
+        ...(updates.guardrails as object || {}),
+      };
+    }
+    if (updates.cadence !== undefined) {
+      mergedUpdates.cadence = {
+        ...(existing.cadence as object || {}),
+        ...(updates.cadence as object || {}),
+      };
+    }
+
     const [updated] = await db
       .update(sites)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...mergedUpdates, updatedAt: new Date() })
       .where(eq(sites.siteId, siteId))
       .returning();
     return updated;
