@@ -42,14 +42,14 @@ interface Integration {
   id: number;
   integrationId: string;
   name: string;
-  description: string;
+  description: string | null;
   category: string;
-  enabled: boolean;
-  healthStatus: string;
+  enabled: boolean | null;
+  healthStatus: string | null;
   lastSuccessAt: string | null;
   lastErrorAt: string | null;
   lastError: string | null;
-  expectedSignals: string[];
+  expectedSignals: string[] | null;
   receivedSignals: Record<string, { received: boolean; stale: boolean; lastValue?: any }> | null;
   recentChecks?: IntegrationCheck[];
 }
@@ -78,7 +78,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   infrastructure: "Infrastructure",
 };
 
-function getStatusIcon(status: string) {
+function getStatusIcon(status: string | null | undefined) {
   switch (status) {
     case "healthy":
       return <CheckCircle className="w-5 h-5 text-green-500" />;
@@ -91,7 +91,7 @@ function getStatusIcon(status: string) {
   }
 }
 
-function getStatusBadge(status: string) {
+function getStatusBadge(status: string | null | undefined) {
   switch (status) {
     case "healthy":
       return <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Healthy</Badge>;
@@ -242,15 +242,17 @@ export default function Integrations() {
                   </div>
                   
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {categoryIntegrations.map((integration) => (
+                    {categoryIntegrations.map((integration) => {
+                      const status = integration.healthStatus || "disconnected";
+                      return (
                       <Card 
                         key={integration.integrationId}
                         className={cn(
                           "transition-all hover:shadow-md cursor-pointer",
-                          integration.healthStatus === "healthy" && "border-l-4 border-l-green-500",
-                          integration.healthStatus === "degraded" && "border-l-4 border-l-yellow-500",
-                          integration.healthStatus === "error" && "border-l-4 border-l-red-500",
-                          integration.healthStatus === "disconnected" && "border-l-4 border-l-gray-300",
+                          status === "healthy" && "border-l-4 border-l-green-500",
+                          status === "degraded" && "border-l-4 border-l-yellow-500",
+                          status === "error" && "border-l-4 border-l-red-500",
+                          status === "disconnected" && "border-l-4 border-l-gray-300",
                         )}
                         onClick={() => fetchIntegrationDetails(integration.integrationId)}
                         data-testid={`card-integration-${integration.integrationId}`}
@@ -312,7 +314,8 @@ export default function Integrations() {
                           </div>
                         </CardContent>
                       </Card>
-                    ))}
+                    );
+                    })}
                   </div>
                 </div>
               );
