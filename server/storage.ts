@@ -21,6 +21,7 @@ import {
   auditLogs,
   siteIntegrations,
   vaultConfig,
+  actionRuns,
   type OAuthToken,
   type InsertOAuthToken,
   type GA4Daily,
@@ -63,6 +64,8 @@ import {
   type InsertSiteIntegration,
   type VaultConfig,
   type InsertVaultConfig,
+  type ActionRun,
+  type InsertActionRun,
 } from "@shared/schema";
 import { eq, desc, and, gte, sql, asc } from "drizzle-orm";
 
@@ -180,6 +183,16 @@ export interface IStorage {
   getVaultConfig(): Promise<VaultConfig | undefined>;
   saveVaultConfig(configData: InsertVaultConfig): Promise<VaultConfig>;
   updateVaultConfig(id: number, updates: Partial<InsertVaultConfig>): Promise<VaultConfig | undefined>;
+  
+  // Action Runs
+  createActionRun(run: InsertActionRun): Promise<ActionRun>;
+  updateActionRun(runId: string, updates: Partial<InsertActionRun>): Promise<ActionRun | undefined>;
+  getActionRunsByAnomaly(siteId: string, anomalyId: string): Promise<ActionRun[]>;
+  getActionRunById(runId: string): Promise<ActionRun | undefined>;
+  getLatestActionRuns(siteId: string, limit?: number): Promise<ActionRun[]>;
+  
+  // GSC Daily for ActionRunner
+  getGSCDailyByDateRange(startDate: string, endDate: string): Promise<GSCDaily[]>;
 }
 
 class DBStorage implements IStorage {
@@ -757,6 +770,48 @@ class DBStorage implements IStorage {
       .where(eq(vaultConfig.id, id))
       .returning();
     return updated;
+  }
+
+  // Action Runs
+  async createActionRun(run: InsertActionRun): Promise<ActionRun> {
+    const [newRun] = await db.insert(actionRuns).values(run).returning();
+    return newRun;
+  }
+
+  async updateActionRun(runId: string, updates: Partial<InsertActionRun>): Promise<ActionRun | undefined> {
+    const [updated] = await db
+      .update(actionRuns)
+      .set(updates)
+      .where(eq(actionRuns.runId, runId))
+      .returning();
+    return updated;
+  }
+
+  async getActionRunsByAnomaly(siteId: string, anomalyId: string): Promise<ActionRun[]> {
+    return db
+      .select()
+      .from(actionRuns)
+      .where(and(eq(actionRuns.siteId, siteId), eq(actionRuns.anomalyId, anomalyId)))
+      .orderBy(desc(actionRuns.createdAt));
+  }
+
+  async getActionRunById(runId: string): Promise<ActionRun | undefined> {
+    const [run] = await db.select().from(actionRuns).where(eq(actionRuns.runId, runId)).limit(1);
+    return run;
+  }
+
+  async getLatestActionRuns(siteId: string, limit = 10): Promise<ActionRun[]> {
+    return db
+      .select()
+      .from(actionRuns)
+      .where(eq(actionRuns.siteId, siteId))
+      .orderBy(desc(actionRuns.createdAt))
+      .limit(limit);
+  }
+
+  // GSC Daily for ActionRunner (alias)
+  async getGSCDailyByDateRange(startDate: string, endDate: string): Promise<GSCDaily[]> {
+    return this.getGSCDataByDateRange(startDate, endDate);
   }
 }
 

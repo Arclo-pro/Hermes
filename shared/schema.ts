@@ -559,3 +559,41 @@ export const insertVaultConfigSchema = createInsertSchema(vaultConfig).omit({
 });
 export type InsertVaultConfig = z.infer<typeof insertVaultConfigSchema>;
 export type VaultConfig = typeof vaultConfig.$inferSelect;
+
+// Action Runs - Track fix executions for detected drops
+export const actionRuns = pgTable("action_runs", {
+  id: serial("id").primaryKey(),
+  runId: text("run_id").notNull().unique(),
+  siteId: text("site_id").notNull(),
+  anomalyId: text("anomaly_id").notNull(), // Reference to the drop (date+source+metric)
+  actionCode: text("action_code").notNull(), // e.g. CHECK_GSC_QUERY_LOSSES, UPDATE_META_TITLES
+  status: text("status").notNull().default("queued"), // queued, running, completed, failed, needs_review
+  planJson: jsonb("plan_json"), // { enrichmentSteps, implementationSteps, verificationSteps }
+  outputJson: jsonb("output_json"), // { findings, changes, verification, nextSteps }
+  errorText: text("error_text"),
+  triggeredBy: text("triggered_by").default("user"), // user, scheduled, api
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertActionRunSchema = createInsertSchema(actionRuns).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertActionRun = z.infer<typeof insertActionRunSchema>;
+export type ActionRun = typeof actionRuns.$inferSelect;
+
+// Action Types enum for type safety
+export const ActionCodes = {
+  CHECK_GSC_QUERY_LOSSES: 'CHECK_GSC_QUERY_LOSSES',
+  CHECK_INDEXATION_STATUS: 'CHECK_INDEXATION_STATUS',
+  CHECK_RECENT_PAGE_CHANGES: 'CHECK_RECENT_PAGE_CHANGES',
+  FETCH_PAGE_META: 'FETCH_PAGE_META',
+  UPDATE_META_TITLES: 'UPDATE_META_TITLES',
+  ADD_INTERNAL_LINKS: 'ADD_INTERNAL_LINKS',
+  REQUEST_RECRAWL: 'REQUEST_RECRAWL',
+  CHECK_SERP_RANKINGS: 'CHECK_SERP_RANKINGS',
+} as const;
+
+export type ActionCode = typeof ActionCodes[keyof typeof ActionCodes];

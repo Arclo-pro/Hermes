@@ -1707,5 +1707,69 @@ When answering:
     }
   });
 
+  // =============== ACTION RUNS (Fix This) ===============
+
+  // Run an action for a detected drop
+  app.post("/api/actions/run", async (req, res) => {
+    try {
+      const { siteId, drop, actionCode, enrichOnly } = req.body;
+      
+      if (!siteId || !drop) {
+        return res.status(400).json({ error: "siteId and drop are required" });
+      }
+
+      const site = await storage.getSiteById(siteId);
+      if (!site) {
+        return res.status(404).json({ error: "Site not found" });
+      }
+
+      const { runAction } = await import("./actions/ActionRunner");
+      const { getRecommendedActionCode } = await import("./actions/types");
+      
+      const code = actionCode || getRecommendedActionCode(drop);
+      const actionRun = await runAction(siteId, site.baseUrl, drop, code, { enrichOnly });
+
+      res.json({
+        success: true,
+        runId: actionRun.runId,
+        status: actionRun.status,
+        output: actionRun.outputJson,
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to run action", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get action run status
+  app.get("/api/actions/:runId", async (req, res) => {
+    try {
+      const actionRun = await storage.getActionRunById(req.params.runId);
+      if (!actionRun) {
+        return res.status(404).json({ error: "Action run not found" });
+      }
+      res.json(actionRun);
+    } catch (error: any) {
+      logger.error("API", "Failed to get action run", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get action runs for an anomaly
+  app.get("/api/sites/:siteId/actions", async (req, res) => {
+    try {
+      const { anomalyId } = req.query;
+      if (anomalyId) {
+        const runs = await storage.getActionRunsByAnomaly(req.params.siteId, anomalyId as string);
+        return res.json(runs);
+      }
+      const runs = await storage.getLatestActionRuns(req.params.siteId, 20);
+      res.json(runs);
+    } catch (error: any) {
+      logger.error("API", "Failed to get action runs", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }
