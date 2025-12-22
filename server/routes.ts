@@ -2683,5 +2683,128 @@ When answering:
     }
   });
 
+  // ==========================================
+  // Service Runs API
+  // ==========================================
+
+  // Get all services with their last run info
+  app.get("/api/services/with-last-run", async (req, res) => {
+    try {
+      const siteId = req.query.site_id as string | undefined;
+      const servicesWithRuns = await storage.getServicesWithLastRun();
+      
+      // If site_id is provided, filter to only show runs for that site
+      if (siteId) {
+        for (const service of servicesWithRuns) {
+          if (service.lastRun && service.lastRun.siteId !== siteId) {
+            // Get the last run for this specific site
+            const siteRuns = await storage.getServiceRunsByService(service.integrationId, 1);
+            const siteRun = siteRuns.find(r => r.siteId === siteId);
+            (service as any).lastRun = siteRun || null;
+          }
+        }
+      }
+      
+      res.json(servicesWithRuns);
+    } catch (error: any) {
+      logger.error("API", "Failed to get services with last run", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get runs for a specific service
+  app.get("/api/services/:serviceId/runs", async (req, res) => {
+    try {
+      const { serviceId } = req.params;
+      const limit = parseInt(req.query.limit as string) || 25;
+      const siteId = req.query.site_id as string | undefined;
+      
+      let runs = await storage.getServiceRunsByService(serviceId, limit);
+      
+      if (siteId) {
+        runs = runs.filter(r => r.siteId === siteId);
+      }
+      
+      res.json(runs);
+    } catch (error: any) {
+      logger.error("API", "Failed to get service runs", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get all recent runs across all services
+  app.get("/api/runs", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      const runs = await storage.getLatestServiceRuns(limit);
+      res.json(runs);
+    } catch (error: any) {
+      logger.error("API", "Failed to get runs", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get a specific run by ID
+  app.get("/api/runs/:runId", async (req, res) => {
+    try {
+      const run = await storage.getServiceRunById(req.params.runId);
+      if (!run) {
+        return res.status(404).json({ error: "Run not found" });
+      }
+      res.json(run);
+    } catch (error: any) {
+      logger.error("API", "Failed to get run", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Create a new service run (for Hermes proxy runs or external services)
+  app.post("/api/runs", async (req, res) => {
+    try {
+      const runData = req.body;
+      
+      // Generate run ID if not provided
+      if (!runData.runId) {
+        runData.runId = `run_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      }
+      
+      // Set startedAt if not provided
+      if (!runData.startedAt) {
+        runData.startedAt = new Date();
+      }
+      
+      const run = await storage.createServiceRun(runData);
+      res.json(run);
+    } catch (error: any) {
+      logger.error("API", "Failed to create run", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Update a service run (mark complete, add metrics, etc.)
+  app.patch("/api/runs/:runId", async (req, res) => {
+    try {
+      const { runId } = req.params;
+      const updates = req.body;
+      
+      // Calculate duration if finishing
+      if (updates.finishedAt && !updates.durationMs) {
+        const run = await storage.getServiceRunById(runId);
+        if (run) {
+          updates.durationMs = new Date(updates.finishedAt).getTime() - new Date(run.startedAt).getTime();
+        }
+      }
+      
+      const updated = await storage.updateServiceRun(runId, updates);
+      if (!updated) {
+        return res.status(404).json({ error: "Run not found" });
+      }
+      res.json(updated);
+    } catch (error: any) {
+      logger.error("API", "Failed to update run", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }
