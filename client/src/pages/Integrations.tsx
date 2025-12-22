@@ -1096,7 +1096,14 @@ export default function Integrations() {
                             <tr 
                               key={integration.integrationId} 
                               className="border-b hover:bg-muted/30 transition-colors cursor-pointer"
-                              onClick={() => setSelectedIntegration(integration)}
+                              onClick={() => {
+                                const catalogService = catalogServices.find(s => s.slug === integration.integrationId);
+                                if (catalogService) {
+                                  setSelectedCatalogService(catalogService);
+                                } else {
+                                  setSelectedIntegration(integration);
+                                }
+                              }}
                               data-testid={`row-integration-${integration.integrationId}`}
                             >
                               <td className="p-3">
@@ -1162,7 +1169,14 @@ export default function Integrations() {
                                           variant="ghost"
                                           size="icon"
                                           className="h-7 w-7"
-                                          onClick={() => setSelectedIntegration(integration)}
+                                          onClick={() => {
+                                            const catalogService = catalogServices.find(s => s.slug === integration.integrationId);
+                                            if (catalogService) {
+                                              setSelectedCatalogService(catalogService);
+                                            } else {
+                                              setSelectedIntegration(integration);
+                                            }
+                                          }}
                                         >
                                           <ChevronRight className="w-3 h-3" />
                                         </Button>
