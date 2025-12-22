@@ -650,16 +650,27 @@ export default function Integrations() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["platformIntegrations"] });
-      queryClient.invalidateQueries({ queryKey: ["servicesCatalog"] });
+      queryClient.invalidateQueries({ queryKey: ["serviceCatalog"] });
+      queryClient.invalidateQueries({ queryKey: ["siteSummary"] });
+      queryClient.invalidateQueries({ queryKey: ["serviceRuns"] });
       setTestingId(null);
       
       if (data.status === "pass") {
-        toast.success(`${data.integrationId} connection test passed`);
+        toast.success(`${data.integrationId} connection test passed`, {
+          description: data.summary,
+        });
       } else if (data.status === "warning") {
-        toast.warning(`${data.integrationId} has partial connectivity`);
+        toast.warning(`${data.integrationId} has partial connectivity`, {
+          description: data.summary,
+        });
       } else {
-        toast.error(`${data.integrationId} connection test failed`);
+        toast.error(`${data.integrationId} connection test failed`, {
+          description: data.summary,
+        });
       }
+      
+      // Close the modal so user sees the refreshed data in the table
+      setSelectedCatalogService(null);
     },
     onError: (error: any) => {
       setTestingId(null);
