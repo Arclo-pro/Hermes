@@ -1608,6 +1608,197 @@ When answering:
     }
   });
 
+  // Get site integrations summary - the operational cockpit endpoint
+  app.get("/api/sites/:siteId/integrations/summary", async (req, res) => {
+    try {
+      const { siteId } = req.params;
+      const site = await storage.getSiteById(siteId);
+      if (!site) {
+        return res.status(404).json({ error: "Site not found" });
+      }
+
+      // Get catalog, integrations, and runs
+      const { servicesCatalog, computeMissingOutputs, slugLabels } = await import("@shared/servicesCatalog");
+      const platformIntegrations = await storage.getIntegrations();
+      const lastRunMap = await storage.getLastRunPerServiceBySite(siteId);
+      
+      // Get platform health
+      const { BitwardenProvider } = await import("./vault/BitwardenProvider");
+      const bitwarden = new BitwardenProvider();
+      const bitwardenStatus = await bitwarden.getDetailedStatus();
+      
+      // Check recent runs (last 24h)
+      const now = new Date();
+      const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      
+      // Build computed service states
+      const services = servicesCatalog.map(def => {
+        const integration = platformIntegrations.find(i => i.integrationId === def.slug);
+        const lastRun = lastRunMap.get(def.slug);
+        
+        // Compute build state from integration or catalog
+        const buildState = integration?.buildState || def.buildState || 'planned';
+        
+        // Compute config state
+        let configState: 'ready' | 'blocked' | 'needs_config' = 'needs_config';
+        let blockingReason: string | null = null;
+        
+        if (integration?.configState === 'ready') {
+          configState = 'ready';
+        } else if (integration?.configState === 'blocked') {
+          configState = 'blocked';
+          blockingReason = integration?.lastError || 'Missing required secret or configuration';
+        } else if (def.secretKeyName && !integration?.secretExists) {
+          configState = 'blocked';
+          blockingReason = `Missing secret: ${def.secretKeyName}`;
+        } else if (buildState === 'planned') {
+          configState = 'needs_config';
+          blockingReason = 'Service not yet built';
+        }
+        
+        // Compute run state
+        let runState: 'never_ran' | 'success' | 'failed' | 'partial' | 'stale' = 'never_ran';
+        if (lastRun) {
+          if (lastRun.status === 'success') runState = 'success';
+          else if (lastRun.status === 'failed') runState = 'failed';
+          else if (lastRun.status === 'partial') runState = 'partial';
+          else runState = 'success';
+          
+          // Check if stale (no run in 7 days)
+          const lastRunTime = lastRun.finishedAt || lastRun.startedAt;
+          const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          if (new Date(lastRunTime) < sevenDaysAgo && runState === 'success') {
+            runState = 'stale';
+          }
+        }
+        
+        // Compute missing outputs
+        const actualOutputs = (lastRun?.outputsJson as any)?.actualOutputs || [];
+        const missingOutputs = computeMissingOutputs(def.outputs, actualOutputs);
+        
+        return {
+          slug: def.slug,
+          displayName: def.displayName,
+          category: def.category,
+          description: def.description,
+          purpose: def.purpose,
+          inputs: def.inputs,
+          outputs: def.outputs,
+          keyMetrics: def.keyMetrics,
+          commonFailures: def.commonFailures,
+          buildState,
+          configState,
+          runState,
+          blockingReason,
+          missingOutputs,
+          lastRun: lastRun ? {
+            id: lastRun.runId,
+            status: lastRun.status,
+            finishedAt: lastRun.finishedAt || lastRun.startedAt,
+            durationMs: lastRun.durationMs,
+            summary: lastRun.summary,
+            metrics: lastRun.metricsJson,
+            missingOutputsCount: missingOutputs.length,
+          } : null,
+        };
+      });
+      
+      // Compute rollups
+      const rollups = {
+        totalServices: services.length,
+        built: services.filter(s => s.buildState === 'built').length,
+        planned: services.filter(s => s.buildState === 'planned').length,
+        ready: services.filter(s => s.configState === 'ready').length,
+        blocked: services.filter(s => s.configState === 'blocked').length,
+        needsConfig: services.filter(s => s.configState === 'needs_config').length,
+        ran24h: services.filter(s => {
+          if (!s.lastRun?.finishedAt) return false;
+          return new Date(s.lastRun.finishedAt) > oneDayAgo;
+        }).length,
+        neverRan: services.filter(s => s.runState === 'never_ran').length,
+        failed: services.filter(s => s.runState === 'failed').length,
+        stale: services.filter(s => s.runState === 'stale').length,
+      };
+      
+      // Generate next actions (prioritized)
+      const nextActions: Array<{ priority: number; serviceSlug: string; reason: string; cta: string }> = [];
+      
+      for (const service of services) {
+        // Priority 1: Built+Ready but never ran
+        if (service.buildState === 'built' && service.configState === 'ready' && service.runState === 'never_ran') {
+          nextActions.push({
+            priority: 1,
+            serviceSlug: service.slug,
+            reason: 'Ready but never ran',
+            cta: 'Run Test',
+          });
+        }
+        // Priority 2: Blocked
+        else if (service.configState === 'blocked') {
+          nextActions.push({
+            priority: 2,
+            serviceSlug: service.slug,
+            reason: `Blocked: ${service.blockingReason}`,
+            cta: 'Configure',
+          });
+        }
+        // Priority 3: Failed last run
+        else if (service.runState === 'failed') {
+          nextActions.push({
+            priority: 3,
+            serviceSlug: service.slug,
+            reason: 'Last run failed',
+            cta: 'View Error',
+          });
+        }
+        // Priority 4: Missing outputs
+        else if (service.missingOutputs.length > 0 && service.runState === 'success') {
+          nextActions.push({
+            priority: 4,
+            serviceSlug: service.slug,
+            reason: `Missing ${service.missingOutputs.length} expected outputs`,
+            cta: 'Fix Outputs',
+          });
+        }
+        // Priority 5: Stale
+        else if (service.runState === 'stale') {
+          nextActions.push({
+            priority: 5,
+            serviceSlug: service.slug,
+            reason: 'No recent runs (stale)',
+            cta: 'Run Now',
+          });
+        }
+      }
+      
+      // Sort by priority
+      nextActions.sort((a, b) => a.priority - b.priority);
+      
+      res.json({
+        site: {
+          id: site.siteId,
+          domain: site.baseUrl?.replace(/^https?:\/\//, '') || site.displayName,
+        },
+        platform: {
+          bitwarden: {
+            connected: bitwardenStatus.connected,
+            secretsFound: bitwardenStatus.secretsFound || 0,
+          },
+          database: {
+            connected: true, // We got this far, DB is working
+          },
+        },
+        rollups,
+        nextActions: nextActions.slice(0, 10), // Top 10 actions
+        services,
+        slugLabels,
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to get integrations summary", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Save/update site integration
   app.post("/api/sites/:siteId/integrations", async (req, res) => {
     try {

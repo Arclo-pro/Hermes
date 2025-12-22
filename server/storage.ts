@@ -233,6 +233,7 @@ export interface IStorage {
   getServiceRunsBySite(siteId: string, limit?: number): Promise<ServiceRun[]>;
   getLatestServiceRuns(limit?: number): Promise<ServiceRun[]>;
   getLastRunPerService(): Promise<Map<string, ServiceRun>>;
+  getLastRunPerServiceBySite(siteId: string): Promise<Map<string, ServiceRun>>;
   getServicesWithLastRun(): Promise<Array<Integration & { lastRun: ServiceRun | null }>>;
 }
 
@@ -960,6 +961,22 @@ class DBStorage implements IStorage {
     const allRuns = await db
       .select()
       .from(serviceRuns)
+      .orderBy(desc(serviceRuns.startedAt));
+    
+    const lastRunMap = new Map<string, ServiceRun>();
+    for (const run of allRuns) {
+      if (!lastRunMap.has(run.serviceId)) {
+        lastRunMap.set(run.serviceId, run);
+      }
+    }
+    return lastRunMap;
+  }
+
+  async getLastRunPerServiceBySite(siteId: string): Promise<Map<string, ServiceRun>> {
+    const allRuns = await db
+      .select()
+      .from(serviceRuns)
+      .where(eq(serviceRuns.siteId, siteId))
       .orderBy(desc(serviceRuns.startedAt));
     
     const lastRunMap = new Map<string, ServiceRun>();
