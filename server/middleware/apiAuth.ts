@@ -21,6 +21,7 @@ const DASHBOARD_GET_PATHS = [
   "/api/vault",
   "/api/actions",
   "/api/integrations",
+  "/api/platform",
 ];
 
 // Paths that allow unauthenticated POST access (specific safe operations)

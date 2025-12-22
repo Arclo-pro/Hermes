@@ -636,7 +636,8 @@ export const integrations = pgTable("integrations", {
   integrationId: text("integration_id").notNull().unique(), // google_data_connector, crawl_render, serp_intel, etc.
   name: text("name").notNull(),
   description: text("description"),
-  category: text("category").notNull(), // data, analysis, execution, infrastructure
+  descriptionMd: text("description_md"), // Full markdown explainer text for service detail panel
+  category: text("category").notNull(), // data, analysis, execution, infrastructure, platform_dependency
   enabled: boolean("enabled").default(true),
   healthStatus: text("health_status").default("disconnected"), // healthy, degraded, disconnected, error
   lastSuccessAt: timestamp("last_success_at"),

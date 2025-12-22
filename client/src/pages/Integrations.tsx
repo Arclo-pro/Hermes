@@ -225,6 +225,22 @@ function formatTimeAgo(date: string | null): string {
   return `${diffDays}d ago`;
 }
 
+interface PlatformDependencies {
+  bitwarden: {
+    connected: boolean;
+    reason: string | null;
+    secretsFound: number;
+    lastCheckedAt: string;
+    httpStatus: number | null;
+    lastError: string | null;
+  };
+  postgres: {
+    connected: boolean;
+    reason: string | null;
+    lastCheckedAt: string;
+  };
+}
+
 export default function Integrations() {
   const queryClient = useQueryClient();
   const [testingId, setTestingId] = useState<string | null>(null);
@@ -233,6 +249,7 @@ export default function Integrations() {
   const [selectedIntegration, setSelectedIntegration] = useState<Integration | null>(null);
   const [selectedRun, setSelectedRun] = useState<ServiceRun | null>(null);
   const [editingIntegration, setEditingIntegration] = useState<Integration | null>(null);
+  const [viewMode, setViewMode] = useState<'operational' | 'diagnostics'>('operational');
   const [editForm, setEditForm] = useState<{
     baseUrl: string;
     healthEndpoint: string;
@@ -278,6 +295,17 @@ export default function Integrations() {
     },
   });
 
+  // Fetch platform dependencies (Bitwarden + Postgres real status)
+  const { data: platformDeps, refetch: refetchPlatformDeps } = useQuery<PlatformDependencies>({
+    queryKey: ["platformDependencies"],
+    queryFn: async () => {
+      const res = await fetch("/api/platform/dependencies");
+      if (!res.ok) return null;
+      return res.json();
+    },
+    refetchInterval: 60000, // Refetch every minute
+  });
+
   // Build a map of integrationId -> last run
   const lastRunByService: Record<string, ServiceRun> = {};
   if (serviceRuns) {
@@ -287,6 +315,13 @@ export default function Integrations() {
       }
     }
   }
+
+  // Calculate runs-based stats
+  const now = new Date();
+  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const runsLast24h = serviceRuns?.filter(r => new Date(r.startedAt) > oneDayAgo) || [];
+  const uniqueServicesRan24h = new Set(runsLast24h.map(r => r.integrationId)).size;
+  const failedRuns24h = runsLast24h.filter(r => r.status === 'failed').length;
 
   const seedMutation = useMutation({
     mutationFn: async () => {
@@ -587,6 +622,14 @@ export default function Integrations() {
                   <CardTitle className="text-sm font-medium flex items-center gap-2">
                     <Shield className="w-4 h-4" />
                     Platform Dependencies
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 ml-auto"
+                      onClick={() => refetchPlatformDeps()}
+                    >
+                      <RefreshCw className="w-3 h-3" />
+                    </Button>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="py-2">
@@ -595,7 +638,7 @@ export default function Integrations() {
                     <div className="flex items-center gap-3">
                       <div className={cn(
                         "w-10 h-10 rounded-lg flex items-center justify-center",
-                        lastRefreshInfo.vaultConnected 
+                        platformDeps?.bitwarden?.connected 
                           ? "bg-green-100 text-green-600" 
                           : "bg-yellow-100 text-yellow-600"
                       )}>
@@ -604,12 +647,22 @@ export default function Integrations() {
                       <div>
                         <p className="text-sm font-medium">Bitwarden</p>
                         <p className="text-xs text-muted-foreground">
-                          {lastRefreshInfo.vaultConnected 
-                            ? `${lastRefreshInfo.secretsCount} secrets` 
-                            : "Not connected"}
+                          {platformDeps?.bitwarden?.connected 
+                            ? (platformDeps.bitwarden.reason === "ZERO_SECRETS" 
+                                ? "Connected · 0 secrets" 
+                                : `Connected · ${platformDeps.bitwarden.secretsFound} secrets`)
+                            : platformDeps?.bitwarden?.reason === "MISSING_TOKEN"
+                              ? "Missing token"
+                              : platformDeps?.bitwarden?.reason === "MISSING_PROJECT_ID"
+                                ? "Missing project ID"
+                                : platformDeps?.bitwarden?.reason === "UNAUTHORIZED"
+                                  ? "Unauthorized (401)"
+                                  : platformDeps?.bitwarden?.reason === "FORBIDDEN"
+                                    ? "Forbidden (403)"
+                                    : "Not connected"}
                         </p>
                       </div>
-                      {lastRefreshInfo.vaultConnected ? (
+                      {platformDeps?.bitwarden?.connected ? (
                         <CheckCircle className="w-4 h-4 text-green-500 ml-auto" />
                       ) : (
                         <AlertTriangle className="w-4 h-4 text-yellow-500 ml-auto" />
@@ -617,32 +670,36 @@ export default function Integrations() {
                     </div>
                     {/* Database Status */}
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-green-100 text-green-600 flex items-center justify-center">
+                      <div className={cn(
+                        "w-10 h-10 rounded-lg flex items-center justify-center",
+                        platformDeps?.postgres?.connected 
+                          ? "bg-green-100 text-green-600" 
+                          : "bg-red-100 text-red-600"
+                      )}>
                         <Database className="w-5 h-5" />
                       </div>
                       <div>
                         <p className="text-sm font-medium">PostgreSQL</p>
-                        <p className="text-xs text-muted-foreground">Connected</p>
+                        <p className="text-xs text-muted-foreground">
+                          {platformDeps?.postgres?.connected ? "Connected" : "Disconnected"}
+                        </p>
                       </div>
-                      <CheckCircle className="w-4 h-4 text-green-500 ml-auto" />
+                      {platformDeps?.postgres?.connected ? (
+                        <CheckCircle className="w-4 h-4 text-green-500 ml-auto" />
+                      ) : (
+                        <XCircle className="w-4 h-4 text-red-500 ml-auto" />
+                      )}
                     </div>
                   </div>
-                  {!lastRefreshInfo.vaultConnected && lastRefreshInfo.vaultReason && (
+                  {platformDeps?.bitwarden && !platformDeps.bitwarden.connected && platformDeps.bitwarden.lastError && (
                     <div className="mt-3 text-xs text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded">
-                      {lastRefreshInfo.vaultReason === "MISSING_TOKEN" && "BWS_ACCESS_TOKEN not set in environment"}
-                      {lastRefreshInfo.vaultReason === "MISSING_PROJECT_ID" && "BWS_PROJECT_ID not set. Add it to Replit Secrets."}
-                      {lastRefreshInfo.vaultReason === "UNAUTHORIZED" && "Token invalid or expired. Rotate BWS_ACCESS_TOKEN."}
-                      {lastRefreshInfo.vaultReason === "FORBIDDEN" && "Machine account doesn't have access to this project."}
-                      {lastRefreshInfo.vaultReason === "PROJECT_NOT_FOUND" && "Project ID is wrong or project doesn't exist."}
-                      {lastRefreshInfo.vaultReason === "ZERO_SECRETS" && "Connected, but no secrets found in this project."}
-                      {lastRefreshInfo.vaultReason === "API_ERROR" && (lastRefreshInfo.vaultError || "API error occurred")}
-                      {lastRefreshInfo.vaultReason === "NETWORK_ERROR" && (lastRefreshInfo.vaultError || "Network error occurred")}
+                      {platformDeps.bitwarden.lastError}
                     </div>
                   )}
                 </CardContent>
               </Card>
 
-              {/* Summary Stats Bar */}
+              {/* Summary Stats Bar - Runs-based */}
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                 <Card className="p-3">
                   <div className="flex items-center gap-2">
@@ -655,19 +712,19 @@ export default function Integrations() {
                 </Card>
                 <Card className="p-3">
                   <div className="flex items-center gap-2">
-                    <Globe className="w-4 h-4 text-purple-500" />
+                    <Clock className="w-4 h-4 text-purple-500" />
                     <div>
-                      <p className="text-lg font-bold">{summaryStats.configured}</p>
-                      <p className="text-xs text-muted-foreground">Configured</p>
+                      <p className="text-lg font-bold">{uniqueServicesRan24h}</p>
+                      <p className="text-xs text-muted-foreground">Ran in 24h</p>
                     </div>
                   </div>
                 </Card>
-                <Card className="p-3">
+                <Card className={cn("p-3", failedRuns24h > 0 && "border-red-200 bg-red-50 dark:bg-red-900/20")}>
                   <div className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <XCircle className={cn("w-4 h-4", failedRuns24h > 0 ? "text-red-500" : "text-gray-400")} />
                     <div>
-                      <p className="text-lg font-bold">{summaryStats.healthy}</p>
-                      <p className="text-xs text-muted-foreground">Reachable</p>
+                      <p className={cn("text-lg font-bold", failedRuns24h > 0 && "text-red-600")}>{failedRuns24h}</p>
+                      <p className={cn("text-xs", failedRuns24h > 0 ? "text-red-600" : "text-muted-foreground")}>Failed</p>
                     </div>
                   </div>
                 </Card>
@@ -676,17 +733,17 @@ export default function Integrations() {
                     <Key className="w-4 h-4 text-blue-500" />
                     <div>
                       <p className="text-lg font-bold">{summaryStats.secretsSet}</p>
-                      <p className="text-xs text-muted-foreground">Secrets Set</p>
+                      <p className="text-xs text-muted-foreground">Secrets</p>
                     </div>
                   </div>
                 </Card>
                 {summaryStats.secretsMissing > 0 && (
-                  <Card className="p-3 border-red-200 bg-red-50 dark:bg-red-900/20">
+                  <Card className="p-3 border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20">
                     <div className="flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4 text-red-500" />
+                      <AlertTriangle className="w-4 h-4 text-yellow-500" />
                       <div>
-                        <p className="text-lg font-bold text-red-600">{summaryStats.secretsMissing}</p>
-                        <p className="text-xs text-red-600">Secrets Missing</p>
+                        <p className="text-lg font-bold text-yellow-600">{summaryStats.secretsMissing}</p>
+                        <p className="text-xs text-yellow-600">Missing</p>
                       </div>
                     </div>
                   </Card>
@@ -694,9 +751,31 @@ export default function Integrations() {
               </div>
 
               <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">
-                  Truth table: each service showing build status, endpoints, auth, secrets, and connectivity
-                </p>
+                <div className="flex items-center gap-4">
+                  <p className="text-sm text-muted-foreground">
+                    {viewMode === 'operational' 
+                      ? 'What ran, when, and what it returned'
+                      : 'Technical: endpoints, auth, secrets, connectivity'}
+                  </p>
+                  <div className="flex items-center gap-1 bg-muted rounded-md p-1">
+                    <Button
+                      variant={viewMode === 'operational' ? 'secondary' : 'ghost'}
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => setViewMode('operational')}
+                    >
+                      Operational
+                    </Button>
+                    <Button
+                      variant={viewMode === 'diagnostics' ? 'secondary' : 'ghost'}
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => setViewMode('diagnostics')}
+                    >
+                      Diagnostics
+                    </Button>
+                  </div>
+                </div>
                 <Button
                   onClick={() => testAllMutation.mutate()}
                   disabled={testingAll}
@@ -715,216 +794,275 @@ export default function Integrations() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b bg-muted/50">
-                        <th className="text-left p-3 font-medium">Service</th>
-                        <th className="text-left p-3 font-medium">Base URL</th>
-                        <th className="text-center p-3 font-medium">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger>Configured</TooltipTrigger>
-                              <TooltipContent>Base URL configured?</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </th>
-                        <th className="text-center p-3 font-medium">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger>Reachable</TooltipTrigger>
-                              <TooltipContent>Can Hermes reach this service?</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </th>
-                        <th className="text-center p-3 font-medium">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger>/health</TooltipTrigger>
-                              <TooltipContent>Health endpoint check</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </th>
-                        <th className="text-center p-3 font-medium">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger>Auth</TooltipTrigger>
-                              <TooltipContent>Auth enforced? (401 without key)</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </th>
-                        <th className="text-center p-3 font-medium">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger>Secret</TooltipTrigger>
-                              <TooltipContent>API key/secret exists?</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </th>
-                        <th className="text-center p-3 font-medium">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger>E2E</TooltipTrigger>
-                              <TooltipContent>Called successfully end-to-end?</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </th>
-                        <th className="text-left p-3 font-medium">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger>Last Run</TooltipTrigger>
-                              <TooltipContent>Most recent service execution</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </th>
-                        <th className="text-left p-3 font-medium">Notes</th>
-                        <th className="text-center p-3 font-medium">Actions</th>
-                      </tr>
+                      {viewMode === 'operational' ? (
+                        <tr className="border-b bg-muted/50">
+                          <th className="text-left p-3 font-medium">Service</th>
+                          <th className="text-left p-3 font-medium">Description</th>
+                          <th className="text-left p-3 font-medium">Last Run</th>
+                          <th className="text-left p-3 font-medium">Site</th>
+                          <th className="text-left p-3 font-medium">Summary</th>
+                          <th className="text-left p-3 font-medium">Key Metrics</th>
+                          <th className="text-center p-3 font-medium">Actions</th>
+                        </tr>
+                      ) : (
+                        <tr className="border-b bg-muted/50">
+                          <th className="text-left p-3 font-medium">Service</th>
+                          <th className="text-left p-3 font-medium">Base URL</th>
+                          <th className="text-center p-3 font-medium">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger>Configured</TooltipTrigger>
+                                <TooltipContent>Base URL configured?</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </th>
+                          <th className="text-center p-3 font-medium">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger>Reachable</TooltipTrigger>
+                                <TooltipContent>Can Hermes reach this service?</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </th>
+                          <th className="text-center p-3 font-medium">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger>/health</TooltipTrigger>
+                                <TooltipContent>Health endpoint check</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </th>
+                          <th className="text-center p-3 font-medium">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger>Auth</TooltipTrigger>
+                                <TooltipContent>Auth enforced? (401 without key)</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </th>
+                          <th className="text-center p-3 font-medium">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger>Secret</TooltipTrigger>
+                                <TooltipContent>API key/secret exists?</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </th>
+                          <th className="text-center p-3 font-medium">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger>E2E</TooltipTrigger>
+                                <TooltipContent>Called successfully end-to-end?</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </th>
+                          <th className="text-left p-3 font-medium">Notes</th>
+                          <th className="text-center p-3 font-medium">Actions</th>
+                        </tr>
+                      )}
                     </thead>
                     <tbody>
-                      {workerServices.map((integration) => (
-                        <tr 
-                          key={integration.integrationId} 
-                          className="border-b hover:bg-muted/30 transition-colors"
-                          data-testid={`row-integration-${integration.integrationId}`}
-                        >
-                          <td className="p-3">
-                            <div className="flex items-center gap-2">
-                              {getStatusIcon(integration.healthStatus)}
-                              <div>
-                                <div className="font-medium">{integration.name}</div>
-                                <div className="text-xs text-muted-foreground">{integration.category}</div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="p-3">
-                            {integration.baseUrl ? (
-                              <a 
-                                href={integration.baseUrl} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="text-xs text-primary hover:underline flex items-center gap-1"
-                              >
-                                {integration.baseUrl.replace(/^https?:\/\//, '').slice(0, 30)}
-                                <ExternalLink className="w-3 h-3" />
-                              </a>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">Not configured</span>
-                            )}
-                          </td>
-                          <td className="p-3 text-center">
-                            <StatusCell status={integration.baseUrl ? "pass" : "not_configured"} />
-                          </td>
-                          <td className="p-3 text-center">
-                            <StatusCell status={integration.healthCheckStatus === "pass" ? "pass" : integration.baseUrl ? "fail" : "not_configured"} />
-                          </td>
-                          <td className="p-3 text-center">
-                            <StatusCell status={integration.healthCheckStatus} />
-                          </td>
-                          <td className="p-3 text-center">
-                            <StatusCell status={integration.authTestStatus} />
-                          </td>
-                          <td className="p-3 text-center">
-                            <StatusCell status={integration.secretExists} />
-                          </td>
-                          <td className="p-3 text-center">
-                            <StatusCell status={integration.calledSuccessfully} />
-                          </td>
-                          <td className="p-3">
-                            {(() => {
-                              const lastRun = lastRunByService[integration.integrationId];
-                              if (!lastRun) {
-                                return <span className="text-xs text-muted-foreground">No runs</span>;
-                              }
-                              const statusColor = lastRun.status === 'success' 
-                                ? 'text-green-600' 
-                                : lastRun.status === 'running' 
-                                  ? 'text-blue-600' 
-                                  : lastRun.status === 'partial' 
-                                    ? 'text-yellow-600' 
-                                    : 'text-red-600';
-                              return (
-                                <button
-                                  onClick={() => setSelectedRun(lastRun)}
-                                  className="text-xs space-y-0.5 text-left hover:bg-muted/50 rounded p-1 -m-1 transition-colors cursor-pointer"
-                                  data-testid={`button-run-detail-${integration.integrationId}`}
-                                >
-                                  <div className="flex items-center gap-1">
-                                    <Badge variant="outline" className={cn("text-[10px] px-1 py-0", statusColor)}>
+                      {workerServices.map((integration) => {
+                        const lastRun = lastRunByService[integration.integrationId];
+                        const statusColor = lastRun?.status === 'success' 
+                          ? 'text-green-600' 
+                          : lastRun?.status === 'running' 
+                            ? 'text-blue-600' 
+                            : lastRun?.status === 'partial' 
+                              ? 'text-yellow-600' 
+                              : 'text-red-600';
+                        
+                        if (viewMode === 'operational') {
+                          return (
+                            <tr 
+                              key={integration.integrationId} 
+                              className="border-b hover:bg-muted/30 transition-colors cursor-pointer"
+                              onClick={() => setSelectedIntegration(integration)}
+                              data-testid={`row-integration-${integration.integrationId}`}
+                            >
+                              <td className="p-3">
+                                <div className="flex items-center gap-2">
+                                  {lastRun ? (
+                                    lastRun.status === 'success' ? <CheckCircle className="w-4 h-4 text-green-500" /> :
+                                    lastRun.status === 'running' ? <Clock className="w-4 h-4 text-blue-500 animate-pulse" /> :
+                                    lastRun.status === 'failed' ? <XCircle className="w-4 h-4 text-red-500" /> :
+                                    <AlertTriangle className="w-4 h-4 text-yellow-500" />
+                                  ) : (
+                                    <Clock className="w-4 h-4 text-gray-400" />
+                                  )}
+                                  <div className="font-medium">{integration.name}</div>
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                <span className="text-xs text-muted-foreground line-clamp-2">
+                                  {integration.description || "—"}
+                                </span>
+                              </td>
+                              <td className="p-3">
+                                {lastRun ? (
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); setSelectedRun(lastRun); }}
+                                    className="text-xs hover:bg-muted rounded px-1 py-0.5 transition-colors"
+                                  >
+                                    <Badge variant="outline" className={cn("text-[10px] px-1 py-0 mr-1", statusColor)}>
                                       {lastRun.status}
                                     </Badge>
-                                    <span className="text-muted-foreground">
-                                      {formatTimeAgo(lastRun.finishedAt || lastRun.startedAt)}
-                                    </span>
-                                  </div>
-                                  {lastRun.siteId && (
-                                    <div className="text-muted-foreground truncate max-w-[150px]">
-                                      {lastRun.siteId}
-                                    </div>
-                                  )}
-                                  {lastRun.summary && (
-                                    <div className="text-muted-foreground truncate max-w-[150px]" title={lastRun.summary}>
-                                      {lastRun.summary}
-                                    </div>
-                                  )}
-                                </button>
-                              );
-                            })()}
-                          </td>
-                          <td className="p-3">
-                            <span className="text-xs text-muted-foreground line-clamp-1">
-                              {integration.notes || "—"}
-                            </span>
-                          </td>
-                          <td className="p-3">
-                            <div className="flex items-center justify-center gap-1">
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-7 w-7"
-                                      onClick={() => healthCheckMutation.mutate(integration.integrationId)}
-                                      disabled={healthCheckingId === integration.integrationId}
-                                      data-testid={`button-health-${integration.integrationId}`}
-                                    >
-                                      {healthCheckingId === integration.integrationId ? (
-                                        <Loader2 className="w-3 h-3 animate-spin" />
-                                      ) : (
-                                        <Server className="w-3 h-3" />
-                                      )}
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>Test health endpoint</TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-7 w-7"
-                                      onClick={() => authTestMutation.mutate(integration.integrationId)}
-                                      disabled={authTestingId === integration.integrationId}
-                                      data-testid={`button-auth-${integration.integrationId}`}
-                                    >
-                                      {authTestingId === integration.integrationId ? (
-                                        <Loader2 className="w-3 h-3 animate-spin" />
-                                      ) : (
-                                        <Key className="w-3 h-3" />
-                                      )}
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>Test auth wiring</TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-7 w-7"
-                                      onClick={() => openEditDialog(integration)}
+                                    {formatTimeAgo(lastRun.finishedAt || lastRun.startedAt)}
+                                  </button>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">Never ran</span>
+                                )}
+                              </td>
+                              <td className="p-3">
+                                <span className="text-xs text-muted-foreground">
+                                  {lastRun?.siteId || "—"}
+                                </span>
+                              </td>
+                              <td className="p-3">
+                                <span className="text-xs text-muted-foreground line-clamp-1" title={lastRun?.summary || undefined}>
+                                  {lastRun?.summary || "—"}
+                                </span>
+                              </td>
+                              <td className="p-3">
+                                {lastRun?.metricsCollected ? (
+                                  <span className="text-xs text-muted-foreground">
+                                    {Object.entries(lastRun.metricsCollected).slice(0, 2).map(([k, v]) => 
+                                      `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`
+                                    ).join(', ')}
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">—</span>
+                                )}
+                              </td>
+                              <td className="p-3">
+                                <div className="flex items-center justify-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-7 w-7"
+                                          onClick={() => setSelectedIntegration(integration)}
+                                        >
+                                          <ChevronRight className="w-3 h-3" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>View details</TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        }
+                        
+                        // Diagnostics View
+                        return (
+                          <tr 
+                            key={integration.integrationId} 
+                            className="border-b hover:bg-muted/30 transition-colors"
+                            data-testid={`row-integration-${integration.integrationId}`}
+                          >
+                            <td className="p-3">
+                              <div className="flex items-center gap-2">
+                                {getStatusIcon(integration.healthStatus)}
+                                <div>
+                                  <div className="font-medium">{integration.name}</div>
+                                  <div className="text-xs text-muted-foreground">{integration.category}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              {integration.baseUrl ? (
+                                <a 
+                                  href={integration.baseUrl} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-primary hover:underline flex items-center gap-1"
+                                >
+                                  {integration.baseUrl.replace(/^https?:\/\//, '').slice(0, 30)}
+                                  <ExternalLink className="w-3 h-3" />
+                                </a>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">Not configured</span>
+                              )}
+                            </td>
+                            <td className="p-3 text-center">
+                              <StatusCell status={integration.baseUrl ? "pass" : "not_configured"} />
+                            </td>
+                            <td className="p-3 text-center">
+                              <StatusCell status={integration.healthCheckStatus === "pass" ? "pass" : integration.baseUrl ? "fail" : "not_configured"} />
+                            </td>
+                            <td className="p-3 text-center">
+                              <StatusCell status={integration.healthCheckStatus} />
+                            </td>
+                            <td className="p-3 text-center">
+                              <StatusCell status={integration.authTestStatus} />
+                            </td>
+                            <td className="p-3 text-center">
+                              <StatusCell status={integration.secretExists} />
+                            </td>
+                            <td className="p-3 text-center">
+                              <StatusCell status={integration.calledSuccessfully} />
+                            </td>
+                            <td className="p-3">
+                              <span className="text-xs text-muted-foreground line-clamp-1">
+                                {integration.notes || "—"}
+                              </span>
+                            </td>
+                            <td className="p-3">
+                              <div className="flex items-center justify-center gap-1">
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7"
+                                        onClick={() => healthCheckMutation.mutate(integration.integrationId)}
+                                        disabled={healthCheckingId === integration.integrationId}
+                                        data-testid={`button-health-${integration.integrationId}`}
+                                      >
+                                        {healthCheckingId === integration.integrationId ? (
+                                          <Loader2 className="w-3 h-3 animate-spin" />
+                                        ) : (
+                                          <Server className="w-3 h-3" />
+                                        )}
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Test health endpoint</TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7"
+                                        onClick={() => authTestMutation.mutate(integration.integrationId)}
+                                        disabled={authTestingId === integration.integrationId}
+                                        data-testid={`button-auth-${integration.integrationId}`}
+                                      >
+                                        {authTestingId === integration.integrationId ? (
+                                          <Loader2 className="w-3 h-3 animate-spin" />
+                                        ) : (
+                                          <Key className="w-3 h-3" />
+                                        )}
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Test auth wiring</TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7"
+                                        onClick={() => openEditDialog(integration)}
                                       data-testid={`button-edit-${integration.integrationId}`}
                                     >
                                       <Edit className="w-3 h-3" />
@@ -936,7 +1074,7 @@ export default function Integrations() {
                             </div>
                           </td>
                         </tr>
-                      ))}
+                      );})}
                     </tbody>
                   </table>
                 </div>

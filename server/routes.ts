@@ -1489,6 +1489,49 @@ When answering:
     }
   });
 
+  // =============== PLATFORM DEPENDENCIES ===============
+  
+  // Get platform dependency status (Bitwarden + Postgres)
+  app.get("/api/platform/dependencies", async (req, res) => {
+    try {
+      const { BitwardenProvider } = await import("./vault/BitwardenProvider");
+      const bitwarden = new BitwardenProvider();
+      const bitwardenStatus = await bitwarden.getDetailedStatus();
+      
+      // Check Postgres connection
+      let postgresConnected = false;
+      let postgresError = null;
+      try {
+        const { db } = await import("./db");
+        const result = await db.execute(require('drizzle-orm').sql`SELECT 1 as connected`);
+        postgresConnected = true;
+      } catch (pgError: any) {
+        postgresError = pgError.message;
+      }
+      
+      res.json({
+        bitwarden: {
+          connected: bitwardenStatus.connected,
+          reason: bitwardenStatus.reason,
+          secretsFound: bitwardenStatus.secretsFound,
+          lastCheckedAt: new Date().toISOString(),
+          httpStatus: bitwardenStatus.connected ? 200 : 
+            (bitwardenStatus.reason === "UNAUTHORIZED" ? 401 : 
+             bitwardenStatus.reason === "FORBIDDEN" ? 403 : null),
+          lastError: bitwardenStatus.lastError,
+        },
+        postgres: {
+          connected: postgresConnected,
+          reason: postgresConnected ? null : postgresError,
+          lastCheckedAt: new Date().toISOString(),
+        },
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to check platform dependencies", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // =============== VAULT & INTEGRATIONS ===============
   
   // Get vault status
@@ -2708,6 +2751,46 @@ When answering:
       res.json(servicesWithRuns);
     } catch (error: any) {
       logger.error("API", "Failed to get services with last run", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get last run for each service (optionally filtered by site)
+  app.get("/api/services/last-runs", async (req, res) => {
+    try {
+      const siteId = req.query.site_id as string | undefined;
+      const allRuns = await storage.getLatestServiceRuns(500);
+      
+      // Group by service and get the latest for each
+      const lastRunByService: Record<string, any> = {};
+      
+      for (const run of allRuns) {
+        // Skip if filtering by site and doesn't match
+        if (siteId && run.siteId !== siteId) continue;
+        
+        const serviceSlug = run.serviceId;
+        if (!lastRunByService[serviceSlug]) {
+          lastRunByService[serviceSlug] = {
+            serviceSlug,
+            lastRun: {
+              id: run.id,
+              runId: run.runId,
+              status: run.status,
+              finishedAt: run.finishedAt,
+              startedAt: run.startedAt,
+              siteDomain: run.siteDomain,
+              siteId: run.siteId,
+              summary: run.summary,
+              metrics: run.metricsCollected,
+              durationMs: run.durationMs,
+            },
+          };
+        }
+      }
+      
+      res.json(Object.values(lastRunByService));
+    } catch (error: any) {
+      logger.error("API", "Failed to get last runs per service", { error: error.message });
       res.status(500).json({ error: error.message });
     }
   });
