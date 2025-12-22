@@ -1786,26 +1786,79 @@ When answering:
     }
   });
 
+  // Bitwarden status endpoint - single source of truth for vault connectivity
+  app.get("/api/integrations/bitwarden/status", async (req, res) => {
+    try {
+      const { bitwardenProvider } = await import("./vault/BitwardenProvider");
+      const status = await bitwardenProvider.getDetailedStatus();
+      logger.info("API", "Bitwarden status check", { 
+        connected: status.connected, 
+        reason: status.reason,
+        secretsFound: status.secretsFound,
+      });
+      res.json(status);
+    } catch (error: any) {
+      logger.error("API", "Failed to check Bitwarden status", { error: error.message });
+      res.status(500).json({ 
+        connected: false, 
+        reason: "API_ERROR", 
+        lastError: error.message,
+        projectId: null,
+        secretsFound: 0,
+      });
+    }
+  });
+
+  // Bitwarden debug endpoint (for troubleshooting) - requires API key
+  app.get("/api/integrations/bitwarden/debug", async (req, res) => {
+    // Require API key for this sensitive endpoint
+    const apiKey = req.headers['x-api-key'] || req.headers['authorization']?.replace('Bearer ', '');
+    const expectedKey = process.env.TRAFFIC_DOCTOR_API_KEY;
+    
+    if (!expectedKey || apiKey !== expectedKey) {
+      return res.status(401).json({ error: "Unauthorized - API key required" });
+    }
+    
+    try {
+      const { bitwardenProvider } = await import("./vault/BitwardenProvider");
+      const status = await bitwardenProvider.getDetailedStatus();
+      
+      res.json({
+        tokenPresent: !!process.env.BWS_ACCESS_TOKEN,
+        projectIdPresent: !!process.env.BWS_PROJECT_ID,
+        projectId: status.projectId ? `${status.projectId.slice(0, 4)}...${status.projectId.slice(-4)}` : null,
+        httpStatus: status.httpStatus,
+        secretsCount: status.secretsFound,
+        reason: status.reason,
+        lastError: status.lastError,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Full refresh: Re-authenticate Bitwarden, fetch secrets, evaluate all services
   app.post("/api/integrations/refresh", async (req, res) => {
     try {
       const startTime = Date.now();
       logger.info("API", "Starting full integrations refresh");
 
-      // Step 1: Authenticate to Bitwarden and get vault status
+      // Step 1: Get detailed Bitwarden status
       const { bitwardenProvider } = await import("./vault/BitwardenProvider");
       bitwardenProvider.clearCache(); // Force fresh data
       
-      const vaultHealth = await bitwardenProvider.healthCheck();
-      logger.info("API", `Bitwarden auth: ${vaultHealth.connected ? 'SUCCESS' : 'FAILED'}`, {
-        error: vaultHealth.error,
+      const vaultStatus = await bitwardenProvider.getDetailedStatus();
+      logger.info("API", `Bitwarden status: ${vaultStatus.reason}`, {
+        connected: vaultStatus.connected,
+        secretsFound: vaultStatus.secretsFound,
+        error: vaultStatus.lastError,
       });
 
       // Step 2: Fetch all secrets from Bitwarden (if connected)
-      let availableSecrets: string[] = [];
+      let availableSecrets: string[] = vaultStatus.secretKeys || [];
       const secretValuesMap: Map<string, string> = new Map();
       
-      if (vaultHealth.connected) {
+      if (vaultStatus.connected && vaultStatus.secretsFound > 0) {
         const secretsList = await bitwardenProvider.listSecrets();
         availableSecrets = secretsList.map(s => s.key);
         logger.info("API", `Bitwarden secrets found: ${availableSecrets.length}`, {
@@ -2003,10 +2056,12 @@ When answering:
       res.json({
         success: true,
         vaultStatus: {
-          connected: vaultHealth.connected,
-          provider: vaultHealth.provider,
-          error: vaultHealth.error,
+          connected: vaultStatus.connected,
+          provider: 'bitwarden',
+          reason: vaultStatus.reason,
+          error: vaultStatus.lastError,
           secretsCount: availableSecrets.length,
+          projectId: vaultStatus.projectId,
         },
         summary,
         results,

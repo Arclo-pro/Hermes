@@ -230,9 +230,11 @@ export default function Integrations() {
   const [lastRefreshInfo, setLastRefreshInfo] = useState<{
     refreshedAt: string | null;
     vaultConnected: boolean;
+    vaultReason: string | null;
+    vaultError: string | null;
     secretsCount: number;
     summary: { total: number; healthy: number; failed: number; secretsFound: number } | null;
-  }>({ refreshedAt: null, vaultConnected: false, secretsCount: 0, summary: null });
+  }>({ refreshedAt: null, vaultConnected: false, vaultReason: null, vaultError: null, secretsCount: 0, summary: null });
 
   const { data: integrations, isLoading } = useQuery<Integration[]>({
     queryKey: ["platformIntegrations"],
@@ -272,6 +274,8 @@ export default function Integrations() {
       setLastRefreshInfo({
         refreshedAt: data.refreshedAt,
         vaultConnected: data.vaultStatus?.connected || false,
+        vaultReason: data.vaultStatus?.reason || null,
+        vaultError: data.vaultStatus?.error || null,
         secretsCount: data.vaultStatus?.secretsCount || 0,
         summary: data.summary,
       });
@@ -283,9 +287,25 @@ export default function Integrations() {
           { description: `Bitwarden connected with ${data.vaultStatus.secretsCount} secrets` }
         );
       } else {
+        // Show specific error message based on reason
+        const reason = data.vaultStatus?.reason;
+        let description = data.vaultStatus?.error || "Bitwarden not connected";
+        if (reason === "MISSING_TOKEN") {
+          description = "BWS_ACCESS_TOKEN not set in environment";
+        } else if (reason === "MISSING_PROJECT_ID") {
+          description = "BWS_PROJECT_ID not set. Add it to Replit Secrets.";
+        } else if (reason === "UNAUTHORIZED") {
+          description = "Token invalid or expired. Rotate BWS_ACCESS_TOKEN.";
+        } else if (reason === "FORBIDDEN") {
+          description = "Machine account doesn't have access to this project.";
+        } else if (reason === "PROJECT_NOT_FOUND") {
+          description = "Project ID is wrong or project doesn't exist.";
+        } else if (reason === "ZERO_SECRETS") {
+          description = "Connected, but no secrets found in this project.";
+        }
         toast.warning(
           `Refresh complete: ${summary.healthy}/${summary.total} healthy`,
-          { description: data.vaultStatus?.error || "Bitwarden not connected" }
+          { description }
         );
       }
     },
@@ -504,31 +524,45 @@ export default function Integrations() {
             <TabsContent value="inventory" className="space-y-4">
               {lastRefreshInfo.refreshedAt && (
                 <div className={cn(
-                  "flex items-center justify-between p-3 rounded-lg text-sm",
+                  "flex flex-col gap-2 p-3 rounded-lg text-sm",
                   lastRefreshInfo.vaultConnected 
                     ? "bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800" 
                     : "bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800"
                 )} data-testid="status-refresh-banner">
-                  <div className="flex items-center gap-2">
-                    {lastRefreshInfo.vaultConnected ? (
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                    ) : (
-                      <AlertTriangle className="w-4 h-4 text-yellow-600" />
-                    )}
-                    <span>
-                      Last checked: {formatTimeAgo(lastRefreshInfo.refreshedAt)} · 
-                      {lastRefreshInfo.vaultConnected 
-                        ? ` Bitwarden: ${lastRefreshInfo.secretsCount} secrets` 
-                        : " Bitwarden not connected"}
-                    </span>
-                  </div>
-                  {lastRefreshInfo.summary && (
-                    <div className="flex items-center gap-4 text-xs">
-                      <span className="text-green-600">{lastRefreshInfo.summary.healthy} healthy</span>
-                      {lastRefreshInfo.summary.failed > 0 && (
-                        <span className="text-red-600">{lastRefreshInfo.summary.failed} failed</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {lastRefreshInfo.vaultConnected ? (
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                      ) : (
+                        <AlertTriangle className="w-4 h-4 text-yellow-600" />
                       )}
-                      <span className="text-muted-foreground">{lastRefreshInfo.summary.secretsFound} secrets found</span>
+                      <span>
+                        Last checked: {formatTimeAgo(lastRefreshInfo.refreshedAt)} · 
+                        {lastRefreshInfo.vaultConnected 
+                          ? ` Bitwarden: ${lastRefreshInfo.secretsCount} secrets` 
+                          : " Bitwarden: not connected"}
+                      </span>
+                    </div>
+                    {lastRefreshInfo.summary && (
+                      <div className="flex items-center gap-4 text-xs">
+                        <span className="text-green-600">{lastRefreshInfo.summary.healthy} healthy</span>
+                        {lastRefreshInfo.summary.failed > 0 && (
+                          <span className="text-red-600">{lastRefreshInfo.summary.failed} failed</span>
+                        )}
+                        <span className="text-muted-foreground">{lastRefreshInfo.summary.secretsFound} secrets found</span>
+                      </div>
+                    )}
+                  </div>
+                  {!lastRefreshInfo.vaultConnected && lastRefreshInfo.vaultReason && (
+                    <div className="text-xs text-yellow-700 dark:text-yellow-400 ml-6">
+                      {lastRefreshInfo.vaultReason === "MISSING_TOKEN" && "BWS_ACCESS_TOKEN not set in environment"}
+                      {lastRefreshInfo.vaultReason === "MISSING_PROJECT_ID" && "BWS_PROJECT_ID not set. Add it to Replit Secrets."}
+                      {lastRefreshInfo.vaultReason === "UNAUTHORIZED" && "Token invalid or expired. Rotate BWS_ACCESS_TOKEN."}
+                      {lastRefreshInfo.vaultReason === "FORBIDDEN" && "Machine account doesn't have access to this project."}
+                      {lastRefreshInfo.vaultReason === "PROJECT_NOT_FOUND" && "Project ID is wrong or project doesn't exist."}
+                      {lastRefreshInfo.vaultReason === "ZERO_SECRETS" && "Connected, but no secrets found in this project."}
+                      {lastRefreshInfo.vaultReason === "API_ERROR" && (lastRefreshInfo.vaultError || "API error occurred")}
+                      {lastRefreshInfo.vaultReason === "NETWORK_ERROR" && (lastRefreshInfo.vaultError || "Network error occurred")}
                     </div>
                   )}
                 </div>

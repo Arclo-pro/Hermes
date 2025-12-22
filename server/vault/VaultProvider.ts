@@ -8,6 +8,9 @@ export interface VaultHealthStatus {
   provider: string;
   lastCheck: Date | null;
   error?: string;
+  reason?: string;
+  projectId?: string | null;
+  secretsFound?: number;
 }
 
 export interface VaultSecret {
