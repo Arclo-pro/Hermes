@@ -649,7 +649,9 @@ export default function Integrations() {
       return res.json();
     },
     onSuccess: (data) => {
+      console.log('Test mutation succeeded:', data);
       queryClient.invalidateQueries({ queryKey: ["platformIntegrations"] });
+      queryClient.invalidateQueries({ queryKey: ["servicesCatalog"] });
       setTestingId(null);
       
       if (data.status === "pass") {
@@ -661,6 +663,7 @@ export default function Integrations() {
       }
     },
     onError: (error: any) => {
+      console.error('Test mutation failed:', error);
       setTestingId(null);
       toast.error(error.message || "Test failed");
     },
@@ -2236,11 +2239,13 @@ export default function Integrations() {
                 )}
 
                 <div className="flex justify-end gap-2 pt-4 border-t">
-                  <Button variant="outline" onClick={() => setSelectedCatalogService(null)}>
+                  <Button type="button" variant="outline" onClick={() => setSelectedCatalogService(null)}>
                     Close
                   </Button>
                   <Button
+                    type="button"
                     onClick={() => {
+                      console.log('Test button clicked for:', selectedCatalogService.slug);
                       testMutation.mutate(selectedCatalogService.slug);
                     }}
                     disabled={testingId === selectedCatalogService.slug || selectedCatalogService.configState === 'blocked'}
