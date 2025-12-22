@@ -21,10 +21,16 @@ export interface ServiceSecretMapping {
   category: "google" | "analysis" | "content" | "infrastructure" | "execution";
 }
 
+/**
+ * Canonical mapping table.
+ * 
+ * IMPORTANT: serviceSlug MUST match the slug in servicesCatalog.ts
+ * Use the exact catalog slugs, not custom names.
+ */
 export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
   // Infrastructure Services (internal to Hermes, no base_url needed)
   {
-    serviceSlug: "audit_log_observability",
+    serviceSlug: "audit_log",  // Matches catalog
     displayName: "Audit Log & Observability",
     bitwardenSecret: "SEO_Audit_Log",
     type: "infrastructure",
@@ -32,7 +38,7 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
     category: "infrastructure"
   },
   {
-    serviceSlug: "scheduler_job_runner",
+    serviceSlug: "orchestrator",  // Matches catalog
     displayName: "Orchestrator / Job Runner",
     bitwardenSecret: "SEO_SCHEDULER_API_KEY",
     type: "infrastructure",
@@ -40,7 +46,7 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
     category: "infrastructure"
   },
   {
-    serviceSlug: "notifications_service",
+    serviceSlug: "notifications",  // Matches catalog
     displayName: "Notifications Service",
     bitwardenSecret: "SEO_Notifications",
     type: "worker",
@@ -50,7 +56,7 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
 
   // Google Connectors (special handling - OAuth based)
   {
-    serviceSlug: "google_data_connector",
+    serviceSlug: "google_data_connector",  // Matches catalog
     displayName: "Google Data Connector (GSC + GA4)",
     bitwardenSecret: "SEO_Google_Connector",
     type: "connector",
@@ -60,7 +66,7 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
 
   // Analysis Workers (need base_url + api_key)
   {
-    serviceSlug: "serp_keyword_intel",
+    serviceSlug: "serp_intel",  // Matches catalog
     displayName: "Worker: SERP & Keyword Intelligence Service",
     bitwardenSecret: "SEO_SERP_&_Keyword",
     type: "worker",
@@ -68,7 +74,7 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
     category: "analysis"
   },
   {
-    serviceSlug: "technical_crawler",
+    serviceSlug: "crawl_render",  // Matches catalog
     displayName: "Crawl & Render Service",
     bitwardenSecret: "SEO_TECHNICAL_CRAWLER_API_KEY",
     type: "worker",
@@ -76,7 +82,7 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
     category: "analysis"
   },
   {
-    serviceSlug: "core_web_vitals_monitor",
+    serviceSlug: "core_web_vitals",  // Matches catalog
     displayName: "Core Web Vitals Monitor",
     bitwardenSecret: "SEO_Vital_Monitor",
     type: "worker",
@@ -84,7 +90,7 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
     category: "analysis"
   },
   {
-    serviceSlug: "backlinks_authority",
+    serviceSlug: "backlink_authority",  // Matches catalog
     displayName: "Backlink & Authority Signals",
     bitwardenSecret: "SEO_Backlinks",
     type: "worker",
@@ -92,7 +98,7 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
     category: "analysis"
   },
   {
-    serviceSlug: "competitive_intel",
+    serviceSlug: "competitive_snapshot",  // Matches catalog
     displayName: "Competitive Intelligence",
     bitwardenSecret: "SEO_Competitive_Intel",
     type: "worker",
@@ -102,7 +108,7 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
 
   // Content Workers
   {
-    serviceSlug: "content_generator",
+    serviceSlug: "content_generator",  // Matches catalog
     displayName: "Content Generator",
     bitwardenSecret: "SEO_Blog_Writer",
     type: "worker",
@@ -110,7 +116,7 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
     category: "content"
   },
   {
-    serviceSlug: "content_decay_monitor",
+    serviceSlug: "content_decay",  // Matches catalog
     displayName: "Content Decay Monitor",
     bitwardenSecret: "SEO_CONTENT_DECAY_MONITOR_API_KEY",
     type: "worker",
@@ -118,7 +124,7 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
     category: "content"
   },
   {
-    serviceSlug: "content_qa_policy_validator",
+    serviceSlug: "content_qa",  // Matches catalog
     displayName: "Content QA / Policy Validator",
     bitwardenSecret: "SEO_Content_QA",
     type: "worker",
@@ -126,8 +132,8 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
     category: "content"
   },
   {
-    serviceSlug: "content_validator",
-    displayName: "Content Validator",
+    serviceSlug: "content_gap",  // Matches catalog
+    displayName: "Content Gap Analysis",
     bitwardenSecret: "SEO_Content_Validator",
     type: "worker",
     requiresBaseUrl: true,
@@ -136,7 +142,7 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
 
   // Planned / Not Built Yet
   {
-    serviceSlug: "google_ads",
+    serviceSlug: "google_ads_connector",  // Matches catalog
     displayName: "Google Ads",
     bitwardenSecret: null,
     type: "planned",
@@ -144,7 +150,7 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
     category: "google"
   },
   {
-    serviceSlug: "site_change_executor",
+    serviceSlug: "site_executor",  // Matches catalog
     displayName: "Site Change Executor",
     bitwardenSecret: null,
     type: "planned",

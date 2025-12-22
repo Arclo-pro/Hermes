@@ -1694,41 +1694,81 @@ When answering:
 
       // Get catalog, integrations, and runs
       const { servicesCatalog, computeMissingOutputs, slugLabels } = await import("@shared/servicesCatalog");
+      const { SERVICE_SECRET_MAP, getServiceBySlug } = await import("@shared/serviceSecretMap");
       const platformIntegrations = await storage.getIntegrations();
       const lastRunMap = await storage.getLastRunPerServiceBySite(siteId);
       
-      // Get platform health
-      const { BitwardenProvider } = await import("./vault/BitwardenProvider");
-      const bitwarden = new BitwardenProvider();
-      const bitwardenStatus = await bitwarden.getDetailedStatus();
+      // Get platform health and secret list
+      const { bitwardenProvider } = await import("./vault/BitwardenProvider");
+      const bitwardenStatus = await bitwardenProvider.getDetailedStatus();
+      const secretKeys = new Set(bitwardenStatus.secretKeys || []);
+      
+      // Pre-fetch worker configs for services that need base_url
+      const workerConfigs = new Map<string, { hasBaseUrl: boolean; error: string | null }>();
+      for (const mapping of SERVICE_SECRET_MAP) {
+        if (mapping.requiresBaseUrl && mapping.bitwardenSecret) {
+          const config = await bitwardenProvider.getWorkerConfig(mapping.bitwardenSecret);
+          workerConfigs.set(mapping.serviceSlug, {
+            hasBaseUrl: config.valid && !!config.baseUrl,
+            error: config.error,
+          });
+        }
+      }
       
       // Check recent runs (last 24h)
       const now = new Date();
       const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
       
-      // Build computed service states
+      // Build computed service states using canonical mapping
       const services = servicesCatalog.map(def => {
         const integration = platformIntegrations.find(i => i.integrationId === def.slug);
         const lastRun = lastRunMap.get(def.slug);
         
+        // Look up canonical secret mapping
+        const secretMapping = getServiceBySlug(def.slug);
+        
         // Compute build state from integration or catalog
         const buildState = integration?.buildState || def.buildState || 'planned';
         
-        // Compute config state
+        // Compute config state using canonical mapping rules
         let configState: 'ready' | 'blocked' | 'needs_config' = 'needs_config';
         let blockingReason: string | null = null;
         
-        if (integration?.configState === 'ready') {
-          configState = 'ready';
-        } else if (integration?.configState === 'blocked') {
-          configState = 'blocked';
-          blockingReason = integration?.lastError || 'Missing required secret or configuration';
-        } else if (def.secretKeyName && !integration?.secretExists) {
-          configState = 'blocked';
-          blockingReason = `Missing secret: ${def.secretKeyName}`;
-        } else if (buildState === 'planned') {
-          configState = 'needs_config';
-          blockingReason = 'Service not yet built';
+        if (secretMapping) {
+          // Use canonical mapping for state determination
+          if (secretMapping.type === 'planned') {
+            configState = 'blocked';
+            blockingReason = 'Not built yet';
+          } else if (secretMapping.bitwardenSecret && !secretKeys.has(secretMapping.bitwardenSecret)) {
+            configState = 'needs_config';
+            blockingReason = `Bitwarden secret not found: ${secretMapping.bitwardenSecret}`;
+          } else if (secretMapping.requiresBaseUrl) {
+            // Worker services need base_url in the secret
+            const workerConfig = workerConfigs.get(secretMapping.serviceSlug);
+            if (!workerConfig?.hasBaseUrl) {
+              configState = 'needs_config';
+              blockingReason = workerConfig?.error || 'Worker base_url missing in Bitwarden secret';
+            } else {
+              configState = 'ready';
+            }
+          } else {
+            // Infrastructure/connector - secret exists = ready
+            configState = 'ready';
+          }
+        } else {
+          // No canonical mapping - fall back to legacy logic
+          if (integration?.configState === 'ready') {
+            configState = 'ready';
+          } else if (integration?.configState === 'blocked') {
+            configState = 'blocked';
+            blockingReason = integration?.lastError || 'Missing required secret or configuration';
+          } else if (def.secretKeyName && !integration?.secretExists) {
+            configState = 'needs_config';
+            blockingReason = `Missing secret: ${def.secretKeyName}`;
+          } else if (buildState === 'planned') {
+            configState = 'blocked';
+            blockingReason = 'Service not yet built';
+          }
         }
         
         // Compute run state
@@ -1753,7 +1793,7 @@ When answering:
         
         return {
           slug: def.slug,
-          displayName: def.displayName,
+          displayName: secretMapping?.displayName || def.displayName,
           category: def.category,
           description: def.description,
           purpose: def.purpose,
@@ -1766,6 +1806,8 @@ When answering:
           runState,
           blockingReason,
           missingOutputs,
+          secretPresent: secretMapping?.bitwardenSecret ? secretKeys.has(secretMapping.bitwardenSecret) : true,
+          requiresBaseUrl: secretMapping?.requiresBaseUrl || false,
           lastRun: lastRun ? {
             id: lastRun.runId,
             status: lastRun.status,
