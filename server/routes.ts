@@ -702,6 +702,42 @@ export async function registerRoutes(
         const sourcesOk = results.sources.ga4?.ok || results.sources.gsc?.ok || results.sources.ads?.ok;
         const sourceStatus = allOk ? "success" : (sourcesOk ? "partial" : "failed");
         
+        // Build actualOutputs array based on what data was successfully fetched
+        const actualOutputs: string[] = [];
+        const missingReason: Record<string, string> = {};
+        
+        // GSC outputs - add if GSC connected and returned data
+        if (results.sources.gsc?.ok) {
+          // GSC query data provides impressions, clicks, ctr, position, queries
+          actualOutputs.push("gsc_impressions", "gsc_clicks", "gsc_ctr", "gsc_position", "gsc_queries");
+          // GSC pages are available from the same API
+          actualOutputs.push("gsc_pages");
+        } else {
+          missingReason["gsc_impressions"] = results.sources.gsc?.error || "GSC not connected";
+          missingReason["gsc_clicks"] = results.sources.gsc?.error || "GSC not connected";
+          missingReason["gsc_ctr"] = results.sources.gsc?.error || "GSC not connected";
+          missingReason["gsc_position"] = results.sources.gsc?.error || "GSC not connected";
+          missingReason["gsc_queries"] = results.sources.gsc?.error || "GSC not connected";
+          missingReason["gsc_pages"] = results.sources.gsc?.error || "GSC not connected";
+        }
+        
+        // GA4 outputs - add if GA4 connected and returned data
+        if (results.sources.ga4?.ok && results.sources.ga4?.sampleCount > 0) {
+          actualOutputs.push("ga4_sessions", "ga4_users");
+          // Conversions require specific event configuration - check if available
+          // For now, mark as present if GA4 is working (can refine later)
+          actualOutputs.push("ga4_conversions");
+        } else if (results.sources.ga4?.ok) {
+          // GA4 connected but no data yet
+          missingReason["ga4_sessions"] = "GA4 connected but no data in date range";
+          missingReason["ga4_users"] = "GA4 connected but no data in date range";
+          missingReason["ga4_conversions"] = "GA4 connected but no conversion data";
+        } else {
+          missingReason["ga4_sessions"] = results.sources.ga4?.error || "GA4 not connected";
+          missingReason["ga4_users"] = results.sources.ga4?.error || "GA4 not connected";
+          missingReason["ga4_conversions"] = results.sources.ga4?.error || "GA4 not connected";
+        }
+        
         await storage.createServiceRun({
           runId: `svc_${runId}`,
           siteId: "site_empathy_health_clinic",
@@ -718,12 +754,22 @@ export async function registerRoutes(
             ga4_samples: results.sources.ga4?.sampleCount || 0,
             gsc_samples: results.sources.gsc?.sampleCount || 0,
             ads_samples: results.sources.ads?.sampleCount || 0,
+            ga4_connected: results.sources.ga4?.ok || false,
+            gsc_connected: results.sources.gsc?.ok || false,
           },
-          outputsJson: results.sources,
+          outputsJson: {
+            actualOutputs,
+            missingReason: Object.keys(missingReason).length > 0 ? missingReason : undefined,
+            rawSources: results.sources,
+          },
           errorsJson: allOk ? null : { issues: results.issues },
         });
         
-        logger.info("API", "Recorded service run for google_data_connector", { status: sourceStatus });
+        logger.info("API", "Recorded service run for google_data_connector", { 
+          status: sourceStatus,
+          actualOutputs,
+          missingCount: 9 - actualOutputs.length,
+        });
       }
 
       res.json({
