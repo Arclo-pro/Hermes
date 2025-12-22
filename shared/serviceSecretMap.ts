@@ -70,7 +70,7 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
   {
     serviceSlug: "serp_intel",  // Matches catalog
     displayName: "SERP & Keyword Intelligence",
-    bitwardenSecret: "SERP_INTELLIGENCE_API_KEY",  // JSON: { base_url, api_key }
+    bitwardenSecret: "SEO_SERP_&_Keyword",  // JSON: { base_url, api_key }
     type: "worker",
     requiresBaseUrl: true,
     category: "analysis",

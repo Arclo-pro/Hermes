@@ -241,7 +241,7 @@ export const servicesCatalog: ServiceDefinition[] = [
     commonFailures: ["api_key_invalid", "rate_limited", "quota_exceeded", "no_data", "worker_unreachable", "job_timeout"],
     runTriggers: ["scheduled", "manual"],
     testMode: "worker",
-    secretKeyName: "SERP_INTELLIGENCE_API_KEY",
+    secretKeyName: "SEO_SERP_&_Keyword",
   },
   {
     slug: "crawl_render",
