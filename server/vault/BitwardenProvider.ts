@@ -358,6 +358,63 @@ export class BitwardenProvider implements VaultProvider {
     this.client = null;
     this.initialized = false;
   }
+
+  /**
+   * Parse a worker config from a Bitwarden secret that contains JSON.
+   * Expected format: { base_url: string, api_key: string, health_path?: string, ... }
+   */
+  async getWorkerConfig(secretKey: string): Promise<{
+    baseUrl: string | null;
+    apiKey: string | null;
+    healthPath: string;
+    startPath: string;
+    statusPath: string;
+    raw: any;
+    error: string | null;
+  }> {
+    const defaultConfig = {
+      baseUrl: null,
+      apiKey: null,
+      healthPath: '/health',
+      startPath: '/api/serp/run',
+      statusPath: '/api/serp/status',
+      raw: null,
+      error: null,
+    };
+
+    try {
+      const secretValue = await this.getSecret(secretKey);
+      if (!secretValue) {
+        return { ...defaultConfig, error: `Secret not found: ${secretKey}` };
+      }
+
+      // Try to parse as JSON
+      let parsed: any;
+      try {
+        parsed = JSON.parse(secretValue);
+      } catch (e) {
+        // If not JSON, maybe it's just a plain API key
+        return { 
+          ...defaultConfig, 
+          apiKey: secretValue.trim(),
+          error: 'Secret is not JSON format - using as plain API key',
+        };
+      }
+
+      return {
+        baseUrl: parsed.base_url || parsed.baseUrl || null,
+        apiKey: parsed.api_key || parsed.apiKey || null,
+        healthPath: parsed.health_path || parsed.healthPath || '/health',
+        startPath: parsed.start_path || parsed.startPath || '/api/serp/run',
+        statusPath: parsed.status_path || parsed.statusPath || '/api/serp/status',
+        raw: parsed,
+        error: null,
+      };
+    } catch (error: any) {
+      logger.error('Vault', `Failed to get worker config: ${secretKey}`, { error: error.message });
+      return { ...defaultConfig, error: error.message };
+    }
+  }
 }
 
 export const bitwardenProvider = new BitwardenProvider();
