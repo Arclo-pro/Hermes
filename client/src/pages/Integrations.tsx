@@ -440,6 +440,26 @@ export default function Integrations() {
   });
   const [testingAll, setTestingAll] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [runningQa, setRunningQa] = useState(false);
+  const [qaResults, setQaResults] = useState<{
+    runId: string;
+    status: string;
+    summary: string;
+    totalTests: number;
+    passed: number;
+    failed: number;
+    skipped: number;
+    items: Array<{
+      serviceSlug: string;
+      testType: string;
+      status: string;
+      details: string;
+      durationMs: number;
+      httpStatus?: number;
+      latencyMs?: number;
+    }>;
+  } | null>(null);
+  const [showQaResults, setShowQaResults] = useState(false);
   const [lastRefreshInfo, setLastRefreshInfo] = useState<{
     refreshedAt: string | null;
     vaultConnected: boolean;
@@ -550,6 +570,39 @@ export default function Integrations() {
     onError: (error: Error) => {
       toast.error(`Diagnosis failed: ${error.message}`);
       setRunningDiagnosis(false);
+    },
+  });
+
+  // Run QA mutation
+  const runQaMutation = useMutation({
+    mutationFn: async (mode: "connection" | "smoke" | "full") => {
+      setRunningQa(true);
+      const res = await fetch("/api/qa/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ siteId: selectedSiteId, mode, trigger: "manual" }),
+      });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error(errorData.error || `QA run failed: ${res.status}`);
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["platformIntegrations"] });
+      queryClient.invalidateQueries({ queryKey: ["serviceCatalog"] });
+      queryClient.invalidateQueries({ queryKey: ["siteSummary"] });
+      queryClient.invalidateQueries({ queryKey: ["serviceRuns"] });
+      setQaResults(data);
+      setShowQaResults(true);
+      setRunningQa(false);
+      
+      const statusIcon = data.status === "pass" ? "✓" : data.status === "partial" ? "⚠" : "✗";
+      toast.success(`QA Complete: ${statusIcon} ${data.summary}`);
+    },
+    onError: (error: Error) => {
+      toast.error(`QA failed: ${error.message}`);
+      setRunningQa(false);
     },
   });
 
@@ -821,6 +874,19 @@ export default function Integrations() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="default"
+              onClick={() => runQaMutation.mutate("connection")}
+              disabled={runningQa}
+              data-testid="button-run-qa"
+            >
+              {runningQa ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Zap className="w-4 h-4 mr-2" />
+              )}
+              {runningQa ? "Running QA..." : "Run QA"}
+            </Button>
             <Button
               variant="outline"
               onClick={() => refreshMutation.mutate()}
@@ -2267,6 +2333,97 @@ export default function Integrations() {
                 </div>
               </div>
             </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* QA Results Modal */}
+      <Dialog open={showQaResults} onOpenChange={() => setShowQaResults(false)}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Zap className="w-5 h-5" />
+              QA Run Results
+              {qaResults && (
+                <Badge 
+                  variant={qaResults.status === "pass" ? "default" : qaResults.status === "partial" ? "secondary" : "destructive"}
+                  className="ml-2"
+                >
+                  {qaResults.status.toUpperCase()}
+                </Badge>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              {qaResults?.summary || "Testing all services..."}
+            </DialogDescription>
+          </DialogHeader>
+
+          {qaResults && (
+            <div className="space-y-4 mt-4">
+              <div className="grid grid-cols-4 gap-4">
+                <div className="p-3 bg-muted rounded-lg text-center">
+                  <p className="text-2xl font-bold">{qaResults.totalTests}</p>
+                  <p className="text-xs text-muted-foreground">Total Tests</p>
+                </div>
+                <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg text-center">
+                  <p className="text-2xl font-bold text-green-600">{qaResults.passed}</p>
+                  <p className="text-xs text-muted-foreground">Passed</p>
+                </div>
+                <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg text-center">
+                  <p className="text-2xl font-bold text-red-600">{qaResults.failed}</p>
+                  <p className="text-xs text-muted-foreground">Failed</p>
+                </div>
+                <div className="p-3 bg-gray-50 dark:bg-gray-900/20 rounded-lg text-center">
+                  <p className="text-2xl font-bold text-gray-600">{qaResults.skipped}</p>
+                  <p className="text-xs text-muted-foreground">Skipped</p>
+                </div>
+              </div>
+
+              <div className="border rounded-lg divide-y max-h-[400px] overflow-y-auto">
+                {qaResults.items.map((item, idx) => (
+                  <div key={idx} className="p-3 flex items-center gap-3">
+                    <div className="flex-shrink-0">
+                      {item.status === "pass" ? (
+                        <CheckCircle className="w-5 h-5 text-green-500" />
+                      ) : item.status === "fail" ? (
+                        <XCircle className="w-5 h-5 text-red-500" />
+                      ) : (
+                        <Clock className="w-5 h-5 text-gray-400" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium truncate">
+                          {item.serviceSlug.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        </span>
+                        <Badge variant="outline" className="text-xs">
+                          {item.testType}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground truncate">
+                        {item.details}
+                      </p>
+                    </div>
+                    <div className="flex-shrink-0 text-right">
+                      <p className="text-xs text-muted-foreground">
+                        {item.durationMs}ms
+                      </p>
+                      {item.latencyMs && (
+                        <p className="text-xs text-muted-foreground">
+                          Latency: {item.latencyMs}ms
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <Button variant="outline" onClick={() => setShowQaResults(false)}>
+                  Close
+                </Button>
+              </div>
+            </div>
           )}
         </DialogContent>
       </Dialog>
