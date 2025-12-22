@@ -618,6 +618,18 @@ export const IntegrationStatuses = {
 
 export type IntegrationStatus = typeof IntegrationStatuses[keyof typeof IntegrationStatuses];
 
+// Deployment Statuses for services
+export const DeploymentStatuses = {
+  NOT_BUILT: 'not_built',
+  BUILDING: 'building',
+  BUILT: 'built',
+  DEPLOYING: 'deploying',
+  DEPLOYED: 'deployed',
+  FAILED: 'failed',
+} as const;
+
+export type DeploymentStatus = typeof DeploymentStatuses[keyof typeof DeploymentStatuses];
+
 // Platform Integrations Registry - Global service definitions
 export const integrations = pgTable("integrations", {
   id: serial("id").primaryKey(),
@@ -634,6 +646,24 @@ export const integrations = pgTable("integrations", {
   expectedSignals: jsonb("expected_signals"), // Array of signal names this integration should provide
   receivedSignals: jsonb("received_signals"), // Object mapping signal -> { received: boolean, stale: boolean, lastValue: any }
   configJson: jsonb("config_json"), // Non-sensitive configuration
+  // Service Inventory Fields
+  replitProjectUrl: text("replit_project_url"), // URL to Replit project
+  baseUrl: text("base_url"), // Service base URL (e.g., https://service.replit.app)
+  healthEndpoint: text("health_endpoint").default("/health"), // Health check endpoint
+  metaEndpoint: text("meta_endpoint").default("/meta"), // Metadata endpoint
+  deploymentStatus: text("deployment_status").default("not_built"), // not_built, building, built, deploying, deployed, failed
+  hasRequiredEndpoints: boolean("has_required_endpoints").default(false),
+  authRequired: boolean("auth_required").default(true),
+  secretKeyName: text("secret_key_name"), // Bitwarden secret name for this service
+  secretExists: boolean("secret_exists").default(false),
+  lastHealthCheckAt: timestamp("last_health_check_at"),
+  healthCheckStatus: text("health_check_status"), // pass, fail, unknown
+  healthCheckResponse: jsonb("health_check_response"), // Response from health endpoint
+  lastAuthTestAt: timestamp("last_auth_test_at"),
+  authTestStatus: text("auth_test_status"), // pass, fail, unknown
+  authTestDetails: jsonb("auth_test_details"), // { noKeyResult, withKeyResult }
+  calledSuccessfully: boolean("called_successfully").default(false),
+  notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
