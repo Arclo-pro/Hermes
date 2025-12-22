@@ -488,6 +488,21 @@ export class AdsConnector {
   async getDataByDateRange(startDate: string, endDate: string): Promise<InsertAdsDaily[]> {
     return storage.getAdsDataByDateRange(startDate, endDate);
   }
+
+  async testConnection(): Promise<{ success: boolean; message: string; sampleCount?: number }> {
+    if (!this.customerId) {
+      return { success: false, message: 'ADS_CUSTOMER_ID not configured' };
+    }
+
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+      const data = await this.fetchDailyData(yesterday, today);
+      return { success: true, message: 'Google Ads connected', sampleCount: data.length };
+    } catch (error: any) {
+      return { success: false, message: error.message || 'Google Ads connection failed' };
+    }
+  }
 }
 
 export const adsConnector = new AdsConnector();

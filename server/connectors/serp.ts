@@ -259,6 +259,19 @@ export class SerpConnector {
 
     return results;
   }
+
+  async testConnection(): Promise<{ success: boolean; message: string }> {
+    if (!this.apiKey) {
+      return { success: false, message: 'SERP_API_KEY not configured' };
+    }
+
+    try {
+      const result = await this.checkKeywordRanking('test query', 'example.com');
+      return { success: true, message: 'SerpAPI connected' };
+    } catch (error: any) {
+      return { success: false, message: error.message || 'SerpAPI connection failed' };
+    }
+  }
 }
 
 export const serpConnector = new SerpConnector();
