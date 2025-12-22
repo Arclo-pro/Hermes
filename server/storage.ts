@@ -26,6 +26,8 @@ import {
   integrationChecks,
   serviceRuns,
   diagnosticRuns,
+  qaRuns,
+  qaRunItems,
   type OAuthToken,
   type InsertOAuthToken,
   type GA4Daily,
@@ -78,6 +80,10 @@ import {
   type InsertServiceRun,
   type DiagnosticRun,
   type InsertDiagnosticRun,
+  type QaRun,
+  type InsertQaRun,
+  type QaRunItem,
+  type InsertQaRunItem,
 } from "@shared/schema";
 import { eq, desc, and, gte, sql, asc, or, isNull } from "drizzle-orm";
 
@@ -235,6 +241,14 @@ export interface IStorage {
   getLastRunPerService(): Promise<Map<string, ServiceRun>>;
   getLastRunPerServiceBySite(siteId: string): Promise<Map<string, ServiceRun>>;
   getServicesWithLastRun(): Promise<Array<Integration & { lastRun: ServiceRun | null }>>;
+  
+  // QA Runs
+  createQaRun(run: InsertQaRun): Promise<QaRun>;
+  updateQaRun(runId: string, updates: Partial<InsertQaRun>): Promise<QaRun | undefined>;
+  getQaRunById(runId: string): Promise<QaRun | undefined>;
+  getLatestQaRuns(limit?: number): Promise<QaRun[]>;
+  createQaRunItem(item: InsertQaRunItem): Promise<QaRunItem>;
+  getQaRunItems(qaRunId: string): Promise<QaRunItem[]>;
 }
 
 class DBStorage implements IStorage {
@@ -1039,6 +1053,47 @@ class DBStorage implements IStorage {
       .from(diagnosticRuns)
       .orderBy(desc(diagnosticRuns.startedAt))
       .limit(limit);
+  }
+
+  // QA Runs implementation
+  async createQaRun(run: InsertQaRun): Promise<QaRun> {
+    const [newRun] = await db.insert(qaRuns).values(run).returning();
+    return newRun;
+  }
+
+  async updateQaRun(runId: string, updates: Partial<InsertQaRun>): Promise<QaRun | undefined> {
+    const [updated] = await db
+      .update(qaRuns)
+      .set(updates)
+      .where(eq(qaRuns.runId, runId))
+      .returning();
+    return updated;
+  }
+
+  async getQaRunById(runId: string): Promise<QaRun | undefined> {
+    const [run] = await db.select().from(qaRuns).where(eq(qaRuns.runId, runId)).limit(1);
+    return run;
+  }
+
+  async getLatestQaRuns(limit = 10): Promise<QaRun[]> {
+    return db
+      .select()
+      .from(qaRuns)
+      .orderBy(desc(qaRuns.startedAt))
+      .limit(limit);
+  }
+
+  async createQaRunItem(item: InsertQaRunItem): Promise<QaRunItem> {
+    const [newItem] = await db.insert(qaRunItems).values(item).returning();
+    return newItem;
+  }
+
+  async getQaRunItems(qaRunId: string): Promise<QaRunItem[]> {
+    return db
+      .select()
+      .from(qaRunItems)
+      .where(eq(qaRunItems.qaRunId, qaRunId))
+      .orderBy(asc(qaRunItems.id));
   }
 }
 
