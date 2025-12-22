@@ -2760,11 +2760,47 @@ When answering:
             const gscStatus = await gscConnector.testConnection();
             const bothPass = ga4Status.success && gscStatus.success;
             const onePass = ga4Status.success || gscStatus.success;
+            
+            // Build actualOutputs array based on what connected
+            const actualOutputs: string[] = [];
+            const missingReason: Record<string, string> = {};
+            
+            if (gscStatus.success) {
+              actualOutputs.push("gsc_impressions", "gsc_clicks", "gsc_ctr", "gsc_position", "gsc_queries", "gsc_pages");
+            } else {
+              const reason = gscStatus.error || "GSC not connected";
+              missingReason["gsc_impressions"] = reason;
+              missingReason["gsc_clicks"] = reason;
+              missingReason["gsc_ctr"] = reason;
+              missingReason["gsc_position"] = reason;
+              missingReason["gsc_queries"] = reason;
+              missingReason["gsc_pages"] = reason;
+            }
+            
+            if (ga4Status.success) {
+              actualOutputs.push("ga4_sessions", "ga4_users", "ga4_conversions");
+            } else {
+              const reason = ga4Status.error || "GA4 not connected";
+              missingReason["ga4_sessions"] = reason;
+              missingReason["ga4_users"] = reason;
+              missingReason["ga4_conversions"] = reason;
+            }
+            
             checkResult = {
               status: bothPass ? "pass" : onePass ? "partial" : "fail",
               summary: bothPass ? "GA4 and GSC connected" : onePass ? "Partial: one service connected" : "Both GA4 and GSC failed",
-              metrics: { ga4_connected: ga4Status.success, gsc_connected: gscStatus.success },
-              details: { ga4: ga4Status, gsc: gscStatus },
+              metrics: { 
+                ga4_connected: ga4Status.success, 
+                gsc_connected: gscStatus.success,
+                outputs_received: actualOutputs.length,
+                outputs_missing: 9 - actualOutputs.length,
+              },
+              details: { 
+                ga4: ga4Status, 
+                gsc: gscStatus,
+                actualOutputs,
+                missingReason: Object.keys(missingReason).length > 0 ? missingReason : undefined,
+              },
             };
             break;
           }
@@ -2907,14 +2943,22 @@ When answering:
         : checkResult.status === "skipped" ? "skipped" 
         : "failed";
 
-      // Update the service run with results
+      // Extract actualOutputs from details if present (for connectors that provide them)
+      const actualOutputs = checkResult.details?.actualOutputs || [];
+      const missingReason = checkResult.details?.missingReason;
+      
+      // Update the service run with results - properly structure outputsJson with actualOutputs
       await storage.updateServiceRun(runId, {
         status: runStatus,
         finishedAt: new Date(),
         durationMs,
         summary: checkResult.summary,
         metricsJson: checkResult.metrics,
-        outputsJson: checkResult.details,
+        outputsJson: {
+          actualOutputs,
+          missingReason,
+          details: checkResult.details,
+        },
         errorCode: runStatus === "failed" ? "TEST_FAILED" : null,
         errorDetail: runStatus === "failed" ? checkResult.summary : null,
       });
