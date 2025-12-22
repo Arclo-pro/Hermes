@@ -42,6 +42,29 @@ export const slugLabels: Record<string, string> = {
   bws_access_token: "BWS Access Token",
   database_url: "Database URL",
   
+  // GSC namespaced outputs
+  gsc_impressions: "GSC Impressions",
+  gsc_clicks: "GSC Clicks",
+  gsc_ctr: "GSC CTR",
+  gsc_position: "GSC Position",
+  gsc_queries: "GSC Queries",
+  gsc_pages: "GSC Pages",
+  
+  // GA4 namespaced outputs
+  ga4_sessions: "GA4 Sessions",
+  ga4_users: "GA4 Users",
+  ga4_conversions: "GA4 Conversions",
+  
+  // Google Ads namespaced outputs
+  ads_spend: "Ads Spend",
+  ads_impressions: "Ads Impressions",
+  ads_clicks: "Ads Clicks",
+  ads_cpc: "Ads CPC",
+  ads_conversions: "Ads Conversions",
+  ads_policy_issues: "Ads Policy Issues",
+  ads_campaign_status: "Ads Campaign Status",
+  
+  // Legacy generic slugs (for backward compatibility)
   impressions: "Impressions",
   clicks: "Clicks",
   ctr: "CTR",
@@ -172,8 +195,8 @@ export const servicesCatalog: ServiceDefinition[] = [
     description: "Unified OAuth connector that pulls data from GA4, Google Search Console, and Google Ads using a single authenticated session. This is the primary data ingestion point for all Google-sourced metrics.",
     purpose: "Fetch impressions, clicks, CTR, sessions, and users from Google APIs",
     inputs: ["oauth_tokens", "ga4_property_id", "gsc_site", "ads_customer_id"],
-    outputs: ["impressions", "clicks", "ctr", "position", "sessions", "users", "conversions", "queries", "pages"],
-    keyMetrics: ["impressions", "clicks", "sessions", "users"],
+    outputs: ["gsc_impressions", "gsc_clicks", "gsc_ctr", "gsc_position", "gsc_queries", "gsc_pages", "ga4_sessions", "ga4_users", "ga4_conversions"],
+    keyMetrics: ["gsc_impressions", "gsc_clicks", "ga4_sessions", "ga4_users"],
     commonFailures: ["oauth_expired", "oauth_invalid", "rate_limited", "quota_exceeded"],
     runTriggers: ["scheduled", "manual"],
     testMode: "connector",
@@ -186,8 +209,8 @@ export const servicesCatalog: ServiceDefinition[] = [
     description: "Connects to Google Ads API to fetch campaign performance data including spend, clicks, impressions, and policy issues. Requires Developer Token approval from Google.",
     purpose: "Track ad spend, CPC, conversions, and policy issues",
     inputs: ["oauth_tokens", "ads_customer_id"],
-    outputs: ["spend", "impressions", "clicks", "cpc", "conversions", "policy_issues", "campaign_status"],
-    keyMetrics: ["spend", "clicks", "conversions", "campaigns_active"],
+    outputs: ["ads_spend", "ads_impressions", "ads_clicks", "ads_cpc", "ads_conversions", "ads_policy_issues", "ads_campaign_status"],
+    keyMetrics: ["ads_spend", "ads_clicks", "ads_conversions", "campaigns_active"],
     commonFailures: ["oauth_expired", "api_key_invalid", "permission_denied", "quota_exceeded"],
     runTriggers: ["scheduled", "manual"],
     testMode: "connector",
