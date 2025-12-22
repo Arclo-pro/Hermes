@@ -347,7 +347,11 @@ export default function Integrations() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updates),
       });
-      return res.json();
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || `Failed to update integration (${res.status})`);
+      }
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["platformIntegrations"] });
