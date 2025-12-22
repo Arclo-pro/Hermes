@@ -809,3 +809,54 @@ export const insertDiagnosticRunSchema = createInsertSchema(diagnosticRuns).omit
 });
 export type InsertDiagnosticRun = z.infer<typeof insertDiagnosticRunSchema>;
 export type DiagnosticRun = typeof diagnosticRuns.$inferSelect;
+
+// QA Runs - Automated testing runs for services
+export const qaRuns = pgTable("qa_runs", {
+  id: serial("id").primaryKey(),
+  runId: text("run_id").notNull().unique(),
+  siteId: text("site_id"), // nullable - can be global
+  trigger: text("trigger").notNull().default("manual"), // manual, scheduled, deploy
+  mode: text("mode").notNull().default("connection"), // connection, smoke, full
+  status: text("status").notNull().default("running"), // running, pass, fail, partial
+  startedAt: timestamp("started_at").notNull(),
+  finishedAt: timestamp("finished_at"),
+  durationMs: integer("duration_ms"),
+  summary: text("summary"),
+  totalTests: integer("total_tests").default(0),
+  passed: integer("passed").default(0),
+  failed: integer("failed").default(0),
+  skipped: integer("skipped").default(0),
+  resultsJson: jsonb("results_json"), // aggregate results
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertQaRunSchema = createInsertSchema(qaRuns).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertQaRun = z.infer<typeof insertQaRunSchema>;
+export type QaRun = typeof qaRuns.$inferSelect;
+
+// QA Run Items - Individual test results per service
+export const qaRunItems = pgTable("qa_run_items", {
+  id: serial("id").primaryKey(),
+  qaRunId: text("qa_run_id").notNull(), // references qa_runs.run_id
+  serviceSlug: text("service_slug").notNull(),
+  testType: text("test_type").notNull(), // connection, smoke, contract
+  status: text("status").notNull(), // pass, fail, skipped
+  durationMs: integer("duration_ms"),
+  details: text("details"),
+  httpStatus: integer("http_status"),
+  latencyMs: integer("latency_ms"),
+  metricsJson: jsonb("metrics_json"),
+  missingOutputs: text("missing_outputs").array(),
+  serviceRunId: text("service_run_id"), // link to service_runs if created
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertQaRunItemSchema = createInsertSchema(qaRunItems).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertQaRunItem = z.infer<typeof insertQaRunItemSchema>;
+export type QaRunItem = typeof qaRunItems.$inferSelect;
