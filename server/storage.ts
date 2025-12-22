@@ -25,6 +25,7 @@ import {
   integrations,
   integrationChecks,
   serviceRuns,
+  diagnosticRuns,
   type OAuthToken,
   type InsertOAuthToken,
   type GA4Daily,
@@ -75,6 +76,8 @@ import {
   type InsertIntegrationCheck,
   type ServiceRun,
   type InsertServiceRun,
+  type DiagnosticRun,
+  type InsertDiagnosticRun,
 } from "@shared/schema";
 import { eq, desc, and, gte, sql, asc } from "drizzle-orm";
 
@@ -214,6 +217,23 @@ export interface IStorage {
   saveIntegrationCheck(check: InsertIntegrationCheck): Promise<IntegrationCheck>;
   getIntegrationChecks(integrationId: string, limit?: number): Promise<IntegrationCheck[]>;
   getLatestIntegrationChecks(): Promise<IntegrationCheck[]>;
+  
+  // Diagnostic Runs
+  createDiagnosticRun(run: InsertDiagnosticRun): Promise<DiagnosticRun>;
+  updateDiagnosticRun(runId: string, updates: Partial<InsertDiagnosticRun>): Promise<DiagnosticRun | undefined>;
+  getDiagnosticRunById(runId: string): Promise<DiagnosticRun | undefined>;
+  getDiagnosticRunsBySite(siteId: string, limit?: number): Promise<DiagnosticRun[]>;
+  getLatestDiagnosticRuns(limit?: number): Promise<DiagnosticRun[]>;
+  
+  // Service Runs
+  createServiceRun(run: InsertServiceRun): Promise<ServiceRun>;
+  updateServiceRun(runId: string, updates: Partial<InsertServiceRun>): Promise<ServiceRun | undefined>;
+  getServiceRunById(runId: string): Promise<ServiceRun | undefined>;
+  getServiceRunsByService(serviceId: string, limit?: number): Promise<ServiceRun[]>;
+  getServiceRunsBySite(siteId: string, limit?: number): Promise<ServiceRun[]>;
+  getLatestServiceRuns(limit?: number): Promise<ServiceRun[]>;
+  getLastRunPerService(): Promise<Map<string, ServiceRun>>;
+  getServicesWithLastRun(): Promise<Array<Integration & { lastRun: ServiceRun | null }>>;
 }
 
 class DBStorage implements IStorage {
@@ -959,6 +979,43 @@ class DBStorage implements IStorage {
       ...integration,
       lastRun: lastRunMap.get(integration.integrationId) || null,
     }));
+  }
+
+  // Diagnostic Runs implementation
+  async createDiagnosticRun(run: InsertDiagnosticRun): Promise<DiagnosticRun> {
+    const [newRun] = await db.insert(diagnosticRuns).values(run).returning();
+    return newRun;
+  }
+
+  async updateDiagnosticRun(runId: string, updates: Partial<InsertDiagnosticRun>): Promise<DiagnosticRun | undefined> {
+    const [updated] = await db
+      .update(diagnosticRuns)
+      .set(updates)
+      .where(eq(diagnosticRuns.runId, runId))
+      .returning();
+    return updated;
+  }
+
+  async getDiagnosticRunById(runId: string): Promise<DiagnosticRun | undefined> {
+    const [run] = await db.select().from(diagnosticRuns).where(eq(diagnosticRuns.runId, runId)).limit(1);
+    return run;
+  }
+
+  async getDiagnosticRunsBySite(siteId: string, limit = 25): Promise<DiagnosticRun[]> {
+    return db
+      .select()
+      .from(diagnosticRuns)
+      .where(eq(diagnosticRuns.siteId, siteId))
+      .orderBy(desc(diagnosticRuns.startedAt))
+      .limit(limit);
+  }
+
+  async getLatestDiagnosticRuns(limit = 25): Promise<DiagnosticRun[]> {
+    return db
+      .select()
+      .from(diagnosticRuns)
+      .orderBy(desc(diagnosticRuns.startedAt))
+      .limit(limit);
   }
 }
 

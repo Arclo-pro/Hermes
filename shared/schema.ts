@@ -665,6 +665,13 @@ export const integrations = pgTable("integrations", {
   authTestDetails: jsonb("auth_test_details"), // { noKeyResult, withKeyResult }
   calledSuccessfully: boolean("called_successfully").default(false),
   notes: text("notes"),
+  // State tracking fields (per the doc: build_state, config_state, run_state)
+  buildState: text("build_state").default("planned"), // built, planned, deprecated
+  configState: text("config_state").default("missing_config"), // ready, missing_config, blocked
+  runState: text("run_state").default("never_ran"), // never_ran, last_run_success, last_run_failed, stale
+  lastRunAt: timestamp("last_run_at"),
+  lastRunSummary: text("last_run_summary"),
+  lastRunMetrics: jsonb("last_run_metrics"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -745,3 +752,60 @@ export const ServiceRunTriggers = {
 } as const;
 
 export type ServiceRunTrigger = typeof ServiceRunTriggers[keyof typeof ServiceRunTriggers];
+
+// Build States for services
+export const BuildStates = {
+  BUILT: 'built',
+  PLANNED: 'planned',
+  DEPRECATED: 'deprecated',
+} as const;
+
+export type BuildState = typeof BuildStates[keyof typeof BuildStates];
+
+// Config States for services
+export const ConfigStates = {
+  READY: 'ready',
+  MISSING_CONFIG: 'missing_config',
+  BLOCKED: 'blocked',
+} as const;
+
+export type ConfigState = typeof ConfigStates[keyof typeof ConfigStates];
+
+// Run States for services (computed from last run)
+export const RunStates = {
+  NEVER_RAN: 'never_ran',
+  LAST_RUN_SUCCESS: 'last_run_success',
+  LAST_RUN_FAILED: 'last_run_failed',
+  STALE: 'stale',
+} as const;
+
+export type RunState = typeof RunStates[keyof typeof RunStates];
+
+// Diagnostic Runs - Parent run that groups service_runs per site per day
+export const diagnosticRuns = pgTable("diagnostic_runs", {
+  id: serial("id").primaryKey(),
+  runId: text("run_id").notNull().unique(),
+  siteId: text("site_id").notNull(),
+  siteDomain: text("site_domain"),
+  runType: text("run_type").notNull().default("daily"), // daily, on_demand, partial
+  status: text("status").notNull().default("running"), // running, completed, partial, failed
+  startedAt: timestamp("started_at").notNull(),
+  finishedAt: timestamp("finished_at"),
+  durationMs: integer("duration_ms"),
+  summary: text("summary"),
+  servicesRun: integer("services_run").default(0),
+  servicesSuccess: integer("services_success").default(0),
+  servicesFailed: integer("services_failed").default(0),
+  servicesBlocked: integer("services_blocked").default(0),
+  servicesSkipped: integer("services_skipped").default(0),
+  metricsJson: jsonb("metrics_json"), // Aggregated metrics from all service runs
+  outputsJson: jsonb("outputs_json"), // { expected: [...], actual: [...], missing: [...] }
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertDiagnosticRunSchema = createInsertSchema(diagnosticRuns).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertDiagnosticRun = z.infer<typeof insertDiagnosticRunSchema>;
+export type DiagnosticRun = typeof diagnosticRuns.$inferSelect;

@@ -3007,5 +3007,215 @@ When answering:
     }
   });
 
+  // ========== Diagnostic Runs (per-site daily diagnosis) ==========
+  
+  // Run Daily Diagnosis for a site
+  app.post("/api/diagnostics/run", async (req, res) => {
+    try {
+      const { siteId } = req.body;
+      
+      if (!siteId) {
+        return res.status(400).json({ error: "siteId is required" });
+      }
+      
+      // Get site info
+      const site = await storage.getSiteById(siteId);
+      if (!site) {
+        return res.status(404).json({ error: "Site not found" });
+      }
+      
+      // Create diagnostic run record
+      const diagRunId = `diag_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const startedAt = new Date();
+      
+      const diagRun = await storage.createDiagnosticRun({
+        runId: diagRunId,
+        siteId: site.siteId,
+        siteDomain: site.baseUrl,
+        runType: "on_demand",
+        status: "running",
+        startedAt,
+      });
+      
+      // Get all integrations and run those that are ready
+      const allIntegrations = await storage.getIntegrations();
+      const readyServices = allIntegrations.filter(i => 
+        i.buildState === "built" && i.configState === "ready"
+      );
+      const blockedServices = allIntegrations.filter(i => 
+        i.buildState === "planned" || i.configState === "blocked" || i.configState === "missing_config"
+      );
+      
+      let servicesRun = 0;
+      let servicesSuccess = 0;
+      let servicesFailed = 0;
+      const serviceResults: Array<{ serviceId: string; status: string; summary: string }> = [];
+      
+      // For each ready service, create a service run and execute (simplified for now)
+      for (const service of readyServices) {
+        const serviceRunId = `svc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        const serviceStartedAt = new Date();
+        
+        // Create service run record
+        await storage.createServiceRun({
+          runId: serviceRunId,
+          siteId: site.siteId,
+          siteDomain: site.baseUrl,
+          serviceId: service.integrationId,
+          serviceName: service.name,
+          trigger: "manual",
+          status: "running",
+          startedAt: serviceStartedAt,
+        });
+        
+        servicesRun++;
+        
+        try {
+          // Execute service-specific logic based on integrationId
+          let result = { success: true, summary: "Service executed", metrics: {} };
+          
+          // Here we would call actual service logic
+          // For now we simulate based on service type
+          if (service.integrationId === "google_data_connector") {
+            // Check if OAuth is available
+            const token = await storage.getToken("google");
+            if (!token) {
+              result = { success: false, summary: "Google OAuth not configured", metrics: {} };
+            } else {
+              result = { success: true, summary: "Google data connector ready", metrics: { oauth: true } };
+            }
+          } else if (service.integrationId === "crawl_render") {
+            result = { success: true, summary: "Crawl service ready (not executed)", metrics: {} };
+          } else {
+            result = { success: true, summary: `${service.name} checked`, metrics: {} };
+          }
+          
+          // Update service run with result
+          const finishedAt = new Date();
+          await storage.updateServiceRun(serviceRunId, {
+            status: result.success ? "success" : "failed",
+            finishedAt,
+            durationMs: finishedAt.getTime() - serviceStartedAt.getTime(),
+            summary: result.summary,
+            metricsJson: result.metrics,
+          });
+          
+          // Update integration's run state
+          await storage.updateIntegration(service.integrationId, {
+            runState: result.success ? "last_run_success" : "last_run_failed",
+            lastRunAt: finishedAt,
+            lastRunSummary: result.summary,
+            lastRunMetrics: result.metrics,
+          });
+          
+          if (result.success) {
+            servicesSuccess++;
+          } else {
+            servicesFailed++;
+          }
+          
+          serviceResults.push({
+            serviceId: service.integrationId,
+            status: result.success ? "success" : "failed",
+            summary: result.summary,
+          });
+        } catch (err: any) {
+          servicesFailed++;
+          await storage.updateServiceRun(serviceRunId, {
+            status: "failed",
+            finishedAt: new Date(),
+            errorDetail: err.message,
+          });
+          serviceResults.push({
+            serviceId: service.integrationId,
+            status: "failed",
+            summary: err.message,
+          });
+        }
+      }
+      
+      // Finish diagnostic run
+      const finishedAt = new Date();
+      const finalStatus = servicesFailed > 0 ? (servicesSuccess > 0 ? "partial" : "failed") : "completed";
+      
+      await storage.updateDiagnosticRun(diagRunId, {
+        status: finalStatus,
+        finishedAt,
+        durationMs: finishedAt.getTime() - startedAt.getTime(),
+        servicesRun,
+        servicesSuccess,
+        servicesFailed,
+        servicesBlocked: blockedServices.length,
+        summary: `Ran ${servicesRun} services: ${servicesSuccess} succeeded, ${servicesFailed} failed, ${blockedServices.length} blocked`,
+      });
+      
+      // Update site's last diagnosis timestamp
+      await storage.updateSiteLastDiagnosis(siteId);
+      
+      res.json({
+        runId: diagRunId,
+        siteId: site.siteId,
+        status: finalStatus,
+        summary: `Ran ${servicesRun} services: ${servicesSuccess} succeeded, ${servicesFailed} failed, ${blockedServices.length} blocked`,
+        servicesRun,
+        servicesSuccess,
+        servicesFailed,
+        servicesBlocked: blockedServices.length,
+        durationMs: finishedAt.getTime() - startedAt.getTime(),
+        results: serviceResults,
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to run diagnostics", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Get diagnostic runs for a site
+  app.get("/api/diagnostics/runs", async (req, res) => {
+    try {
+      const siteId = req.query.site_id as string | undefined;
+      const limit = parseInt(req.query.limit as string) || 25;
+      
+      let runs;
+      if (siteId) {
+        runs = await storage.getDiagnosticRunsBySite(siteId, limit);
+      } else {
+        runs = await storage.getLatestDiagnosticRuns(limit);
+      }
+      
+      res.json(runs);
+    } catch (error: any) {
+      logger.error("API", "Failed to get diagnostic runs", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Get a specific diagnostic run with its service runs
+  app.get("/api/diagnostics/runs/:runId", async (req, res) => {
+    try {
+      const { runId } = req.params;
+      const diagRun = await storage.getDiagnosticRunById(runId);
+      
+      if (!diagRun) {
+        return res.status(404).json({ error: "Diagnostic run not found" });
+      }
+      
+      // Get all service runs for this diagnostic run (by time range and site)
+      const serviceRuns = await storage.getServiceRunsBySite(diagRun.siteId, 100);
+      const relatedRuns = serviceRuns.filter(r => 
+        r.startedAt >= diagRun.startedAt && 
+        (!diagRun.finishedAt || r.startedAt <= diagRun.finishedAt)
+      );
+      
+      res.json({
+        ...diagRun,
+        serviceRuns: relatedRuns,
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to get diagnostic run", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }

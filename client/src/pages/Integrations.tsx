@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   CheckCircle, 
   XCircle, 
@@ -85,6 +85,12 @@ interface Integration {
   authTestDetails: any | null;
   calledSuccessfully: boolean | null;
   notes: string | null;
+  buildState: string | null;
+  configState: string | null;
+  runState: string | null;
+  lastRunAt: string | null;
+  lastRunSummary: string | null;
+  lastRunMetrics: any | null;
 }
 
 interface IntegrationCheck {
@@ -141,6 +147,66 @@ const DEPLOYMENT_STATUS_COLORS: Record<string, string> = {
   deployed: "bg-green-100 text-green-700",
   failed: "bg-red-100 text-red-700",
 };
+
+const BUILD_STATE_COLORS: Record<string, string> = {
+  built: "bg-green-100 text-green-700",
+  planned: "bg-gray-100 text-gray-600",
+  deprecated: "bg-red-100 text-red-700",
+};
+
+const CONFIG_STATE_COLORS: Record<string, string> = {
+  ready: "bg-green-100 text-green-700",
+  missing_config: "bg-yellow-100 text-yellow-700",
+  blocked: "bg-orange-100 text-orange-700",
+};
+
+const RUN_STATE_COLORS: Record<string, string> = {
+  never_ran: "bg-gray-100 text-gray-600",
+  last_run_success: "bg-green-100 text-green-700",
+  last_run_failed: "bg-red-100 text-red-700",
+  stale: "bg-yellow-100 text-yellow-700",
+};
+
+function getRunStateIcon(runState: string | null) {
+  switch (runState) {
+    case "last_run_success":
+      return <CheckCircle className="w-5 h-5 text-green-500" />;
+    case "last_run_failed":
+      return <XCircle className="w-5 h-5 text-red-500" />;
+    case "stale":
+      return <AlertTriangle className="w-5 h-5 text-yellow-500" />;
+    default:
+      return <Clock className="w-5 h-5 text-gray-400" />;
+  }
+}
+
+function getConfigStateBadge(configState: string | null) {
+  if (!configState) return null;
+  const labels: Record<string, string> = {
+    ready: "Ready",
+    missing_config: "Needs Config",
+    blocked: "Blocked",
+  };
+  return (
+    <Badge className={cn("text-xs", CONFIG_STATE_COLORS[configState] || "bg-gray-100")}>
+      {labels[configState] || configState}
+    </Badge>
+  );
+}
+
+function getBuildStateBadge(buildState: string | null) {
+  if (!buildState) return null;
+  const labels: Record<string, string> = {
+    built: "Built",
+    planned: "Planned",
+    deprecated: "Deprecated",
+  };
+  return (
+    <Badge variant="outline" className={cn("text-xs", BUILD_STATE_COLORS[buildState] || "bg-gray-100")}>
+      {labels[buildState] || buildState}
+    </Badge>
+  );
+}
 
 function getStatusIcon(status: string | null | undefined) {
   switch (status) {
@@ -242,6 +308,13 @@ interface PlatformDependencies {
   };
 }
 
+interface Site {
+  siteId: string;
+  displayName: string;
+  baseUrl: string;
+  status: string;
+}
+
 export default function Integrations() {
   const queryClient = useQueryClient();
   const [testingId, setTestingId] = useState<string | null>(null);
@@ -251,6 +324,8 @@ export default function Integrations() {
   const [selectedRun, setSelectedRun] = useState<ServiceRun | null>(null);
   const [editingIntegration, setEditingIntegration] = useState<Integration | null>(null);
   const [viewMode, setViewMode] = useState<'operational' | 'diagnostics'>('operational');
+  const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
+  const [runningDiagnosis, setRunningDiagnosis] = useState(false);
   const [editForm, setEditForm] = useState<{
     baseUrl: string;
     healthEndpoint: string;
@@ -305,6 +380,50 @@ export default function Integrations() {
       return res.json();
     },
     refetchInterval: 60000, // Refetch every minute
+  });
+
+  // Fetch sites for site selection
+  const { data: sites } = useQuery<Site[]>({
+    queryKey: ["sites"],
+    queryFn: async () => {
+      const res = await fetch("/api/sites");
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  // Auto-select first site if none selected
+  useEffect(() => {
+    if (sites && sites.length > 0 && !selectedSiteId) {
+      setSelectedSiteId(sites[0].siteId);
+    }
+  }, [sites, selectedSiteId]);
+
+  // Run Daily Diagnosis mutation
+  const runDiagnosisMutation = useMutation({
+    mutationFn: async (siteId: string) => {
+      setRunningDiagnosis(true);
+      const res = await fetch("/api/diagnostics/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ siteId }),
+      });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error(errorData.error || `Run failed: ${res.status}`);
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["platformIntegrations"] });
+      queryClient.invalidateQueries({ queryKey: ["serviceRuns"] });
+      toast.success(`Diagnosis complete: ${data.summary}`);
+      setRunningDiagnosis(false);
+    },
+    onError: (error: Error) => {
+      toast.error(`Diagnosis failed: ${error.message}`);
+      setRunningDiagnosis(false);
+    },
   });
 
   // Build a map of integrationId -> last run
@@ -604,17 +723,61 @@ export default function Integrations() {
             </CardContent>
           </Card>
         ) : (
-          <Tabs defaultValue="inventory" className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="inventory" className="gap-2">
-                <Table className="w-4 h-4" />
-                Service Inventory
-              </TabsTrigger>
-              <TabsTrigger value="cards" className="gap-2">
-                <LayoutGrid className="w-4 h-4" />
-                Cards View
-              </TabsTrigger>
-            </TabsList>
+          <>
+            {/* Site Selection and Run Diagnosis */}
+            <Card className="mb-4">
+              <CardContent className="py-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <Globe className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">Site:</span>
+                      <select
+                        className="border rounded px-3 py-1.5 text-sm bg-background"
+                        value={selectedSiteId || ""}
+                        onChange={(e) => setSelectedSiteId(e.target.value)}
+                        data-testid="select-site"
+                      >
+                        {sites?.map((site) => (
+                          <option key={site.siteId} value={site.siteId}>
+                            {site.displayName}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    {selectedSiteId && sites?.find(s => s.siteId === selectedSiteId) && (
+                      <span className="text-xs text-muted-foreground">
+                        {sites.find(s => s.siteId === selectedSiteId)?.baseUrl}
+                      </span>
+                    )}
+                  </div>
+                  <Button
+                    onClick={() => selectedSiteId && runDiagnosisMutation.mutate(selectedSiteId)}
+                    disabled={!selectedSiteId || runningDiagnosis}
+                    data-testid="button-run-diagnosis"
+                  >
+                    {runningDiagnosis ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Play className="w-4 h-4 mr-2" />
+                    )}
+                    Run Daily Diagnosis
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Tabs defaultValue="inventory" className="space-y-4">
+              <TabsList>
+                <TabsTrigger value="inventory" className="gap-2">
+                  <Table className="w-4 h-4" />
+                  Service Inventory
+                </TabsTrigger>
+                <TabsTrigger value="cards" className="gap-2">
+                  <LayoutGrid className="w-4 h-4" />
+                  Cards View
+                </TabsTrigger>
+              </TabsList>
 
             <TabsContent value="inventory" className="space-y-4">
               {/* Platform Dependencies Panel */}
@@ -1097,16 +1260,19 @@ export default function Integrations() {
                     
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                       {categoryIntegrations.map((integration) => {
-                        const status = integration.healthStatus || "disconnected";
+                        const runState = integration.runState || "never_ran";
+                        const configState = integration.configState || "missing_config";
+                        const buildState = integration.buildState || "planned";
                         return (
                         <Card 
                           key={integration.integrationId}
                           className={cn(
                             "transition-all hover:shadow-md cursor-pointer",
-                            status === "healthy" && "border-l-4 border-l-green-500",
-                            status === "degraded" && "border-l-4 border-l-yellow-500",
-                            status === "error" && "border-l-4 border-l-red-500",
-                            status === "disconnected" && "border-l-4 border-l-gray-300",
+                            runState === "last_run_success" && "border-l-4 border-l-green-500",
+                            runState === "last_run_failed" && "border-l-4 border-l-red-500",
+                            runState === "stale" && "border-l-4 border-l-yellow-500",
+                            runState === "never_ran" && configState === "blocked" && "border-l-4 border-l-orange-400",
+                            runState === "never_ran" && configState !== "blocked" && "border-l-4 border-l-gray-300",
                           )}
                           onClick={() => fetchIntegrationDetails(integration.integrationId)}
                           data-testid={`card-integration-${integration.integrationId}`}
@@ -1114,10 +1280,13 @@ export default function Integrations() {
                           <CardHeader className="pb-2">
                             <div className="flex items-start justify-between">
                               <div className="flex items-center gap-2">
-                                {getStatusIcon(integration.healthStatus)}
+                                {getRunStateIcon(runState)}
                                 <CardTitle className="text-base">{integration.name}</CardTitle>
                               </div>
-                              {getStatusBadge(integration.healthStatus)}
+                              <div className="flex gap-1">
+                                {getBuildStateBadge(buildState)}
+                                {getConfigStateBadge(configState)}
+                              </div>
                             </div>
                             <CardDescription className="text-sm">
                               {integration.description}
@@ -1126,22 +1295,23 @@ export default function Integrations() {
                           <CardContent>
                             <div className="space-y-3">
                               <div className="flex items-center justify-between text-sm">
-                                <span className="text-muted-foreground">Last Success</span>
-                                <span className="font-medium">{formatTimeAgo(integration.lastSuccessAt)}</span>
+                                <span className="text-muted-foreground">Last Run</span>
+                                <span className="font-medium">{formatTimeAgo(integration.lastRunAt)}</span>
                               </div>
                               
-                              {integration.expectedSignals && integration.expectedSignals.length > 0 && (
+                              {integration.lastRunSummary && (
+                                <div className="text-sm text-muted-foreground truncate">
+                                  {integration.lastRunSummary}
+                                </div>
+                              )}
+                              
+                              {integration.lastRunMetrics && Object.keys(integration.lastRunMetrics).length > 0 && (
                                 <div className="flex flex-wrap gap-1">
-                                  {integration.expectedSignals.slice(0, 4).map((signal) => (
-                                    <Badge key={signal} variant="outline" className="text-xs">
-                                      {signal}
+                                  {Object.entries(integration.lastRunMetrics).slice(0, 3).map(([key, value]) => (
+                                    <Badge key={key} variant="outline" className="text-xs">
+                                      {key}: {String(value)}
                                     </Badge>
                                   ))}
-                                  {integration.expectedSignals.length > 4 && (
-                                    <Badge variant="outline" className="text-xs">
-                                      +{integration.expectedSignals.length - 4}
-                                    </Badge>
-                                  )}
                                 </div>
                               )}
                               
@@ -1153,7 +1323,7 @@ export default function Integrations() {
                                     e.stopPropagation();
                                     testMutation.mutate(integration.integrationId);
                                   }}
-                                  disabled={testingId === integration.integrationId}
+                                  disabled={testingId === integration.integrationId || configState === "blocked"}
                                   data-testid={`button-test-${integration.integrationId}`}
                                 >
                                   {testingId === integration.integrationId ? (
@@ -1161,7 +1331,7 @@ export default function Integrations() {
                                   ) : (
                                     <Activity className="w-4 h-4 mr-1" />
                                   )}
-                                  Test
+                                  {configState === "blocked" ? "Blocked" : "Test"}
                                 </Button>
                                 <ChevronRight className="w-4 h-4 text-muted-foreground" />
                               </div>
@@ -1175,7 +1345,8 @@ export default function Integrations() {
                 );
               })}
             </TabsContent>
-          </Tabs>
+            </Tabs>
+          </>
         )}
       </div>
 
