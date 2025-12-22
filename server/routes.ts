@@ -697,6 +697,35 @@ export async function registerRoutes(
         sourceStatuses: results.sources,
       });
 
+      // Record service run for google_data_connector when sources are tested
+      if (results.authenticated && results.sources) {
+        const sourcesOk = results.sources.ga4?.ok || results.sources.gsc?.ok || results.sources.ads?.ok;
+        const sourceStatus = allOk ? "success" : (sourcesOk ? "partial" : "failed");
+        
+        await storage.createServiceRun({
+          runId: `svc_${runId}`,
+          siteId: "site_empathy_health_clinic",
+          siteDomain: "empathyhealthclinic.com",
+          serviceId: "google_data_connector",
+          serviceName: "Google Data Connector (GSC + GA4)",
+          trigger: "manual",
+          status: sourceStatus,
+          startedAt,
+          finishedAt,
+          durationMs: finishedAt.getTime() - startedAt.getTime(),
+          summary: allOk ? "All Google sources connected successfully" : `Partial: ${results.issues.length} issue(s)`,
+          metricsJson: {
+            ga4_samples: results.sources.ga4?.sampleCount || 0,
+            gsc_samples: results.sources.gsc?.sampleCount || 0,
+            ads_samples: results.sources.ads?.sampleCount || 0,
+          },
+          outputsJson: results.sources,
+          errorsJson: allOk ? null : { issues: results.issues },
+        });
+        
+        logger.info("API", "Recorded service run for google_data_connector", { status: sourceStatus });
+      }
+
       res.json({
         runId,
         ok: allOk,
