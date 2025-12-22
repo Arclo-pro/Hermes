@@ -693,3 +693,54 @@ export const insertIntegrationCheckSchema = createInsertSchema(integrationChecks
 });
 export type InsertIntegrationCheck = z.infer<typeof insertIntegrationCheckSchema>;
 export type IntegrationCheck = typeof integrationChecks.$inferSelect;
+
+// Service Runs - Track each execution of a service with inputs, outputs, and metrics
+export const serviceRuns = pgTable("service_runs", {
+  id: serial("id").primaryKey(),
+  runId: text("run_id").notNull().unique(),
+  siteId: text("site_id"),
+  siteDomain: text("site_domain"),
+  serviceId: text("service_id").notNull(),
+  serviceName: text("service_name").notNull(),
+  trigger: text("trigger").notNull().default("manual"), // scheduled, manual, webhook
+  status: text("status").notNull().default("running"), // running, success, partial, failed, skipped
+  startedAt: timestamp("started_at").notNull(),
+  finishedAt: timestamp("finished_at"),
+  durationMs: integer("duration_ms"),
+  version: text("version"),
+  summary: text("summary"),
+  metricsJson: jsonb("metrics_json"), // { pages_crawled: 50, issues_found: 12, ... }
+  inputsJson: jsonb("inputs_json"), // { urls: [...], date_range: {...}, ... }
+  outputsJson: jsonb("outputs_json"), // { expected: [...], actual: [...], missing: [...] }
+  errorCode: text("error_code"),
+  errorDetail: text("error_detail"),
+  artifactLinks: jsonb("artifact_links"), // [{ type: "report", url: "...", label: "..." }, ...]
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertServiceRunSchema = createInsertSchema(serviceRuns).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertServiceRun = z.infer<typeof insertServiceRunSchema>;
+export type ServiceRun = typeof serviceRuns.$inferSelect;
+
+// Service Run Statuses
+export const ServiceRunStatuses = {
+  RUNNING: 'running',
+  SUCCESS: 'success',
+  PARTIAL: 'partial',
+  FAILED: 'failed',
+  SKIPPED: 'skipped',
+} as const;
+
+export type ServiceRunStatus = typeof ServiceRunStatuses[keyof typeof ServiceRunStatuses];
+
+// Service Run Triggers
+export const ServiceRunTriggers = {
+  SCHEDULED: 'scheduled',
+  MANUAL: 'manual',
+  WEBHOOK: 'webhook',
+} as const;
+
+export type ServiceRunTrigger = typeof ServiceRunTriggers[keyof typeof ServiceRunTriggers];

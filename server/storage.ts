@@ -24,6 +24,7 @@ import {
   actionRuns,
   integrations,
   integrationChecks,
+  serviceRuns,
   type OAuthToken,
   type InsertOAuthToken,
   type GA4Daily,
@@ -72,6 +73,8 @@ import {
   type InsertIntegration,
   type IntegrationCheck,
   type InsertIntegrationCheck,
+  type ServiceRun,
+  type InsertServiceRun,
 } from "@shared/schema";
 import { eq, desc, and, gte, sql, asc } from "drizzle-orm";
 
@@ -885,6 +888,77 @@ class DBStorage implements IStorage {
       .from(integrationChecks)
       .orderBy(desc(integrationChecks.checkedAt))
       .limit(50);
+  }
+
+  // Service Runs
+  async createServiceRun(run: InsertServiceRun): Promise<ServiceRun> {
+    const [newRun] = await db.insert(serviceRuns).values(run).returning();
+    return newRun;
+  }
+
+  async updateServiceRun(runId: string, updates: Partial<InsertServiceRun>): Promise<ServiceRun | undefined> {
+    const [updated] = await db
+      .update(serviceRuns)
+      .set(updates)
+      .where(eq(serviceRuns.runId, runId))
+      .returning();
+    return updated;
+  }
+
+  async getServiceRunById(runId: string): Promise<ServiceRun | undefined> {
+    const [run] = await db.select().from(serviceRuns).where(eq(serviceRuns.runId, runId)).limit(1);
+    return run;
+  }
+
+  async getServiceRunsByService(serviceId: string, limit = 25): Promise<ServiceRun[]> {
+    return db
+      .select()
+      .from(serviceRuns)
+      .where(eq(serviceRuns.serviceId, serviceId))
+      .orderBy(desc(serviceRuns.startedAt))
+      .limit(limit);
+  }
+
+  async getServiceRunsBySite(siteId: string, limit = 50): Promise<ServiceRun[]> {
+    return db
+      .select()
+      .from(serviceRuns)
+      .where(eq(serviceRuns.siteId, siteId))
+      .orderBy(desc(serviceRuns.startedAt))
+      .limit(limit);
+  }
+
+  async getLatestServiceRuns(limit = 50): Promise<ServiceRun[]> {
+    return db
+      .select()
+      .from(serviceRuns)
+      .orderBy(desc(serviceRuns.startedAt))
+      .limit(limit);
+  }
+
+  async getLastRunPerService(): Promise<Map<string, ServiceRun>> {
+    const allRuns = await db
+      .select()
+      .from(serviceRuns)
+      .orderBy(desc(serviceRuns.startedAt));
+    
+    const lastRunMap = new Map<string, ServiceRun>();
+    for (const run of allRuns) {
+      if (!lastRunMap.has(run.serviceId)) {
+        lastRunMap.set(run.serviceId, run);
+      }
+    }
+    return lastRunMap;
+  }
+
+  async getServicesWithLastRun(): Promise<Array<Integration & { lastRun: ServiceRun | null }>> {
+    const allIntegrations = await this.getIntegrations();
+    const lastRunMap = await this.getLastRunPerService();
+    
+    return allIntegrations.map(integration => ({
+      ...integration,
+      lastRun: lastRunMap.get(integration.integrationId) || null,
+    }));
   }
 }
 
