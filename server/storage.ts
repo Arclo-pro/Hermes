@@ -79,7 +79,7 @@ import {
   type DiagnosticRun,
   type InsertDiagnosticRun,
 } from "@shared/schema";
-import { eq, desc, and, gte, sql, asc } from "drizzle-orm";
+import { eq, desc, and, gte, sql, asc, or, isNull } from "drizzle-orm";
 
 export interface IStorage {
   // OAuth Token Management
@@ -973,15 +973,21 @@ class DBStorage implements IStorage {
   }
 
   async getLastRunPerServiceBySite(siteId: string): Promise<Map<string, ServiceRun>> {
+    // Include runs for this specific site OR global runs (siteId is null)
     const allRuns = await db
       .select()
       .from(serviceRuns)
-      .where(eq(serviceRuns.siteId, siteId))
+      .where(or(eq(serviceRuns.siteId, siteId), isNull(serviceRuns.siteId)))
       .orderBy(desc(serviceRuns.startedAt));
     
     const lastRunMap = new Map<string, ServiceRun>();
     for (const run of allRuns) {
-      if (!lastRunMap.has(run.serviceId)) {
+      // Prefer site-specific runs over global runs
+      const existing = lastRunMap.get(run.serviceId);
+      if (!existing) {
+        lastRunMap.set(run.serviceId, run);
+      } else if (run.siteId === siteId && existing.siteId !== siteId) {
+        // Replace global run with site-specific run
         lastRunMap.set(run.serviceId, run);
       }
     }
