@@ -2858,15 +2858,14 @@ When answering:
             break;
           }
           case "serp_intel": {
-            // SERP worker uses Bitwarden JSON config for base_url and api_key
-            const { bitwardenProvider } = await import("./vault/BitwardenProvider");
-            const workerConfig = await bitwardenProvider.getWorkerConfig("SEO_SERP_&_Keyword");
+            // Use the SERP worker client to test connection
+            const { serpWorkerClient } = await import("./connectors/serpWorker");
             
             // Helper: Fall back to legacy SerpAPI
             const tryLegacyMode = async (reason: string) => {
               const serpStatus = await serpConnector.testConnection();
               const legacyOutputs = serpStatus.success 
-                ? ["serp_rank_snapshots", "serp_tracked_keywords"]  // Legacy mode provides fewer outputs
+                ? ["serp_rank_snapshots", "serp_tracked_keywords"]
                 : [];
               return {
                 status: serpStatus.success ? "pass" : "fail" as "pass" | "fail",
@@ -2886,52 +2885,29 @@ When answering:
               };
             };
             
-            if (!workerConfig.valid) {
-              // Worker config not available or invalid - fall back to legacy SerpAPI
-              checkResult = await tryLegacyMode(workerConfig.error || "no worker config");
+            // Try the worker client first
+            const workerResult = await serpWorkerClient.testConnection();
+            
+            if (workerResult.success) {
+              // Worker connected - report full outputs
+              const workerOutputs = ["serp_rank_snapshots", "serp_serp_snapshots", "serp_tracked_keywords", "serp_top_keywords"];
+              checkResult = {
+                status: "pass",
+                summary: workerResult.message,
+                metrics: { 
+                  connected: true, 
+                  mode: "worker",
+                  sites_tracked: workerResult.sites?.length || 0,
+                  outputs_available: workerOutputs.length,
+                },
+                details: { 
+                  sites: workerResult.sites,
+                  actualOutputs: workerOutputs,
+                },
+              };
             } else {
-              // Try to connect to the SERP worker
-              let workerHealthy = false;
-              let workerError: string | null = null;
-              
-              try {
-                const healthUrl = `${workerConfig.baseUrl}${workerConfig.healthPath}`;
-                const healthResponse = await fetch(healthUrl, {
-                  method: 'GET',
-                  headers: { 'Authorization': `Bearer ${workerConfig.apiKey}` },
-                  signal: AbortSignal.timeout(10000),
-                });
-                
-                if (healthResponse.ok) {
-                  workerHealthy = true;
-                } else {
-                  workerError = `Health check returned ${healthResponse.status}`;
-                }
-              } catch (fetchError: any) {
-                workerError = fetchError.message || "Network error";
-              }
-              
-              if (workerHealthy) {
-                // Worker is healthy - report expected outputs from catalog
-                const workerOutputs = ["serp_rank_snapshots", "serp_serp_snapshots", "serp_tracked_keywords", "serp_top_keywords"];
-                checkResult = {
-                  status: "pass",
-                  summary: `SERP worker connected at ${workerConfig.baseUrl}`,
-                  metrics: { 
-                    connected: true, 
-                    mode: "worker",
-                    outputs_available: workerOutputs.length,
-                  },
-                  details: { 
-                    workerUrl: workerConfig.baseUrl,
-                    actualOutputs: workerOutputs,
-                    healthStatus: "ok",
-                  },
-                };
-              } else {
-                // Worker failed - try legacy SerpAPI as fallback
-                checkResult = await tryLegacyMode(`worker unreachable: ${workerError}`);
-              }
+              // Worker failed - try legacy SerpAPI
+              checkResult = await tryLegacyMode(workerResult.message);
             }
             break;
           }
