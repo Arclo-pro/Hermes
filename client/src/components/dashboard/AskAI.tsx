@@ -2,29 +2,47 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Sparkles, Send, Loader2 } from "lucide-react";
+import { Sparkles, Send, Loader2, Bot } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 
-export function AskAI() {
+interface AskAIProps {
+  mode?: "diagnostic" | "operational";
+  siteId?: string;
+}
+
+export function AskAI({ mode = "diagnostic", siteId }: AskAIProps) {
   const [question, setQuestion] = useState("");
   const [response, setResponse] = useState("");
+  const [context, setContext] = useState<{ rollups?: any } | null>(null);
 
   const askMutation = useMutation({
     mutationFn: async (q: string) => {
-      const res = await fetch("/api/ai/ask", {
+      const endpoint = mode === "operational" ? "/api/hermes/ask" : "/api/ai/ask";
+      const body = mode === "operational" 
+        ? { question: q, siteId } 
+        : { question: q };
+      
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: q }),
+        body: JSON.stringify(body),
       });
-      if (!res.ok) throw new Error("Failed to get response");
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to get response");
+      }
+      
       const data = await res.json();
-      return data.response;
+      return data;
     },
     onSuccess: (data) => {
-      setResponse(data);
+      setResponse(data.response);
+      setContext(data.context || null);
     },
-    onError: () => {
-      setResponse("Sorry, I couldn't process your question. Please try again.");
+    onError: (error: Error) => {
+      setResponse(error.message || "Sorry, I couldn't process your question. Please try again.");
+      setContext(null);
     },
   });
 
@@ -40,18 +58,28 @@ export function AskAI() {
     }
   };
 
+  const isHermes = mode === "operational";
+  const title = isHermes ? "Ask Hermes" : "Ask Traffic Doctor AI";
+  const placeholder = isHermes
+    ? "Ask about service status, what's running, what's blocked... (e.g., 'What is the current operational state?' or 'Which services need attention?')"
+    : "Ask about your traffic, ads, or tickets... (e.g., 'Why did my search clicks drop?' or 'What should I prioritize first?')";
+
   return (
     <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg">
-          <Sparkles className="w-5 h-5 text-primary" />
-          Ask Traffic Doctor AI
+          {isHermes ? (
+            <Bot className="w-5 h-5 text-primary" />
+          ) : (
+            <Sparkles className="w-5 h-5 text-primary" />
+          )}
+          {title}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <Textarea
-            placeholder="Ask about your traffic, ads, or tickets... (e.g., 'Why did my search clicks drop?' or 'What should I prioritize first?')"
+            placeholder={placeholder}
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -86,6 +114,11 @@ export function AskAI() {
             <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap" data-testid="text-ai-response">
               {response}
             </div>
+            {context?.rollups && (
+              <div className="mt-3 pt-3 border-t text-xs text-muted-foreground">
+                Context: {context.rollups.totalServices} services, {context.rollups.built} built, {context.rollups.neverRan} never ran
+              </div>
+            )}
           </div>
         )}
       </CardContent>

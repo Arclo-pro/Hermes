@@ -47,6 +47,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AskAI } from "@/components/dashboard/AskAI";
 import {
   Tooltip,
   TooltipContent,
@@ -1095,6 +1096,9 @@ export default function Integrations() {
                   </CardContent>
                 </Card>
               )}
+
+              {/* Ask Hermes */}
+              <AskAI mode="operational" siteId={selectedSiteId || undefined} />
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">

@@ -30,6 +30,8 @@ const DASHBOARD_POST_PATHS = [
   "/api/auth",
   "/api/integrations",
   "/api/sites",
+  "/api/hermes",
+  "/api/ai",
 ];
 
 export function apiKeyAuth(req: Request, res: Response, next: NextFunction) {

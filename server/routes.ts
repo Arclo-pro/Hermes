@@ -1799,6 +1799,239 @@ When answering:
     }
   });
 
+  // Ask Hermes - operational reasoning endpoint
+  app.post("/api/hermes/ask", async (req, res) => {
+    try {
+      const { siteId, question } = req.body;
+      
+      if (!question || typeof question !== 'string') {
+        return res.status(400).json({ error: "Question is required" });
+      }
+      
+      // Get the site (defaults to first active site if not specified)
+      let site;
+      if (siteId) {
+        site = await storage.getSiteById(siteId);
+      } else {
+        const sites = await storage.getSites();
+        site = sites.find(s => s.active) || sites[0];
+      }
+      
+      if (!site) {
+        return res.json({
+          response: "No sites configured. Please add a site first to enable operational insights.",
+          siteId: null,
+          context: null,
+        });
+      }
+      
+      // Fetch operational summary (same as the summary endpoint)
+      const { servicesCatalog, computeMissingOutputs, slugLabels } = await import("@shared/servicesCatalog");
+      const platformIntegrations = await storage.getIntegrations();
+      const lastRunMap = await storage.getLastRunPerServiceBySite(site.siteId);
+      
+      const { BitwardenProvider } = await import("./vault/BitwardenProvider");
+      const bitwarden = new BitwardenProvider();
+      const bitwardenStatus = await bitwarden.getDetailedStatus();
+      
+      const now = new Date();
+      const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      
+      // Build service states
+      const services = servicesCatalog.map(def => {
+        const integration = platformIntegrations.find(i => i.integrationId === def.slug);
+        const lastRun = lastRunMap.get(def.slug);
+        
+        const buildState = integration?.buildState || def.buildState || 'planned';
+        
+        let configState: 'ready' | 'blocked' | 'needs_config' = 'needs_config';
+        let blockingReason: string | null = null;
+        
+        if (integration?.configState === 'ready') {
+          configState = 'ready';
+        } else if (integration?.configState === 'blocked') {
+          configState = 'blocked';
+          blockingReason = integration?.lastError || 'Missing required secret or configuration';
+        } else if (def.secretKeyName && !integration?.secretExists) {
+          configState = 'blocked';
+          blockingReason = `Missing secret: ${def.secretKeyName}`;
+        } else if (buildState === 'planned') {
+          configState = 'needs_config';
+          blockingReason = 'Service not yet built';
+        }
+        
+        let runState: 'never_ran' | 'success' | 'failed' | 'partial' | 'stale' = 'never_ran';
+        if (lastRun) {
+          if (lastRun.status === 'success') runState = 'success';
+          else if (lastRun.status === 'failed') runState = 'failed';
+          else if (lastRun.status === 'partial') runState = 'partial';
+          else runState = 'success';
+          
+          const lastRunTime = lastRun.finishedAt || lastRun.startedAt;
+          const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          if (new Date(lastRunTime) < sevenDaysAgo && runState === 'success') {
+            runState = 'stale';
+          }
+        }
+        
+        const actualOutputs = (lastRun?.outputsJson as any)?.actualOutputs || [];
+        const missingOutputs = computeMissingOutputs(def.outputs, actualOutputs);
+        
+        return {
+          slug: def.slug,
+          displayName: def.displayName,
+          category: def.category,
+          buildState,
+          configState,
+          runState,
+          blockingReason,
+          missingOutputs,
+          lastRunAt: lastRun?.finishedAt || lastRun?.startedAt || null,
+          lastRunSummary: lastRun?.summary || null,
+        };
+      });
+      
+      // Compute rollups
+      const rollups = {
+        totalServices: services.length,
+        built: services.filter(s => s.buildState === 'built').length,
+        planned: services.filter(s => s.buildState === 'planned').length,
+        ready: services.filter(s => s.configState === 'ready').length,
+        blocked: services.filter(s => s.configState === 'blocked').length,
+        needsConfig: services.filter(s => s.configState === 'needs_config').length,
+        ran24h: services.filter(s => s.lastRunAt && new Date(s.lastRunAt) > oneDayAgo).length,
+        neverRan: services.filter(s => s.runState === 'never_ran').length,
+        failed: services.filter(s => s.runState === 'failed').length,
+        stale: services.filter(s => s.runState === 'stale').length,
+      };
+      
+      // Generate next actions
+      const nextActions: Array<{ service: string; reason: string; action: string }> = [];
+      for (const service of services) {
+        if (service.buildState === 'built' && service.configState === 'ready' && service.runState === 'never_ran') {
+          nextActions.push({ service: service.displayName, reason: 'Ready but never ran', action: 'Run test' });
+        } else if (service.configState === 'blocked') {
+          nextActions.push({ service: service.displayName, reason: service.blockingReason || 'Blocked', action: 'Configure' });
+        } else if (service.runState === 'failed') {
+          nextActions.push({ service: service.displayName, reason: 'Last run failed', action: 'View error' });
+        }
+      }
+      
+      // Build operational summary for the AI
+      const operationalSummary = {
+        site: {
+          id: site.siteId,
+          domain: site.baseUrl?.replace(/^https?:\/\//, '') || site.displayName,
+        },
+        platform: {
+          bitwarden: { connected: bitwardenStatus.connected, secretsFound: bitwardenStatus.secretsFound || 0 },
+          database: { connected: true },
+        },
+        rollups,
+        services: services.map(s => ({
+          name: s.displayName,
+          category: s.category,
+          buildState: s.buildState,
+          configState: s.configState,
+          runState: s.runState,
+          blockingReason: s.blockingReason,
+          missingOutputs: s.missingOutputs,
+          lastRunAt: s.lastRunAt,
+        })),
+        nextActions: nextActions.slice(0, 5),
+      };
+      
+      // Prepare system prompt
+      const systemPrompt = `You are Hermes, the operational reasoning engine for an SEO diagnostics platform.
+
+You must answer strictly based on the provided operational summary below.
+Do not assume data that is not present.
+If something has never run, say so explicitly.
+If something is blocked, explain why.
+Be concise but specific.
+
+## Operational Summary for ${operationalSummary.site.domain}
+
+### Platform Status
+- Bitwarden Secrets Manager: ${operationalSummary.platform.bitwarden.connected ? 'Connected' : 'Disconnected'} (${operationalSummary.platform.bitwarden.secretsFound} secrets found)
+- Database: ${operationalSummary.platform.database.connected ? 'Connected' : 'Disconnected'}
+
+### Service Rollups
+- Total Services: ${rollups.totalServices}
+- Built: ${rollups.built}, Planned: ${rollups.planned}
+- Ready to run: ${rollups.ready}, Blocked: ${rollups.blocked}, Needs config: ${rollups.needsConfig}
+- Ran in last 24h: ${rollups.ran24h}, Never ran: ${rollups.neverRan}
+- Failed: ${rollups.failed}, Stale (>7 days): ${rollups.stale}
+
+### Services by Category
+${Object.entries(
+  services.reduce((acc, s) => {
+    if (!acc[s.category]) acc[s.category] = [];
+    acc[s.category].push(s);
+    return acc;
+  }, {} as Record<string, typeof services>)
+).map(([cat, svcs]) => 
+  `**${cat}**: ${svcs.map(s => `${s.displayName} (${s.buildState}/${s.configState}/${s.runState})`).join(', ')}`
+).join('\n')}
+
+### Blocked Services
+${services.filter(s => s.configState === 'blocked').map(s => `- ${s.displayName}: ${s.blockingReason}`).join('\n') || 'None'}
+
+### Next Priority Actions
+${nextActions.slice(0, 5).map((a, i) => `${i+1}. ${a.service}: ${a.reason} → ${a.action}`).join('\n') || 'All services are configured and running'}
+
+### Full Service Details
+${JSON.stringify(operationalSummary.services, null, 2)}
+
+When answering:
+1. Reference specific services and their states
+2. If data isn't available because services haven't run, say so clearly
+3. Suggest next actions based on the priority list
+4. Be helpful and actionable`;
+
+      // Call OpenAI
+      const openai = new OpenAI({
+        apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+        baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+      });
+      
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: question },
+        ],
+        max_tokens: 1500,
+        temperature: 0.5,
+      });
+      
+      const response = completion.choices[0]?.message?.content || "I couldn't generate a response. Please try again.";
+      
+      logger.info("Hermes", "Answered operational question", { 
+        siteId: site.siteId, 
+        question: question.slice(0, 100),
+        rollups,
+      });
+      
+      res.json({
+        response,
+        siteId: site.siteId,
+        context: {
+          rollups,
+          nextActionsCount: nextActions.length,
+        },
+      });
+    } catch (error: any) {
+      logger.error("Hermes", "Failed to answer question", { error: error.message, stack: error.stack });
+      
+      // Return helpful error instead of generic message
+      res.status(500).json({ 
+        error: "Hermes cannot answer yet because the operational data could not be loaded.",
+        details: error.message,
+      });
+    }
+  });
+
   // Save/update site integration
   app.post("/api/sites/:siteId/integrations", async (req, res) => {
     try {
