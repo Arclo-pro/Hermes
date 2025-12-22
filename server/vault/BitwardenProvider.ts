@@ -371,6 +371,7 @@ export class BitwardenProvider implements VaultProvider {
     statusPath: string;
     raw: any;
     error: string | null;
+    valid: boolean;
   }> {
     const defaultConfig = {
       baseUrl: null,
@@ -380,6 +381,7 @@ export class BitwardenProvider implements VaultProvider {
       statusPath: '/api/serp/status',
       raw: null,
       error: null,
+      valid: false,
     };
 
     try {
@@ -401,14 +403,50 @@ export class BitwardenProvider implements VaultProvider {
         };
       }
 
+      // Extract and normalize base_url
+      let baseUrl = parsed.base_url || parsed.baseUrl || null;
+      if (baseUrl && typeof baseUrl === 'string') {
+        baseUrl = baseUrl.trim().replace(/\/+$/, ''); // Remove trailing slashes
+        // Validate URL format
+        if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
+          return { 
+            ...defaultConfig, 
+            raw: parsed,
+            error: `Invalid base_url: must start with http:// or https://`,
+          };
+        }
+      }
+
+      // Extract and validate api_key
+      let apiKey = parsed.api_key || parsed.apiKey || null;
+      if (apiKey && typeof apiKey === 'string') {
+        apiKey = apiKey.trim();
+      }
+
+      // Validate required fields
+      const errors: string[] = [];
+      if (!baseUrl) errors.push('missing base_url');
+      if (!apiKey) errors.push('missing api_key');
+
+      if (errors.length > 0) {
+        return {
+          ...defaultConfig,
+          baseUrl,
+          apiKey,
+          raw: parsed,
+          error: `Config incomplete: ${errors.join(', ')}`,
+        };
+      }
+
       return {
-        baseUrl: parsed.base_url || parsed.baseUrl || null,
-        apiKey: parsed.api_key || parsed.apiKey || null,
+        baseUrl,
+        apiKey,
         healthPath: parsed.health_path || parsed.healthPath || '/health',
         startPath: parsed.start_path || parsed.startPath || '/api/serp/run',
         statusPath: parsed.status_path || parsed.statusPath || '/api/serp/status',
         raw: parsed,
         error: null,
+        valid: true,
       };
     } catch (error: any) {
       logger.error('Vault', `Failed to get worker config: ${secretKey}`, { error: error.message });
