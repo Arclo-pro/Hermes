@@ -70,21 +70,17 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
   {
     serviceSlug: "serp_intel",  // Matches catalog
     displayName: "SERP & Keyword Intelligence",
-    bitwardenSecret: "SEO_SERP_&_Keyword",  // JSON: { base_url, api_key }
+    bitwardenSecret: "SERP_INTELLIGENCE_API_KEY",  // JSON: { base_url, api_key }
     type: "worker",
     requiresBaseUrl: true,
     category: "analysis",
     fallbackEnvVar: "SERP_API_KEY",  // Legacy SerpAPI fallback
     workerEndpoints: {
-      sites: "/api/serp/sites",
-      scanMetadata: "/api/serp/scan-metadata",
+      scanMetadata: "/api/serp/scan-metadata",  // Returns: keywords_tracked, keywords_in_top10, scan_duration_ms
       topKeywords: "/api/serp/top-keywords",
       keywords: "/api/serp/keywords",
       snapshot: "/api/serp/snapshot",
-      rankingsOverTime: "/api/serp/rankings-over-time",
-      competitors: "/api/serp/competitors",
-      movers: "/api/serp/movers",
-      summary: "/api/serp/summary"
+      rankingsOverTime: "/api/serp/rankings-over-time"
     }
   },
   {
