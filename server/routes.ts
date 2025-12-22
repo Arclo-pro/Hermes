@@ -850,6 +850,49 @@ export async function registerRoutes(
     }
   });
 
+  // QA Endpoints
+  app.post("/api/qa/run", async (req, res) => {
+    try {
+      const { siteId, mode = "connection", trigger = "manual" } = req.body;
+      
+      const { runQa } = await import("./qa/qaRunner");
+      const result = await runQa({ siteId, mode, trigger });
+      
+      res.json(result);
+    } catch (error: any) {
+      logger.error("API", "Failed to run QA", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/qa/runs", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const runs = await storage.getLatestQaRuns(limit);
+      res.json({ runs });
+    } catch (error: any) {
+      logger.error("API", "Failed to fetch QA runs", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/qa/runs/:runId", async (req, res) => {
+    try {
+      const { runId } = req.params;
+      const { getQaRun } = await import("./qa/qaRunner");
+      const result = await getQaRun(runId);
+      
+      if (!result) {
+        return res.status(404).json({ error: "QA run not found" });
+      }
+      
+      res.json(result);
+    } catch (error: any) {
+      logger.error("API", "Failed to fetch QA run", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/ai/ask", async (req, res) => {
     try {
       const { question } = req.body;
