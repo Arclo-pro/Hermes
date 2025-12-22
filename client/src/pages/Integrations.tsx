@@ -121,6 +121,7 @@ interface CatalogService {
     metrics: Record<string, any> | null;
     actualOutputs: string[];
     missingOutputs: string[];
+    pendingOutputs?: string[];
     errorCode: string | null;
     errorDetail: string | null;
   } | null;
@@ -2244,7 +2245,7 @@ export default function Integrations() {
                     <p className="text-xs text-muted-foreground uppercase tracking-wide mb-3">
                       What it returned (Expected vs Actual)
                     </p>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <p className="text-xs font-medium text-green-600">Received</p>
                         {(selectedCatalogService.lastRun.actualOutputs?.length ?? 0) > 0 ? (
@@ -2257,7 +2258,22 @@ export default function Integrations() {
                             ))}
                           </div>
                         ) : (
-                          <p className="text-xs text-muted-foreground">No outputs recorded</p>
+                          <p className="text-xs text-muted-foreground">No outputs verified yet</p>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium text-yellow-600">Pending Validation</p>
+                        {(selectedCatalogService.lastRun.pendingOutputs?.length ?? 0) > 0 ? (
+                          <div className="space-y-1">
+                            {selectedCatalogService.lastRun.pendingOutputs?.map(slug => (
+                              <div key={slug} className="text-sm flex items-center gap-1 text-yellow-700">
+                                <Clock className="w-3 h-3" />
+                                {getSlugLabel(slug)}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-muted-foreground">None pending</p>
                         )}
                       </div>
                       <div className="space-y-2">
@@ -2271,8 +2287,10 @@ export default function Integrations() {
                               </div>
                             ))}
                           </div>
+                        ) : selectedCatalogService.lastRun.pendingOutputs?.length === 0 && selectedCatalogService.lastRun.actualOutputs?.length === 0 ? (
+                          <p className="text-xs text-muted-foreground">Run to validate outputs</p>
                         ) : (
-                          <p className="text-xs text-green-600">All expected outputs received</p>
+                          <p className="text-xs text-green-600">None missing</p>
                         )}
                       </div>
                     </div>

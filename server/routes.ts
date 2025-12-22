@@ -2443,10 +2443,22 @@ When answering:
         const integration = integrations.find(i => i.integrationId === def.slug);
         const lastRun = lastRunBySlug[def.slug];
         
-        // Compute missing outputs if we have run data
+        // Compute missing and pending outputs if we have run data
+        let pendingOutputs: string[] = lastRun?.outputsJson?.pendingOutputs || [];
+        const actualOutputs = lastRun?.outputsJson?.actualOutputs || [];
+        
+        // Compute missing: outputs not in actualOutputs AND not in pendingOutputs
         let missingOutputs: string[] = [];
-        if (lastRun?.outputsJson?.actualOutputs) {
-          missingOutputs = computeMissingOutputs(def.outputs, lastRun.outputsJson.actualOutputs);
+        if (lastRun) {
+          if (actualOutputs.length > 0 || pendingOutputs.length > 0) {
+            // Some outputs are verified or pending - compute what's truly missing
+            const accountedFor = new Set([...actualOutputs, ...pendingOutputs]);
+            missingOutputs = def.outputs.filter(o => !accountedFor.has(o));
+          } else if (lastRun.status === 'failed') {
+            // Run failed and nothing verified/pending - all outputs are missing
+            missingOutputs = def.outputs;
+          }
+          // If run succeeded but nothing in actualOutputs/pendingOutputs, leave missingOutputs empty
         }
         
         return {
@@ -2463,8 +2475,9 @@ When answering:
             durationMs: lastRun.durationMs,
             trigger: lastRun.trigger,
             metrics: lastRun.metricsJson,
-            actualOutputs: lastRun.outputsJson?.actualOutputs || [],
+            actualOutputs,
             missingOutputs,
+            pendingOutputs,
             errorCode: lastRun.errorCode,
             errorDetail: lastRun.errorDetail,
           } : null,
@@ -2952,13 +2965,166 @@ When answering:
             break;
           }
           case "crawl_render": {
-            const websiteStatus = await websiteChecker.checkRobotsTxt();
-            checkResult = {
-              status: websiteStatus.exists ? "pass" : "fail",
-              summary: websiteStatus.exists ? "Website crawler operational" : "Could not fetch robots.txt",
-              metrics: { robots_exists: websiteStatus.exists, sitemap_count: websiteStatus.sitemapUrls?.length || 0 },
-              details: websiteStatus,
-            };
+            // Check if the worker is configured via Bitwarden secret
+            const { bitwardenProvider } = await import("./vault/BitwardenProvider");
+            const crawlSecret = await bitwardenProvider.getSecret("SEO_TECHNICAL_CRAWLER_API_KEY");
+            
+            const debug: any = { secretFound: !!crawlSecret, requestedUrls: [], responses: [] };
+            const actualOutputs: string[] = [];
+            const expectedOutputs = ["pages_crawled", "indexable_pages", "non_200_urls", "canonical_errors", 
+                                      "render_failures", "redirect_chains", "orphan_pages", "meta_tags"];
+            
+            // Parse worker credentials
+            let workerConfig: { base_url?: string; api_key?: string } | null = null;
+            let parseError: string | null = null;
+            
+            if (crawlSecret) {
+              try {
+                workerConfig = JSON.parse(crawlSecret);
+                debug.baseUrl = workerConfig?.base_url;
+              } catch (e: any) {
+                parseError = e.message || "Invalid JSON";
+                debug.parseError = parseError;
+              }
+            }
+            
+            // Handle different failure modes explicitly
+            if (!crawlSecret) {
+              checkResult = {
+                status: "fail",
+                summary: "Worker secret not found - add SEO_TECHNICAL_CRAWLER_API_KEY to Bitwarden",
+                metrics: { 
+                  secret_found: false,
+                  outputs_available: 0,
+                  outputs_missing: expectedOutputs.length,
+                },
+                details: { 
+                  debug,
+                  actualOutputs: [],
+                  missingOutputs: expectedOutputs,
+                  fix: "Add SEO_TECHNICAL_CRAWLER_API_KEY secret to Bitwarden with JSON: { \"base_url\": \"...\", \"api_key\": \"...\" }",
+                },
+              };
+            } else if (parseError) {
+              checkResult = {
+                status: "fail",
+                summary: `Secret JSON invalid: ${parseError}`,
+                metrics: { 
+                  secret_found: true,
+                  json_valid: false,
+                  outputs_available: 0,
+                  outputs_missing: expectedOutputs.length,
+                },
+                details: { 
+                  debug,
+                  actualOutputs: [],
+                  missingOutputs: expectedOutputs,
+                  fix: "Update SEO_TECHNICAL_CRAWLER_API_KEY with valid JSON: { \"base_url\": \"...\", \"api_key\": \"...\" }",
+                },
+              };
+            } else if (!workerConfig?.base_url) {
+              checkResult = {
+                status: "fail",
+                summary: "Worker secret missing base_url field",
+                metrics: { 
+                  secret_found: true,
+                  json_valid: true,
+                  base_url_present: false,
+                  outputs_available: 0,
+                  outputs_missing: expectedOutputs.length,
+                },
+                details: { 
+                  debug,
+                  actualOutputs: [],
+                  missingOutputs: expectedOutputs,
+                  fix: "Update secret to include base_url: { \"base_url\": \"https://your-worker.replit.app\", \"api_key\": \"...\" }",
+                },
+              };
+            } else {
+              // Worker is configured - test /health endpoint
+              const baseUrl = workerConfig.base_url.replace(/\/$/, '');
+              const headers: Record<string, string> = {};
+              if (workerConfig.api_key) {
+                headers["Authorization"] = `Bearer ${workerConfig.api_key}`;
+                headers["X-API-Key"] = workerConfig.api_key;
+              }
+              
+              const healthUrl = `${baseUrl}/health`;
+              debug.requestedUrls.push(healthUrl);
+              
+              try {
+                const res = await fetch(healthUrl, {
+                  method: "GET",
+                  headers,
+                  signal: AbortSignal.timeout(10000),
+                });
+                
+                const bodyText = await res.text().catch(() => "");
+                debug.responses.push({ 
+                  url: healthUrl, 
+                  status: res.status,
+                  ok: res.ok,
+                  bodySnippet: bodyText.slice(0, 200),
+                });
+                
+                if (res.ok) {
+                  // Worker is reachable - mark as configured but outputs pending validation
+                  // Don't claim all outputs are available until we actually run a crawl
+                  checkResult = {
+                    status: "partial",
+                    summary: `Worker connected - run a crawl to validate outputs`,
+                    metrics: { 
+                      worker_configured: true,
+                      worker_reachable: true,
+                      outputs_pending: expectedOutputs.length,
+                    },
+                    details: { 
+                      baseUrl,
+                      debug,
+                      actualOutputs: [],  // None verified until crawl runs
+                      pendingOutputs: expectedOutputs,
+                      note: "Connection verified. Run a crawl to validate all outputs.",
+                    },
+                  };
+                } else {
+                  checkResult = {
+                    status: "fail",
+                    summary: `Worker returned HTTP ${res.status}`,
+                    metrics: { 
+                      worker_configured: true,
+                      worker_reachable: false,
+                      http_status: res.status,
+                      outputs_available: 0,
+                      outputs_missing: expectedOutputs.length,
+                    },
+                    details: { 
+                      baseUrl,
+                      debug,
+                      actualOutputs: [],
+                      missingOutputs: expectedOutputs,
+                    },
+                  };
+                }
+              } catch (err: any) {
+                debug.error = err.message;
+                checkResult = {
+                  status: "fail",
+                  summary: `Worker unreachable: ${err.message}`,
+                  metrics: { 
+                    worker_configured: true,
+                    worker_reachable: false,
+                    outputs_available: 0,
+                    outputs_missing: expectedOutputs.length,
+                  },
+                  details: { 
+                    baseUrl,
+                    debug,
+                    actualOutputs: [],
+                    missingOutputs: expectedOutputs,
+                  },
+                };
+              }
+            }
             break;
           }
           case "bitwarden_vault": {
@@ -3069,11 +3235,13 @@ When answering:
         : checkResult.status === "skipped" ? "skipped" 
         : "failed";
 
-      // Extract actualOutputs from details if present (for connectors that provide them)
+      // Extract actualOutputs and pendingOutputs from details if present
       const actualOutputs = checkResult.details?.actualOutputs || [];
+      const pendingOutputs = checkResult.details?.pendingOutputs || [];
+      const missingOutputs = checkResult.details?.missingOutputs || [];
       const missingReason = checkResult.details?.missingReason;
       
-      // Update the service run with results - properly structure outputsJson with actualOutputs
+      // Update the service run with results - properly structure outputsJson
       await storage.updateServiceRun(runId, {
         status: runStatus,
         finishedAt: new Date(),
@@ -3082,6 +3250,8 @@ When answering:
         metricsJson: checkResult.metrics,
         outputsJson: {
           actualOutputs,
+          pendingOutputs,
+          missingOutputs,
           missingReason,
           details: checkResult.details,
         },

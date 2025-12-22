@@ -89,7 +89,13 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
     bitwardenSecret: "SEO_TECHNICAL_CRAWLER_API_KEY",
     type: "worker",
     requiresBaseUrl: true,
-    category: "analysis"
+    category: "analysis",
+    workerEndpoints: {
+      health: "/health",
+      crawl: "/api/crawl",
+      status: "/api/crawl/status",
+      results: "/api/crawl/results"
+    }
   },
   {
     serviceSlug: "core_web_vitals",  // Matches catalog
