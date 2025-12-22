@@ -162,6 +162,64 @@ interface IntegrationWithRun extends Integration {
   lastRun?: ServiceRun | null;
 }
 
+interface SiteSummaryService {
+  slug: string;
+  displayName: string;
+  category: string;
+  description: string;
+  purpose: string;
+  inputs: string[];
+  outputs: string[];
+  keyMetrics: string[];
+  commonFailures: string[];
+  buildState: 'built' | 'planned';
+  configState: 'ready' | 'blocked' | 'needs_config';
+  runState: 'never_ran' | 'success' | 'failed' | 'partial' | 'stale';
+  blockingReason: string | null;
+  missingOutputs: string[];
+  lastRun: {
+    id: string;
+    status: string;
+    finishedAt: string;
+    durationMs: number | null;
+    summary: string | null;
+    metrics: Record<string, any> | null;
+    missingOutputsCount: number;
+  } | null;
+}
+
+interface SiteSummaryRollups {
+  totalServices: number;
+  built: number;
+  planned: number;
+  ready: number;
+  blocked: number;
+  needsConfig: number;
+  ran24h: number;
+  neverRan: number;
+  failed: number;
+  stale: number;
+}
+
+interface SiteSummaryNextAction {
+  priority: number;
+  serviceSlug: string;
+  reason: string;
+  cta: string;
+}
+
+interface SiteSummaryResponse {
+  site: { id: string; domain: string };
+  platform: {
+    bitwarden: { connected: boolean; secretsFound: number };
+    database: { connected: boolean };
+  };
+  rollups: SiteSummaryRollups;
+  nextActions: SiteSummaryNextAction[];
+  services: SiteSummaryService[];
+  slugLabels: Record<string, string>;
+}
+
 const CATEGORY_ICONS: Record<string, typeof Database> = {
   data: Database,
   analysis: Search,
@@ -453,6 +511,19 @@ export default function Integrations() {
       setSelectedSiteId(sites[0].siteId);
     }
   }, [sites, selectedSiteId]);
+
+  // Fetch site integrations summary (operational cockpit)
+  const { data: siteSummary, isLoading: siteSummaryLoading, refetch: refetchSiteSummary } = useQuery<SiteSummaryResponse>({
+    queryKey: ["siteSummary", selectedSiteId],
+    queryFn: async () => {
+      if (!selectedSiteId) return null;
+      const res = await fetch(`/api/sites/${selectedSiteId}/integrations/summary`);
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!selectedSiteId,
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
 
   // Run Daily Diagnosis mutation
   const runDiagnosisMutation = useMutation({
@@ -918,56 +989,112 @@ export default function Integrations() {
                 </CardContent>
               </Card>
 
-              {/* Summary Stats Bar - Runs-based */}
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                <Card className="p-3">
+              {/* Summary Stats Bar - Computed from Summary Endpoint */}
+              <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+                <Card className="p-3" data-testid="stat-services">
                   <div className="flex items-center gap-2">
                     <Activity className="w-4 h-4 text-blue-500" />
                     <div>
-                      <p className="text-lg font-bold">{summaryStats.total}</p>
+                      <p className="text-lg font-bold">{siteSummary?.rollups?.totalServices ?? summaryStats.total}</p>
                       <p className="text-xs text-muted-foreground">Services</p>
                     </div>
                   </div>
                 </Card>
-                <Card className="p-3">
+                <Card className="p-3" data-testid="stat-built">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <div>
+                      <p className="text-lg font-bold">{siteSummary?.rollups?.built ?? 0}</p>
+                      <p className="text-xs text-muted-foreground">Built</p>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-3" data-testid="stat-ready">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-blue-500" />
+                    <div>
+                      <p className="text-lg font-bold">{siteSummary?.rollups?.ready ?? 0}</p>
+                      <p className="text-xs text-muted-foreground">Ready</p>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-3" data-testid="stat-ran24h">
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-purple-500" />
                     <div>
-                      <p className="text-lg font-bold">{uniqueServicesRan24h}</p>
-                      <p className="text-xs text-muted-foreground">Ran in 24h</p>
+                      <p className="text-lg font-bold">{siteSummary?.rollups?.ran24h ?? uniqueServicesRan24h}</p>
+                      <p className="text-xs text-muted-foreground">Ran 24h</p>
                     </div>
                   </div>
                 </Card>
-                <Card className={cn("p-3", failedRuns24h > 0 && "border-red-200 bg-red-50 dark:bg-red-900/20")}>
+                <Card className={cn("p-3", (siteSummary?.rollups?.failed ?? 0) > 0 && "border-red-200 bg-red-50 dark:bg-red-900/20")} data-testid="stat-failed">
                   <div className="flex items-center gap-2">
-                    <XCircle className={cn("w-4 h-4", failedRuns24h > 0 ? "text-red-500" : "text-gray-400")} />
+                    <XCircle className={cn("w-4 h-4", (siteSummary?.rollups?.failed ?? 0) > 0 ? "text-red-500" : "text-gray-400")} />
                     <div>
-                      <p className={cn("text-lg font-bold", failedRuns24h > 0 && "text-red-600")}>{failedRuns24h}</p>
-                      <p className={cn("text-xs", failedRuns24h > 0 ? "text-red-600" : "text-muted-foreground")}>Failed</p>
+                      <p className={cn("text-lg font-bold", (siteSummary?.rollups?.failed ?? 0) > 0 && "text-red-600")}>{siteSummary?.rollups?.failed ?? 0}</p>
+                      <p className={cn("text-xs", (siteSummary?.rollups?.failed ?? 0) > 0 ? "text-red-600" : "text-muted-foreground")}>Failed</p>
                     </div>
                   </div>
                 </Card>
-                <Card className="p-3">
-                  <div className="flex items-center gap-2">
-                    <Key className="w-4 h-4 text-blue-500" />
-                    <div>
-                      <p className="text-lg font-bold">{summaryStats.secretsSet}</p>
-                      <p className="text-xs text-muted-foreground">Secrets</p>
-                    </div>
-                  </div>
-                </Card>
-                {summaryStats.secretsMissing > 0 && (
-                  <Card className="p-3 border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20">
+                {(siteSummary?.rollups?.blocked ?? 0) > 0 && (
+                  <Card className="p-3 border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20" data-testid="stat-blocked">
                     <div className="flex items-center gap-2">
                       <AlertTriangle className="w-4 h-4 text-yellow-500" />
                       <div>
-                        <p className="text-lg font-bold text-yellow-600">{summaryStats.secretsMissing}</p>
-                        <p className="text-xs text-yellow-600">Missing</p>
+                        <p className="text-lg font-bold text-yellow-600">{siteSummary?.rollups?.blocked ?? 0}</p>
+                        <p className="text-xs text-yellow-600">Blocked</p>
                       </div>
                     </div>
                   </Card>
                 )}
               </div>
+
+              {/* Next Actions Panel */}
+              {siteSummary?.nextActions && siteSummary.nextActions.length > 0 && (
+                <Card className="border-orange-200 bg-orange-50 dark:bg-orange-900/20" data-testid="next-actions-panel">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-orange-500" />
+                      Next Actions ({siteSummary.nextActions.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="space-y-2">
+                      {siteSummary.nextActions.slice(0, 5).map((action, idx) => {
+                        const service = siteSummary.services.find(s => s.slug === action.serviceSlug);
+                        return (
+                          <div 
+                            key={`${action.serviceSlug}-${idx}`} 
+                            className="flex items-center justify-between p-2 bg-white dark:bg-gray-800 rounded border"
+                            data-testid={`next-action-${action.serviceSlug}`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-medium text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded">
+                                P{action.priority}
+                              </span>
+                              <span className="font-medium text-sm">{service?.displayName || action.serviceSlug}</span>
+                              <span className="text-xs text-muted-foreground">{action.reason}</span>
+                            </div>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="h-6 text-xs"
+                              onClick={() => {
+                                const svc = siteSummary.services.find(s => s.slug === action.serviceSlug);
+                                if (svc) {
+                                  setSelectedCatalogService(svc as unknown as CatalogService);
+                                }
+                              }}
+                            >
+                              {action.cta}
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -1016,11 +1143,11 @@ export default function Integrations() {
                       {viewMode === 'operational' ? (
                         <tr className="border-b bg-muted/50">
                           <th className="text-left p-3 font-medium">Service</th>
-                          <th className="text-left p-3 font-medium">Description</th>
+                          <th className="text-center p-3 font-medium">Status</th>
                           <th className="text-left p-3 font-medium">Last Run</th>
-                          <th className="text-left p-3 font-medium">Site</th>
                           <th className="text-left p-3 font-medium">Summary</th>
-                          <th className="text-left p-3 font-medium">Key Metrics</th>
+                          <th className="text-left p-3 font-medium">Metrics</th>
+                          <th className="text-left p-3 font-medium">Missing</th>
                           <th className="text-center p-3 font-medium">Actions</th>
                         </tr>
                       ) : (
@@ -1081,81 +1208,103 @@ export default function Integrations() {
                       )}
                     </thead>
                     <tbody>
-                      {workerServices.map((integration) => {
-                        const lastRun = lastRunByService[integration.integrationId];
-                        const statusColor = lastRun?.status === 'success' 
-                          ? 'text-green-600' 
-                          : lastRun?.status === 'running' 
-                            ? 'text-blue-600' 
-                            : lastRun?.status === 'partial' 
-                              ? 'text-yellow-600' 
-                              : 'text-red-600';
-                        
-                        if (viewMode === 'operational') {
+                      {viewMode === 'operational' ? (
+                        // Operational View - Use siteSummary.services for per-site computed states
+                        (siteSummary?.services || []).map((service) => {
+                          const RUN_STATE_COLORS: Record<string, string> = {
+                            success: 'bg-green-100 text-green-700',
+                            failed: 'bg-red-100 text-red-700',
+                            partial: 'bg-yellow-100 text-yellow-700',
+                            stale: 'bg-orange-100 text-orange-700',
+                            never_ran: 'bg-gray-100 text-gray-600',
+                          };
+                          const CONFIG_STATE_BADGES: Record<string, { label: string; color: string }> = {
+                            ready: { label: 'Ready', color: 'bg-green-100 text-green-700' },
+                            blocked: { label: 'Blocked', color: 'bg-orange-100 text-orange-700' },
+                            needs_config: { label: 'Needs Config', color: 'bg-gray-100 text-gray-600' },
+                          };
                           return (
                             <tr 
-                              key={integration.integrationId} 
+                              key={service.slug} 
                               className="border-b hover:bg-muted/30 transition-colors cursor-pointer"
-                              onClick={() => {
-                                const catalogService = catalogServices.find(s => s.slug === integration.integrationId);
-                                if (catalogService) {
-                                  setSelectedCatalogService(catalogService);
-                                } else {
-                                  setSelectedIntegration(integration);
-                                }
-                              }}
-                              data-testid={`row-integration-${integration.integrationId}`}
+                              onClick={() => setSelectedCatalogService(service as unknown as CatalogService)}
+                              data-testid={`row-service-${service.slug}`}
                             >
                               <td className="p-3">
                                 <div className="flex items-center gap-2">
-                                  {lastRun ? (
-                                    lastRun.status === 'success' ? <CheckCircle className="w-4 h-4 text-green-500" /> :
-                                    lastRun.status === 'running' ? <Clock className="w-4 h-4 text-blue-500 animate-pulse" /> :
-                                    lastRun.status === 'failed' ? <XCircle className="w-4 h-4 text-red-500" /> :
-                                    <AlertTriangle className="w-4 h-4 text-yellow-500" />
-                                  ) : (
-                                    <Clock className="w-4 h-4 text-gray-400" />
-                                  )}
-                                  <div className="font-medium">{integration.name}</div>
+                                  {service.runState === 'success' ? <CheckCircle className="w-4 h-4 text-green-500" /> :
+                                   service.runState === 'failed' ? <XCircle className="w-4 h-4 text-red-500" /> :
+                                   service.runState === 'partial' ? <AlertTriangle className="w-4 h-4 text-yellow-500" /> :
+                                   service.runState === 'stale' ? <AlertTriangle className="w-4 h-4 text-orange-500" /> :
+                                   <Clock className="w-4 h-4 text-gray-400" />}
+                                  <div>
+                                    <div className="font-medium">{service.displayName}</div>
+                                    <div className="text-xs text-muted-foreground">{service.category}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="p-3 text-center">
+                                <div className="flex flex-col items-center gap-1">
+                                  <Badge className={cn("text-[10px] px-1.5 py-0", RUN_STATE_COLORS[service.runState] || 'bg-gray-100')}>
+                                    {service.runState.replace('_', ' ')}
+                                  </Badge>
+                                  <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", CONFIG_STATE_BADGES[service.configState]?.color || 'bg-gray-100')}>
+                                    {CONFIG_STATE_BADGES[service.configState]?.label || service.configState}
+                                  </Badge>
                                 </div>
                               </td>
                               <td className="p-3">
-                                <span className="text-xs text-muted-foreground line-clamp-2">
-                                  {integration.description || "—"}
-                                </span>
-                              </td>
-                              <td className="p-3">
-                                {lastRun ? (
-                                  <button
-                                    onClick={(e) => { e.stopPropagation(); setSelectedRun(lastRun); }}
-                                    className="text-xs hover:bg-muted rounded px-1 py-0.5 transition-colors"
-                                  >
-                                    <Badge variant="outline" className={cn("text-[10px] px-1 py-0 mr-1", statusColor)}>
-                                      {lastRun.status}
-                                    </Badge>
-                                    {formatTimeAgo(lastRun.finishedAt || lastRun.startedAt)}
-                                  </button>
+                                {service.lastRun ? (
+                                  <div className="text-xs">
+                                    <div className="font-medium">{formatTimeAgo(service.lastRun.finishedAt)}</div>
+                                    {service.lastRun.durationMs && (
+                                      <div className="text-muted-foreground">{(service.lastRun.durationMs / 1000).toFixed(1)}s</div>
+                                    )}
+                                  </div>
                                 ) : (
                                   <span className="text-xs text-muted-foreground">Never ran</span>
                                 )}
                               </td>
                               <td className="p-3">
-                                <span className="text-xs text-muted-foreground">
-                                  {lastRun?.siteId || "—"}
+                                <span className="text-xs text-muted-foreground line-clamp-2" title={service.lastRun?.summary || service.blockingReason || undefined}>
+                                  {service.lastRun?.summary || service.blockingReason || "—"}
                                 </span>
                               </td>
                               <td className="p-3">
-                                <span className="text-xs text-muted-foreground line-clamp-1" title={lastRun?.summary || undefined}>
-                                  {lastRun?.summary || "—"}
-                                </span>
+                                {service.lastRun?.metrics && Object.keys(service.lastRun.metrics).length > 0 ? (
+                                  <div className="flex flex-wrap gap-1">
+                                    {Object.entries(service.lastRun.metrics).slice(0, 2).map(([k, v]) => (
+                                      <Badge key={k} variant="outline" className="text-[10px] px-1 py-0">
+                                        {k}: {typeof v === 'object' ? JSON.stringify(v) : String(v)}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">—</span>
+                                )}
                               </td>
                               <td className="p-3">
-                                {lastRun?.metricsCollected ? (
-                                  <span className="text-xs text-muted-foreground">
-                                    {Object.entries(lastRun.metricsCollected).slice(0, 2).map(([k, v]) => 
-                                      `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`
-                                    ).join(', ')}
-                                  </span>
+                                {service.missingOutputs.length > 0 ? (
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-red-300 text-red-600 cursor-help">
+                                          {service.missingOutputs.length} missing
+                                        </Badge>
+                                      </TooltipTrigger>
+                                      <TooltipContent className="max-w-xs">
+                                        <div className="text-xs">
+                                          {service.missingOutputs.map(slug => (
+                                            <div key={slug}>{siteSummary?.slugLabels?.[slug] || slug}</div>
+                                          ))}
+                                        </div>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                ) : service.lastRun ? (
+                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-green-300 text-green-600">
+                                    All outputs
+                                  </Badge>
                                 ) : (
                                   <span className="text-xs text-muted-foreground">—</span>
                                 )}
@@ -1169,14 +1318,7 @@ export default function Integrations() {
                                           variant="ghost"
                                           size="icon"
                                           className="h-7 w-7"
-                                          onClick={() => {
-                                            const catalogService = catalogServices.find(s => s.slug === integration.integrationId);
-                                            if (catalogService) {
-                                              setSelectedCatalogService(catalogService);
-                                            } else {
-                                              setSelectedIntegration(integration);
-                                            }
-                                          }}
+                                          onClick={() => setSelectedCatalogService(service as unknown as CatalogService)}
                                         >
                                           <ChevronRight className="w-3 h-3" />
                                         </Button>
@@ -1188,10 +1330,10 @@ export default function Integrations() {
                               </td>
                             </tr>
                           );
-                        }
-                        
-                        // Diagnostics View
-                        return (
+                        })
+                      ) : (
+                        // Diagnostics View - Use workerServices with integration health checks
+                        workerServices.map((integration) => (
                           <tr 
                             key={integration.integrationId} 
                             className="border-b hover:bg-muted/30 transition-colors"
@@ -1307,7 +1449,8 @@ export default function Integrations() {
                             </div>
                           </td>
                         </tr>
-                      );})}
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
