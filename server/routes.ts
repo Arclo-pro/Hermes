@@ -3384,7 +3384,7 @@ When answering:
           case "seo_kbase": {
             // Check if the worker is configured via Bitwarden secret
             const { bitwardenProvider: kbaseProvider } = await import("./vault/BitwardenProvider");
-            const kbaseSecret = await kbaseProvider.getSecret("SEO_KBASE_API_KEY");
+            const kbaseSecret = await kbaseProvider.getSecret("SEO_KBASE");
             
             const debug: any = { secretFound: !!kbaseSecret, requestedUrls: [], responses: [] };
             const expectedOutputs = ["seo_recommendations", "best_practices", "optimization_tips", "reference_docs"];
