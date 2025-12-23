@@ -1830,9 +1830,14 @@ When answering:
           }
         }
         
-        // Compute missing outputs
+        // Compute missing outputs (accounting for pending outputs too)
         const actualOutputs = (lastRun?.outputsJson as any)?.actualOutputs || [];
-        const missingOutputs = computeMissingOutputs(def.outputs, actualOutputs);
+        const pendingOutputs = (lastRun?.outputsJson as any)?.pendingOutputs || [];
+        // Only count as missing if not in actualOutputs AND not in pendingOutputs
+        const accountedFor = new Set([...actualOutputs, ...pendingOutputs]);
+        const missingOutputs = lastRun?.status === 'failed' && actualOutputs.length === 0 && pendingOutputs.length === 0
+          ? def.outputs  // Failed with nothing verified = all missing
+          : def.outputs.filter(o => !accountedFor.has(o));
         
         return {
           slug: def.slug,
@@ -2039,7 +2044,11 @@ When answering:
         }
         
         const actualOutputs = (lastRun?.outputsJson as any)?.actualOutputs || [];
-        const missingOutputs = computeMissingOutputs(def.outputs, actualOutputs);
+        const pendingOutputs = (lastRun?.outputsJson as any)?.pendingOutputs || [];
+        const accountedFor = new Set([...actualOutputs, ...pendingOutputs]);
+        const missingOutputs = lastRun?.status === 'failed' && actualOutputs.length === 0 && pendingOutputs.length === 0
+          ? def.outputs
+          : def.outputs.filter(o => !accountedFor.has(o));
         
         return {
           slug: def.slug,
