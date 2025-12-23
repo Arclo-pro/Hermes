@@ -28,6 +28,7 @@ import {
   diagnosticRuns,
   qaRuns,
   qaRunItems,
+  testJobs,
   artifacts,
   runContexts,
   contentDrafts,
@@ -88,6 +89,9 @@ import {
   type InsertQaRun,
   type QaRunItem,
   type InsertQaRunItem,
+  type TestJob,
+  type InsertTestJob,
+  type TestJobProgress,
   type Artifact,
   type InsertArtifact,
   type RunContext,
@@ -290,6 +294,16 @@ export interface IStorage {
   getServiceEventById(eventId: string): Promise<ServiceEvent | undefined>;
   getPendingNotifications(): Promise<ServiceEvent[]>;
   getServiceEventsByWebsite(websiteId: string, limit?: number): Promise<ServiceEvent[]>;
+  
+  // Test Jobs (async connection/smoke test tracking)
+  createTestJob(job: InsertTestJob): Promise<TestJob>;
+  updateTestJob(jobId: string, updates: Partial<InsertTestJob>): Promise<TestJob | undefined>;
+  getTestJobById(jobId: string): Promise<TestJob | undefined>;
+  getLatestTestJobs(limit?: number): Promise<TestJob[]>;
+  getRunningTestJobs(): Promise<TestJob[]>;
+  
+  // Service Runs by Type (for latest smoke run consistency)
+  getLatestServiceRunsByType(runType: string): Promise<Map<string, ServiceRun>>;
 }
 
 class DBStorage implements IStorage {
@@ -1298,6 +1312,59 @@ class DBStorage implements IStorage {
       .where(eq(serviceEvents.websiteId, websiteId))
       .orderBy(desc(serviceEvents.createdAt))
       .limit(limit);
+  }
+
+  // Test Jobs implementation
+  async createTestJob(job: InsertTestJob): Promise<TestJob> {
+    const [newJob] = await db.insert(testJobs).values(job).returning();
+    return newJob;
+  }
+
+  async updateTestJob(jobId: string, updates: Partial<InsertTestJob>): Promise<TestJob | undefined> {
+    const [updated] = await db
+      .update(testJobs)
+      .set(updates)
+      .where(eq(testJobs.jobId, jobId))
+      .returning();
+    return updated;
+  }
+
+  async getTestJobById(jobId: string): Promise<TestJob | undefined> {
+    const [job] = await db.select().from(testJobs).where(eq(testJobs.jobId, jobId)).limit(1);
+    return job;
+  }
+
+  async getLatestTestJobs(limit = 10): Promise<TestJob[]> {
+    return db
+      .select()
+      .from(testJobs)
+      .orderBy(desc(testJobs.createdAt))
+      .limit(limit);
+  }
+
+  async getRunningTestJobs(): Promise<TestJob[]> {
+    return db
+      .select()
+      .from(testJobs)
+      .where(or(eq(testJobs.status, 'queued'), eq(testJobs.status, 'running')))
+      .orderBy(desc(testJobs.createdAt));
+  }
+
+  // Get latest service run per service, filtered by run type
+  async getLatestServiceRunsByType(runType: string): Promise<Map<string, ServiceRun>> {
+    const allRuns = await db
+      .select()
+      .from(serviceRuns)
+      .where(eq(serviceRuns.runType, runType))
+      .orderBy(desc(serviceRuns.startedAt));
+    
+    const latestByService = new Map<string, ServiceRun>();
+    for (const run of allRuns) {
+      if (!latestByService.has(run.serviceId)) {
+        latestByService.set(run.serviceId, run);
+      }
+    }
+    return latestByService;
   }
 }
 

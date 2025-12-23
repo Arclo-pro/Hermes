@@ -824,65 +824,144 @@ export default function Integrations() {
     },
   });
 
-  // Test connections only (fast health/auth check)
+  // State for async job tracking
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
+  const [jobProgress, setJobProgress] = useState<any>(null);
+
+  // Poll job status
+  const pollJobStatus = async (jobId: string): Promise<any> => {
+    const maxAttempts = 120; // 10 minutes max
+    for (let i = 0; i < maxAttempts; i++) {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      try {
+        const res = await fetch(`/api/tests/${jobId}`);
+        const data = await res.json();
+        setJobProgress(data.progress);
+        
+        if (data.status === 'done' || data.status === 'failed') {
+          return data;
+        }
+      } catch {
+        // Continue polling on error
+      }
+    }
+    throw new Error('Job timed out');
+  };
+
+  // Test connections only (async with polling)
   const testConnectionsMutation = useMutation({
     mutationFn: async () => {
       setTestingConnections(true);
-      const res = await fetch("/api/integrations/test-connections", { method: "POST" });
-      return res.json();
+      setJobProgress(null);
+      
+      // Start the job
+      const startRes = await fetch("/api/tests/connections/start", { 
+        method: "POST",
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      });
+      const startData = await startRes.json();
+      
+      if (startData.error) {
+        throw new Error(startData.error);
+      }
+      
+      setActiveJobId(startData.jobId);
+      toast.info("Connection test started", { description: "Checking all services..." });
+      
+      // Poll until done
+      const result = await pollJobStatus(startData.jobId);
+      return result;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["platformIntegrations"] });
       queryClient.invalidateQueries({ queryKey: ["serviceCatalog"] });
+      queryClient.invalidateQueries({ queryKey: ["serviceRuns"] });
       setTestingConnections(false);
+      setActiveJobId(null);
+      setJobProgress(null);
       
-      const summary = data.summary || { passed: 0, failed: 0, skipped: 0 };
-      if (summary.failed === 0 && summary.passed > 0) {
-        toast.success(`All ${summary.passed} connections passed`, {
-          description: summary.skipped > 0 ? `${summary.skipped} skipped (not configured)` : undefined,
-        });
-      } else if (summary.failed > 0) {
-        toast.warning(`Connection tests: ${summary.passed} passed, ${summary.failed} failed`);
+      const progress = data.progress || {};
+      const passed = progress.completed || 0;
+      const failed = progress.failed || 0;
+      const total = progress.total || 0;
+      
+      if (failed === 0 && passed > 0) {
+        toast.success(`All ${passed} connections passed`);
+      } else if (failed > 0) {
+        toast.warning(`Connection tests: ${passed} passed, ${failed} failed`);
+      } else if (total === 0) {
+        toast.info("No services to test");
       } else {
-        toast.info(`Connection tests: ${summary.total} services checked`);
+        toast.info(`Connection tests: ${total} services checked`);
       }
     },
     onError: (error: any) => {
       setTestingConnections(false);
+      setActiveJobId(null);
+      setJobProgress(null);
       toast.error(error.message || "Connection test failed");
     },
   });
 
-  // Run smoke tests (minimal real runs to validate outputs)
+  // Run smoke tests (async with polling)
   const runSmokeTestsMutation = useMutation({
     mutationFn: async () => {
       setRunningSmokeTests(true);
-      const res = await fetch("/api/integrations/run-smoke-tests", { method: "POST" });
-      return res.json();
+      setJobProgress(null);
+      
+      // Start the job
+      const startRes = await fetch("/api/tests/smoke/start", { 
+        method: "POST",
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      });
+      const startData = await startRes.json();
+      
+      if (startData.error) {
+        throw new Error(startData.error);
+      }
+      
+      setActiveJobId(startData.jobId);
+      toast.info("Smoke test started", { description: "Testing all services..." });
+      
+      // Poll until done
+      const result = await pollJobStatus(startData.jobId);
+      return result;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["platformIntegrations"] });
       queryClient.invalidateQueries({ queryKey: ["serviceCatalog"] });
       queryClient.invalidateQueries({ queryKey: ["serviceRuns"] });
       setRunningSmokeTests(false);
+      setActiveJobId(null);
+      setJobProgress(null);
       
-      const summary = data.summary || { passed: 0, partial: 0, failed: 0, skipped: 0 };
-      const total = summary.passed + summary.partial + summary.failed;
+      const progress = data.progress || {};
+      const perService = progress.perService || {};
+      const passed = Object.values(perService).filter((p: any) => p.status === 'pass').length;
+      const partial = Object.values(perService).filter((p: any) => p.status === 'partial').length;
+      const failed = progress.failed || 0;
+      const total = progress.total || 0;
       
-      if (summary.failed === 0 && summary.passed > 0 && summary.partial === 0) {
-        toast.success(`All ${summary.passed} smoke tests passed`, {
+      if (failed === 0 && passed > 0 && partial === 0) {
+        toast.success(`All ${passed} smoke tests passed`, {
           description: "All expected outputs validated",
         });
-      } else if (summary.partial > 0 || summary.failed > 0) {
-        toast.warning(`Smoke tests: ${summary.passed} pass, ${summary.partial} partial, ${summary.failed} fail`, {
-          description: summary.partial > 0 ? "Some services have missing outputs" : undefined,
+      } else if (partial > 0 || failed > 0) {
+        toast.warning(`Smoke tests: ${passed} pass, ${partial} partial, ${failed} fail`, {
+          description: partial > 0 ? "Some services have missing outputs" : undefined,
         });
+      } else if (total === 0) {
+        toast.info("No services to test");
       } else {
         toast.info(`Smoke tests: ${total} services tested`);
       }
     },
     onError: (error: any) => {
       setRunningSmokeTests(false);
+      setActiveJobId(null);
+      setJobProgress(null);
       toast.error(error.message || "Smoke tests failed");
     },
   });

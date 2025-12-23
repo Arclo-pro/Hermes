@@ -871,6 +871,60 @@ export const insertQaRunItemSchema = createInsertSchema(qaRunItems).omit({
 export type InsertQaRunItem = z.infer<typeof insertQaRunItemSchema>;
 export type QaRunItem = typeof qaRunItems.$inferSelect;
 
+// Test Jobs - Async job tracking for connection/smoke tests
+export const TestJobTypes = {
+  CONNECTION_ALL: 'connection_all',
+  SMOKE_ALL: 'smoke_all',
+  SMOKE_ONE: 'smoke_one',
+} as const;
+export type TestJobType = typeof TestJobTypes[keyof typeof TestJobTypes];
+
+export const TestJobStatuses = {
+  QUEUED: 'queued',
+  RUNNING: 'running',
+  DONE: 'done',
+  FAILED: 'failed',
+} as const;
+export type TestJobStatus = typeof TestJobStatuses[keyof typeof TestJobStatuses];
+
+export const testJobs = pgTable("test_jobs", {
+  id: serial("id").primaryKey(),
+  jobId: text("job_id").notNull().unique(),
+  siteId: text("site_id"), // nullable for global tests
+  jobType: text("job_type").notNull(), // connection_all, smoke_all, smoke_one
+  status: text("status").notNull().default("queued"), // queued, running, done, failed
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  startedAt: timestamp("started_at"),
+  finishedAt: timestamp("finished_at"),
+  summary: text("summary"),
+  progressJson: jsonb("progress_json"), // { total, started, completed, failed, perService: { [slug]: { status, durationMs, error? } } }
+});
+
+export const insertTestJobSchema = createInsertSchema(testJobs).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertTestJob = z.infer<typeof insertTestJobSchema>;
+export type TestJob = typeof testJobs.$inferSelect;
+
+// Progress JSON type for test jobs
+export interface TestJobProgress {
+  total: number;
+  started: number;
+  completed: number;
+  failed: number;
+  skipped: number;
+  perService: Record<string, {
+    status: 'queued' | 'running' | 'pass' | 'partial' | 'fail' | 'skipped';
+    durationMs?: number;
+    error?: string;
+    workerJobId?: string; // For async workers that return 202
+    expectedOutputs?: string[];
+    actualOutputs?: string[];
+    missingOutputs?: string[];
+  }>;
+}
+
 // =============================================================================
 // HUB-AND-SPOKE ARCHITECTURE: Artifact Store + Run Context
 // =============================================================================

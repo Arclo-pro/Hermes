@@ -4777,6 +4777,146 @@ When answering:
     }
   });
 
+  // ============================================================================
+  // ASYNC TEST JOB ENDPOINTS (new pattern with polling)
+  // ============================================================================
+  
+  // Start connection test (async)
+  app.post("/api/tests/connections/start", async (req, res) => {
+    try {
+      const { startConnectionTest } = await import("./testRunner");
+      const { siteId } = req.body || {};
+      
+      logger.info("API", "Starting async connection test", { siteId });
+      
+      const result = await startConnectionTest(siteId);
+      
+      if (result.error) {
+        res.status(400).json({ error: result.error });
+        return;
+      }
+      
+      res.json({ jobId: result.jobId, status: 'running' });
+    } catch (error: any) {
+      logger.error("API", "Failed to start connection test", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Start smoke test (async)
+  app.post("/api/tests/smoke/start", async (req, res) => {
+    try {
+      const { startSmokeTest } = await import("./testRunner");
+      const { siteId } = req.body || {};
+      
+      logger.info("API", "Starting async smoke test", { siteId });
+      
+      const result = await startSmokeTest(siteId);
+      
+      if (result.error) {
+        res.status(400).json({ error: result.error });
+        return;
+      }
+      
+      res.json({ jobId: result.jobId, status: 'running' });
+    } catch (error: any) {
+      logger.error("API", "Failed to start smoke test", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Poll test job status
+  app.get("/api/tests/:jobId", async (req, res) => {
+    try {
+      const { jobId } = req.params;
+      const job = await storage.getTestJobById(jobId);
+      
+      if (!job) {
+        res.status(404).json({ error: "Test job not found" });
+        return;
+      }
+      
+      res.json({
+        jobId: job.jobId,
+        jobType: job.jobType,
+        status: job.status,
+        createdAt: job.createdAt,
+        startedAt: job.startedAt,
+        finishedAt: job.finishedAt,
+        summary: job.summary,
+        progress: job.progressJson,
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to get test job", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get latest test jobs
+  app.get("/api/tests", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const jobs = await storage.getLatestTestJobs(limit);
+      
+      res.json({ jobs });
+    } catch (error: any) {
+      logger.error("API", "Failed to list test jobs", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get service catalog with latest smoke run data for missing outputs
+  app.get("/api/services/catalog-with-smoke", async (req, res) => {
+    try {
+      const { servicesCatalog } = await import("@shared/servicesCatalog");
+      const { SERVICE_SECRET_MAP } = await import("@shared/serviceSecretMap");
+      const { ServiceRunTypes } = await import("@shared/schema");
+      
+      // Get latest smoke runs per service
+      const latestSmokeRuns = await storage.getLatestServiceRunsByType(ServiceRunTypes.SMOKE);
+      
+      const enrichedCatalog = [];
+      
+      for (const service of servicesCatalog) {
+        if (service.showInServiceInventory === false) continue;
+        
+        const mapping = SERVICE_SECRET_MAP.find(m => m.serviceSlug === service.slug);
+        const integration = await storage.getIntegrationById(service.slug);
+        const smokeRun = latestSmokeRuns.get(service.slug);
+        
+        let missingOutputs: string[] = [];
+        let actualOutputs: string[] = [];
+        let smokeTested = false;
+        
+        if (smokeRun && smokeRun.outputsJson) {
+          const outputs = smokeRun.outputsJson as any;
+          actualOutputs = outputs.actualOutputs || [];
+          missingOutputs = outputs.missingOutputs || [];
+          smokeTested = true;
+        }
+        
+        enrichedCatalog.push({
+          ...service,
+          buildState: mapping?.type === 'planned' ? 'planned' : 'built',
+          configState: integration?.baseUrl ? (integration?.apiKey ? 'ready' : 'missing_config') : 'missing_config',
+          lastSmokeRun: smokeRun ? {
+            runId: smokeRun.runId,
+            status: smokeRun.status,
+            finishedAt: smokeRun.finishedAt,
+            actualOutputs,
+            missingOutputs,
+          } : null,
+          smokeTested,
+        });
+      }
+      
+      res.json({ services: enrichedCatalog });
+    } catch (error: any) {
+      logger.error("API", "Failed to get catalog with smoke data", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Seed default platform integrations
   app.post("/api/integrations/seed", async (req, res) => {
     try {
