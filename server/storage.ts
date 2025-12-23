@@ -28,6 +28,10 @@ import {
   diagnosticRuns,
   qaRuns,
   qaRunItems,
+  artifacts,
+  runContexts,
+  contentDrafts,
+  serviceEvents,
   type OAuthToken,
   type InsertOAuthToken,
   type GA4Daily,
@@ -84,6 +88,14 @@ import {
   type InsertQaRun,
   type QaRunItem,
   type InsertQaRunItem,
+  type Artifact,
+  type InsertArtifact,
+  type RunContext,
+  type InsertRunContext,
+  type ContentDraft,
+  type InsertContentDraft,
+  type ServiceEvent,
+  type InsertServiceEvent,
 } from "@shared/schema";
 import { eq, desc, and, gte, sql, asc, or, isNull } from "drizzle-orm";
 
@@ -249,6 +261,35 @@ export interface IStorage {
   getLatestQaRuns(limit?: number): Promise<QaRun[]>;
   createQaRunItem(item: InsertQaRunItem): Promise<QaRunItem>;
   getQaRunItems(qaRunId: string): Promise<QaRunItem[]>;
+  
+  // Hub-and-Spoke: Artifacts
+  createArtifact(artifact: InsertArtifact): Promise<Artifact>;
+  getArtifactById(artifactId: string): Promise<Artifact | undefined>;
+  getArtifactsByType(type: string, websiteId?: string): Promise<Artifact[]>;
+  getArtifactsByRunContext(runContextId: string): Promise<Artifact[]>;
+  getArtifactsByProducer(producerService: string, limit?: number): Promise<Artifact[]>;
+  
+  // Hub-and-Spoke: Run Contexts
+  createRunContext(context: InsertRunContext): Promise<RunContext>;
+  updateRunContext(runId: string, updates: Partial<InsertRunContext>): Promise<RunContext | undefined>;
+  getRunContextById(runId: string): Promise<RunContext | undefined>;
+  getRunContextsByWorkflow(workflowName: string, limit?: number): Promise<RunContext[]>;
+  getRunContextsByWebsite(websiteId: string, limit?: number): Promise<RunContext[]>;
+  getActiveRunContexts(): Promise<RunContext[]>;
+  
+  // Hub-and-Spoke: Content Drafts
+  createContentDraft(draft: InsertContentDraft): Promise<ContentDraft>;
+  updateContentDraft(draftId: string, updates: Partial<InsertContentDraft>): Promise<ContentDraft | undefined>;
+  getContentDraftById(draftId: string): Promise<ContentDraft | undefined>;
+  getContentDraftsByWebsite(websiteId: string, limit?: number): Promise<ContentDraft[]>;
+  getContentDraftsByState(state: string): Promise<ContentDraft[]>;
+  
+  // Hub-and-Spoke: Service Events
+  createServiceEvent(event: InsertServiceEvent): Promise<ServiceEvent>;
+  updateServiceEvent(eventId: string, updates: Partial<InsertServiceEvent>): Promise<ServiceEvent | undefined>;
+  getServiceEventById(eventId: string): Promise<ServiceEvent | undefined>;
+  getPendingNotifications(): Promise<ServiceEvent[]>;
+  getServiceEventsByWebsite(websiteId: string, limit?: number): Promise<ServiceEvent[]>;
 }
 
 class DBStorage implements IStorage {
@@ -1094,6 +1135,169 @@ class DBStorage implements IStorage {
       .from(qaRunItems)
       .where(eq(qaRunItems.qaRunId, qaRunId))
       .orderBy(asc(qaRunItems.id));
+  }
+
+  // Hub-and-Spoke: Artifacts implementation
+  async createArtifact(artifact: InsertArtifact): Promise<Artifact> {
+    const [newArtifact] = await db.insert(artifacts).values(artifact).returning();
+    return newArtifact;
+  }
+
+  async getArtifactById(artifactId: string): Promise<Artifact | undefined> {
+    const [artifact] = await db.select().from(artifacts).where(eq(artifacts.artifactId, artifactId)).limit(1);
+    return artifact;
+  }
+
+  async getArtifactsByType(type: string, websiteId?: string): Promise<Artifact[]> {
+    if (websiteId) {
+      return db
+        .select()
+        .from(artifacts)
+        .where(and(eq(artifacts.type, type), eq(artifacts.websiteId, websiteId)))
+        .orderBy(desc(artifacts.createdAt));
+    }
+    return db
+      .select()
+      .from(artifacts)
+      .where(eq(artifacts.type, type))
+      .orderBy(desc(artifacts.createdAt));
+  }
+
+  async getArtifactsByRunContext(runContextId: string): Promise<Artifact[]> {
+    return db
+      .select()
+      .from(artifacts)
+      .where(eq(artifacts.runContextId, runContextId))
+      .orderBy(asc(artifacts.createdAt));
+  }
+
+  async getArtifactsByProducer(producerService: string, limit = 50): Promise<Artifact[]> {
+    return db
+      .select()
+      .from(artifacts)
+      .where(eq(artifacts.producerService, producerService))
+      .orderBy(desc(artifacts.createdAt))
+      .limit(limit);
+  }
+
+  // Hub-and-Spoke: Run Contexts implementation
+  async createRunContext(context: InsertRunContext): Promise<RunContext> {
+    const [newContext] = await db.insert(runContexts).values(context).returning();
+    return newContext;
+  }
+
+  async updateRunContext(runId: string, updates: Partial<InsertRunContext>): Promise<RunContext | undefined> {
+    const [updated] = await db
+      .update(runContexts)
+      .set(updates)
+      .where(eq(runContexts.runId, runId))
+      .returning();
+    return updated;
+  }
+
+  async getRunContextById(runId: string): Promise<RunContext | undefined> {
+    const [context] = await db.select().from(runContexts).where(eq(runContexts.runId, runId)).limit(1);
+    return context;
+  }
+
+  async getRunContextsByWorkflow(workflowName: string, limit = 25): Promise<RunContext[]> {
+    return db
+      .select()
+      .from(runContexts)
+      .where(eq(runContexts.workflowName, workflowName))
+      .orderBy(desc(runContexts.createdAt))
+      .limit(limit);
+  }
+
+  async getRunContextsByWebsite(websiteId: string, limit = 25): Promise<RunContext[]> {
+    return db
+      .select()
+      .from(runContexts)
+      .where(eq(runContexts.websiteId, websiteId))
+      .orderBy(desc(runContexts.createdAt))
+      .limit(limit);
+  }
+
+  async getActiveRunContexts(): Promise<RunContext[]> {
+    return db
+      .select()
+      .from(runContexts)
+      .where(or(eq(runContexts.state, 'running'), eq(runContexts.state, 'pending'), eq(runContexts.state, 'waiting_input')))
+      .orderBy(desc(runContexts.createdAt));
+  }
+
+  // Hub-and-Spoke: Content Drafts implementation
+  async createContentDraft(draft: InsertContentDraft): Promise<ContentDraft> {
+    const [newDraft] = await db.insert(contentDrafts).values(draft).returning();
+    return newDraft;
+  }
+
+  async updateContentDraft(draftId: string, updates: Partial<InsertContentDraft>): Promise<ContentDraft | undefined> {
+    const [updated] = await db
+      .update(contentDrafts)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(contentDrafts.draftId, draftId))
+      .returning();
+    return updated;
+  }
+
+  async getContentDraftById(draftId: string): Promise<ContentDraft | undefined> {
+    const [draft] = await db.select().from(contentDrafts).where(eq(contentDrafts.draftId, draftId)).limit(1);
+    return draft;
+  }
+
+  async getContentDraftsByWebsite(websiteId: string, limit = 50): Promise<ContentDraft[]> {
+    return db
+      .select()
+      .from(contentDrafts)
+      .where(eq(contentDrafts.websiteId, websiteId))
+      .orderBy(desc(contentDrafts.updatedAt))
+      .limit(limit);
+  }
+
+  async getContentDraftsByState(state: string): Promise<ContentDraft[]> {
+    return db
+      .select()
+      .from(contentDrafts)
+      .where(eq(contentDrafts.state, state))
+      .orderBy(desc(contentDrafts.updatedAt));
+  }
+
+  // Hub-and-Spoke: Service Events implementation
+  async createServiceEvent(event: InsertServiceEvent): Promise<ServiceEvent> {
+    const [newEvent] = await db.insert(serviceEvents).values(event).returning();
+    return newEvent;
+  }
+
+  async updateServiceEvent(eventId: string, updates: Partial<InsertServiceEvent>): Promise<ServiceEvent | undefined> {
+    const [updated] = await db
+      .update(serviceEvents)
+      .set(updates)
+      .where(eq(serviceEvents.eventId, eventId))
+      .returning();
+    return updated;
+  }
+
+  async getServiceEventById(eventId: string): Promise<ServiceEvent | undefined> {
+    const [event] = await db.select().from(serviceEvents).where(eq(serviceEvents.eventId, eventId)).limit(1);
+    return event;
+  }
+
+  async getPendingNotifications(): Promise<ServiceEvent[]> {
+    return db
+      .select()
+      .from(serviceEvents)
+      .where(and(eq(serviceEvents.notify, true), eq(serviceEvents.notified, false)))
+      .orderBy(asc(serviceEvents.createdAt));
+  }
+
+  async getServiceEventsByWebsite(websiteId: string, limit = 50): Promise<ServiceEvent[]> {
+    return db
+      .select()
+      .from(serviceEvents)
+      .where(eq(serviceEvents.websiteId, websiteId))
+      .orderBy(desc(serviceEvents.createdAt))
+      .limit(limit);
   }
 }
 

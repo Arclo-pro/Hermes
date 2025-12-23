@@ -18,6 +18,16 @@ export interface ServiceDefinition {
   
   /** If false, exclude from Service Inventory (use for platform dependencies) */
   showInServiceInventory?: boolean;
+  
+  // Hub-and-Spoke: Artifact capabilities
+  /** Artifact types this service produces */
+  producesArtifacts?: string[];
+  /** Artifact types this service consumes */
+  consumesArtifacts?: string[];
+  /** Required inputs that must be provided by Hermes */
+  requiredInputs?: string[];
+  /** Rules bundles this service needs from KBase */
+  requiresRulesBundles?: ('qa' | 'generation' | 'competitors' | 'gap' | 'safety')[];
 }
 
 export const slugLabels: Record<string, string> = {
@@ -289,6 +299,11 @@ export const servicesCatalog: ServiceDefinition[] = [
     commonFailures: ["api_key_invalid", "rate_limited", "no_data", "timeout"],
     runTriggers: ["scheduled", "manual"],
     testMode: "worker",
+    // Hub-and-Spoke capabilities
+    producesArtifacts: ["comp.snapshot"],
+    consumesArtifacts: [],
+    requiredInputs: ["target_keywords", "competitor_domains"],
+    requiresRulesBundles: ["competitors"],
   },
   {
     slug: "content_decay",
@@ -315,6 +330,11 @@ export const servicesCatalog: ServiceDefinition[] = [
     commonFailures: ["timeout", "no_data", "invalid_response", "network_error"],
     runTriggers: ["scheduled", "manual", "on_change"],
     testMode: "worker",
+    // Hub-and-Spoke capabilities
+    producesArtifacts: ["qa.scorecard", "qa.fix_list"],
+    consumesArtifacts: ["content.draft", "content.revision"],
+    requiredInputs: ["page_urls"],
+    requiresRulesBundles: ["qa", "safety"],
   },
   {
     slug: "seo_kbase",
@@ -354,6 +374,11 @@ export const servicesCatalog: ServiceDefinition[] = [
     commonFailures: ["api_key_invalid", "rate_limited", "quota_exceeded", "timeout"],
     runTriggers: ["manual", "on_change"],
     testMode: "worker",
+    // Hub-and-Spoke capabilities
+    producesArtifacts: ["content.draft", "content.revision"],
+    consumesArtifacts: ["gap.report", "qa.fix_list", "comp.snapshot"],
+    requiredInputs: ["target_keywords"],
+    requiresRulesBundles: ["generation", "safety"],
   },
   {
     slug: "site_executor",

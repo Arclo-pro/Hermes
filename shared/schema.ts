@@ -870,3 +870,242 @@ export const insertQaRunItemSchema = createInsertSchema(qaRunItems).omit({
 });
 export type InsertQaRunItem = z.infer<typeof insertQaRunItemSchema>;
 export type QaRunItem = typeof qaRunItems.$inferSelect;
+
+// =============================================================================
+// HUB-AND-SPOKE ARCHITECTURE: Artifact Store + Run Context
+// =============================================================================
+
+// Artifact Types - what services produce and consume
+export const ArtifactTypes = {
+  // Data snapshots
+  COMP_SNAPSHOT: 'comp.snapshot',
+  SERP_SNAPSHOT: 'serp.snapshot',
+  CRAWL_SITEMAP: 'crawl.sitemap',
+  CRAWL_AUDIT: 'crawl.audit',
+  VITALS_REPORT: 'vitals.report',
+  BACKLINKS_REPORT: 'backlinks.report',
+  
+  // Analysis outputs
+  GAP_REPORT: 'gap.report',
+  DECAY_REPORT: 'decay.report',
+  
+  // Content artifacts
+  CONTENT_DRAFT: 'content.draft',
+  CONTENT_REVISION: 'content.revision',
+  QA_SCORECARD: 'qa.scorecard',
+  QA_FIX_LIST: 'qa.fix_list',
+  
+  // Rules/config bundles
+  RULES_QA: 'rules.qa',
+  RULES_GENERATION: 'rules.generation',
+  RULES_COMPETITORS: 'rules.competitors',
+  RULES_GAP: 'rules.gap',
+  RULES_SAFETY: 'rules.safety',
+  
+  // Events
+  EVENT_ALERT: 'event.alert',
+  EVENT_NOTIFICATION: 'event.notification',
+} as const;
+
+export type ArtifactType = typeof ArtifactTypes[keyof typeof ArtifactTypes];
+
+// Artifact Store - shared output storage for all services
+export const artifacts = pgTable("artifacts", {
+  id: serial("id").primaryKey(),
+  artifactId: text("artifact_id").notNull().unique(), // e.g., "art_1703123456_comp_snapshot"
+  type: text("type").notNull(), // ArtifactTypes value
+  websiteId: text("website_id"), // nullable for global artifacts
+  runId: text("run_id"), // links to run_contexts.run_id
+  runContextId: text("run_context_id"), // links to run_contexts.run_id
+  producerService: text("producer_service").notNull(), // service slug that created this
+  schemaVersion: text("schema_version").default("1.0.0"),
+  storageRef: text("storage_ref"), // for large payloads stored externally
+  payload: jsonb("payload"), // for small payloads stored inline
+  summary: text("summary"), // human-readable summary
+  metrics: jsonb("metrics"), // { pages_crawled: 50, score: 85, etc }
+  expiresAt: timestamp("expires_at"), // optional TTL
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertArtifactSchema = createInsertSchema(artifacts).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertArtifact = z.infer<typeof insertArtifactSchema>;
+export type Artifact = typeof artifacts.$inferSelect;
+
+// Run Context States
+export const RunContextStates = {
+  PENDING: 'pending',
+  RUNNING: 'running',
+  WAITING_INPUT: 'waiting_input', // waiting for artifact dependency
+  PAUSED: 'paused',
+  COMPLETED: 'completed',
+  FAILED: 'failed',
+  NEEDS_HUMAN: 'needs_human', // escalated for human intervention
+} as const;
+
+export type RunContextState = typeof RunContextStates[keyof typeof RunContextStates];
+
+// Run Context - tracks workflow execution state
+export const runContexts = pgTable("run_contexts", {
+  id: serial("id").primaryKey(),
+  runId: text("run_id").notNull().unique(), // e.g., "ctx_1703123456_gap_analysis"
+  websiteId: text("website_id"), // nullable for global runs
+  workflowName: text("workflow_name").notNull(), // e.g., "gap_analysis", "content_generation"
+  state: text("state").notNull().default("pending"), // RunContextStates
+  trigger: text("trigger").notNull().default("manual"), // manual, scheduled, webhook, chained
+  
+  // DAG execution state
+  stepStates: jsonb("step_states"), // { "step_1": "completed", "step_2": "running", ... }
+  currentStep: text("current_step"),
+  completedSteps: text("completed_steps").array().default([]),
+  
+  // Retry/limit controls
+  maxRetries: integer("max_retries").default(3),
+  currentRetries: integer("current_retries").default(0),
+  
+  // Rules context
+  rulesetVersion: text("ruleset_version"), // version of rules used for this run
+  rulesBundleIds: text("rules_bundle_ids").array(), // artifact IDs of rule bundles
+  
+  // Input/output artifact references
+  inputArtifactIds: text("input_artifact_ids").array().default([]),
+  outputArtifactIds: text("output_artifact_ids").array().default([]),
+  
+  // Error tracking
+  errors: jsonb("errors"), // [{ step, code, message, timestamp }, ...]
+  lastError: text("last_error"),
+  
+  // Timing
+  startedAt: timestamp("started_at"),
+  endedAt: timestamp("ended_at"),
+  durationMs: integer("duration_ms"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertRunContextSchema = createInsertSchema(runContexts).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertRunContext = z.infer<typeof insertRunContextSchema>;
+export type RunContext = typeof runContexts.$inferSelect;
+
+// Content Draft States (for QA/Generator loop control)
+export const ContentDraftStates = {
+  DRAFTED: 'drafted',
+  QA_PENDING: 'qa_pending',
+  QA_FAILED: 'qa_failed',
+  REVISION_REQUESTED: 'revision_requested',
+  QA_PASSED: 'qa_passed',
+  APPROVAL_REQUIRED: 'approval_required',
+  APPROVED: 'approved',
+  PUBLISHED: 'published',
+  PR_CREATED: 'pr_created',
+  NEEDS_HUMAN: 'needs_human', // hit max retries
+} as const;
+
+export type ContentDraftState = typeof ContentDraftStates[keyof typeof ContentDraftStates];
+
+// Content Drafts - state machine for content generation loop
+export const contentDrafts = pgTable("content_drafts", {
+  id: serial("id").primaryKey(),
+  draftId: text("draft_id").notNull().unique(), // e.g., "draft_1703123456_blog_post"
+  websiteId: text("website_id").notNull(),
+  runContextId: text("run_context_id"), // links to run_contexts.run_id
+  
+  // Content metadata
+  contentType: text("content_type").notNull(), // blog_post, landing_page, faq, etc.
+  title: text("title"),
+  targetUrl: text("target_url"),
+  targetKeywords: text("target_keywords").array(),
+  
+  // State machine
+  state: text("state").notNull().default("drafted"), // ContentDraftStates
+  stateHistory: jsonb("state_history"), // [{ state, timestamp, reason }, ...]
+  
+  // Revision tracking
+  revisionNumber: integer("revision_number").default(1),
+  maxRevisions: integer("max_revisions").default(2),
+  
+  // Artifact references
+  currentDraftArtifactId: text("current_draft_artifact_id"), // latest draft artifact
+  allDraftArtifactIds: text("all_draft_artifact_ids").array().default([]),
+  latestQaArtifactId: text("latest_qa_artifact_id"), // latest QA scorecard
+  
+  // QA tracking
+  qaScore: integer("qa_score"), // 0-100
+  qaViolations: jsonb("qa_violations"), // [{ rule, severity, message }, ...]
+  qaFixList: jsonb("qa_fix_list"), // [{ issue, fix_instruction, priority }, ...]
+  
+  // Escalation
+  needsHumanReason: text("needs_human_reason"),
+  assignedTo: text("assigned_to"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertContentDraftSchema = createInsertSchema(contentDrafts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertContentDraft = z.infer<typeof insertContentDraftSchema>;
+export type ContentDraft = typeof contentDrafts.$inferSelect;
+
+// Service Events - for event-based notifications
+export const EventSeverities = {
+  INFO: 'info',
+  WARN: 'warn',
+  CRITICAL: 'critical',
+} as const;
+
+export type EventSeverity = typeof EventSeverities[keyof typeof EventSeverities];
+
+export const EventAudiences = {
+  OWNER: 'owner',
+  OPS: 'ops',
+  EXEC: 'exec',
+  ALL: 'all',
+} as const;
+
+export type EventAudience = typeof EventAudiences[keyof typeof EventAudiences];
+
+// Service Events - emitted by services, processed centrally by Hermes
+export const serviceEvents = pgTable("service_events", {
+  id: serial("id").primaryKey(),
+  eventId: text("event_id").notNull().unique(), // e.g., "evt_1703123456_vitals_alert"
+  websiteId: text("website_id"),
+  runContextId: text("run_context_id"),
+  producerService: text("producer_service").notNull(),
+  
+  // Event classification
+  eventType: text("event_type").notNull(), // vitals_regression, qa_failure, crawl_error, etc.
+  severity: text("severity").notNull().default("info"), // EventSeverities
+  audience: text("audience").notNull().default("ops"), // EventAudiences
+  
+  // Notification control
+  notify: boolean("notify").default(false),
+  notified: boolean("notified").default(false),
+  notifiedAt: timestamp("notified_at"),
+  notificationChannel: text("notification_channel"), // email, slack, sms
+  
+  // Event details
+  title: text("title").notNull(),
+  message: text("message"),
+  details: jsonb("details"), // arbitrary event-specific data
+  artifactId: text("artifact_id"), // linked artifact if applicable
+  
+  // Deduplication
+  dedupeKey: text("dedupe_key"), // for throttling similar events
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertServiceEventSchema = createInsertSchema(serviceEvents).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertServiceEvent = z.infer<typeof insertServiceEventSchema>;
+export type ServiceEvent = typeof serviceEvents.$inferSelect;
