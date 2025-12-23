@@ -131,7 +131,7 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
   {
     serviceSlug: "content_generator",  // Matches catalog
     displayName: "Content Generator",
-    bitwardenSecret: "SEO_Blog_Writer",
+    bitwardenSecret: "SEO_Content_GENERATOR",
     type: "worker",
     requiresBaseUrl: true,
     category: "content"
