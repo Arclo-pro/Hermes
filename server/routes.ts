@@ -3136,6 +3136,166 @@ When answering:
             }
             break;
           }
+          case "core_web_vitals": {
+            // Check if the worker is configured via Bitwarden secret
+            const { bitwardenProvider } = await import("./vault/BitwardenProvider");
+            const vitalsSecret = await bitwardenProvider.getSecret("SEO_CORE_WEB_VITALS");
+            
+            const debug: any = { secretFound: !!vitalsSecret, requestedUrls: [], responses: [] };
+            const expectedOutputs = ["lcp", "cls", "inp", "performance_score", "regressions"];
+            
+            // Parse worker credentials
+            let workerConfig: { base_url?: string; api_key?: string } | null = null;
+            let parseError: string | null = null;
+            
+            if (vitalsSecret) {
+              try {
+                workerConfig = JSON.parse(vitalsSecret);
+                debug.baseUrl = workerConfig?.base_url;
+              } catch (e: any) {
+                parseError = e.message || "Invalid JSON";
+                debug.parseError = parseError;
+              }
+            }
+            
+            // Handle different failure modes explicitly
+            if (!vitalsSecret) {
+              checkResult = {
+                status: "fail",
+                summary: "Worker secret not found - add SEO_CORE_WEB_VITALS to Bitwarden",
+                metrics: { 
+                  secret_found: false,
+                  outputs_available: 0,
+                  outputs_missing: expectedOutputs.length,
+                },
+                details: { 
+                  debug,
+                  actualOutputs: [],
+                  missingOutputs: expectedOutputs,
+                  fix: "Add SEO_CORE_WEB_VITALS secret to Bitwarden with JSON: { \"base_url\": \"...\", \"api_key\": \"...\" }",
+                },
+              };
+            } else if (parseError) {
+              checkResult = {
+                status: "fail",
+                summary: `Secret JSON invalid: ${parseError}`,
+                metrics: { 
+                  secret_found: true,
+                  json_valid: false,
+                  outputs_available: 0,
+                  outputs_missing: expectedOutputs.length,
+                },
+                details: { 
+                  debug,
+                  actualOutputs: [],
+                  missingOutputs: expectedOutputs,
+                  fix: "Update SEO_CORE_WEB_VITALS with valid JSON: { \"base_url\": \"...\", \"api_key\": \"...\" }",
+                },
+              };
+            } else if (!workerConfig?.base_url) {
+              checkResult = {
+                status: "fail",
+                summary: "Worker secret missing base_url field",
+                metrics: { 
+                  secret_found: true,
+                  json_valid: true,
+                  base_url_present: false,
+                  outputs_available: 0,
+                  outputs_missing: expectedOutputs.length,
+                },
+                details: { 
+                  debug,
+                  actualOutputs: [],
+                  missingOutputs: expectedOutputs,
+                  fix: "Update secret to include base_url: { \"base_url\": \"https://your-worker.replit.app\", \"api_key\": \"...\" }",
+                },
+              };
+            } else {
+              // Worker is configured - test /health endpoint
+              const baseUrl = workerConfig.base_url.replace(/\/$/, '');
+              const headers: Record<string, string> = {};
+              if (workerConfig.api_key) {
+                headers["Authorization"] = `Bearer ${workerConfig.api_key}`;
+                headers["X-API-Key"] = workerConfig.api_key;
+              }
+              
+              const healthUrl = `${baseUrl}/health`;
+              debug.requestedUrls.push(healthUrl);
+              
+              try {
+                const res = await fetch(healthUrl, {
+                  method: "GET",
+                  headers,
+                  signal: AbortSignal.timeout(10000),
+                });
+                
+                const bodyText = await res.text().catch(() => "");
+                debug.responses.push({ 
+                  url: healthUrl, 
+                  status: res.status,
+                  ok: res.ok,
+                  bodySnippet: bodyText.slice(0, 200),
+                });
+                
+                if (res.ok) {
+                  // Worker is reachable - mark as configured but outputs pending validation
+                  checkResult = {
+                    status: "partial",
+                    summary: `Worker connected - run vitals check to validate outputs`,
+                    metrics: { 
+                      worker_configured: true,
+                      worker_reachable: true,
+                      outputs_pending: expectedOutputs.length,
+                    },
+                    details: { 
+                      baseUrl,
+                      debug,
+                      actualOutputs: [],
+                      pendingOutputs: expectedOutputs,
+                      note: "Connection verified. Run a vitals check to validate all outputs.",
+                    },
+                  };
+                } else {
+                  checkResult = {
+                    status: "fail",
+                    summary: `Worker returned HTTP ${res.status}`,
+                    metrics: { 
+                      worker_configured: true,
+                      worker_reachable: false,
+                      http_status: res.status,
+                      outputs_available: 0,
+                      outputs_missing: expectedOutputs.length,
+                    },
+                    details: { 
+                      baseUrl,
+                      debug,
+                      actualOutputs: [],
+                      missingOutputs: expectedOutputs,
+                    },
+                  };
+                }
+              } catch (err: any) {
+                debug.error = err.message;
+                checkResult = {
+                  status: "fail",
+                  summary: `Worker unreachable: ${err.message}`,
+                  metrics: { 
+                    worker_configured: true,
+                    worker_reachable: false,
+                    outputs_available: 0,
+                    outputs_missing: expectedOutputs.length,
+                  },
+                  details: { 
+                    baseUrl,
+                    debug,
+                    actualOutputs: [],
+                    missingOutputs: expectedOutputs,
+                  },
+                };
+              }
+            }
+            break;
+          }
           case "bitwarden_vault": {
             const { bitwardenProvider } = await import("./vault/BitwardenProvider");
             const vaultStatus = await bitwardenProvider.getDetailedStatus();
