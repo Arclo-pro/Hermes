@@ -1163,3 +1163,190 @@ export const insertServiceEventSchema = createInsertSchema(serviceEvents).omit({
 });
 export type InsertServiceEvent = z.infer<typeof insertServiceEventSchema>;
 export type ServiceEvent = typeof serviceEvents.$inferSelect;
+
+// =============================================================================
+// SUGGESTED CHANGES APPROVAL CENTER
+// =============================================================================
+
+// Proposal Types - categories of changes Hermes can propose
+export const ProposalTypes = {
+  // Config proposals (low risk)
+  WEBSITE_SETTING_UPDATE: 'website_setting_update',
+  SECRET_FORMAT_FIX: 'secret_format_fix',
+  SERVICE_EXPECTED_OUTPUT_FIX: 'service_expected_output_fix',
+  SERVICE_REGISTRY_UPDATE: 'service_registry_update',
+  
+  // Operational proposals (medium risk)
+  RUN_SMOKE_TESTS: 'run_smoke_tests',
+  RUN_DAILY_DIAGNOSIS: 'run_daily_diagnosis',
+  RERUN_FAILED_SERVICE: 'rerun_failed_service',
+  
+  // Code proposals (higher risk)
+  CODE_PATCH: 'code_patch',
+  IMPLEMENT_ENDPOINT: 'implement_endpoint',
+  SCHEMA_CONFORMANCE_FIX: 'schema_conformance_fix',
+} as const;
+
+export type ProposalType = typeof ProposalTypes[keyof typeof ProposalTypes];
+
+// Risk levels for proposals
+export const RiskLevels = {
+  LOW: 'low',        // config-only, non-destructive, reversible
+  MEDIUM: 'medium',  // operational actions, reruns, reversible settings
+  HIGH: 'high',      // code changes, schema changes, deployment actions
+  CRITICAL: 'critical', // production deployments, multi-service changes
+} as const;
+
+export type RiskLevel = typeof RiskLevels[keyof typeof RiskLevels];
+
+// Proposal statuses (state machine)
+export const ProposalStatuses = {
+  OPEN: 'open',
+  IN_REVIEW: 'in_review',
+  ACCEPTED: 'accepted',
+  APPLYING: 'applying',
+  APPLIED: 'applied',
+  FAILED: 'failed',
+  REJECTED: 'rejected',
+  SNOOZED: 'snoozed',
+  SUPERSEDED: 'superseded',
+} as const;
+
+export type ProposalStatus = typeof ProposalStatuses[keyof typeof ProposalStatuses];
+
+// Change Proposals - recommendations Hermes can apply
+export const changeProposals = pgTable("change_proposals", {
+  id: serial("id").primaryKey(),
+  proposalId: text("proposal_id").notNull().unique(), // e.g., "prop_1703123456_secret_fix"
+  websiteId: text("website_id"), // nullable for global proposals
+  serviceKey: text("service_key"), // nullable, the service this affects
+  
+  // Classification
+  type: text("type").notNull(), // ProposalTypes
+  riskLevel: text("risk_level").notNull().default("low"), // RiskLevels
+  status: text("status").notNull().default("open"), // ProposalStatuses
+  
+  // Content
+  title: text("title").notNull(),
+  description: text("description"),
+  rationale: jsonb("rationale"), // why this change is needed
+  evidence: jsonb("evidence"), // { run_ids, artifact_ids, error_codes, urls }
+  
+  // Change details
+  changePlan: jsonb("change_plan"), // structured steps to apply
+  preview: jsonb("preview"), // diff/settings/secret envelope preview
+  verificationPlan: jsonb("verification_plan"), // checks to run after apply
+  rollbackPlan: jsonb("rollback_plan"), // how to revert if verification fails
+  
+  // Policy gating
+  policyGate: jsonb("policy_gate"), // { requires_confirmation, allowed_apply_modes }
+  blocking: boolean("blocking").default(false), // if true, blocks other operations
+  
+  // Deduplication
+  fingerprint: text("fingerprint"), // hash for deduping similar proposals
+  
+  // Tracking
+  createdBy: text("created_by").default("system"), // system or user id
+  supersededBy: text("superseded_by"), // proposal_id of newer proposal
+  snoozedUntil: timestamp("snoozed_until"),
+  tags: text("tags").array(),
+  
+  // Verification results (after apply)
+  verificationResults: jsonb("verification_results"), // pass/fail per check + logs
+  applyLogs: text("apply_logs"), // logs from applying
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertChangeProposalSchema = createInsertSchema(changeProposals).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertChangeProposal = z.infer<typeof insertChangeProposalSchema>;
+export type ChangeProposal = typeof changeProposals.$inferSelect;
+
+// Proposal action types (for audit trail)
+export const ProposalActionTypes = {
+  OPENED: 'opened',
+  ACCEPTED: 'accepted',
+  REJECTED: 'rejected',
+  SNOOZED: 'snoozed',
+  APPLY_STARTED: 'apply_started',
+  APPLY_SUCCEEDED: 'apply_succeeded',
+  APPLY_FAILED: 'apply_failed',
+  COMMENTED: 'commented',
+  SUPERSEDED: 'superseded',
+} as const;
+
+export type ProposalActionType = typeof ProposalActionTypes[keyof typeof ProposalActionTypes];
+
+// Change Proposal Actions - audit trail for each proposal
+export const changeProposalActions = pgTable("change_proposal_actions", {
+  id: serial("id").primaryKey(),
+  actionId: text("action_id").notNull().unique(), // e.g., "act_1703123456_accepted"
+  proposalId: text("proposal_id").notNull(), // links to change_proposals.proposal_id
+  
+  // Action details
+  action: text("action").notNull(), // ProposalActionTypes
+  actor: text("actor").notNull().default("system"), // user_id, email, or "system"
+  reason: text("reason"), // optional reason for action
+  metadata: jsonb("metadata"), // { applied_patch_ref, settings_changes, test_run_ids }
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertChangeProposalActionSchema = createInsertSchema(changeProposalActions).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertChangeProposalAction = z.infer<typeof insertChangeProposalActionSchema>;
+export type ChangeProposalAction = typeof changeProposalActions.$inferSelect;
+
+// Evidence structure for proposals
+export interface ProposalEvidence {
+  runIds?: string[];
+  artifactIds?: string[];
+  errorCodes?: string[];
+  urls?: string[];
+  errorMessages?: string[];
+  serviceSlug?: string;
+  testJobId?: string;
+}
+
+// Change plan structure
+export interface ChangePlanStep {
+  stepNumber: number;
+  description: string;
+  action: string; // e.g., "update_setting", "write_secret", "call_endpoint"
+  target: string; // what to change
+  value?: any; // new value
+  preCondition?: string;
+  postCheck?: string;
+}
+
+export interface ChangePlan {
+  steps: ChangePlanStep[];
+  estimatedDuration?: string; // e.g., "30 seconds"
+  requiresConfirmation?: boolean;
+}
+
+// Verification plan structure
+export interface VerificationStep {
+  type: 'connection_test' | 'smoke_test' | 'endpoint_test' | 'artifact_check';
+  target?: string; // service slug or artifact type
+  expectedResult?: string;
+}
+
+export interface VerificationPlan {
+  steps: VerificationStep[];
+  timeout?: number; // seconds
+}
+
+// Rollback plan structure
+export interface RollbackPlan {
+  method: 'automatic' | 'manual' | 'snapshot';
+  steps?: string[];
+  snapshotRef?: string;
+}

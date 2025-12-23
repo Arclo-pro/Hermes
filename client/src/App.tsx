@@ -14,6 +14,7 @@ import SERP from "@/pages/SERP";
 import Sites from "@/pages/Sites";
 import SiteDetail from "@/pages/SiteDetail";
 import Integrations from "@/pages/Integrations";
+import SuggestedChanges from "@/pages/SuggestedChanges";
 
 function Router() {
   return (
@@ -26,6 +27,7 @@ function Router() {
       <Route path="/analysis" component={Analysis} />
       <Route path="/serp" component={SERP} />
       <Route path="/integrations" component={Integrations} />
+      <Route path="/changes" component={SuggestedChanges} />
       <Route path="/settings" component={Settings} />
       <Route path="/">
         <Redirect to="/dashboard" />

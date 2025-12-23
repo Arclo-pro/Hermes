@@ -5431,5 +5431,402 @@ When answering:
     }
   });
 
+  // =============================================================================
+  // SUGGESTED CHANGES (CHANGE PROPOSALS) API
+  // =============================================================================
+
+  // List change proposals with filters
+  app.get("/api/changes", async (req, res) => {
+    try {
+      const filters = {
+        websiteId: req.query.website_id as string | undefined,
+        serviceKey: req.query.service_key as string | undefined,
+        status: req.query.status as string | string[] | undefined,
+        riskLevel: req.query.risk as string | string[] | undefined,
+        type: req.query.type as string | string[] | undefined,
+        limit: parseInt(req.query.limit as string) || 50,
+        offset: parseInt(req.query.offset as string) || 0,
+      };
+      
+      const { proposals, total } = await storage.listChangeProposals(filters);
+      const openCount = await storage.getOpenProposalsCount();
+      
+      res.json({ 
+        proposals, 
+        total, 
+        openCount,
+        pagination: {
+          limit: filters.limit,
+          offset: filters.offset,
+          hasMore: filters.offset + proposals.length < total,
+        }
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to list change proposals", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get a single change proposal with actions
+  app.get("/api/changes/:proposalId", async (req, res) => {
+    try {
+      const { proposalId } = req.params;
+      const proposal = await storage.getChangeProposalById(proposalId);
+      
+      if (!proposal) {
+        return res.status(404).json({ error: "Proposal not found" });
+      }
+      
+      const actions = await storage.getChangeProposalActions(proposalId);
+      
+      res.json({ proposal, actions });
+    } catch (error: any) {
+      logger.error("API", "Failed to get change proposal", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Validation schemas for change proposal actions
+  const acceptProposalSchema = z.object({
+    applyNow: z.boolean().optional(),
+    confirmationFlags: z.object({
+      understood: z.boolean().optional(),
+    }).optional(),
+  });
+
+  const rejectProposalSchema = z.object({
+    reason: z.string().optional(),
+  });
+
+  const snoozeProposalSchema = z.object({
+    until: z.string().refine((val) => !isNaN(Date.parse(val)), {
+      message: "Invalid date format",
+    }),
+  });
+
+  const applyProposalSchema = z.object({
+    confirmationFlags: z.object({
+      understood: z.boolean().optional(),
+    }).optional(),
+  });
+
+  const bulkActionSchema = z.object({
+    ids: z.array(z.string()).min(1, "At least one proposal ID required"),
+    action: z.enum(["accept", "reject", "snooze"]),
+    applyNow: z.boolean().optional(),
+  });
+
+  // Accept a proposal
+  app.post("/api/changes/:proposalId/accept", async (req, res) => {
+    try {
+      const { proposalId } = req.params;
+      const parseResult = acceptProposalSchema.safeParse(req.body || {});
+      if (!parseResult.success) {
+        return res.status(400).json({ error: "Invalid request", details: parseResult.error.issues });
+      }
+      const { applyNow, confirmationFlags } = parseResult.data;
+      
+      const proposal = await storage.getChangeProposalById(proposalId);
+      if (!proposal) {
+        return res.status(404).json({ error: "Proposal not found" });
+      }
+      
+      if (proposal.status !== 'open' && proposal.status !== 'in_review') {
+        return res.status(400).json({ error: `Cannot accept proposal in status: ${proposal.status}` });
+      }
+      
+      // Check risk level gating
+      if (proposal.riskLevel === 'high' || proposal.riskLevel === 'critical') {
+        if (!confirmationFlags?.understood) {
+          return res.status(400).json({ 
+            error: "High/critical risk proposals require confirmation",
+            requiresConfirmation: true,
+          });
+        }
+      }
+      
+      const { ProposalStatuses, ProposalActionTypes } = await import("@shared/schema");
+      
+      await storage.updateChangeProposal(proposalId, {
+        status: ProposalStatuses.ACCEPTED,
+      });
+      
+      await storage.createChangeProposalAction({
+        actionId: `act_${Date.now()}_accepted`,
+        proposalId,
+        action: ProposalActionTypes.ACCEPTED,
+        actor: 'user',
+        metadata: { applyNow, confirmationFlags },
+      });
+      
+      // If applyNow, immediately start applying
+      if (applyNow) {
+        const { applyProposal } = await import("./applyHandlers");
+        
+        await storage.updateChangeProposal(proposalId, {
+          status: ProposalStatuses.APPLYING,
+        });
+        
+        await storage.createChangeProposalAction({
+          actionId: `act_${Date.now()}_apply_started`,
+          proposalId,
+          action: ProposalActionTypes.APPLY_STARTED,
+          actor: 'system',
+        });
+        
+        // Apply async
+        applyProposal(proposalId).catch(err => {
+          logger.error("API", "Apply proposal failed", { proposalId, error: err.message });
+        });
+      }
+      
+      res.json({ 
+        success: true, 
+        proposalId, 
+        status: applyNow ? 'applying' : 'accepted',
+        message: applyNow ? "Proposal accepted and being applied" : "Proposal accepted",
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to accept proposal", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Reject a proposal
+  app.post("/api/changes/:proposalId/reject", async (req, res) => {
+    try {
+      const { proposalId } = req.params;
+      const parseResult = rejectProposalSchema.safeParse(req.body || {});
+      if (!parseResult.success) {
+        return res.status(400).json({ error: "Invalid request", details: parseResult.error.issues });
+      }
+      const { reason } = parseResult.data;
+      
+      const proposal = await storage.getChangeProposalById(proposalId);
+      if (!proposal) {
+        return res.status(404).json({ error: "Proposal not found" });
+      }
+      
+      if (proposal.status !== 'open' && proposal.status !== 'in_review' && proposal.status !== 'accepted') {
+        return res.status(400).json({ error: `Cannot reject proposal in status: ${proposal.status}` });
+      }
+      
+      const { ProposalStatuses, ProposalActionTypes } = await import("@shared/schema");
+      
+      await storage.updateChangeProposal(proposalId, {
+        status: ProposalStatuses.REJECTED,
+      });
+      
+      await storage.createChangeProposalAction({
+        actionId: `act_${Date.now()}_rejected`,
+        proposalId,
+        action: ProposalActionTypes.REJECTED,
+        actor: 'user',
+        reason,
+      });
+      
+      res.json({ success: true, proposalId, status: 'rejected' });
+    } catch (error: any) {
+      logger.error("API", "Failed to reject proposal", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Snooze a proposal
+  app.post("/api/changes/:proposalId/snooze", async (req, res) => {
+    try {
+      const { proposalId } = req.params;
+      const parseResult = snoozeProposalSchema.safeParse(req.body || {});
+      if (!parseResult.success) {
+        return res.status(400).json({ error: "Invalid request", details: parseResult.error.issues });
+      }
+      const { until } = parseResult.data;
+      
+      const proposal = await storage.getChangeProposalById(proposalId);
+      if (!proposal) {
+        return res.status(404).json({ error: "Proposal not found" });
+      }
+      
+      if (proposal.status !== 'open' && proposal.status !== 'in_review') {
+        return res.status(400).json({ error: `Cannot snooze proposal in status: ${proposal.status}` });
+      }
+      
+      const { ProposalStatuses, ProposalActionTypes } = await import("@shared/schema");
+      
+      await storage.updateChangeProposal(proposalId, {
+        status: ProposalStatuses.SNOOZED,
+        snoozedUntil: new Date(until),
+      });
+      
+      await storage.createChangeProposalAction({
+        actionId: `act_${Date.now()}_snoozed`,
+        proposalId,
+        action: ProposalActionTypes.SNOOZED,
+        actor: 'user',
+        metadata: { snoozedUntil: until },
+      });
+      
+      res.json({ success: true, proposalId, status: 'snoozed', snoozedUntil: until });
+    } catch (error: any) {
+      logger.error("API", "Failed to snooze proposal", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Apply a proposal (separate from accept)
+  app.post("/api/changes/:proposalId/apply", async (req, res) => {
+    try {
+      const { proposalId } = req.params;
+      const parseResult = applyProposalSchema.safeParse(req.body || {});
+      if (!parseResult.success) {
+        return res.status(400).json({ error: "Invalid request", details: parseResult.error.issues });
+      }
+      const { confirmationFlags } = parseResult.data;
+      
+      const proposal = await storage.getChangeProposalById(proposalId);
+      if (!proposal) {
+        return res.status(404).json({ error: "Proposal not found" });
+      }
+      
+      if (proposal.status !== 'accepted') {
+        return res.status(400).json({ error: "Proposal must be accepted before applying" });
+      }
+      
+      // Check risk level gating
+      if (proposal.riskLevel === 'high' || proposal.riskLevel === 'critical') {
+        if (!confirmationFlags?.understood) {
+          return res.status(400).json({ 
+            error: "High/critical risk proposals require confirmation",
+            requiresConfirmation: true,
+          });
+        }
+      }
+      
+      const { ProposalStatuses, ProposalActionTypes } = await import("@shared/schema");
+      const { applyProposal } = await import("./applyHandlers");
+      
+      await storage.updateChangeProposal(proposalId, {
+        status: ProposalStatuses.APPLYING,
+      });
+      
+      await storage.createChangeProposalAction({
+        actionId: `act_${Date.now()}_apply_started`,
+        proposalId,
+        action: ProposalActionTypes.APPLY_STARTED,
+        actor: 'user',
+        metadata: { confirmationFlags },
+      });
+      
+      // Apply async
+      applyProposal(proposalId).catch(err => {
+        logger.error("API", "Apply proposal failed", { proposalId, error: err.message });
+      });
+      
+      res.json({ 
+        success: true, 
+        proposalId, 
+        status: 'applying',
+        message: "Apply started",
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to apply proposal", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Bulk action on proposals
+  app.post("/api/changes/bulk", async (req, res) => {
+    try {
+      const parseResult = bulkActionSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ error: "Invalid request", details: parseResult.error.issues });
+      }
+      const { ids, action, applyNow } = parseResult.data;
+      
+      const { ProposalStatuses, ProposalActionTypes } = await import("@shared/schema");
+      const results: { proposalId: string; success: boolean; error?: string }[] = [];
+      
+      for (const proposalId of ids) {
+        try {
+          const proposal = await storage.getChangeProposalById(proposalId);
+          if (!proposal) {
+            results.push({ proposalId, success: false, error: "Not found" });
+            continue;
+          }
+          
+          if (proposal.status !== 'open' && proposal.status !== 'in_review') {
+            results.push({ proposalId, success: false, error: `Invalid status: ${proposal.status}` });
+            continue;
+          }
+          
+          // Skip high/critical risk for bulk accept
+          if (action === 'accept' && (proposal.riskLevel === 'high' || proposal.riskLevel === 'critical')) {
+            results.push({ proposalId, success: false, error: "High/critical risk requires individual approval" });
+            continue;
+          }
+          
+          let newStatus: string;
+          let actionType: string;
+          
+          switch (action) {
+            case 'accept':
+              newStatus = ProposalStatuses.ACCEPTED;
+              actionType = ProposalActionTypes.ACCEPTED;
+              break;
+            case 'reject':
+              newStatus = ProposalStatuses.REJECTED;
+              actionType = ProposalActionTypes.REJECTED;
+              break;
+            case 'snooze':
+              newStatus = ProposalStatuses.SNOOZED;
+              actionType = ProposalActionTypes.SNOOZED;
+              break;
+            default:
+              continue;
+          }
+          
+          await storage.updateChangeProposal(proposalId, { status: newStatus });
+          await storage.createChangeProposalAction({
+            actionId: `act_${Date.now()}_${action}_bulk`,
+            proposalId,
+            action: actionType,
+            actor: 'user',
+            metadata: { bulk: true },
+          });
+          
+          results.push({ proposalId, success: true });
+        } catch (err: any) {
+          results.push({ proposalId, success: false, error: err.message });
+        }
+      }
+      
+      const successCount = results.filter(r => r.success).length;
+      const failCount = results.filter(r => !r.success).length;
+      
+      res.json({ 
+        success: true, 
+        action,
+        total: ids.length,
+        successCount,
+        failCount,
+        results,
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed bulk action on proposals", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get open proposals count (for nav badge)
+  app.get("/api/changes/count", async (req, res) => {
+    try {
+      const count = await storage.getOpenProposalsCount();
+      res.json({ count });
+    } catch (error: any) {
+      logger.error("API", "Failed to get proposals count", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }

@@ -33,6 +33,8 @@ import {
   runContexts,
   contentDrafts,
   serviceEvents,
+  changeProposals,
+  changeProposalActions,
   type OAuthToken,
   type InsertOAuthToken,
   type GA4Daily,
@@ -100,6 +102,10 @@ import {
   type InsertContentDraft,
   type ServiceEvent,
   type InsertServiceEvent,
+  type ChangeProposal,
+  type InsertChangeProposal,
+  type ChangeProposalAction,
+  type InsertChangeProposalAction,
 } from "@shared/schema";
 import { eq, desc, and, gte, sql, asc, or, isNull } from "drizzle-orm";
 
@@ -1365,6 +1371,129 @@ class DBStorage implements IStorage {
       }
     }
     return latestByService;
+  }
+
+  // =============================================================================
+  // CHANGE PROPOSALS STORAGE
+  // =============================================================================
+
+  async createChangeProposal(proposal: InsertChangeProposal): Promise<ChangeProposal> {
+    const [created] = await db.insert(changeProposals).values(proposal).returning();
+    return created;
+  }
+
+  async updateChangeProposal(proposalId: string, updates: Partial<InsertChangeProposal>): Promise<ChangeProposal | undefined> {
+    const [updated] = await db
+      .update(changeProposals)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(changeProposals.proposalId, proposalId))
+      .returning();
+    return updated;
+  }
+
+  async getChangeProposalById(proposalId: string): Promise<ChangeProposal | undefined> {
+    const [proposal] = await db
+      .select()
+      .from(changeProposals)
+      .where(eq(changeProposals.proposalId, proposalId))
+      .limit(1);
+    return proposal;
+  }
+
+  async getChangeProposalByFingerprint(fingerprint: string): Promise<ChangeProposal | undefined> {
+    const [proposal] = await db
+      .select()
+      .from(changeProposals)
+      .where(and(
+        eq(changeProposals.fingerprint, fingerprint),
+        eq(changeProposals.status, 'open')
+      ))
+      .limit(1);
+    return proposal;
+  }
+
+  async listChangeProposals(filters: {
+    websiteId?: string;
+    serviceKey?: string;
+    status?: string | string[];
+    riskLevel?: string | string[];
+    type?: string | string[];
+    limit?: number;
+    offset?: number;
+  } = {}): Promise<{ proposals: ChangeProposal[]; total: number }> {
+    const conditions = [];
+    
+    if (filters.websiteId) {
+      conditions.push(eq(changeProposals.websiteId, filters.websiteId));
+    }
+    if (filters.serviceKey) {
+      conditions.push(eq(changeProposals.serviceKey, filters.serviceKey));
+    }
+    if (filters.status) {
+      const statuses = Array.isArray(filters.status) ? filters.status : [filters.status];
+      conditions.push(or(...statuses.map(s => eq(changeProposals.status, s))));
+    }
+    if (filters.riskLevel) {
+      const levels = Array.isArray(filters.riskLevel) ? filters.riskLevel : [filters.riskLevel];
+      conditions.push(or(...levels.map(l => eq(changeProposals.riskLevel, l))));
+    }
+    if (filters.type) {
+      const types = Array.isArray(filters.type) ? filters.type : [filters.type];
+      conditions.push(or(...types.map(t => eq(changeProposals.type, t))));
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const [countResult] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(changeProposals)
+      .where(whereClause);
+
+    const proposals = await db
+      .select()
+      .from(changeProposals)
+      .where(whereClause)
+      .orderBy(desc(changeProposals.createdAt))
+      .limit(filters.limit || 50)
+      .offset(filters.offset || 0);
+
+    return { proposals, total: Number(countResult?.count || 0) };
+  }
+
+  async getOpenProposalsCount(): Promise<number> {
+    const [result] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(changeProposals)
+      .where(eq(changeProposals.status, 'open'));
+    return Number(result?.count || 0);
+  }
+
+  async supersedePreviousProposals(fingerprint: string, newProposalId: string): Promise<void> {
+    await db
+      .update(changeProposals)
+      .set({ 
+        status: 'superseded', 
+        supersededBy: newProposalId,
+        updatedAt: new Date() 
+      })
+      .where(and(
+        eq(changeProposals.fingerprint, fingerprint),
+        eq(changeProposals.status, 'open')
+      ));
+  }
+
+  // Change Proposal Actions (audit trail)
+  async createChangeProposalAction(action: InsertChangeProposalAction): Promise<ChangeProposalAction> {
+    const [created] = await db.insert(changeProposalActions).values(action).returning();
+    return created;
+  }
+
+  async getChangeProposalActions(proposalId: string): Promise<ChangeProposalAction[]> {
+    return db
+      .select()
+      .from(changeProposalActions)
+      .where(eq(changeProposalActions.proposalId, proposalId))
+      .orderBy(asc(changeProposalActions.createdAt));
   }
 }
 
