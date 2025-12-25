@@ -3017,7 +3017,7 @@ When answering:
               await runner.passStage('auth_ready', 'API key present in worker config', {
                 authMode: 'api_key',
                 keyPresent: true,
-                auth_header_used: 'x-api-key + Authorization',
+                auth_headers_sent: ['x-api-key', 'authorization'],
                 hermes_key_fingerprint: workerConfig.api_key_fingerprint,
               });
               
@@ -3066,9 +3066,8 @@ When answering:
               
               await runner.passStage('request_sent', `Health endpoint responded (${healthStatus})`, {
                 url: healthUrl,
-                statusCode: healthStatus,
-                contentType: healthContentType,
-                responseSnippet: healthBody.slice(0, 200),
+                status: healthStatus,
+                'content-type': healthContentType,
               });
               
               // Stage 5: Response Type Validated
@@ -3089,6 +3088,9 @@ When answering:
                   statusCode: healthStatus,
                   contentType: healthContentType,
                   responseSnippet: healthBody.slice(0, 200),
+                  failure_bucket: 'auth_failed',
+                  suggested_fix: 'Worker rejected the key or expects a different header. Compare fingerprints.',
+                  hermes_key_fingerprint: workerConfig.api_key_fingerprint,
                 });
                 return;
               }

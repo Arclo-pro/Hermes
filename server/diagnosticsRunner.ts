@@ -31,6 +31,9 @@ export function classifyFailure(details?: Record<string, unknown>): FailureClass
   if (explicitBucket === 'api_key_mismatch') {
     return { bucket: 'api_key_mismatch', suggestedFix: FailureBucketSuggestions.api_key_mismatch };
   }
+  if (explicitBucket === 'auth_failed') {
+    return { bucket: 'auth_failed', suggestedFix: FailureBucketSuggestions.auth_failed };
+  }
 
   const statusCode = details.statusCode as number | undefined 
     ?? details.status as number | undefined
