@@ -1,0 +1,141 @@
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { useQuery } from "@tanstack/react-query";
+import { BookOpen, Lightbulb, Clock, ArrowRight, RefreshCw, ExternalLink } from "lucide-react";
+import { Link } from "wouter";
+import { formatDistanceToNow } from "date-fns";
+
+interface Finding {
+  findingId: string;
+  title: string;
+  description?: string;
+  severity: string;
+  category: string;
+  sourceIntegration?: string;
+  runId?: string;
+  createdAt: string;
+}
+
+interface FindingsSummary {
+  total: number;
+  kbaseCount: number;
+  latestFindings: Finding[];
+  lastKbaseRunAt?: string;
+  lastKbaseRunId?: string;
+}
+
+const severityColors: Record<string, string> = {
+  critical: "bg-red-100 text-red-800",
+  high: "bg-orange-100 text-orange-800",
+  medium: "bg-yellow-100 text-yellow-800",
+  low: "bg-blue-100 text-blue-800",
+  info: "bg-gray-100 text-gray-800",
+};
+
+export function KnowledgeBaseCard() {
+  const { data: summary, isLoading, refetch } = useQuery<FindingsSummary>({
+    queryKey: ["findingsSummary"],
+    queryFn: async () => {
+      const res = await fetch("/api/findings/summary");
+      return res.json();
+    },
+    refetchInterval: 60000,
+  });
+
+  const kbaseFindings = summary?.latestFindings?.filter(f => f.sourceIntegration === 'seo_kbase') || [];
+  const hasFindings = kbaseFindings.length > 0;
+  const lastRunTime = summary?.lastKbaseRunAt ? formatDistanceToNow(new Date(summary.lastKbaseRunAt), { addSuffix: true }) : null;
+
+  return (
+    <Card data-testid="card-knowledge-base">
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-lg font-semibold flex items-center gap-2">
+          <BookOpen className="w-5 h-5 text-indigo-600" />
+          Knowledge Base Insights
+        </CardTitle>
+        <Button variant="ghost" size="sm" onClick={() => refetch()} data-testid="button-refresh-kbase">
+          <RefreshCw className="w-4 h-4" />
+        </Button>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-6 text-muted-foreground">
+            <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+            Loading insights...
+          </div>
+        ) : !hasFindings ? (
+          <div className="text-center py-6">
+            <Lightbulb className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
+            <p className="text-muted-foreground text-sm">
+              No Knowledge Base insights yet.
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Run the SEO KBase integration to get recommendations.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Lightbulb className="w-4 h-4" />
+                <span>{summary?.kbaseCount || 0} insights available</span>
+              </div>
+              {lastRunTime && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Clock className="w-3 h-3" />
+                  <span>Updated {lastRunTime}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              {kbaseFindings.slice(0, 3).map((finding) => (
+                <div
+                  key={finding.findingId}
+                  className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                  data-testid={`finding-${finding.findingId}`}
+                >
+                  <Badge className={severityColors[finding.severity] || severityColors.info}>
+                    {finding.severity}
+                  </Badge>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{finding.title}</p>
+                    {finding.description && (
+                      <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                        {finding.description}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {summary?.kbaseCount && summary.kbaseCount > 3 && (
+              <div className="text-center text-xs text-muted-foreground">
+                +{summary.kbaseCount - 3} more insights
+              </div>
+            )}
+
+            <div className="flex justify-between items-center pt-2 border-t">
+              <Link href="/analysis" data-testid="link-view-all-insights">
+                <Button variant="ghost" size="sm" className="gap-1">
+                  View All Insights
+                  <ArrowRight className="w-3 h-3" />
+                </Button>
+              </Link>
+              {summary?.lastKbaseRunId && (
+                <Link href={`/diagnostics?runId=${summary.lastKbaseRunId}`}>
+                  <Button variant="outline" size="sm" className="gap-1 text-xs">
+                    <ExternalLink className="w-3 h-3" />
+                    Run Details
+                  </Button>
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

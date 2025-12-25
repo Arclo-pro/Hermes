@@ -4,6 +4,7 @@ import { PillarCard, PillarStatus, TrendDirection } from "@/components/dashboard
 import { TicketList } from "@/components/dashboard/TicketList";
 import { AskAI } from "@/components/dashboard/AskAI";
 import { BenchmarkComparison } from "@/components/dashboard/BenchmarkComparison";
+import { KnowledgeBaseCard } from "@/components/dashboard/KnowledgeBaseCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Play, Download, AlertCircle, Activity, Shield, Search, ExternalLink } from "lucide-react";
@@ -495,8 +496,9 @@ export default function Dashboard() {
           </div>
         </section>
 
-        <section>
+        <section className="grid lg:grid-cols-2 gap-4">
           <BenchmarkComparison />
+          <KnowledgeBaseCard />
         </section>
 
         <section>

@@ -1,6 +1,7 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { KbaseInsightsSection } from "@/components/analysis/KbaseInsightsSection";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -697,6 +698,9 @@ export default function Analysis() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Knowledge Base Insights */}
+            <KbaseInsightsSection />
 
             {/* Full Report (Collapsed) */}
             <Card>
