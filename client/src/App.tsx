@@ -15,6 +15,7 @@ import Sites from "@/pages/Sites";
 import SiteDetail from "@/pages/SiteDetail";
 import Integrations from "@/pages/Integrations";
 import SuggestedChanges from "@/pages/SuggestedChanges";
+import Authority from "@/pages/Authority";
 
 function Router() {
   return (
@@ -26,6 +27,7 @@ function Router() {
       <Route path="/tickets" component={Tickets} />
       <Route path="/analysis" component={Analysis} />
       <Route path="/serp" component={SERP} />
+      <Route path="/authority" component={Authority} />
       <Route path="/integrations" component={Integrations} />
       <Route path="/changes" component={SuggestedChanges} />
       <Route path="/settings" component={Settings} />
