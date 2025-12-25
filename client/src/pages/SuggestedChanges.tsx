@@ -125,10 +125,13 @@ export default function SuggestedChanges() {
   const [confirmUnderstood, setConfirmUnderstood] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("proposals");
 
-  const { data: kbaseData } = useQuery({
+  const { data: kbaseData, isLoading: kbaseLoading, isError: kbaseError, refetch: refetchKbase } = useQuery({
     queryKey: ["kbaseFindings", "open"],
     queryFn: async () => {
       const res = await fetch("/api/findings/kbase?status=open&limit=50");
+      if (!res.ok) {
+        throw new Error(`Failed to fetch KBASE findings: ${res.status}`);
+      }
       return res.json();
     },
   });
@@ -143,14 +146,19 @@ export default function SuggestedChanges() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
       });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `Failed to update: ${res.status}`);
+      }
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["kbaseFindings"] });
+      queryClient.invalidateQueries({ queryKey: ["findingsSummary"] });
       toast.success("Finding status updated");
     },
-    onError: () => {
-      toast.error("Failed to update finding");
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to update finding");
     },
   });
 
@@ -505,7 +513,24 @@ export default function SuggestedChanges() {
           </TabsContent>
 
           <TabsContent value="kbase">
-            {kbaseFindings.length === 0 ? (
+            {kbaseLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : kbaseError ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <AlertCircle className="h-12 w-12 mx-auto text-red-500/40 mb-4" />
+                  <h3 className="text-lg font-medium text-red-600">Failed to load insights</h3>
+                  <p className="text-muted-foreground mt-2">
+                    Unable to fetch Knowledge Base data. Please try again.
+                  </p>
+                  <Button variant="outline" size="sm" onClick={() => refetchKbase()} className="mt-4">
+                    Try Again
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : kbaseFindings.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center">
                   <Lightbulb className="h-12 w-12 mx-auto text-muted-foreground/40 mb-4" />
@@ -566,11 +591,14 @@ export default function SuggestedChanges() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                           <Button 
                             size="sm" 
                             variant="outline"
-                            onClick={() => updateFindingStatusMutation.mutate({ findingId: finding.findingId, status: "accepted" })}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateFindingStatusMutation.mutate({ findingId: finding.findingId, status: "accepted" });
+                            }}
                             disabled={updateFindingStatusMutation.isPending}
                             data-testid={`button-accept-kbase-${finding.findingId}`}
                           >
@@ -579,7 +607,10 @@ export default function SuggestedChanges() {
                           <Button 
                             size="sm" 
                             variant="ghost"
-                            onClick={() => updateFindingStatusMutation.mutate({ findingId: finding.findingId, status: "ignored" })}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateFindingStatusMutation.mutate({ findingId: finding.findingId, status: "ignored" });
+                            }}
                             disabled={updateFindingStatusMutation.isPending}
                             data-testid={`button-ignore-kbase-${finding.findingId}`}
                           >

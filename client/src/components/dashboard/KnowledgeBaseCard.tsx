@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
-import { BookOpen, Lightbulb, Clock, ArrowRight, RefreshCw, ExternalLink } from "lucide-react";
+import { BookOpen, Lightbulb, Clock, ArrowRight, RefreshCw, ExternalLink, AlertCircle } from "lucide-react";
 import { Link } from "wouter";
 import { formatDistanceToNow } from "date-fns";
 
@@ -34,10 +34,13 @@ const severityColors: Record<string, string> = {
 };
 
 export function KnowledgeBaseCard() {
-  const { data: summary, isLoading, refetch } = useQuery<FindingsSummary>({
+  const { data: summary, isLoading, isError, error, refetch } = useQuery<FindingsSummary>({
     queryKey: ["findingsSummary"],
     queryFn: async () => {
       const res = await fetch("/api/findings/summary");
+      if (!res.ok) {
+        throw new Error(`Failed to fetch findings summary: ${res.status}`);
+      }
       return res.json();
     },
     refetchInterval: 60000,
@@ -63,6 +66,16 @@ export function KnowledgeBaseCard() {
           <div className="flex items-center justify-center py-6 text-muted-foreground">
             <RefreshCw className="w-4 h-4 animate-spin mr-2" />
             Loading insights...
+          </div>
+        ) : isError ? (
+          <div className="text-center py-6">
+            <AlertCircle className="w-10 h-10 text-red-500/40 mx-auto mb-3" />
+            <p className="text-red-600 text-sm">
+              Failed to load insights
+            </p>
+            <Button variant="outline" size="sm" onClick={() => refetch()} className="mt-2">
+              Try Again
+            </Button>
           </div>
         ) : !hasFindings ? (
           <div className="text-center py-6">

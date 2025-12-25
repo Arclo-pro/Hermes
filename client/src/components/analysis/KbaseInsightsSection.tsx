@@ -55,10 +55,17 @@ export function KbaseInsightsSection() {
   const [severityFilter, setSeverityFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("open");
 
-  const { data, isLoading, refetch } = useQuery<KbaseResponse>({
-    queryKey: ["kbaseFindings", severityFilter],
+  const { data, isLoading, isError, error, refetch } = useQuery<KbaseResponse>({
+    queryKey: ["kbaseFindings", severityFilter, statusFilter],
     queryFn: async () => {
-      const res = await fetch("/api/findings/kbase?limit=50");
+      const params = new URLSearchParams();
+      params.set("limit", "50");
+      if (statusFilter !== "all") params.set("status", statusFilter);
+      if (severityFilter !== "all") params.set("severity", severityFilter);
+      const res = await fetch(`/api/findings/kbase?${params.toString()}`);
+      if (!res.ok) {
+        throw new Error(`Failed to fetch findings: ${res.status}`);
+      }
       return res.json();
     },
   });
@@ -70,6 +77,10 @@ export function KbaseInsightsSection() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
       });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `Failed to update: ${res.status}`);
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -77,8 +88,8 @@ export function KbaseInsightsSection() {
       queryClient.invalidateQueries({ queryKey: ["findingsSummary"] });
       toast.success("Finding status updated");
     },
-    onError: () => {
-      toast.error("Failed to update status");
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to update status");
     },
   });
 
@@ -151,6 +162,16 @@ export function KbaseInsightsSection() {
           <div className="flex items-center justify-center py-8 text-muted-foreground">
             <RefreshCw className="w-4 h-4 animate-spin mr-2" />
             Loading insights...
+          </div>
+        ) : isError ? (
+          <div className="text-center py-8">
+            <Lightbulb className="w-10 h-10 text-red-500/40 mx-auto mb-3" />
+            <p className="text-red-600">
+              Failed to load insights: {error?.message || "Unknown error"}
+            </p>
+            <Button variant="outline" size="sm" onClick={() => refetch()} className="mt-2">
+              Try Again
+            </Button>
           </div>
         ) : filteredFindings.length === 0 ? (
           <div className="text-center py-8">
