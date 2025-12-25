@@ -4174,24 +4174,15 @@ When answering:
             break;
           }
           case "seo_kbase": {
-            // SEO KBASE - fetch config from Bitwarden, uses TRAFFIC_DOCTOR_API_KEY
+            // SEO KBASE - fetch config from Bitwarden SEO_KBASE secret (base_url + api_key)
             const { bitwardenProvider: kbaseProvider } = await import("./vault/BitwardenProvider");
             const kbaseSecret = await kbaseProvider.getSecret("SEO_KBASE");
-            const kbaseApiKey = process.env.TRAFFIC_DOCTOR_API_KEY;
-            
-            // Helper to join URL paths without double slashes or extra /api
-            const joinUrl = (base: string, path: string) => {
-              const cleanBase = base.replace(/\/+$/, ''); // Remove trailing slashes
-              const cleanPath = path.replace(/^\/+/, ''); // Remove leading slashes
-              return `${cleanBase}/${cleanPath}`;
-            };
             
             const debug: any = { 
               secretFound: !!kbaseSecret, 
-              apiKeyFound: !!kbaseApiKey,
               requestedUrls: [], 
               responses: [],
-              expectedKeyFingerprint: "975aa7e6",
+              expectedKeyFingerprint: "e308d8c8",
             };
             const expectedOutputs = ["kbase_articles", "kbase_gaps", "kbase_recommendations", "kbase_summary"];
             
@@ -4202,6 +4193,7 @@ When answering:
               try {
                 workerConfig = JSON.parse(kbaseSecret);
                 debug.baseUrl = workerConfig?.base_url;
+                debug.apiKeyFound = !!workerConfig?.api_key;
               } catch (e: any) {
                 parseError = e.message || "Invalid JSON";
                 debug.parseError = parseError;
@@ -4229,18 +4221,18 @@ When answering:
                 metrics: { secret_found: true, base_url_present: false },
                 details: { debug, actualOutputs: [], missingOutputs: expectedOutputs },
               };
-            } else if (!kbaseApiKey) {
+            } else if (!workerConfig?.api_key) {
               checkResult = {
                 status: "fail",
-                summary: "TRAFFIC_DOCTOR_API_KEY not configured",
+                summary: "SEO_KBASE secret missing api_key field",
                 metrics: { secret_found: true, api_key_found: false },
                 details: { debug, actualOutputs: [], missingOutputs: expectedOutputs },
               };
             } else {
               // base_url from Bitwarden already includes /api, just append endpoint paths
               const baseUrl = workerConfig.base_url.replace(/\/+$/, '');
+              const kbaseApiKey = workerConfig.api_key;
               const headers: Record<string, string> = {
-                "Authorization": `Bearer ${kbaseApiKey}`,
                 "X-API-Key": kbaseApiKey,
               };
               
