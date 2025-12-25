@@ -84,6 +84,34 @@ The system has modular connectors for each data source:
 - Categories: Tracking, Server Errors, Missing Pages, Indexing, Canonicalization, Paid Traffic
 - Creates actionable tickets assigned to SEO/Dev/Ads teams
 
+### Gold Standard Worker Blueprint
+All microservice workers must follow the Gold Standard Worker Blueprint (see `docs/worker-blueprint.md`):
+
+**Required Endpoints:**
+- `GET /health` - Health check with service metadata
+- `GET /smoke-test` - Minimal end-to-end validation
+- `GET /capabilities` - Declare supported outputs and inputs
+- `POST /run` - Execute a job with payload
+
+**Standard Response Shape:**
+```json
+{
+  "ok": true,
+  "service": "<service_slug>",
+  "version": "<semver>",
+  "schema_version": "2025-12-25",
+  "request_id": "<correlation_id>",
+  "data": { ... }
+}
+```
+
+**Key Rules:**
+- All `/api/*` routes return JSON only (never HTML)
+- Auth via `x-api-key` header
+- Hermes sends `X-Request-Id` for correlation
+- Bitwarden secrets: `{ "base_url": "https://..../api", "api_key": "..." }`
+- Workers echo `request_id` in responses
+
 ### Authentication
 - Google OAuth 2.0 for API access
 - Tokens stored in database with refresh capability

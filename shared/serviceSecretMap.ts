@@ -54,7 +54,13 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
     bitwardenSecret: "SEO_Notifications",
     type: "worker",
     requiresBaseUrl: true,
-    category: "infrastructure"
+    category: "infrastructure",
+    workerEndpoints: {
+      health: "/health",
+      smokeTest: "/smoke-test",
+      capabilities: "/capabilities",
+      run: "/run"
+    }
   },
 
   // Google Connectors (worker-based - calls external worker with api_key)
@@ -67,7 +73,9 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
     category: "google",
     workerEndpoints: {
       health: "/health",
-      smokeTest: "/smoke-test"
+      smokeTest: "/smoke-test",
+      capabilities: "/capabilities",
+      run: "/run"
     }
   },
 
@@ -81,7 +89,11 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
     category: "analysis",
     fallbackEnvVar: "SERP_API_KEY",  // Legacy SerpAPI fallback
     workerEndpoints: {
-      scanMetadata: "/api/serp/scan-metadata",  // Returns: keywords_tracked, keywords_in_top10, scan_duration_ms
+      health: "/health",
+      smokeTest: "/smoke-test",
+      capabilities: "/capabilities",
+      run: "/run",
+      scanMetadata: "/api/serp/scan-metadata",
       topKeywords: "/api/serp/top-keywords",
       keywords: "/api/serp/keywords",
       snapshot: "/api/serp/snapshot",
@@ -97,6 +109,9 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
     category: "analysis",
     workerEndpoints: {
       health: "/health",
+      smokeTest: "/smoke-test",
+      capabilities: "/capabilities",
+      run: "/run",
       crawl: "/api/crawl",
       status: "/api/crawl/status",
       results: "/api/crawl/results"
@@ -111,6 +126,9 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
     category: "analysis",
     workerEndpoints: {
       health: "/health",
+      smokeTest: "/smoke-test",
+      capabilities: "/capabilities",
+      run: "/run",
       vitals: "/api/vitals",
       status: "/api/vitals/status"
     }
@@ -121,7 +139,13 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
     bitwardenSecret: "SEO_Backlinks",
     type: "worker",
     requiresBaseUrl: true,
-    category: "analysis"
+    category: "analysis",
+    workerEndpoints: {
+      health: "/health",
+      smokeTest: "/smoke-test",
+      capabilities: "/capabilities",
+      run: "/run"
+    }
   },
   {
     serviceSlug: "competitive_snapshot",  // Matches catalog
@@ -129,7 +153,13 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
     bitwardenSecret: "SEO_Competitive_Intel",
     type: "worker",
     requiresBaseUrl: true,
-    category: "analysis"
+    category: "analysis",
+    workerEndpoints: {
+      health: "/health",
+      smokeTest: "/smoke-test",
+      capabilities: "/capabilities",
+      run: "/run"
+    }
   },
 
   // Content Workers
@@ -139,7 +169,13 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
     bitwardenSecret: "SEO_Content_GENERATOR",
     type: "worker",
     requiresBaseUrl: true,
-    category: "content"
+    category: "content",
+    workerEndpoints: {
+      health: "/health",
+      smokeTest: "/smoke-test",
+      capabilities: "/capabilities",
+      run: "/run"
+    }
   },
   {
     serviceSlug: "content_decay",  // Matches catalog
@@ -147,7 +183,13 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
     bitwardenSecret: "SEO_CONTENT_DECAY_MONITOR_API_KEY",
     type: "worker",
     requiresBaseUrl: true,
-    category: "content"
+    category: "content",
+    workerEndpoints: {
+      health: "/health",
+      smokeTest: "/smoke-test",
+      capabilities: "/capabilities",
+      run: "/run"
+    }
   },
   {
     serviceSlug: "content_qa",  // Matches catalog
@@ -155,7 +197,13 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
     bitwardenSecret: "SEO_Content_Validator",
     type: "worker",
     requiresBaseUrl: true,
-    category: "content"
+    category: "content",
+    workerEndpoints: {
+      health: "/health",
+      smokeTest: "/smoke-test",
+      capabilities: "/capabilities",
+      run: "/run"
+    }
   },
   {
     serviceSlug: "seo_kbase",  // Matches catalog
@@ -163,7 +211,13 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
     bitwardenSecret: "SEO_KBASE",
     type: "worker",
     requiresBaseUrl: true,
-    category: "analysis"
+    category: "analysis",
+    workerEndpoints: {
+      health: "/health",
+      smokeTest: "/smoke-test",
+      capabilities: "/capabilities",
+      run: "/run"
+    }
   },
 
   // Planned / Not Built Yet

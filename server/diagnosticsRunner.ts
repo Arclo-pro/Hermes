@@ -116,15 +116,21 @@ export interface ServiceDiagnosticConfig {
   authMode: 'oauth' | 'api_key' | 'none';
   expectedResponseType: 'json' | 'html' | 'text';
   requiredOutputFields: string[];
+  requestId?: string;
 }
 
 export interface DiagnosticContext {
   runId: string;
+  requestId: string;
   config: ServiceDiagnosticConfig;
   stages: DiagnosticStageResult[];
   currentStageIndex: number;
   startedAt: Date;
   configSnapshot: Record<string, unknown>;
+}
+
+function generateRequestId(): string {
+  return `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function generateDiagnosticRunId(): string {
@@ -152,6 +158,7 @@ export class DiagnosticsRunner {
 
   async start(config: ServiceDiagnosticConfig): Promise<string> {
     const runId = generateDiagnosticRunId();
+    const requestId = config.requestId || generateRequestId();
     const stages: DiagnosticStageResult[] = DiagnosticStageOrder.map(stage => ({
       stage,
       status: 'pending' as const,
@@ -160,6 +167,7 @@ export class DiagnosticsRunner {
 
     this.context = {
       runId,
+      requestId,
       config,
       stages,
       currentStageIndex: -1,
@@ -301,6 +309,24 @@ export class DiagnosticsRunner {
 
   getRunId(): string | null {
     return this.context?.runId || null;
+  }
+
+  getRequestId(): string | null {
+    return this.context?.requestId || null;
+  }
+
+  getWorkerHeaders(apiKey?: string): Record<string, string> {
+    const headers: Record<string, string> = {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    };
+    if (this.context?.requestId) {
+      headers['X-Request-Id'] = this.context.requestId;
+    }
+    if (apiKey) {
+      headers['x-api-key'] = apiKey;
+    }
+    return headers;
   }
 
   getStages(): DiagnosticStageResult[] {

@@ -4,13 +4,26 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import { startScheduler } from "./scheduler";
 import { initializeDatabase } from "./db";
+import crypto from "crypto";
 
 const app = express();
 const httpServer = createServer(app);
 
+const SERVICE_NAME = "hermes";
+const VERSION = "1.0.0";
+const SCHEMA_VERSION = "2025-12-25";
+
 declare module "http" {
   interface IncomingMessage {
     rawBody: unknown;
+  }
+}
+
+declare global {
+  namespace Express {
+    interface Request {
+      requestId: string;
+    }
   }
 }
 
@@ -23,6 +36,12 @@ app.use(
 );
 
 app.use(express.urlencoded({ extended: false }));
+
+app.use((req, res, next) => {
+  req.requestId = req.headers['x-request-id'] as string || `req_${crypto.randomUUID()}`;
+  res.setHeader('X-Request-Id', req.requestId);
+  next();
+});
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -65,12 +84,37 @@ app.use((req, res, next) => {
   await initializeDatabase();
   await registerRoutes(httpServer, app);
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
+    const errorCode = status === 401 ? "unauthorized" : 
+                      status === 403 ? "forbidden" :
+                      status === 404 ? "not_found" :
+                      status === 400 ? "invalid_input" :
+                      status === 429 ? "rate_limited" :
+                      status === 502 ? "upstream_error" :
+                      status === 504 ? "timeout" : "internal";
 
-    res.status(status).json({ message });
-    throw err;
+    if (req.path.startsWith("/api")) {
+      res.status(status).json({
+        ok: false,
+        service: SERVICE_NAME,
+        version: VERSION,
+        schema_version: SCHEMA_VERSION,
+        request_id: req.requestId || "unknown",
+        error: {
+          code: errorCode,
+          message,
+          details: process.env.NODE_ENV !== "production" ? { stack: err.stack } : {}
+        }
+      });
+    } else {
+      res.status(status).json({ message });
+    }
+    
+    if (status >= 500) {
+      console.error(`[${req.requestId}] Error:`, err);
+    }
   });
 
   // importantly only setup vite in development and after

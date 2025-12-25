@@ -136,6 +136,13 @@ export async function resolveWorkerConfig(
       };
     }
 
+    if (mapping.type === "worker" && normalized.base_url && !normalized.base_url.includes("/api")) {
+      logger.warn("WorkerConfig", `base_url for ${serviceSlug} should include /api suffix per Gold Standard`, {
+        base_url: normalized.base_url,
+        recommendation: `${normalized.base_url}/api`,
+      });
+    }
+
     // Only require base_url for workers that need it
     // api_key is optional - connection tests can run without it (unauthenticated health checks)
     if (mapping.requiresBaseUrl && !normalized.base_url) {

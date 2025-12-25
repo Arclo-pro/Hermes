@@ -3030,11 +3030,8 @@ When answering:
               });
               
               // Stage 4: Request Sent - Call /health endpoint
-              // Build headers based on mapping metadata (use x-api-key for this worker)
-              const headers: Record<string, string> = {
-                'Accept': 'application/json',
-                'x-api-key': workerConfig.api_key,
-              };
+              // Use Gold Standard headers from runner (includes X-Request-Id)
+              const headers = runner.getWorkerHeaders(workerConfig.api_key || undefined);
               // Some workers may also need bearer token
               if (serviceMapping?.requiresBearer) {
                 headers['Authorization'] = `Bearer ${workerConfig.api_key}`;
