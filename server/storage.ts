@@ -121,10 +121,12 @@ export interface IStorage {
   // GA4 Data
   saveGA4Data(data: InsertGA4Daily[]): Promise<void>;
   getGA4DataByDateRange(startDate: string, endDate: string): Promise<GA4Daily[]>;
+  upsertGA4Daily(data: InsertGA4Daily): Promise<void>;
   
   // GSC Data
   saveGSCData(data: InsertGSCDaily[]): Promise<void>;
   getGSCDataByDateRange(startDate: string, endDate: string): Promise<GSCDaily[]>;
+  upsertGSCDaily(data: InsertGSCDaily): Promise<void>;
   
   // Ads Data
   saveAdsData(data: InsertAdsDaily[]): Promise<void>;
@@ -368,6 +370,29 @@ class DBStorage implements IStorage {
       .orderBy(ga4Daily.date);
   }
 
+  async upsertGA4Daily(data: InsertGA4Daily): Promise<void> {
+    const existing = await db
+      .select()
+      .from(ga4Daily)
+      .where(eq(ga4Daily.date, data.date))
+      .limit(1);
+    
+    if (existing.length > 0) {
+      await db
+        .update(ga4Daily)
+        .set({
+          sessions: data.sessions,
+          users: data.users,
+          events: data.events,
+          conversions: data.conversions,
+          rawData: data.rawData,
+        })
+        .where(eq(ga4Daily.date, data.date));
+    } else {
+      await db.insert(ga4Daily).values(data);
+    }
+  }
+
   async saveGSCData(data: InsertGSCDaily[]): Promise<void> {
     if (data.length === 0) return;
     await db.insert(gscDaily).values(data);
@@ -379,6 +404,29 @@ class DBStorage implements IStorage {
       .from(gscDaily)
       .where(and(gte(gscDaily.date, startDate), sql`${gscDaily.date} <= ${endDate}`))
       .orderBy(gscDaily.date);
+  }
+
+  async upsertGSCDaily(data: InsertGSCDaily): Promise<void> {
+    const existing = await db
+      .select()
+      .from(gscDaily)
+      .where(eq(gscDaily.date, data.date))
+      .limit(1);
+    
+    if (existing.length > 0) {
+      await db
+        .update(gscDaily)
+        .set({
+          impressions: data.impressions,
+          clicks: data.clicks,
+          ctr: data.ctr,
+          position: data.position,
+          rawData: data.rawData,
+        })
+        .where(eq(gscDaily.date, data.date));
+    } else {
+      await db.insert(gscDaily).values(data);
+    }
   }
 
   async saveAdsData(data: InsertAdsDaily[]): Promise<void> {

@@ -4789,6 +4789,232 @@ When answering:
     }
   });
 
+  // Execute integration run - calls worker /run endpoint and persists real data
+  app.post("/api/sites/:siteId/integrations/:integrationId/run", async (req, res) => {
+    try {
+      const { siteId, integrationId } = req.params;
+      const { servicesCatalog } = await import("@shared/servicesCatalog");
+      const { SERVICE_SECRET_MAP } = await import("@shared/serviceSecretMap");
+      const { ServiceRunTypes } = await import("@shared/schema");
+      const { resolveWorkerConfig } = await import("./workerConfigResolver");
+      const { v4: uuidv4 } = await import("uuid");
+      
+      const startTime = Date.now();
+      const requestId = uuidv4();
+      
+      const site = await storage.getSiteById(siteId);
+      if (!site) {
+        return res.status(404).json({ error: "Site not found" });
+      }
+      
+      const catalogEntry = servicesCatalog.find((s: any) => s.slug === integrationId);
+      const mapping = SERVICE_SECRET_MAP.find(m => m.serviceSlug === integrationId);
+      
+      if (!catalogEntry) {
+        return res.status(404).json({ error: "Service not found in catalog" });
+      }
+      
+      const workerConfig = await resolveWorkerConfig(integrationId);
+      
+      if (!workerConfig.valid || !workerConfig.base_url) {
+        return res.status(400).json({
+          error: "Service not configured",
+          details: workerConfig.error || "Missing base_url in Bitwarden secret",
+        });
+      }
+      
+      const baseUrl = workerConfig.base_url.replace(/\/$/, '');
+      // Worker uses /smoke-test as its data endpoint (returns real data with all outputs)
+      const runUrl = `${baseUrl}/smoke-test`;
+      const domain = site.baseUrl?.replace(/^https?:\/\//, '') || site.displayName;
+      
+      const headers: Record<string, string> = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-Request-Id': requestId,
+      };
+      
+      if (workerConfig.api_key) {
+        headers['Authorization'] = `Bearer ${workerConfig.api_key}`;
+        headers['X-API-Key'] = workerConfig.api_key;
+      }
+      
+      logger.info("API", `Executing integration run for ${integrationId}`, { 
+        siteId, domain, runUrl, requestId 
+      });
+      
+      try {
+        const runRes = await fetch(runUrl, {
+          method: 'GET',
+          headers,
+          signal: AbortSignal.timeout(120000),
+        });
+        
+        if (!runRes.ok) {
+          const errorText = await runRes.text().catch(() => '');
+          throw new Error(`Worker returned ${runRes.status}: ${errorText.slice(0, 500)}`);
+        }
+        
+        const runData = await runRes.json();
+        const durationMs = Date.now() - startTime;
+        
+        // Validate outputs
+        const expectedOutputs = catalogEntry.outputs || [];
+        const checkOutputPresence = (data: any, key: string): boolean => {
+          if (!data) return false;
+          if (key in data) return true;
+          if (data.data && key in data.data) return true;
+          return false;
+        };
+        
+        const actualOutputs = expectedOutputs.filter(o => checkOutputPresence(runData, o));
+        const missingOutputs = expectedOutputs.filter(o => !actualOutputs.includes(o));
+        
+        const status = missingOutputs.length === 0 ? 'success' : 
+                       actualOutputs.length > 0 ? 'partial' : 'failed';
+        
+        const runId = `run_${Date.now()}_${integrationId}_${siteId}`;
+        
+        // Persist service run
+        await storage.createServiceRun({
+          runId,
+          runType: ServiceRunTypes.FULL,
+          serviceId: integrationId,
+          serviceName: mapping?.displayName || catalogEntry.displayName || integrationId,
+          siteId,
+          trigger: 'manual',
+          status,
+          startedAt: new Date(startTime),
+          finishedAt: new Date(),
+          durationMs,
+          summary: `Run: ${actualOutputs.length}/${expectedOutputs.length} outputs`,
+          outputsJson: {
+            expectedOutputs,
+            actualOutputs,
+            missingOutputs,
+            requestId,
+          },
+          metricsJson: runData.data || runData,
+        });
+        
+        // Normalize and persist data to analytics tables
+        const dataPayload = runData.data || runData;
+        const today = new Date().toISOString().split('T')[0];
+        
+        // Persist GA4 data if present
+        if (dataPayload.ga4_sessions !== undefined || dataPayload.ga4_users !== undefined) {
+          await storage.upsertGA4Daily({
+            date: today,
+            sessions: dataPayload.ga4_sessions || 0,
+            users: dataPayload.ga4_users || 0,
+            events: 0,
+            conversions: dataPayload.ga4_conversions || 0,
+            rawData: { source: 'worker', runId, requestId },
+          });
+        }
+        
+        // Persist GSC aggregate data if present
+        if (dataPayload.gsc_impressions !== undefined || dataPayload.gsc_clicks !== undefined) {
+          await storage.upsertGSCDaily({
+            date: today,
+            impressions: dataPayload.gsc_impressions || 0,
+            clicks: dataPayload.gsc_clicks || 0,
+            ctr: dataPayload.gsc_ctr || 0,
+            position: dataPayload.gsc_position || 0,
+            rawData: { source: 'worker', runId, requestId },
+          });
+        }
+        
+        // Update integration record
+        await storage.updateIntegration(integrationId, {
+          lastRunAt: new Date(),
+          lastRunSummary: `Run: ${actualOutputs.length}/${expectedOutputs.length} outputs`,
+          runState: status === 'success' ? 'last_run_success' : status === 'partial' ? 'last_run_success' : 'last_run_failed',
+          healthStatus: status === 'success' ? 'healthy' : status === 'partial' ? 'degraded' : 'error',
+          lastSuccessAt: status === 'success' ? new Date() : undefined,
+          lastRunMetrics: {
+            expectedOutputs,
+            actualOutputs,
+            missingOutputs,
+            durationMs,
+            runId,
+            requestId,
+            mode: 'worker',
+          },
+        });
+        
+        logger.info("API", `Integration run completed for ${integrationId}`, {
+          status, actualOutputs: actualOutputs.length, missingOutputs: missingOutputs.length, durationMs,
+        });
+        
+        res.json({
+          integrationId,
+          siteId,
+          status,
+          runId,
+          requestId,
+          expectedOutputs,
+          actualOutputs,
+          missingOutputs,
+          durationMs,
+          summary: `Got ${actualOutputs.length}/${expectedOutputs.length} expected outputs`,
+          dataKeys: Object.keys(dataPayload),
+        });
+        
+      } catch (err: any) {
+        const durationMs = Date.now() - startTime;
+        const runId = `run_${Date.now()}_${integrationId}_${siteId}`;
+        
+        await storage.createServiceRun({
+          runId,
+          runType: ServiceRunTypes.FULL,
+          serviceId: integrationId,
+          serviceName: mapping?.displayName || catalogEntry.displayName || integrationId,
+          siteId,
+          trigger: 'manual',
+          status: 'failed',
+          startedAt: new Date(startTime),
+          finishedAt: new Date(),
+          durationMs,
+          summary: `Run failed: ${err.message}`,
+          errorCode: 'RUN_ERROR',
+          errorDetail: err.message,
+          outputsJson: {
+            expectedOutputs: catalogEntry.outputs || [],
+            actualOutputs: [],
+            missingOutputs: catalogEntry.outputs || [],
+            requestId,
+          },
+        });
+        
+        await storage.updateIntegration(integrationId, {
+          lastRunAt: new Date(),
+          lastRunSummary: `Run failed: ${err.message}`,
+          runState: 'last_run_failed',
+          healthStatus: 'error',
+          lastErrorAt: new Date(),
+          lastError: err.message,
+        });
+        
+        logger.error("API", `Integration run failed for ${integrationId}`, { error: err.message });
+        
+        res.json({
+          integrationId,
+          siteId,
+          status: 'failed',
+          runId,
+          requestId,
+          durationMs,
+          error: err.message,
+        });
+      }
+      
+    } catch (error: any) {
+      logger.error("API", "Failed to execute integration run", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Run all inventory checks across all integrations
   app.post("/api/integrations/test-all", async (req, res) => {
     try {
