@@ -4223,129 +4223,156 @@ When answering:
                 headers["X-API-Key"] = workerConfig.api_key;
               }
               
-              const healthUrl = `${baseUrl}/health`;
-              debug.requestedUrls.push(healthUrl);
+              // Try API-prefixed paths first (for workers that serve a frontend)
+              // Then fallback to root paths
+              const healthPaths = [`${baseUrl}/api/health`, `${baseUrl}/health`];
+              const smokePaths = [`${baseUrl}/api/smoke-test`, `${baseUrl}/smoke-test`];
               
-              try {
-                const res = await fetch(healthUrl, { method: "GET", headers, signal: AbortSignal.timeout(10000) });
-                const bodyText = await res.text().catch(() => "");
-                debug.responses.push({ url: healthUrl, status: res.status, ok: res.ok, bodySnippet: bodyText.slice(0, 200) });
-                
-                if (res.ok) {
-                  // Health passed, now call smoke-test to validate outputs
-                  const smokeUrl = `${baseUrl}/smoke-test`;
-                  debug.requestedUrls.push(smokeUrl);
+              let healthOk = false;
+              let healthBody = "";
+              
+              for (const healthUrl of healthPaths) {
+                debug.requestedUrls.push(healthUrl);
+                try {
+                  const res = await fetch(healthUrl, { method: "GET", headers, signal: AbortSignal.timeout(10000) });
+                  const bodyText = await res.text().catch(() => "");
+                  debug.responses.push({ url: healthUrl, status: res.status, ok: res.ok, bodySnippet: bodyText.slice(0, 200) });
                   
+                  // Check if it's actually JSON (not HTML)
+                  if (res.ok && !bodyText.trim().startsWith('<!DOCTYPE') && !bodyText.trim().startsWith('<html')) {
+                    healthOk = true;
+                    healthBody = bodyText;
+                    break;
+                  }
+                } catch (e: any) {
+                  debug.responses.push({ url: healthUrl, error: e.message });
+                }
+              }
+              
+              if (healthOk) {
+                // Health passed, now call smoke-test to validate outputs - try API path first
+                let smokeOk = false;
+                let smokeBody = "";
+                let smokeStatus = 0;
+                let lastSmokeError: string | null = null;
+                
+                for (const path of smokePaths) {
+                  debug.requestedUrls.push(path);
                   try {
-                    const smokeRes = await fetch(smokeUrl, { method: "GET", headers, signal: AbortSignal.timeout(15000) });
-                    const smokeBody = await smokeRes.text().catch(() => "");
-                    debug.responses.push({ url: smokeUrl, status: smokeRes.status, ok: smokeRes.ok, bodySnippet: smokeBody.slice(0, 500) });
+                    const res = await fetch(path, { method: "GET", headers, signal: AbortSignal.timeout(15000) });
+                    const body = await res.text().catch(() => "");
+                    debug.responses.push({ url: path, status: res.status, ok: res.ok, bodySnippet: body.slice(0, 500) });
                     
-                    if (smokeRes.ok) {
-                      // Parse response and check for expected outputs
-                      let smokeData: any = {};
-                      try {
-                        smokeData = JSON.parse(smokeBody);
-                      } catch (e) {
-                        debug.parseError = "Invalid JSON from smoke-test";
-                      }
-                      
-                      // Check which outputs are present in the response (flexible parsing)
-                      const actualOutputs: string[] = [];
-                      const dataPayload = smokeData.data || smokeData;
-                      debug.dataPayloadKeys = Object.keys(dataPayload || {});
-                      
-                      // Check for seo_recommendations (multiple possible field names)
-                      if (dataPayload.seo_recommendations || dataPayload.recommendations || 
-                          dataPayload.SEO_recommendations || dataPayload.insights) {
-                        actualOutputs.push("seo_recommendations");
-                      }
-                      // Check for best_practices
-                      if (dataPayload.best_practices || dataPayload.bestPractices || 
-                          dataPayload.best_practice || dataPayload.practices) {
-                        actualOutputs.push("best_practices");
-                      }
-                      // Check for optimization_tips
-                      if (dataPayload.optimization_tips || dataPayload.optimizationTips || 
-                          dataPayload.tips || dataPayload.suggestions) {
-                        actualOutputs.push("optimization_tips");
-                      }
-                      // Check for reference_docs
-                      if (dataPayload.reference_docs || dataPayload.referenceDocs || 
-                          dataPayload.docs || dataPayload.references || dataPayload.documentation) {
-                        actualOutputs.push("reference_docs");
-                      }
-                      
-                      // If we have "ok: true" and some data, consider it a success even if output names differ
-                      const hasValidData = smokeData.ok === true || 
-                        (Object.keys(dataPayload || {}).length > 0 && 
-                         !dataPayload.error && 
-                         (Array.isArray(dataPayload.data) || typeof dataPayload.service === 'string'));
-                      
-                      const missingOutputs = expectedOutputs.filter(o => !actualOutputs.includes(o));
-                      
-                      if (actualOutputs.length >= expectedOutputs.length) {
-                        checkResult = {
-                          status: "pass",
-                          summary: `All ${expectedOutputs.length} outputs validated`,
-                          metrics: { worker_configured: true, worker_reachable: true, outputs_validated: actualOutputs.length },
-                          details: { baseUrl, debug, actualOutputs, missingOutputs: [] },
-                        };
-                      } else if (actualOutputs.length > 0 || hasValidData) {
-                        // Worker is working but may have different output structure
-                        checkResult = {
-                          status: actualOutputs.length > 0 ? "partial" : "pass",
-                          summary: actualOutputs.length > 0 
-                            ? `${actualOutputs.length}/${expectedOutputs.length} outputs validated`
-                            : `Worker responding with valid data`,
-                          metrics: { 
-                            worker_configured: true, 
-                            worker_reachable: true, 
-                            outputs_validated: actualOutputs.length,
-                            has_valid_response: hasValidData,
-                          },
-                          details: { baseUrl, debug, actualOutputs, missingOutputs, responseKeys: Object.keys(dataPayload || {}) },
-                        };
-                      } else {
-                        checkResult = {
-                          status: "partial",
-                          summary: `Worker connected - no outputs in response`,
-                          metrics: { worker_configured: true, worker_reachable: true, outputs_pending: expectedOutputs.length },
-                          details: { baseUrl, debug, actualOutputs: [], pendingOutputs: expectedOutputs, responseKeys: Object.keys(dataPayload || {}) },
-                        };
-                      }
-                    } else {
-                      // Smoke test failed but health passed
-                      checkResult = {
-                        status: "partial",
-                        summary: `Worker healthy but smoke-test returned ${smokeRes.status}`,
-                        metrics: { worker_configured: true, worker_reachable: true, smoke_test_status: smokeRes.status },
-                        details: { baseUrl, debug, actualOutputs: [], pendingOutputs: expectedOutputs },
-                      };
+                    // Check if it's JSON (not HTML)
+                    if (res.ok && !body.trim().startsWith('<!DOCTYPE') && !body.trim().startsWith('<html')) {
+                      smokeOk = true;
+                      smokeBody = body;
+                      smokeStatus = res.status;
+                      break;
                     }
-                  } catch (smokeErr: any) {
-                    // Health passed but smoke test failed
-                    debug.smokeError = smokeErr.message;
+                    smokeStatus = res.status;
+                  } catch (e: any) {
+                    debug.responses.push({ url: path, error: e.message });
+                    lastSmokeError = e.message;
+                  }
+                }
+                
+                if (smokeOk) {
+                  // Parse response and check for expected outputs
+                  let smokeData: any = {};
+                  try {
+                    smokeData = JSON.parse(smokeBody);
+                  } catch (e) {
+                    debug.parseError = "Invalid JSON from smoke-test";
+                  }
+                  
+                  // Check which outputs are present in the response (flexible parsing)
+                  const actualOutputs: string[] = [];
+                  const dataPayload = smokeData.data || smokeData;
+                  debug.dataPayloadKeys = Object.keys(dataPayload || {});
+                  
+                  // Check for seo_recommendations (multiple possible field names)
+                  if (dataPayload.seo_recommendations || dataPayload.recommendations || 
+                      dataPayload.SEO_recommendations || dataPayload.insights) {
+                    actualOutputs.push("seo_recommendations");
+                  }
+                  // Check for best_practices
+                  if (dataPayload.best_practices || dataPayload.bestPractices || 
+                      dataPayload.best_practice || dataPayload.practices) {
+                    actualOutputs.push("best_practices");
+                  }
+                  // Check for optimization_tips
+                  if (dataPayload.optimization_tips || dataPayload.optimizationTips || 
+                      dataPayload.tips || dataPayload.suggestions) {
+                    actualOutputs.push("optimization_tips");
+                  }
+                  // Check for reference_docs
+                  if (dataPayload.reference_docs || dataPayload.referenceDocs || 
+                      dataPayload.docs || dataPayload.references || dataPayload.documentation) {
+                    actualOutputs.push("reference_docs");
+                  }
+                  
+                  // If we have "ok: true" and some data, consider it a success even if output names differ
+                  const hasValidData = smokeData.ok === true || 
+                    (Object.keys(dataPayload || {}).length > 0 && 
+                     !dataPayload.error && 
+                     (Array.isArray(dataPayload.data) || typeof dataPayload.service === 'string'));
+                  
+                  const missingOutputs = expectedOutputs.filter(o => !actualOutputs.includes(o));
+                  
+                  if (actualOutputs.length >= expectedOutputs.length) {
+                    checkResult = {
+                      status: "pass",
+                      summary: `All ${expectedOutputs.length} outputs validated`,
+                      metrics: { worker_configured: true, worker_reachable: true, outputs_validated: actualOutputs.length },
+                      details: { baseUrl, debug, actualOutputs, missingOutputs: [] },
+                    };
+                  } else if (actualOutputs.length > 0 || hasValidData) {
+                    // Worker is working but may have different output structure
+                    checkResult = {
+                      status: actualOutputs.length > 0 ? "partial" : "pass",
+                      summary: actualOutputs.length > 0 
+                        ? `${actualOutputs.length}/${expectedOutputs.length} outputs validated`
+                        : `Worker responding with valid data`,
+                      metrics: { 
+                        worker_configured: true, 
+                        worker_reachable: true, 
+                        outputs_validated: actualOutputs.length,
+                        has_valid_response: hasValidData,
+                      },
+                      details: { baseUrl, debug, actualOutputs, missingOutputs, responseKeys: Object.keys(dataPayload || {}) },
+                    };
+                  } else {
                     checkResult = {
                       status: "partial",
-                      summary: `Worker healthy but smoke-test unreachable`,
-                      metrics: { worker_configured: true, worker_reachable: true, smoke_test_error: true },
-                      details: { baseUrl, debug, actualOutputs: [], pendingOutputs: expectedOutputs },
+                      summary: `Worker connected - no outputs in response`,
+                      metrics: { worker_configured: true, worker_reachable: true, outputs_pending: expectedOutputs.length },
+                      details: { baseUrl, debug, actualOutputs: [], pendingOutputs: expectedOutputs, responseKeys: Object.keys(dataPayload || {}) },
                     };
                   }
-                } else {
+                } else if (lastSmokeError) {
+                  // Health passed but smoke test failed
+                  debug.smokeError = lastSmokeError;
                   checkResult = {
-                    status: "fail",
-                    summary: `Worker returned HTTP ${res.status}`,
-                    metrics: { worker_configured: true, worker_reachable: false, http_status: res.status },
-                    details: { baseUrl, debug, actualOutputs: [], missingOutputs: expectedOutputs },
+                    status: "partial",
+                    summary: `Worker healthy but smoke-test unreachable`,
+                    metrics: { worker_configured: true, worker_reachable: true, smoke_test_error: true },
+                    details: { baseUrl, debug, actualOutputs: [], pendingOutputs: expectedOutputs },
+                  };
+                } else {
+                  // Smoke test returned HTML or non-JSON
+                  checkResult = {
+                    status: "partial",
+                    summary: `Worker healthy but smoke-test returned HTML (API path not found)`,
+                    metrics: { worker_configured: true, worker_reachable: true, smoke_test_status: smokeStatus },
+                    details: { baseUrl, debug, actualOutputs: [], pendingOutputs: expectedOutputs },
                   };
                 }
-              } catch (err: any) {
-                debug.error = err.message;
+              } else {
+                // No health endpoint returned JSON
                 checkResult = {
                   status: "fail",
-                  summary: `Worker unreachable: ${err.message}`,
+                  summary: `Worker health endpoints returned HTML (API not found)`,
                   metrics: { worker_configured: true, worker_reachable: false },
                   details: { baseUrl, debug, actualOutputs: [], missingOutputs: expectedOutputs },
                 };
