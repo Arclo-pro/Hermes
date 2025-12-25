@@ -1459,3 +1459,28 @@ export interface RollbackPlan {
   steps?: string[];
   snapshotRef?: string;
 }
+
+// Industry Benchmarks - reference data for comparing site performance
+export const industryBenchmarks = pgTable("industry_benchmarks", {
+  id: serial("id").primaryKey(),
+  industry: text("industry").notNull(), // healthcare, ecommerce, saas, finance, travel, education, etc.
+  metric: text("metric").notNull(), // organic_ctr, avg_position, bounce_rate, session_duration, pages_per_session, conversion_rate
+  percentile25: real("percentile_25").notNull(), // 25th percentile (below average)
+  percentile50: real("percentile_50").notNull(), // 50th percentile (average)
+  percentile75: real("percentile_75").notNull(), // 75th percentile (above average)
+  percentile90: real("percentile_90").notNull(), // 90th percentile (excellent)
+  unit: text("unit"), // percent, seconds, count, position
+  source: text("source"), // data source attribution
+  sourceYear: integer("source_year"), // when benchmark data was collected
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertIndustryBenchmarkSchema = createInsertSchema(industryBenchmarks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertIndustryBenchmark = z.infer<typeof insertIndustryBenchmarkSchema>;
+export type IndustryBenchmark = typeof industryBenchmarks.$inferSelect;
