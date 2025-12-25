@@ -410,8 +410,10 @@ export const findings = pgTable("findings", {
   findingId: text("finding_id").notNull().unique(),
   siteId: text("site_id").notNull(),
   crawlRunId: text("crawl_run_id"),
-  category: text("category").notNull(), // crawlability, indexation, content, performance, structured_data, internal_links, analytics, ads, security_headers
-  severity: text("severity").notNull(), // critical, high, medium, low
+  sourceIntegration: text("source_integration"), // seo_kbase, crawl_render, serp_intel, etc.
+  runId: text("run_id"), // Links to serviceRuns.runId for traceability
+  category: text("category").notNull(), // crawlability, indexation, content, performance, structured_data, internal_links, analytics, ads, security_headers, kbase
+  severity: text("severity").notNull(), // critical, high, medium, low, info
   impactScore: integer("impact_score").default(50), // 0-100
   confidence: real("confidence").default(0.5), // 0-1
   title: text("title").notNull(),

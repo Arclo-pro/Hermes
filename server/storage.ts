@@ -214,6 +214,9 @@ export interface IStorage {
   // Findings
   saveFindings(findings: InsertFinding[]): Promise<Finding[]>;
   getFindingsBySite(siteId: string, status?: string): Promise<Finding[]>;
+  getFindingsBySource(siteId: string, sourceIntegration: string, limit?: number): Promise<Finding[]>;
+  getFindingsCount(siteId: string, sourceIntegration?: string): Promise<number>;
+  getLatestFindings(siteId: string, limit?: number): Promise<Finding[]>;
   updateFindingStatus(findingId: string, status: string): Promise<void>;
   
   // Audit Logs
@@ -874,6 +877,36 @@ class DBStorage implements IStorage {
 
   async updateFindingStatus(findingId: string, status: string): Promise<void> {
     await db.update(findings).set({ status, updatedAt: new Date() }).where(eq(findings.findingId, findingId));
+  }
+
+  async getFindingsBySource(siteId: string, sourceIntegration: string, limit = 50): Promise<Finding[]> {
+    return db
+      .select()
+      .from(findings)
+      .where(and(eq(findings.siteId, siteId), eq(findings.sourceIntegration, sourceIntegration)))
+      .orderBy(desc(findings.createdAt))
+      .limit(limit);
+  }
+
+  async getFindingsCount(siteId: string, sourceIntegration?: string): Promise<number> {
+    const conditions = [eq(findings.siteId, siteId)];
+    if (sourceIntegration) {
+      conditions.push(eq(findings.sourceIntegration, sourceIntegration));
+    }
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(findings)
+      .where(and(...conditions));
+    return Number(result[0]?.count || 0);
+  }
+
+  async getLatestFindings(siteId: string, limit = 10): Promise<Finding[]> {
+    return db
+      .select()
+      .from(findings)
+      .where(eq(findings.siteId, siteId))
+      .orderBy(desc(findings.createdAt))
+      .limit(limit);
   }
 
   // Audit Logs

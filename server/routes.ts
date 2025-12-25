@@ -1298,6 +1298,100 @@ When answering:
     }
   });
 
+  // Findings API Endpoints
+  app.get("/api/findings", async (req, res) => {
+    try {
+      const { siteId, source, status, limit } = req.query;
+      const targetSiteId = (siteId as string) || 'default';
+      const limitNum = limit ? parseInt(limit as string) : 50;
+      
+      let findings;
+      if (source) {
+        findings = await storage.getFindingsBySource(targetSiteId, source as string, limitNum);
+      } else if (status) {
+        findings = await storage.getFindingsBySite(targetSiteId, status as string);
+      } else {
+        findings = await storage.getLatestFindings(targetSiteId, limitNum);
+      }
+      
+      res.json({ findings, count: findings.length });
+    } catch (error: any) {
+      logger.error("API", "Failed to get findings", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/findings/kbase", async (req, res) => {
+    try {
+      const { siteId, limit } = req.query;
+      const targetSiteId = (siteId as string) || 'default';
+      const limitNum = limit ? parseInt(limit as string) : 50;
+      
+      const findings = await storage.getFindingsBySource(targetSiteId, 'seo_kbase', limitNum);
+      const count = await storage.getFindingsCount(targetSiteId, 'seo_kbase');
+      
+      // Get the latest run info for this source
+      const serviceRuns = await storage.getServiceRunsByService('seo_kbase', 1);
+      const lastRun = serviceRuns[0];
+      
+      res.json({
+        findings,
+        count,
+        lastRunAt: lastRun?.finishedAt || lastRun?.startedAt,
+        lastRunId: lastRun?.runId,
+        lastRunStatus: lastRun?.status,
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to get KBASE findings", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/findings/summary", async (req, res) => {
+    try {
+      const { siteId } = req.query;
+      const targetSiteId = (siteId as string) || 'default';
+      
+      const [totalCount, kbaseCount, latestFindings] = await Promise.all([
+        storage.getFindingsCount(targetSiteId),
+        storage.getFindingsCount(targetSiteId, 'seo_kbase'),
+        storage.getLatestFindings(targetSiteId, 5),
+      ]);
+      
+      // Get last KBASE run
+      const serviceRuns = await storage.getServiceRunsByService('seo_kbase', 1);
+      const lastKbaseRun = serviceRuns[0];
+      
+      res.json({
+        total: totalCount,
+        kbaseCount,
+        latestFindings,
+        lastKbaseRunAt: lastKbaseRun?.finishedAt || lastKbaseRun?.startedAt,
+        lastKbaseRunId: lastKbaseRun?.runId,
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to get findings summary", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/findings/:findingId/status", async (req, res) => {
+    try {
+      const { findingId } = req.params;
+      const { status } = req.body;
+      
+      if (!status || !['open', 'accepted', 'fixed', 'ignored'].includes(status)) {
+        return res.status(400).json({ error: "Invalid status. Must be: open, accepted, fixed, or ignored" });
+      }
+      
+      await storage.updateFindingStatus(findingId, status);
+      res.json({ success: true, findingId, status });
+    } catch (error: any) {
+      logger.error("API", "Failed to update finding status", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/dashboard/stats", async (req, res) => {
     try {
       const now = new Date();
@@ -5074,6 +5168,84 @@ When answering:
             position: dataPayload.gsc_position || 0,
             rawData: { source: 'worker', runId, requestId },
           });
+        }
+        
+        // Normalize SEO_KBASE outputs into findings table
+        if (integrationId === 'seo_kbase') {
+          const findingsToSave: any[] = [];
+          const { v4: uuidv4 } = await import("uuid");
+          
+          // Map SEO recommendations to findings
+          const recommendations = dataPayload.seo_recommendations || dataPayload.recommendations || [];
+          if (Array.isArray(recommendations)) {
+            for (const rec of recommendations) {
+              findingsToSave.push({
+                findingId: `kbase_${uuidv4().slice(0, 8)}`,
+                siteId,
+                sourceIntegration: 'seo_kbase',
+                runId,
+                category: 'kbase',
+                severity: rec.severity || rec.priority || 'medium',
+                impactScore: rec.impact_score || 50,
+                confidence: rec.confidence || 0.7,
+                title: rec.title || rec.name || 'SEO Recommendation',
+                description: rec.description || rec.details || rec.summary,
+                evidence: rec.evidence ? { items: rec.evidence } : null,
+                recommendedActions: Array.isArray(rec.actions) ? rec.actions : 
+                                    rec.action ? [rec.action] : 
+                                    rec.recommendation ? [rec.recommendation] : [],
+                status: 'open',
+              });
+            }
+          }
+          
+          // Map best practices to findings
+          const bestPractices = dataPayload.best_practices || [];
+          if (Array.isArray(bestPractices)) {
+            for (const bp of bestPractices) {
+              findingsToSave.push({
+                findingId: `kbase_bp_${uuidv4().slice(0, 8)}`,
+                siteId,
+                sourceIntegration: 'seo_kbase',
+                runId,
+                category: 'kbase',
+                severity: 'info',
+                impactScore: 30,
+                confidence: 0.9,
+                title: typeof bp === 'string' ? bp : bp.title || bp.name || 'Best Practice',
+                description: typeof bp === 'string' ? bp : bp.description || bp.details,
+                recommendedActions: typeof bp === 'string' ? [bp] : bp.actions || [],
+                status: 'open',
+              });
+            }
+          }
+          
+          // Map optimization tips to findings
+          const tips = dataPayload.optimization_tips || [];
+          if (Array.isArray(tips)) {
+            for (const tip of tips) {
+              findingsToSave.push({
+                findingId: `kbase_tip_${uuidv4().slice(0, 8)}`,
+                siteId,
+                sourceIntegration: 'seo_kbase',
+                runId,
+                category: 'kbase',
+                severity: 'low',
+                impactScore: 40,
+                confidence: 0.8,
+                title: typeof tip === 'string' ? tip : tip.title || tip.name || 'Optimization Tip',
+                description: typeof tip === 'string' ? tip : tip.description,
+                recommendedActions: typeof tip === 'string' ? [tip] : tip.actions || [],
+                status: 'open',
+              });
+            }
+          }
+          
+          // Save findings if any
+          if (findingsToSave.length > 0) {
+            await storage.saveFindings(findingsToSave);
+            logger.info("API", `Saved ${findingsToSave.length} KBASE findings for site ${siteId}`, { runId });
+          }
         }
         
         // Update integration record
