@@ -4,9 +4,110 @@ import {
   DiagnosticStageOrder, 
   type DiagnosticStage, 
   type DiagnosticStageResult,
-  type InsertConnectorDiagnostic 
+  type InsertConnectorDiagnostic,
+  type FailureBucket,
+  FailureBucketSuggestions,
 } from "@shared/schema";
 import { logger } from "./utils/logger";
+
+export interface FailureClassification {
+  bucket: FailureBucket;
+  suggestedFix: string;
+}
+
+export function classifyFailure(details?: Record<string, unknown>): FailureClassification {
+  if (!details) {
+    return { bucket: 'unknown', suggestedFix: FailureBucketSuggestions.unknown };
+  }
+
+  const statusCode = details.statusCode as number | undefined 
+    ?? details.status as number | undefined
+    ?? details.httpStatus as number | undefined;
+  const contentType = (details.contentType as string | undefined 
+    ?? details['content-type'] as string | undefined 
+    ?? '').toLowerCase();
+  const errorMessage = (details.error as string | undefined 
+    ?? details.errorMessage as string | undefined
+    ?? details.message as string | undefined 
+    ?? '').toLowerCase();
+  const responseSnippet = (details.responseSnippet as string | undefined 
+    ?? details.snippet as string | undefined
+    ?? details.body as string | undefined
+    ?? '').toLowerCase();
+
+  // Check for timeout errors
+  if (errorMessage.includes('timeout') || 
+      errorMessage.includes('timed out') || 
+      errorMessage.includes('etimedout') ||
+      errorMessage.includes('econnreset') ||
+      errorMessage.includes('socket hang up')) {
+    return { bucket: 'timeout', suggestedFix: FailureBucketSuggestions.timeout };
+  }
+
+  // Check for DNS/TLS errors
+  if (errorMessage.includes('enotfound') || 
+      errorMessage.includes('dns') || 
+      errorMessage.includes('getaddrinfo') ||
+      errorMessage.includes('certificate') ||
+      errorMessage.includes('ssl') ||
+      errorMessage.includes('tls') ||
+      errorMessage.includes('unable to verify')) {
+    return { bucket: 'dns', suggestedFix: FailureBucketSuggestions.dns };
+  }
+
+  // Check status codes
+  if (statusCode) {
+    // 404 with HTML - wrong endpoint
+    if (statusCode === 404) {
+      if (contentType.includes('text/html') || responseSnippet.includes('<!doctype') || responseSnippet.includes('<html')) {
+        return { bucket: 'wrong_endpoint_404', suggestedFix: FailureBucketSuggestions.wrong_endpoint_404 };
+      }
+      return { bucket: 'wrong_endpoint_404', suggestedFix: FailureBucketSuggestions.wrong_endpoint_404 };
+    }
+
+    // 401/403 - auth failure
+    if (statusCode === 401 || statusCode === 403) {
+      return { bucket: 'auth_401_403', suggestedFix: FailureBucketSuggestions.auth_401_403 };
+    }
+
+    // 3xx redirects
+    if (statusCode >= 300 && statusCode < 400) {
+      return { bucket: 'redirect_3xx', suggestedFix: FailureBucketSuggestions.redirect_3xx };
+    }
+
+    // 200 but HTML content (SPA shell)
+    if (statusCode === 200 && (contentType.includes('text/html') || responseSnippet.includes('<!doctype') || responseSnippet.includes('<html'))) {
+      return { bucket: 'html_200_app_shell', suggestedFix: FailureBucketSuggestions.html_200_app_shell };
+    }
+  }
+
+  // Check for HTML in response without status code
+  if (responseSnippet.includes('<!doctype') || responseSnippet.includes('<html')) {
+    if (contentType.includes('text/html')) {
+      return { bucket: 'html_200_app_shell', suggestedFix: FailureBucketSuggestions.html_200_app_shell };
+    }
+  }
+
+  // Check error message for common patterns
+  if (errorMessage.includes('unauthorized') || errorMessage.includes('forbidden') || errorMessage.includes('invalid api key')) {
+    return { bucket: 'auth_401_403', suggestedFix: FailureBucketSuggestions.auth_401_403 };
+  }
+
+  if (errorMessage.includes('not found') || errorMessage.includes('404')) {
+    return { bucket: 'wrong_endpoint_404', suggestedFix: FailureBucketSuggestions.wrong_endpoint_404 };
+  }
+
+  if (errorMessage.includes('redirect') || errorMessage.includes('moved')) {
+    return { bucket: 'redirect_3xx', suggestedFix: FailureBucketSuggestions.redirect_3xx };
+  }
+
+  // Check for JSON parse errors indicating HTML response
+  if (errorMessage.includes('unexpected token') && (errorMessage.includes('<') || errorMessage.includes('doctype'))) {
+    return { bucket: 'html_200_app_shell', suggestedFix: FailureBucketSuggestions.html_200_app_shell };
+  }
+
+  return { bucket: 'unknown', suggestedFix: FailureBucketSuggestions.unknown };
+}
 
 export interface ServiceDiagnosticConfig {
   serviceId: string;
@@ -100,7 +201,9 @@ export class DiagnosticsRunner {
     message: string,
     details?: Record<string, unknown>
   ): Promise<void> {
-    await this.updateStage(stage, 'fail', message, details);
+    // Classify the failure and add to details
+    const classification = classifyFailure(details);
+    await this.updateStage(stage, 'fail', message, details, classification);
   }
 
   async skipStage(
@@ -114,7 +217,8 @@ export class DiagnosticsRunner {
     stage: DiagnosticStage,
     status: 'pass' | 'fail' | 'skipped',
     message: string,
-    details?: Record<string, unknown>
+    details?: Record<string, unknown>,
+    classification?: FailureClassification
   ): Promise<void> {
     if (!this.context) {
       logger.warn('Diagnostics', `No active diagnostic context for stage ${stage}`);
@@ -133,6 +237,13 @@ export class DiagnosticsRunner {
     stageResult.message = message;
     stageResult.finishedAt = now.toISOString();
     stageResult.details = details ? redactSecrets(details) : undefined;
+
+    // Add failure classification for failed stages
+    if (status === 'fail' && classification) {
+      stageResult.failureBucket = classification.bucket;
+      stageResult.suggestedFix = classification.suggestedFix;
+      logger.info('Diagnostics', `Failure classified: ${classification.bucket}`);
+    }
 
     if (stageIndex > 0) {
       const prevStage = this.context.stages[stageIndex - 1];
