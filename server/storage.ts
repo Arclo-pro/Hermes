@@ -1059,6 +1059,7 @@ class DBStorage implements IStorage {
 
   async getLastRunPerServiceBySite(siteId: string): Promise<Map<string, ServiceRun>> {
     // Include runs for this specific site OR global runs (siteId is null)
+    // Order by startedAt DESC so we get the most recent run first
     const allRuns = await db
       .select()
       .from(serviceRuns)
@@ -1067,12 +1068,8 @@ class DBStorage implements IStorage {
     
     const lastRunMap = new Map<string, ServiceRun>();
     for (const run of allRuns) {
-      // Prefer site-specific runs over global runs
-      const existing = lastRunMap.get(run.serviceId);
-      if (!existing) {
-        lastRunMap.set(run.serviceId, run);
-      } else if (run.siteId === siteId && existing.siteId !== siteId) {
-        // Replace global run with site-specific run
+      // Simply take the first (newest) run per service - already sorted by startedAt DESC
+      if (!lastRunMap.has(run.serviceId)) {
         lastRunMap.set(run.serviceId, run);
       }
     }
