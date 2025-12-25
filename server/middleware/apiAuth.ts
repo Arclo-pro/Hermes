@@ -26,6 +26,7 @@ const DASHBOARD_GET_PATHS = [
   "/api/changes",
   "/api/diagnostics",
   "/api/debug",
+  "/api/benchmarks",
 ];
 
 // Paths that allow unauthenticated POST access (only basic safe operations)
@@ -36,6 +37,7 @@ const DASHBOARD_POST_PATHS = [
   "/api/sites",
   "/api/hermes",
   "/api/ai",
+  "/api/benchmarks",
 ];
 
 // Paths that allow same-origin POST access (UI actions, protected by origin check)

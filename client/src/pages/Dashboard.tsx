@@ -3,6 +3,7 @@ import { SiteSelector } from "@/components/dashboard/SiteSelector";
 import { PillarCard, PillarStatus, TrendDirection } from "@/components/dashboard/PillarCard";
 import { TicketList } from "@/components/dashboard/TicketList";
 import { AskAI } from "@/components/dashboard/AskAI";
+import { BenchmarkComparison } from "@/components/dashboard/BenchmarkComparison";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Play, Download, AlertCircle, Activity, Shield, Search, ExternalLink } from "lucide-react";
@@ -492,6 +493,10 @@ export default function Dashboard() {
               detailsLink="/serp"
             />
           </div>
+        </section>
+
+        <section>
+          <BenchmarkComparison />
         </section>
 
         <section>
