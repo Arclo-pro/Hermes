@@ -2982,6 +2982,7 @@ When answering:
               authMode: 'api_key',
               expectedResponseType: 'json',
               requiredOutputFields: expectedOutputs,
+              requestId: req.requestId,
             }, async (runner) => {
               // Stage 1: Config Loaded - Get worker config via resolver
               const workerConfig = await resolveWorkerConfig("google_data_connector", site_id);
