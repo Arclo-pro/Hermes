@@ -1392,6 +1392,110 @@ When answering:
     }
   });
 
+  app.post("/api/kbase/learnings/upsert", async (req, res) => {
+    try {
+      const { bitwardenProvider } = await import("./vault/BitwardenProvider");
+      const kbaseSecret = await bitwardenProvider.getSecret("SEO_KBASE");
+      
+      if (!kbaseSecret) {
+        return res.status(500).json({ ok: false, error: "SEO_KBASE secret not found in Bitwarden" });
+      }
+      
+      let workerConfig: { base_url?: string; api_key?: string; write_key?: string };
+      try {
+        workerConfig = JSON.parse(kbaseSecret);
+      } catch (e) {
+        return res.status(500).json({ ok: false, error: "SEO_KBASE secret contains invalid JSON" });
+      }
+      
+      if (!workerConfig.write_key) {
+        return res.status(400).json({ 
+          ok: false, 
+          error: "Write-back disabled: missing write_key in Bitwarden SEO_KBASE secret" 
+        });
+      }
+      
+      if (!workerConfig.base_url) {
+        return res.status(500).json({ ok: false, error: "SEO_KBASE secret missing base_url" });
+      }
+      
+      const learning = req.body;
+      const requiredFields = ["source", "check_name", "site_domain", "topic", "problem", "recommendation"];
+      const missingFields = requiredFields.filter(f => !learning[f]);
+      
+      if (missingFields.length > 0) {
+        return res.status(400).json({ 
+          ok: false, 
+          error: `Missing required fields: ${missingFields.join(", ")}` 
+        });
+      }
+      
+      const baseUrl = workerConfig.base_url.replace(/\/+$/, '');
+      const upsertUrl = `${baseUrl}/learnings/upsert`;
+      
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        "x-api-key": workerConfig.write_key,
+      };
+      
+      let lastError: string | null = null;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const response = await fetch(upsertUrl, {
+            method: "POST",
+            headers,
+            body: JSON.stringify(learning),
+            signal: AbortSignal.timeout(15000),
+          });
+          
+          const responseBody = await response.text().catch(() => "");
+          
+          if (response.ok) {
+            let responseData: any = {};
+            try {
+              responseData = JSON.parse(responseBody);
+            } catch (e) {
+              responseData = { raw: responseBody };
+            }
+            
+            logger.info("KBASE", "Learning upserted successfully", { 
+              check_name: learning.check_name, 
+              topic: learning.topic 
+            });
+            
+            return res.json({ ok: true, data: responseData });
+          } else if (response.status === 401 || response.status === 403) {
+            return res.status(response.status).json({ 
+              ok: false, 
+              error: "Invalid API key or wrong header; verify Bitwarden write_key and worker fingerprint",
+              http_status: response.status 
+            });
+          } else if (response.status === 404) {
+            return res.status(404).json({ 
+              ok: false, 
+              error: "Wrong base_url or double-/api; verify base_url ends with /api",
+              http_status: 404 
+            });
+          } else {
+            lastError = `HTTP ${response.status}: ${responseBody.slice(0, 200)}`;
+          }
+        } catch (err: any) {
+          lastError = err.message;
+          if (attempt === 0) {
+            logger.warn("KBASE", "Write-back attempt failed, retrying", { error: err.message });
+            await new Promise(r => setTimeout(r, 1000));
+          }
+        }
+      }
+      
+      logger.error("KBASE", "KBase write-back failed after retries", { error: lastError });
+      res.status(502).json({ ok: false, error: `KBase write-back failed: ${lastError}` });
+    } catch (error: any) {
+      logger.error("KBASE", "Unexpected error in write-back", { error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
   app.get("/api/dashboard/stats", async (req, res) => {
     try {
       const now = new Date();
@@ -4174,19 +4278,19 @@ When answering:
             break;
           }
           case "seo_kbase": {
-            // SEO KBASE - fetch config from Bitwarden SEO_KBASE secret (base_url + api_key)
+            // SEO KBASE - fetch config from Bitwarden SEO_KBASE secret (base_url + api_key + write_key)
             const { bitwardenProvider: kbaseProvider } = await import("./vault/BitwardenProvider");
+            const { createHash } = await import("crypto");
             const kbaseSecret = await kbaseProvider.getSecret("SEO_KBASE");
             
             const debug: any = { 
               secretFound: !!kbaseSecret, 
               requestedUrls: [], 
               responses: [],
-              expectedKeyFingerprint: "e308d8c8",
             };
-            const expectedOutputs = ["kbase_articles", "kbase_gaps", "kbase_recommendations", "kbase_summary"];
+            const expectedOutputs = ["seo_recommendations", "best_practices", "optimization_tips", "reference_docs"];
             
-            let workerConfig: { base_url?: string; api_key?: string } | null = null;
+            let workerConfig: { base_url?: string; api_key?: string; write_key?: string } | null = null;
             let parseError: string | null = null;
             
             if (kbaseSecret) {
@@ -4194,6 +4298,7 @@ When answering:
                 workerConfig = JSON.parse(kbaseSecret);
                 debug.baseUrl = workerConfig?.base_url;
                 debug.apiKeyFound = !!workerConfig?.api_key;
+                debug.writeKeyFound = !!workerConfig?.write_key;
               } catch (e: any) {
                 parseError = e.message || "Invalid JSON";
                 debug.parseError = parseError;
@@ -4232,109 +4337,156 @@ When answering:
               // base_url from Bitwarden already includes /api, just append endpoint paths
               const baseUrl = workerConfig.base_url.replace(/\/+$/, '');
               const kbaseApiKey = workerConfig.api_key;
+              const kbaseWriteKey = workerConfig.write_key;
               const headers: Record<string, string> = {
-                "X-API-Key": kbaseApiKey,
+                "x-api-key": kbaseApiKey,
               };
               
-              // Health check (no auth required)
+              // Compute local fingerprint from api_key (SHA256, first 8 hex chars)
+              const localFingerprint = createHash('sha256').update(kbaseApiKey).digest('hex').slice(0, 8);
+              debug.localKeyFingerprint = localFingerprint;
+              debug.writeBackEnabled = !!kbaseWriteKey;
+              
+              // Health check (no auth required) - validates fingerprint
               const healthUrl = `${baseUrl}/health`;
               debug.requestedUrls.push(healthUrl);
               
               try {
                 const healthRes = await fetch(healthUrl, { method: "GET", signal: AbortSignal.timeout(10000) });
                 const healthBody = await healthRes.text().catch(() => "");
-                debug.responses.push({ url: healthUrl, status: healthRes.status, ok: healthRes.ok, bodySnippet: healthBody.slice(0, 200) });
+                debug.responses.push({ url: healthUrl, status: healthRes.status, ok: healthRes.ok, bodySnippet: healthBody.slice(0, 300) });
                 
-                if (healthRes.ok) {
-                  // Health passed, now call smoke-test (requires auth)
-                  const smokeUrl = `${baseUrl}/smoke-test`;
-                  debug.requestedUrls.push(smokeUrl);
-                  
-                  try {
-                    const smokeRes = await fetch(smokeUrl, { method: "GET", headers, signal: AbortSignal.timeout(15000) });
-                    const smokeBody = await smokeRes.text().catch(() => "");
-                    debug.responses.push({ url: smokeUrl, status: smokeRes.status, ok: smokeRes.ok, bodySnippet: smokeBody.slice(0, 500) });
-                    
-                    if (smokeRes.ok) {
-                      // Parse response and check for expected outputs
-                      let smokeData: any = {};
-                      let jsonParseOk = false;
-                      try {
-                        smokeData = JSON.parse(smokeBody);
-                        jsonParseOk = true;
-                      } catch (e) {
-                        debug.parseError = "Invalid JSON from smoke-test";
-                      }
-                      
-                      // Check which outputs are present in the response
-                      const actualOutputs: string[] = [];
-                      const dataPayload = smokeData.data || smokeData;
-                      debug.dataPayloadKeys = Object.keys(dataPayload || {});
-                      
-                      // Check for new KBASE output names
-                      if (dataPayload.kbase_articles || dataPayload.articles) actualOutputs.push("kbase_articles");
-                      if (dataPayload.kbase_gaps || dataPayload.gaps) actualOutputs.push("kbase_gaps");
-                      if (dataPayload.kbase_recommendations || dataPayload.recommendations) actualOutputs.push("kbase_recommendations");
-                      if (dataPayload.kbase_summary || dataPayload.summary) actualOutputs.push("kbase_summary");
-                      
-                      // Valid if ok: true or has data
-                      const hasValidData = smokeData.ok === true || 
-                        (Object.keys(dataPayload || {}).length > 0 && !dataPayload.error);
-                      
-                      const missingOutputs = expectedOutputs.filter(o => !actualOutputs.includes(o));
-                      
-                      if (jsonParseOk && (actualOutputs.length > 0 || hasValidData)) {
-                        checkResult = {
-                          status: "pass",
-                          summary: actualOutputs.length >= expectedOutputs.length 
-                            ? `Worker connected and all ${expectedOutputs.length} outputs validated`
-                            : `Worker connected and responding with valid data`,
-                          metrics: { 
-                            worker_configured: true, 
-                            worker_reachable: true, 
-                            outputs_validated: actualOutputs.length,
-                            json_smoke_test_succeeded: true,
-                          },
-                          details: { baseUrl, debug, actualOutputs, missingOutputs, responseKeys: Object.keys(dataPayload || {}) },
-                        };
-                      } else if (jsonParseOk) {
-                        checkResult = {
-                          status: "pass",
-                          summary: `Worker connected - smoke-test returned empty response`,
-                          metrics: { worker_configured: true, worker_reachable: true, json_smoke_test_succeeded: true },
-                          details: { baseUrl, debug, actualOutputs: [], pendingOutputs: expectedOutputs },
-                        };
-                      } else {
-                        checkResult = {
-                          status: "partial",
-                          summary: `Worker connected but smoke-test response invalid`,
-                          metrics: { worker_configured: true, worker_reachable: true },
-                          details: { baseUrl, debug, actualOutputs: [], pendingOutputs: expectedOutputs },
-                        };
-                      }
-                    } else {
-                      checkResult = {
-                        status: "fail",
-                        summary: `Smoke test returned ${smokeRes.status}: ${smokeBody.slice(0, 100)}`,
-                        metrics: { worker_configured: true, worker_reachable: true, smoke_status: smokeRes.status },
-                        details: { baseUrl, debug, actualOutputs: [], missingOutputs: expectedOutputs },
-                      };
-                    }
-                  } catch (smokeErr: any) {
-                    checkResult = {
-                      status: "partial",
-                      summary: `Worker healthy but smoke-test unreachable: ${smokeErr.message}`,
-                      metrics: { worker_configured: true, worker_reachable: true, smoke_test_error: true },
-                      details: { baseUrl, debug, actualOutputs: [], pendingOutputs: expectedOutputs },
-                    };
-                  }
-                } else {
+                if (!healthRes.ok) {
+                  const errorMsg = healthRes.status === 404 
+                    ? "Wrong base_url or double-/api; verify base_url ends with /api and Hermes appends only endpoint paths"
+                    : `Worker health check failed: HTTP ${healthRes.status}`;
                   checkResult = {
                     status: "fail",
-                    summary: `Worker health check failed: HTTP ${healthRes.status}`,
+                    summary: errorMsg,
                     metrics: { worker_configured: true, worker_reachable: false, http_status: healthRes.status },
                     details: { baseUrl, debug, actualOutputs: [], missingOutputs: expectedOutputs },
                   };
+                } else {
+                  // Parse health response for fingerprint validation
+                  let healthData: any = {};
+                  try {
+                    healthData = JSON.parse(healthBody);
+                  } catch (e) {
+                    debug.healthParseError = "Invalid JSON from health endpoint";
+                  }
+                  
+                  const workerFingerprint = healthData.read_key_fingerprint || healthData.expected_key_fingerprint;
+                  debug.workerKeyFingerprint = workerFingerprint;
+                  
+                  // Fingerprint validation
+                  if (workerFingerprint && workerFingerprint !== localFingerprint) {
+                    checkResult = {
+                      status: "fail",
+                      summary: `Bitwarden READ key does not match worker deployment (expected: ${workerFingerprint}, got: ${localFingerprint})`,
+                      metrics: { worker_configured: true, fingerprint_mismatch: true },
+                      details: { baseUrl, debug, actualOutputs: [], missingOutputs: expectedOutputs },
+                    };
+                  } else {
+                    // Health passed, now call smoke-test (requires auth)
+                    const smokeUrl = `${baseUrl}/smoke-test`;
+                    debug.requestedUrls.push(smokeUrl);
+                    
+                    try {
+                      const smokeRes = await fetch(smokeUrl, { method: "GET", headers, signal: AbortSignal.timeout(15000) });
+                      const smokeBody = await smokeRes.text().catch(() => "");
+                      debug.responses.push({ url: smokeUrl, status: smokeRes.status, ok: smokeRes.ok, bodySnippet: smokeBody.slice(0, 500) });
+                      
+                      if (smokeRes.status === 401 || smokeRes.status === 403) {
+                        checkResult = {
+                          status: "fail",
+                          summary: "Invalid API key or wrong header; verify Bitwarden key and worker fingerprint",
+                          metrics: { worker_configured: true, worker_reachable: true, auth_failed: true, http_status: smokeRes.status },
+                          details: { baseUrl, debug, actualOutputs: [], missingOutputs: expectedOutputs },
+                        };
+                      } else if (!smokeRes.ok) {
+                        checkResult = {
+                          status: "fail",
+                          summary: `Smoke test returned ${smokeRes.status}: ${smokeBody.slice(0, 100)}`,
+                          metrics: { worker_configured: true, worker_reachable: true, smoke_status: smokeRes.status },
+                          details: { baseUrl, debug, actualOutputs: [], missingOutputs: expectedOutputs },
+                        };
+                      } else {
+                        // Parse response and check for expected outputs
+                        let smokeData: any = {};
+                        let jsonParseOk = false;
+                        try {
+                          smokeData = JSON.parse(smokeBody);
+                          jsonParseOk = true;
+                        } catch (e) {
+                          debug.parseError = "Worker returned non-JSON; expected JSON API-only worker";
+                        }
+                        
+                        if (!jsonParseOk) {
+                          checkResult = {
+                            status: "fail",
+                            summary: "Worker returned non-JSON; expected JSON API-only worker",
+                            metrics: { worker_configured: true, worker_reachable: true, json_invalid: true },
+                            details: { baseUrl, debug, actualOutputs: [], missingOutputs: expectedOutputs },
+                          };
+                        } else {
+                          // Check which outputs are present in the response
+                          const actualOutputs: string[] = [];
+                          const dataPayload = smokeData.data || smokeData.outputs || smokeData;
+                          debug.dataPayloadKeys = Object.keys(dataPayload || {});
+                          
+                          // Check for canonical KBASE output names
+                          if (Array.isArray(dataPayload.seo_recommendations)) actualOutputs.push("seo_recommendations");
+                          if (Array.isArray(dataPayload.best_practices)) actualOutputs.push("best_practices");
+                          if (Array.isArray(dataPayload.optimization_tips)) actualOutputs.push("optimization_tips");
+                          if (Array.isArray(dataPayload.reference_docs)) actualOutputs.push("reference_docs");
+                          
+                          const missingOutputs = expectedOutputs.filter(o => !actualOutputs.includes(o));
+                          const hasValidData = smokeData.ok === true || actualOutputs.length > 0;
+                          
+                          if (actualOutputs.length === expectedOutputs.length) {
+                            checkResult = {
+                              status: "pass",
+                              summary: `Worker connected and all ${expectedOutputs.length} outputs validated${!kbaseWriteKey ? ' (write-back disabled: missing write_key)' : ''}`,
+                              metrics: { 
+                                worker_configured: true, 
+                                worker_reachable: true, 
+                                outputs_validated: actualOutputs.length,
+                                write_back_enabled: !!kbaseWriteKey,
+                                fingerprint_valid: true,
+                              },
+                              details: { baseUrl, debug, actualOutputs, missingOutputs: [], responseKeys: Object.keys(dataPayload || {}) },
+                            };
+                          } else if (hasValidData) {
+                            checkResult = {
+                              status: "partial",
+                              summary: `Worker connected - ${actualOutputs.length}/${expectedOutputs.length} outputs validated`,
+                              metrics: { 
+                                worker_configured: true, 
+                                worker_reachable: true, 
+                                outputs_validated: actualOutputs.length,
+                                outputs_missing: missingOutputs.length,
+                              },
+                              details: { baseUrl, debug, actualOutputs, missingOutputs, responseKeys: Object.keys(dataPayload || {}) },
+                            };
+                          } else {
+                            checkResult = {
+                              status: "partial",
+                              summary: `Worker connected but 0/${expectedOutputs.length} outputs found`,
+                              metrics: { worker_configured: true, worker_reachable: true, outputs_validated: 0 },
+                              details: { baseUrl, debug, actualOutputs: [], missingOutputs: expectedOutputs, responseKeys: Object.keys(dataPayload || {}) },
+                            };
+                          }
+                        }
+                      }
+                    } catch (smokeErr: any) {
+                      checkResult = {
+                        status: "partial",
+                        summary: `Worker healthy but smoke-test unreachable: ${smokeErr.message}`,
+                        metrics: { worker_configured: true, worker_reachable: true, smoke_test_error: true },
+                        details: { baseUrl, debug, actualOutputs: [], pendingOutputs: expectedOutputs },
+                      };
+                    }
+                  }
                 }
               } catch (err: any) {
                 checkResult = {
