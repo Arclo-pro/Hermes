@@ -405,15 +405,18 @@ async function runSmokeTestsAsync(jobId: string, services: RunnableService[]) {
       const smokeUrl = `${svc.integration.baseUrl}${smokeEndpoint}`;
       const smokePayload = getSmokePayload(svc.slug, domain);
       
+      // If smokeTest endpoint is /health or ends with /health, use GET (health endpoints don't accept POST)
+      const isHealthEndpoint = smokeEndpoint === '/health' || smokeEndpoint.endsWith('/health');
+      
       const smokeRes = await fetch(smokeUrl, {
-        method: 'POST',
+        method: isHealthEndpoint ? 'GET' : 'POST',
         headers: {
           'Accept': 'application/json',
-          'Content-Type': 'application/json',
+          ...(isHealthEndpoint ? {} : { 'Content-Type': 'application/json' }),
           'Authorization': `Bearer ${svc.integration.apiKey}`,
           'X-API-Key': svc.integration.apiKey,  // Some workers prefer X-API-Key header
         },
-        body: JSON.stringify(smokePayload),
+        ...(isHealthEndpoint ? {} : { body: JSON.stringify(smokePayload) }),
         signal: AbortSignal.timeout(60000),
       });
 
