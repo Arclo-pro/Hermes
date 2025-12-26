@@ -5216,15 +5216,33 @@ When answering:
           }
         }
         
-        const checkOutputPresence = (data: any, outputKey: string): boolean => {
-          if (!data || typeof data !== 'object') return false;
+        const checkOutputPresence = (data: any, outputKey: string, depth = 0): boolean => {
+          if (depth > 5 || !data) return false;
+          if (typeof data !== 'object') return false;
+          
+          // Check if key exists at current level
           if (outputKey in data && data[outputKey] !== null && data[outputKey] !== undefined) return true;
-          if (data.data && outputKey in data.data) return true;
-          if (data.outputs && outputKey in data.outputs) return true;
+          
+          // Check common wrapper patterns
+          if (data.data && typeof data.data === 'object' && outputKey in data.data) return true;
+          if (data.outputs && typeof data.outputs === 'object' && outputKey in data.outputs) return true;
+          if (data.results && typeof data.results === 'object' && outputKey in data.results) return true;
+          if (data.result && typeof data.result === 'object' && outputKey in data.result) return true;
+          
+          // Check if outputs is an array containing the key as a string
           if (Array.isArray(data.outputs) && data.outputs.includes(outputKey)) return true;
+          
+          // Recurse into nested objects and arrays
           for (const val of Object.values(data)) {
-            if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
-              if (checkOutputPresence(val, outputKey)) return true;
+            if (Array.isArray(val)) {
+              // For arrays, check first few items
+              for (let i = 0; i < Math.min(val.length, 5); i++) {
+                if (typeof val[i] === 'object' && val[i] !== null) {
+                  if (checkOutputPresence(val[i], outputKey, depth + 1)) return true;
+                }
+              }
+            } else if (typeof val === 'object' && val !== null) {
+              if (checkOutputPresence(val, outputKey, depth + 1)) return true;
             }
           }
           return false;
@@ -5280,6 +5298,22 @@ When answering:
           },
         });
         
+        // Build debug structure showing nested keys
+        const getNestedKeys = (obj: any, prefix = '', depth = 0): string[] => {
+          if (depth > 2 || !obj || typeof obj !== 'object') return [];
+          const keys: string[] = [];
+          for (const [k, v] of Object.entries(obj)) {
+            const fullKey = prefix ? `${prefix}.${k}` : k;
+            keys.push(fullKey);
+            if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
+              keys.push(...getNestedKeys(v, fullKey, depth + 1));
+            } else if (Array.isArray(v) && v.length > 0 && typeof v[0] === 'object') {
+              keys.push(...getNestedKeys(v[0], `${fullKey}[0]`, depth + 1));
+            }
+          }
+          return keys.slice(0, 30); // Limit for readability
+        };
+        
         res.json({
           integrationId,
           status,
@@ -5289,6 +5323,7 @@ When answering:
           durationMs,
           summary: `Got ${actualOutputs.length}/${expectedOutputs.length} expected outputs`,
           rawResponseKeys: Object.keys(smokeData || {}),
+          nestedKeys: getNestedKeys(smokeData),
         });
         
       } catch (err: any) {
