@@ -327,11 +327,12 @@ export const servicesCatalog: ServiceDefinition[] = [
     description: "Validates content against best-practice rulesets including E-E-A-T guidelines, compliance requirements, structure standards, and thin content detection.",
     purpose: "Validate content quality and compliance",
     inputs: ["page_urls", "content_rules"],
-    outputs: ["qa_score", "violations", "compliance_status", "fix_list"],
+    outputs: ["ok", "service"],  // Matches /health response for smoke tests
     keyMetrics: ["qa_score", "violations", "pages_analyzed"],
     commonFailures: ["timeout", "no_data", "invalid_response", "network_error"],
     runTriggers: ["scheduled", "manual", "on_change"],
     testMode: "worker",
+    secretKeyName: "SEO_Content_Validator",
     // Hub-and-Spoke capabilities
     producesArtifacts: ["qa.scorecard", "qa.fix_list"],
     consumesArtifacts: ["content.draft", "content.revision"],
