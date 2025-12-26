@@ -4865,10 +4865,26 @@ When answering:
         return res.status(404).json({ error: "Integration not found" });
       }
 
-      const { baseUrl, healthEndpoint, metaEndpoint } = integration;
+      const { baseUrl, healthEndpoint, metaEndpoint, authRequired, secretKeyName } = integration;
       const startTime = Date.now();
       let healthResult: any = { status: "unknown", response: null, error: null };
       let metaResult: any = { status: "unknown", response: null, error: null };
+
+      // Build headers - include API key if auth is required
+      const headers: Record<string, string> = { 'Accept': 'application/json' };
+      
+      if (authRequired && secretKeyName) {
+        try {
+          const { resolveWorkerConfig } = await import("./workerConfigResolver");
+          const workerConfig = await resolveWorkerConfig(integration.integrationId);
+          if (workerConfig.api_key) {
+            headers['X-API-Key'] = workerConfig.api_key;
+            headers['Authorization'] = `Bearer ${workerConfig.api_key}`;
+          }
+        } catch (e) {
+          logger.warn("API", `Failed to resolve API key for ${integration.integrationId}`, { error: (e as Error).message });
+        }
+      }
 
       // Check if service has a base URL configured
       if (!baseUrl) {
@@ -4880,7 +4896,7 @@ When answering:
           const healthUrl = `${baseUrl}${healthEndpoint || '/health'}`;
           const healthRes = await fetch(healthUrl, { 
             method: 'GET',
-            headers: { 'Accept': 'application/json' },
+            headers,
             signal: AbortSignal.timeout(10000),
           });
           const healthData = await healthRes.json().catch(() => null);
@@ -4898,7 +4914,7 @@ When answering:
           const metaUrl = `${baseUrl}${metaEndpoint || '/meta'}`;
           const metaRes = await fetch(metaUrl, {
             method: 'GET',
-            headers: { 'Accept': 'application/json' },
+            headers,
             signal: AbortSignal.timeout(10000),
           });
           const metaData = await metaRes.json().catch(() => null);
