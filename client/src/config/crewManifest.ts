@@ -49,6 +49,13 @@ export const CREW_MANIFEST: Record<string, CrewMember> = {
     blurb: "Gathers competitive intelligence, SERP movements, and strategic gaps.",
     capabilities: ["Competitor Analysis", "SERP Recon", "Gap Detection"],
     dependencies: ["orchestrator"],
+    endpoints: [
+      { method: "GET", path: "/api/health", auth: "none" },
+      { method: "GET", path: "/api/capabilities", auth: "api_key" },
+      { method: "GET", path: "/api/auth/check", auth: "api_key" },
+      { method: "POST", path: "/api/run", auth: "api_key" },
+      { method: "GET", path: "/api/report/:report_id", auth: "api_key" },
+    ],
   },
   crawl_render: {
     service_id: "crawl_render",
