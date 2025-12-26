@@ -149,7 +149,7 @@ export const CREW_MANIFEST: Record<string, CrewMember> = {
   },
   google_ads_connector: {
     service_id: "google_ads_connector",
-    nickname: "Madison",
+    nickname: "Mr. Draper",
     role: "Growth Strategist",
     color: "#EC4899",
     icon: Megaphone,
