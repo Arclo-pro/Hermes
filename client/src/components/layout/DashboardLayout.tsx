@@ -16,7 +16,8 @@ import {
   Check,
   Link2,
   Lightbulb,
-  Award
+  Award,
+  Users
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -98,6 +99,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { href: "/serp", label: "SERP Tracking", icon: Search },
     { href: "/authority", label: "Web Authority", icon: Award },
     { href: "/integrations", label: "Integrations", icon: Link2 },
+    { href: "/crew", label: "Crew Manifest", icon: Users },
     { href: "/changes", label: "Suggested Changes", icon: Lightbulb },
     { href: "/settings", label: "Settings", icon: Settings },
   ];

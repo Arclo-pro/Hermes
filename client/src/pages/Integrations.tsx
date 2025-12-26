@@ -32,6 +32,9 @@ import {
   Copy,
   MinusCircle
 } from "lucide-react";
+import { CrewToggle, useCrewNamesToggle } from "@/components/crew/CrewToggle";
+import { CrewBadge } from "@/components/crew/CrewBadge";
+import { getCrewMember } from "@/config/crewManifest";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
@@ -418,6 +421,7 @@ interface Site {
 
 export default function Integrations() {
   const queryClient = useQueryClient();
+  const { showCrewNames, setShowCrewNames } = useCrewNamesToggle();
   const [testingId, setTestingId] = useState<string | null>(null);
   const [smokeTestingId, setSmokeTestingId] = useState<string | null>(null);
   const [healthCheckingId, setHealthCheckingId] = useState<string | null>(null);
@@ -1113,6 +1117,8 @@ export default function Integrations() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <CrewToggle showCrewNames={showCrewNames} onToggle={setShowCrewNames} />
+            <div className="w-px h-6 bg-border" />
             <div className="flex items-center border rounded-md">
               <select
                 value={qaMode}
@@ -1584,15 +1590,30 @@ export default function Integrations() {
                             >
                               <td className="p-3">
                                 <div className="flex items-center gap-2">
-                                  {isServiceTesting ? <Loader2 className="w-4 h-4 text-blue-500 animate-spin" /> :
-                                   service.runState === 'success' ? <CheckCircle className="w-4 h-4 text-green-500" /> :
-                                   service.runState === 'failed' ? <XCircle className="w-4 h-4 text-red-500" /> :
-                                   service.runState === 'partial' ? <AlertTriangle className="w-4 h-4 text-yellow-500" /> :
-                                   service.runState === 'stale' ? <AlertTriangle className="w-4 h-4 text-orange-500" /> :
-                                   <Clock className="w-4 h-4 text-gray-400" />}
+                                  {showCrewNames ? (
+                                    <CrewBadge serviceId={service.slug} size="sm" />
+                                  ) : (
+                                    isServiceTesting ? <Loader2 className="w-4 h-4 text-blue-500 animate-spin" /> :
+                                    service.runState === 'success' ? <CheckCircle className="w-4 h-4 text-green-500" /> :
+                                    service.runState === 'failed' ? <XCircle className="w-4 h-4 text-red-500" /> :
+                                    service.runState === 'partial' ? <AlertTriangle className="w-4 h-4 text-yellow-500" /> :
+                                    service.runState === 'stale' ? <AlertTriangle className="w-4 h-4 text-orange-500" /> :
+                                    <Clock className="w-4 h-4 text-gray-400" />
+                                  )}
                                   <div>
-                                    <div className="font-medium">{service.displayName}</div>
-                                    <div className="text-xs text-muted-foreground">{service.category}</div>
+                                    {showCrewNames ? (
+                                      <>
+                                        <div className="font-medium" style={{ color: getCrewMember(service.slug).color }}>
+                                          {getCrewMember(service.slug).nickname}
+                                        </div>
+                                        <div className="text-xs text-muted-foreground">{getCrewMember(service.slug).role}</div>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <div className="font-medium">{service.displayName}</div>
+                                        <div className="text-xs text-muted-foreground">{service.category}</div>
+                                      </>
+                                    )}
                                   </div>
                                 </div>
                               </td>
