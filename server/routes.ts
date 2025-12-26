@@ -558,6 +558,148 @@ export async function registerRoutes(
     }
   });
 
+  // Fix Pack - Generate implementable fix artifacts using AI
+  app.post("/api/suggestions/:suggestionId/fix-pack", async (req, res) => {
+    const { suggestionId } = req.params;
+    
+    try {
+      const suggestion = await storage.getSeoSuggestionById(suggestionId);
+      
+      if (!suggestion) {
+        return res.status(404).json({ ok: false, error: "Suggestion not found" });
+      }
+      
+      const evidence = suggestion.evidenceJson as Record<string, any> || {};
+      const actions = suggestion.actionsJson as string[] || [];
+      const impactedUrls = suggestion.impactedUrls || [];
+      const impactedKeywords = suggestion.impactedKeywords || [];
+      
+      // Build a prompt based on suggestion type
+      let prompt = `You are an SEO expert. Generate actionable fix recommendations for the following SEO issue.
+
+Issue: ${suggestion.title}
+Description: ${suggestion.description}
+Category: ${suggestion.category}
+Severity: ${suggestion.severity}
+
+`;
+
+      if (impactedUrls.length > 0) {
+        prompt += `Impacted URLs:\n${impactedUrls.slice(0, 5).map((u: string) => `- ${u}`).join('\n')}\n\n`;
+      }
+      
+      if (impactedKeywords.length > 0) {
+        prompt += `Target Keywords:\n${impactedKeywords.slice(0, 10).map((k: string) => `- ${k}`).join('\n')}\n\n`;
+      }
+      
+      if (evidence.opportunities) {
+        prompt += `Keyword Opportunities (positions 11-20):\n${evidence.opportunities.slice(0, 5).map((o: any) => `- "${o.keyword}" at position ${o.position}`).join('\n')}\n\n`;
+      }
+
+      prompt += `Based on the above, provide:
+1. Recommended title tag updates (if applicable)
+2. Recommended meta description updates (if applicable)
+3. H1 recommendations
+4. Content outline with suggested sections and FAQs
+5. Internal linking opportunities (suggest 3-5 pages to link from/to)
+6. Quick implementation steps
+
+Format your response as JSON with these keys:
+{
+  "titleRecommendations": [{ "url": "...", "currentTitle": null, "recommendedTitle": "..." }],
+  "metaRecommendations": [{ "url": "...", "currentMeta": null, "recommendedMeta": "..." }],
+  "h1Recommendations": [{ "url": "...", "recommendedH1": "..." }],
+  "contentOutline": { "sections": ["..."], "faqs": [{ "question": "...", "answer": "..." }] },
+  "internalLinks": [{ "fromPage": "...", "toPage": "...", "anchorText": "..." }],
+  "implementationSteps": ["..."],
+  "estimatedTimeMinutes": 60,
+  "priorityLevel": "high"
+}`;
+
+      // Check for OpenAI availability
+      const openaiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+      const openaiBaseUrl = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
+      
+      if (!openaiKey) {
+        // Return a template-based fix pack without AI
+        return res.json({
+          ok: true,
+          suggestionId,
+          fixPack: {
+            generatedAt: new Date().toISOString(),
+            aiGenerated: false,
+            title: suggestion.title,
+            description: suggestion.description,
+            actions: actions.length > 0 ? actions : [
+              "Review the impacted URLs",
+              "Implement the recommended changes",
+              "Test and verify improvements",
+              "Monitor rankings for 2-4 weeks",
+            ],
+            impactedUrls,
+            impactedKeywords,
+            implementationSteps: actions,
+            estimatedTimeMinutes: suggestion.estimatedEffort === "quick_win" ? 30 : suggestion.estimatedEffort === "moderate" ? 120 : 240,
+            priorityLevel: suggestion.severity,
+          },
+        });
+      }
+      
+      // Use OpenAI to generate the fix pack
+      const OpenAI = (await import("openai")).default;
+      const openai = new OpenAI({
+        apiKey: openaiKey,
+        baseURL: openaiBaseUrl,
+      });
+      
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: "You are an SEO expert. Always respond with valid JSON only, no markdown formatting." },
+          { role: "user", content: prompt },
+        ],
+        max_tokens: 2000,
+        temperature: 0.7,
+      });
+      
+      const responseContent = completion.choices[0]?.message?.content || "{}";
+      
+      // Try to parse JSON from response
+      let fixPackData: any = {};
+      try {
+        // Extract JSON from potential markdown code blocks
+        const jsonMatch = responseContent.match(/```json\s*([\s\S]*?)\s*```/) || 
+                         responseContent.match(/```\s*([\s\S]*?)\s*```/);
+        const jsonStr = jsonMatch ? jsonMatch[1] : responseContent;
+        fixPackData = JSON.parse(jsonStr);
+      } catch {
+        fixPackData = {
+          implementationSteps: actions.length > 0 ? actions : ["Review and implement the suggested changes"],
+          rawResponse: responseContent,
+        };
+      }
+      
+      res.json({
+        ok: true,
+        suggestionId,
+        fixPack: {
+          generatedAt: new Date().toISOString(),
+          aiGenerated: true,
+          title: suggestion.title,
+          description: suggestion.description,
+          category: suggestion.category,
+          severity: suggestion.severity,
+          impactedUrls,
+          impactedKeywords,
+          ...fixPackData,
+        },
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to generate fix pack", { suggestionId, error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
   app.get("/api/kbase/insights/latest", async (req, res) => {
     const siteId = (req.query.siteId as string) || "empathyhealthclinic.com";
     const limit = parseInt(req.query.limit as string) || 5;
@@ -587,6 +729,209 @@ export async function registerRoutes(
         ok: false,
         error: error.message,
       });
+    }
+  });
+
+  // Run status polling endpoint
+  app.get("/api/run/:runId", async (req, res) => {
+    const { runId } = req.params;
+    
+    try {
+      const run = await storage.getSeoRunById(runId);
+      
+      if (!run) {
+        return res.status(404).json({ ok: false, error: "Run not found" });
+      }
+      
+      res.json({
+        ok: true,
+        runId: run.runId,
+        siteId: run.siteId,
+        domain: run.domain,
+        status: run.status,
+        totalWorkers: run.totalWorkers,
+        completedWorkers: run.completedWorkers,
+        successWorkers: run.successWorkers,
+        failedWorkers: run.failedWorkers,
+        skippedWorkers: run.skippedWorkers,
+        suggestionsGenerated: run.suggestionsGenerated,
+        insightsGenerated: run.insightsGenerated,
+        ticketsGenerated: run.ticketsGenerated,
+        workerStatuses: run.workerStatusesJson,
+        startedAt: run.startedAt?.toISOString(),
+        finishedAt: run.finishedAt?.toISOString(),
+        createdAt: run.createdAt.toISOString(),
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to get run status", { error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
+  // /api/latest/* endpoints for fast UI reads
+  app.get("/api/latest/worker-results", async (req, res) => {
+    const siteId = (req.query.siteId as string) || "empathyhealthclinic.com";
+    
+    try {
+      const results = await storage.getLatestSeoWorkerResults(siteId);
+      
+      res.json({
+        ok: true,
+        siteId,
+        count: results.length,
+        runId: results.length > 0 ? results[0].runId : null,
+        results: results.map(r => ({
+          workerKey: r.workerKey,
+          status: r.status,
+          metrics: r.metricsJson,
+          summary: r.summaryText,
+          error: r.errorCode,
+          durationMs: r.durationMs,
+          createdAt: r.createdAt,
+        })),
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to get latest worker results", { error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
+  app.get("/api/latest/dashboard", async (req, res) => {
+    const siteId = (req.query.siteId as string) || "empathyhealthclinic.com";
+    
+    try {
+      const [metrics, run, suggestions, insights] = await Promise.all([
+        getAggregatedDashboardMetrics(siteId),
+        storage.getLatestSeoRun(siteId),
+        storage.getLatestSeoSuggestions(siteId, 10),
+        storage.getLatestSeoKbaseInsights(siteId, 5),
+      ]);
+      
+      res.json({
+        ok: true,
+        siteId,
+        metrics,
+        lastRun: run ? {
+          runId: run.runId,
+          status: run.status,
+          startedAt: run.startedAt?.toISOString(),
+          finishedAt: run.finishedAt?.toISOString(),
+          successWorkers: run.successWorkers,
+          failedWorkers: run.failedWorkers,
+          skippedWorkers: run.skippedWorkers,
+        } : null,
+        suggestions: suggestions.slice(0, 10).map(s => ({
+          id: s.suggestionId,
+          title: s.title,
+          severity: s.severity,
+          category: s.category,
+          status: s.status,
+        })),
+        insights: insights.map(i => ({
+          id: i.insightId,
+          title: i.title,
+          summary: i.summary,
+          type: i.insightType,
+        })),
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to get latest dashboard", { error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
+  app.get("/api/latest/suggestions", async (req, res) => {
+    const siteId = (req.query.siteId as string) || "empathyhealthclinic.com";
+    const limit = parseInt(req.query.limit as string) || 50;
+    
+    try {
+      const suggestions = await storage.getLatestSeoSuggestions(siteId, limit);
+      
+      res.json({
+        ok: true,
+        siteId,
+        count: suggestions.length,
+        suggestions: suggestions.map(s => ({
+          id: s.suggestionId,
+          runId: s.runId,
+          type: s.suggestionType,
+          title: s.title,
+          description: s.description,
+          severity: s.severity,
+          category: s.category,
+          status: s.status,
+          assignee: s.assignee,
+          estimatedImpact: s.estimatedImpact,
+          estimatedEffort: s.estimatedEffort,
+          impactedUrls: s.impactedUrls,
+          impactedKeywords: s.impactedKeywords,
+          evidence: s.evidenceJson,
+          actions: s.actionsJson,
+          sourceWorkers: s.sourceWorkers,
+          createdAt: s.createdAt,
+        })),
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to get latest suggestions", { error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
+  app.get("/api/latest/tickets", async (req, res) => {
+    const limit = parseInt(req.query.limit as string) || 20;
+    
+    try {
+      const tickets = await storage.getLatestTickets(limit);
+      
+      res.json({
+        ok: true,
+        count: tickets.length,
+        tickets: tickets.map(t => ({
+          id: t.ticketId,
+          runId: t.runId,
+          title: t.title,
+          description: t.description,
+          category: t.category,
+          priority: t.priority,
+          status: t.status,
+          assignee: t.assignee,
+          createdAt: t.createdAt,
+        })),
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to get latest tickets", { error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
+  app.get("/api/latest/kbase-insights", async (req, res) => {
+    const siteId = (req.query.siteId as string) || "empathyhealthclinic.com";
+    const limit = parseInt(req.query.limit as string) || 5;
+    
+    try {
+      const insights = await storage.getLatestSeoKbaseInsights(siteId, limit);
+      
+      res.json({
+        ok: true,
+        siteId,
+        count: insights.length,
+        insights: insights.map(i => ({
+          id: i.insightId,
+          runId: i.runId,
+          title: i.title,
+          summary: i.summary,
+          fullContent: i.fullContent,
+          type: i.insightType,
+          priority: i.priority,
+          actions: i.actionsJson,
+          articleRefs: i.articleRefsJson,
+          suggestionIds: i.suggestionIds,
+          createdAt: i.createdAt,
+        })),
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to get latest KB insights", { error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
     }
   });
 
@@ -1358,18 +1703,18 @@ When answering:
         storage.getGA4DataByDateRange(formatDate(thirtyDaysAgo), formatDate(now)),
       ]);
       
-      // Calculate actual metrics
+      // Calculate actual metrics - use null for missing data instead of 0
       const totalClicks = gscData.reduce((sum, d) => sum + d.clicks, 0);
       const totalImpressions = gscData.reduce((sum, d) => sum + d.impressions, 0);
-      const avgCtr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
+      const avgCtr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : null;
       const avgPosition = gscData.length > 0 
         ? gscData.reduce((sum, d) => sum + d.position, 0) / gscData.length 
-        : 0;
+        : null;
       
       const totalSessions = ga4Data.reduce((sum, d) => sum + d.sessions, 0);
       const totalUsers = ga4Data.reduce((sum, d) => sum + d.users, 0);
       const totalConversions = ga4Data.reduce((sum, d) => sum + d.conversions, 0);
-      const conversionRate = totalSessions > 0 ? (totalConversions / totalSessions) * 100 : 0;
+      const conversionRate = totalSessions > 0 ? (totalConversions / totalSessions) * 100 : null;
       
       // Map benchmarks to comparison format
       const comparison = benchmarks.map(b => {

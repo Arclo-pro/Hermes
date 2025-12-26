@@ -121,6 +121,9 @@ import {
   seoKbaseInsights,
   type SeoKbaseInsight,
   type InsertSeoKbaseInsight,
+  seoRuns,
+  type SeoRun,
+  type InsertSeoRun,
 } from "@shared/schema";
 import { eq, desc, and, gte, sql, asc, or, isNull } from "drizzle-orm";
 
@@ -359,6 +362,7 @@ export interface IStorage {
   getSeoSuggestionsBySite(siteId: string, status?: string, limit?: number): Promise<SeoSuggestion[]>;
   getLatestSeoSuggestions(siteId: string, limit?: number): Promise<SeoSuggestion[]>;
   updateSeoSuggestionStatus(suggestionId: string, status: string): Promise<void>;
+  getSeoSuggestionById(suggestionId: string): Promise<SeoSuggestion | undefined>;
   
   // SEO KBase Insights
   saveSeoKbaseInsight(insight: InsertSeoKbaseInsight): Promise<SeoKbaseInsight>;
@@ -366,6 +370,13 @@ export interface IStorage {
   getSeoKbaseInsightsByRunId(runId: string): Promise<SeoKbaseInsight[]>;
   getSeoKbaseInsightsBySite(siteId: string, limit?: number): Promise<SeoKbaseInsight[]>;
   getLatestSeoKbaseInsights(siteId: string, limit?: number): Promise<SeoKbaseInsight[]>;
+  
+  // SEO Runs (orchestration tracking)
+  createSeoRun(run: InsertSeoRun): Promise<SeoRun>;
+  getSeoRunById(runId: string): Promise<SeoRun | undefined>;
+  updateSeoRun(runId: string, updates: Partial<InsertSeoRun>): Promise<SeoRun | undefined>;
+  getLatestSeoRun(siteId: string): Promise<SeoRun | undefined>;
+  getRecentSeoRuns(siteId: string, limit?: number): Promise<SeoRun[]>;
 }
 
 class DBStorage implements IStorage {
@@ -1809,6 +1820,15 @@ class DBStorage implements IStorage {
       .where(eq(seoSuggestions.suggestionId, suggestionId));
   }
 
+  async getSeoSuggestionById(suggestionId: string): Promise<SeoSuggestion | undefined> {
+    const [suggestion] = await db
+      .select()
+      .from(seoSuggestions)
+      .where(eq(seoSuggestions.suggestionId, suggestionId))
+      .limit(1);
+    return suggestion;
+  }
+
   // SEO KBase Insights
   async saveSeoKbaseInsight(insight: InsertSeoKbaseInsight): Promise<SeoKbaseInsight> {
     const [created] = await db.insert(seoKbaseInsights).values(insight).returning();
@@ -1843,6 +1863,49 @@ class DBStorage implements IStorage {
       .from(seoKbaseInsights)
       .where(eq(seoKbaseInsights.siteId, siteId))
       .orderBy(desc(seoKbaseInsights.priority), desc(seoKbaseInsights.createdAt))
+      .limit(limit);
+  }
+
+  // SEO Runs (orchestration tracking)
+  async createSeoRun(run: InsertSeoRun): Promise<SeoRun> {
+    const [created] = await db.insert(seoRuns).values(run).returning();
+    return created;
+  }
+
+  async getSeoRunById(runId: string): Promise<SeoRun | undefined> {
+    const [run] = await db
+      .select()
+      .from(seoRuns)
+      .where(eq(seoRuns.runId, runId))
+      .limit(1);
+    return run;
+  }
+
+  async updateSeoRun(runId: string, updates: Partial<InsertSeoRun>): Promise<SeoRun | undefined> {
+    const [updated] = await db
+      .update(seoRuns)
+      .set(updates)
+      .where(eq(seoRuns.runId, runId))
+      .returning();
+    return updated;
+  }
+
+  async getLatestSeoRun(siteId: string): Promise<SeoRun | undefined> {
+    const [run] = await db
+      .select()
+      .from(seoRuns)
+      .where(eq(seoRuns.siteId, siteId))
+      .orderBy(desc(seoRuns.createdAt))
+      .limit(1);
+    return run;
+  }
+
+  async getRecentSeoRuns(siteId: string, limit = 10): Promise<SeoRun[]> {
+    return db
+      .select()
+      .from(seoRuns)
+      .where(eq(seoRuns.siteId, siteId))
+      .orderBy(desc(seoRuns.createdAt))
       .limit(limit);
   }
 }

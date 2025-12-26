@@ -2,7 +2,7 @@ import { logger } from "./utils/logger";
 import { resolveWorkerConfig, WorkerConfig } from "./workerConfigResolver";
 import { getWorkerServices, ServiceSecretMapping } from "@shared/serviceSecretMap";
 import { storage } from "./storage";
-import { InsertSeoWorkerResult, InsertSeoSuggestion, InsertSeoKbaseInsight } from "@shared/schema";
+import { InsertSeoWorkerResult, InsertSeoSuggestion, InsertSeoKbaseInsight, InsertSeoRun } from "@shared/schema";
 
 const TIMEOUT_MS = 30000;
 
@@ -27,6 +27,7 @@ export interface OrchestrationResult {
   failedCount: number;
   suggestions: InsertSeoSuggestion[];
   insights: InsertSeoKbaseInsight[];
+  tickets: { ticketId: string; runId: string; title: string; description: string; category: string; priority: string; status: string; assignee: string; steps: string[]; expectedImpact: string; evidence: Record<string, any> }[];
 }
 
 const WORKER_KEYS = [
@@ -163,22 +164,63 @@ function extractMetrics(workerKey: string, data: any): Record<string, any> {
   switch (workerKey) {
     case "serp_intel":
       if (data.data?.keywords) {
-        metrics.keywordCount = data.data.keywords.length;
-        metrics.inTop10 = data.data.keywords.filter((k: any) => k.position <= 10).length;
-        metrics.avgPosition = data.data.keywords.length > 0
-          ? data.data.keywords.reduce((sum: number, k: any) => sum + (k.position || 100), 0) / data.data.keywords.length
+        const keywords = data.data.keywords;
+        metrics.keywordCount = keywords.length;
+        metrics.inTop10 = keywords.filter((k: any) => k.position && k.position <= 10).length;
+        metrics.inPos11to20 = keywords.filter((k: any) => k.position && k.position >= 11 && k.position <= 20).length;
+        metrics.inPos21to50 = keywords.filter((k: any) => k.position && k.position >= 21 && k.position <= 50).length;
+        metrics.notRanking = keywords.filter((k: any) => !k.position || k.position > 100).length;
+        
+        const rankedKeywords = keywords.filter((k: any) => k.position && k.position <= 100);
+        metrics.avgPosition = rankedKeywords.length > 0
+          ? rankedKeywords.reduce((sum: number, k: any) => sum + k.position, 0) / rankedKeywords.length
           : null;
+        
+        // Extract opportunities (positions 11-20 that can be pushed to top 10)
+        metrics.opportunities = keywords
+          .filter((k: any) => k.position && k.position >= 11 && k.position <= 20)
+          .slice(0, 10)
+          .map((k: any) => ({
+            keyword: k.keyword || k.query,
+            position: k.position,
+            url: k.url || k.landingPage,
+            volume: k.volume,
+          }));
       }
       break;
       
     case "crawl_render":
       if (data.data?.pages) {
-        metrics.pagesChecked = data.data.pages.length;
-        metrics.errorsFound = data.data.pages.filter((p: any) => p.hasError).length;
-        metrics.warningsFound = data.data.pages.filter((p: any) => p.hasWarning).length;
+        const pages = data.data.pages;
+        metrics.pagesChecked = pages.length;
+        metrics.totalPagesDiscovered = data.data.totalPagesDiscovered || data.data.totalPages || pages.length;
+        metrics.errorsFound = pages.filter((p: any) => p.hasError || p.error).length;
+        metrics.warningsFound = pages.filter((p: any) => p.hasWarning || p.warning).length;
+        
+        // Categorize issues by type
+        metrics.issuesByType = {
+          missingTitle: pages.filter((p: any) => p.issues?.missingTitle || !p.title).length,
+          missingH1: pages.filter((p: any) => p.issues?.missingH1 || !p.h1).length,
+          duplicateMeta: pages.filter((p: any) => p.issues?.duplicateMeta).length,
+          missingMeta: pages.filter((p: any) => p.issues?.missingMeta || !p.metaDescription).length,
+          canonicalIssues: pages.filter((p: any) => p.issues?.canonical || p.issues?.canonicalMismatch).length,
+          brokenLinks: pages.filter((p: any) => p.issues?.brokenLinks?.length > 0).length,
+          slowPages: pages.filter((p: any) => p.loadTime && p.loadTime > 3000).length,
+        };
+        
+        // Top issues with URLs
+        metrics.topIssues = pages
+          .filter((p: any) => p.hasError || p.error || p.issues)
+          .slice(0, 10)
+          .map((p: any) => ({
+            url: p.url,
+            issues: p.issues || { error: p.error },
+            statusCode: p.statusCode,
+          }));
       }
       if (data.data?.summary) {
         metrics.pagesChecked = data.data.summary.pagesChecked || metrics.pagesChecked;
+        metrics.totalPagesDiscovered = data.data.summary.totalPages || metrics.totalPagesDiscovered;
         metrics.errorsFound = data.data.summary.errors || metrics.errorsFound;
         metrics.warningsFound = data.data.summary.warnings || metrics.warningsFound;
       }
@@ -191,6 +233,25 @@ function extractMetrics(workerKey: string, data: any): Record<string, any> {
         metrics.cls = data.data.vitals.cls;
         metrics.inp = data.data.vitals.inp;
         metrics.score = data.data.vitals.score;
+        metrics.ttfb = data.data.vitals.ttfb;
+        
+        // Thresholds
+        metrics.lcpStatus = metrics.lcp ? (metrics.lcp <= 2500 ? "good" : metrics.lcp <= 4000 ? "needs_improvement" : "poor") : null;
+        metrics.clsStatus = metrics.cls ? (metrics.cls <= 0.1 ? "good" : metrics.cls <= 0.25 ? "needs_improvement" : "poor") : null;
+        metrics.inpStatus = metrics.inp ? (metrics.inp <= 200 ? "good" : metrics.inp <= 500 ? "needs_improvement" : "poor") : null;
+      }
+      if (data.data?.urls || data.data?.pages) {
+        const pages = data.data.urls || data.data.pages;
+        metrics.failingUrlsCount = pages.filter((p: any) => p.score && p.score < 50).length;
+        metrics.slowUrls = pages
+          .filter((p: any) => p.lcp && p.lcp > 2500)
+          .slice(0, 10)
+          .map((p: any) => ({
+            url: p.url,
+            lcp: p.lcp,
+            cls: p.cls,
+            score: p.score,
+          }));
       }
       break;
       
@@ -199,6 +260,21 @@ function extractMetrics(workerKey: string, data: any): Record<string, any> {
         metrics.domainAuthority = data.data.domain_authority || data.data.domainAuthority;
         metrics.backlinkCount = data.data.backlink_count || data.data.totalBacklinks;
         metrics.referringDomains = data.data.referring_domains || data.data.referringDomains;
+        metrics.newLinks30d = data.data.new_links_30d || data.data.newLinks30d || 0;
+        metrics.lostLinks30d = data.data.lost_links_30d || data.data.lostLinks30d || 0;
+        
+        // Link velocity (net change)
+        metrics.linkVelocity = metrics.newLinks30d - metrics.lostLinks30d;
+        
+        // Lost links details
+        if (data.data.lostLinks) {
+          metrics.lostLinksDetails = data.data.lostLinks.slice(0, 10).map((l: any) => ({
+            sourceUrl: l.sourceUrl || l.source,
+            targetUrl: l.targetUrl || l.target,
+            domainRating: l.domainRating || l.dr,
+            lostDate: l.lostDate || l.date,
+          }));
+        }
       }
       break;
       
@@ -208,13 +284,44 @@ function extractMetrics(workerKey: string, data: any): Record<string, any> {
         metrics.avgCompetitorDA = data.data.competitors.length > 0
           ? data.data.competitors.reduce((sum: number, c: any) => sum + (c.domainAuthority || 0), 0) / data.data.competitors.length
           : null;
+        
+        metrics.competitors = data.data.competitors.slice(0, 5).map((c: any) => ({
+          domain: c.domain,
+          da: c.domainAuthority,
+          traffic: c.traffic,
+        }));
+      }
+      if (data.data?.gaps) {
+        metrics.contentGaps = data.data.gaps.slice(0, 10).map((g: any) => ({
+          keyword: g.keyword,
+          competitorUrl: g.competitorUrl || g.url,
+          volume: g.volume,
+          difficulty: g.difficulty,
+        }));
+        metrics.gapCount = data.data.gaps.length;
+      }
+      if (data.data?.newPages) {
+        metrics.newCompetitorPages = data.data.newPages.slice(0, 10);
       }
       break;
       
     case "content_decay":
       if (data.data?.pages) {
-        metrics.pagesAnalyzed = data.data.pages.length;
-        metrics.decayingPages = data.data.pages.filter((p: any) => p.isDecaying || p.decay_score > 0.5).length;
+        const pages = data.data.pages;
+        metrics.pagesAnalyzed = pages.length;
+        metrics.decayingPages = pages.filter((p: any) => p.isDecaying || p.decayScore > 0.5 || p.decay_score > 0.5).length;
+        
+        // Decayed pages details
+        metrics.decayedPagesList = pages
+          .filter((p: any) => p.isDecaying || p.decayScore > 0.5 || p.decay_score > 0.5)
+          .slice(0, 10)
+          .map((p: any) => ({
+            url: p.url,
+            title: p.title,
+            decayScore: p.decayScore || p.decay_score,
+            trafficDrop: p.trafficDrop || p.traffic_drop,
+            lastUpdated: p.lastUpdated || p.last_updated,
+          }));
       }
       break;
       
@@ -303,39 +410,160 @@ function generateSuggestions(
 ): InsertSeoSuggestion[] {
   const suggestions: InsertSeoSuggestion[] = [];
   const timestamp = Date.now();
+  let suggestionIndex = 0;
+  
+  const getNextId = (prefix: string) => `sug_${timestamp}_${prefix}_${++suggestionIndex}`;
   
   for (const result of results) {
     if (result.status !== "success" || !result.metrics) continue;
     
     const { workerKey, metrics } = result;
     
+    // SERP Quick Wins - Keywords in positions 11-20 that can be pushed to top 10
+    if (workerKey === "serp_intel" && metrics.inPos11to20 > 0) {
+      const opportunities = metrics.opportunities || [];
+      suggestions.push({
+        suggestionId: getNextId("serp_quick_win"),
+        runId,
+        siteId,
+        suggestionType: "serp_quick_win",
+        title: `Push ${metrics.inPos11to20} Keywords into Top 10`,
+        description: `You have ${metrics.inPos11to20} keywords ranking in positions 11-20. These are quick wins that can move to page 1 with targeted optimization.`,
+        severity: metrics.inPos11to20 >= 5 ? "high" : "medium",
+        category: "serp",
+        evidenceJson: { 
+          metrics, 
+          workerKey,
+          opportunities,
+        },
+        actionsJson: [
+          "Review and optimize on-page content for each keyword",
+          "Add internal links from high-authority pages",
+          "Include FAQ sections addressing related questions",
+          "Update meta titles and descriptions for CTR improvement",
+          "Add structured data markup where applicable",
+        ],
+        impactedKeywords: opportunities.map((o: any) => o.keyword),
+        impactedUrls: opportunities.map((o: any) => o.url).filter(Boolean),
+        estimatedImpact: "high",
+        estimatedEffort: "quick_win",
+        assignee: "SEO",
+        sourceWorkers: [workerKey],
+      });
+    }
+    
+    // General keyword optimization
     if (workerKey === "serp_intel" && metrics.keywordCount > 0) {
       if (metrics.inTop10 < metrics.keywordCount * 0.3) {
         suggestions.push({
-          suggestionId: `sug_${timestamp}_keyword_optimization`,
+          suggestionId: getNextId("keyword_optimization"),
           runId,
           siteId,
           suggestionType: "keyword_optimization",
-          title: "Improve Keyword Rankings",
-          description: `Only ${metrics.inTop10} of ${metrics.keywordCount} tracked keywords are in top 10. Consider content optimization and link building for underperforming keywords.`,
+          title: "Improve Overall Keyword Rankings",
+          description: `Only ${metrics.inTop10} of ${metrics.keywordCount} tracked keywords are in top 10 (${Math.round((metrics.inTop10 / metrics.keywordCount) * 100)}%). Focus on content quality and backlink building.`,
           severity: metrics.inTop10 < metrics.keywordCount * 0.1 ? "high" : "medium",
           category: "serp",
-          evidenceJson: { metrics, workerKey },
+          evidenceJson: { 
+            keywordCount: metrics.keywordCount,
+            inTop10: metrics.inTop10,
+            avgPosition: metrics.avgPosition,
+            workerKey,
+          },
           estimatedImpact: "high",
           estimatedEffort: "significant",
+          assignee: "SEO",
           sourceWorkers: [workerKey],
         });
       }
     }
     
-    if (workerKey === "crawl_render" && metrics.errorsFound > 0) {
+    // Technical SEO Blockers - Missing titles
+    if (workerKey === "crawl_render" && metrics.issuesByType?.missingTitle > 0) {
       suggestions.push({
-        suggestionId: `sug_${timestamp}_technical_fix`,
+        suggestionId: getNextId("missing_titles"),
+        runId,
+        siteId,
+        suggestionType: "technical_fix",
+        title: `Fix ${metrics.issuesByType.missingTitle} Pages with Missing Titles`,
+        description: `Pages without title tags won't rank well. Add unique, descriptive titles to improve search visibility.`,
+        severity: "high",
+        category: "technical",
+        evidenceJson: { 
+          count: metrics.issuesByType.missingTitle,
+          topIssues: metrics.topIssues?.filter((i: any) => !i.issues?.title),
+          workerKey,
+        },
+        actionsJson: [
+          "Add unique title tags under 60 characters",
+          "Include primary keyword near the beginning",
+          "Make titles compelling for click-through",
+        ],
+        estimatedImpact: "high",
+        estimatedEffort: "quick_win",
+        assignee: "Dev",
+        sourceWorkers: [workerKey],
+      });
+    }
+    
+    // Technical SEO - Missing H1
+    if (workerKey === "crawl_render" && metrics.issuesByType?.missingH1 > 0) {
+      suggestions.push({
+        suggestionId: getNextId("missing_h1"),
+        runId,
+        siteId,
+        suggestionType: "technical_fix",
+        title: `Fix ${metrics.issuesByType.missingH1} Pages with Missing H1`,
+        description: `H1 tags help search engines understand page content. Each page should have exactly one H1.`,
+        severity: "medium",
+        category: "technical",
+        evidenceJson: { 
+          count: metrics.issuesByType.missingH1,
+          workerKey,
+        },
+        estimatedImpact: "medium",
+        estimatedEffort: "quick_win",
+        assignee: "Dev",
+        sourceWorkers: [workerKey],
+      });
+    }
+    
+    // Technical SEO - Canonical issues
+    if (workerKey === "crawl_render" && metrics.issuesByType?.canonicalIssues > 0) {
+      suggestions.push({
+        suggestionId: getNextId("canonical_issues"),
+        runId,
+        siteId,
+        suggestionType: "technical_fix",
+        title: `Fix ${metrics.issuesByType.canonicalIssues} Canonical Tag Issues`,
+        description: `Canonical tag problems can cause duplicate content issues and dilute ranking signals.`,
+        severity: "high",
+        category: "technical",
+        evidenceJson: { 
+          count: metrics.issuesByType.canonicalIssues,
+          workerKey,
+        },
+        actionsJson: [
+          "Ensure each page has a self-referencing canonical",
+          "Fix any canonical chains or loops",
+          "Remove canonicals pointing to 404 pages",
+        ],
+        estimatedImpact: "high",
+        estimatedEffort: "moderate",
+        assignee: "Dev",
+        sourceWorkers: [workerKey],
+      });
+    }
+    
+    // General technical errors
+    if (workerKey === "crawl_render" && metrics.errorsFound > 0 && !metrics.issuesByType) {
+      suggestions.push({
+        suggestionId: getNextId("technical_errors"),
         runId,
         siteId,
         suggestionType: "technical_fix",
         title: "Fix Technical SEO Issues",
-        description: `Found ${metrics.errorsFound} technical errors across ${metrics.pagesChecked} pages. These may impact search engine crawling and indexing.`,
+        description: `Found ${metrics.errorsFound} technical errors across ${metrics.pagesChecked} of ${metrics.totalPagesDiscovered || metrics.pagesChecked} pages.`,
         severity: metrics.errorsFound > 5 ? "high" : "medium",
         category: "technical",
         evidenceJson: { metrics, workerKey },
@@ -346,71 +574,72 @@ function generateSuggestions(
       });
     }
     
-    if (workerKey === "content_decay" && metrics.decayingPages > 0) {
+    // Core Web Vitals - LCP Issues
+    if (workerKey === "core_web_vitals" && metrics.lcpStatus === "poor") {
       suggestions.push({
-        suggestionId: `sug_${timestamp}_content_refresh`,
+        suggestionId: getNextId("cwv_lcp"),
         runId,
         siteId,
-        suggestionType: "content_refresh",
-        title: "Refresh Declining Content",
-        description: `${metrics.decayingPages} pages showing traffic decay. Consider updating content, adding new information, or improving internal linking.`,
-        severity: metrics.decayingPages > 3 ? "high" : "medium",
-        category: "content",
-        evidenceJson: { metrics, workerKey },
-        estimatedImpact: "medium",
+        suggestionType: "performance_fix",
+        title: "Fix Slow Largest Contentful Paint (LCP)",
+        description: `LCP is ${metrics.lcp}ms (target: <2500ms). This directly impacts Core Web Vitals ranking factor.`,
+        severity: "critical",
+        category: "performance",
+        evidenceJson: { 
+          lcp: metrics.lcp,
+          slowUrls: metrics.slowUrls,
+          workerKey,
+        },
+        actionsJson: [
+          "Optimize largest image (compress, use modern formats)",
+          "Implement lazy loading for below-fold images",
+          "Reduce server response time (TTFB)",
+          "Preload critical resources",
+          "Use a CDN for static assets",
+        ],
+        impactedUrls: metrics.slowUrls?.map((u: any) => u.url),
+        estimatedImpact: "high",
+        estimatedEffort: "significant",
+        assignee: "Dev",
+        sourceWorkers: [workerKey],
+      });
+    }
+    
+    // Core Web Vitals - CLS Issues
+    if (workerKey === "core_web_vitals" && metrics.clsStatus === "poor") {
+      suggestions.push({
+        suggestionId: getNextId("cwv_cls"),
+        runId,
+        siteId,
+        suggestionType: "performance_fix",
+        title: "Fix Layout Shift Issues (CLS)",
+        description: `CLS is ${metrics.cls} (target: <0.1). Layout shifts frustrate users and hurt rankings.`,
+        severity: "high",
+        category: "performance",
+        evidenceJson: { cls: metrics.cls, workerKey },
+        actionsJson: [
+          "Add width/height attributes to images and videos",
+          "Reserve space for dynamic content and ads",
+          "Avoid inserting content above existing content",
+          "Use transform animations instead of layout-triggering properties",
+        ],
+        estimatedImpact: "high",
         estimatedEffort: "moderate",
-        assignee: "Content",
+        assignee: "Dev",
         sourceWorkers: [workerKey],
       });
     }
     
-    if (workerKey === "backlink_authority" && metrics.domainAuthority !== undefined) {
-      if (metrics.domainAuthority < 30) {
+    // General CWV performance
+    if (workerKey === "core_web_vitals" && metrics.score !== undefined && metrics.score < 50) {
+      if (!suggestions.some(s => s.suggestionType === "performance_fix")) {
         suggestions.push({
-          suggestionId: `sug_${timestamp}_backlink_campaign`,
-          runId,
-          siteId,
-          suggestionType: "backlink_campaign",
-          title: "Build Domain Authority",
-          description: `Domain Authority is ${metrics.domainAuthority}. Consider a link building campaign to improve authority and rankings.`,
-          severity: metrics.domainAuthority < 20 ? "high" : "medium",
-          category: "authority",
-          evidenceJson: { metrics, workerKey },
-          estimatedImpact: "high",
-          estimatedEffort: "significant",
-          assignee: "SEO",
-          sourceWorkers: [workerKey],
-        });
-      }
-    }
-    
-    if (workerKey === "content_qa" && metrics.issuesFound > 0) {
-      suggestions.push({
-        suggestionId: `sug_${timestamp}_content_quality`,
-        runId,
-        siteId,
-        suggestionType: "content_quality",
-        title: "Address Content Quality Issues",
-        description: `Content QA found ${metrics.issuesFound} issues. Review and fix these to improve user experience and search rankings.`,
-        severity: metrics.issuesFound > 10 ? "high" : "medium",
-        category: "content",
-        evidenceJson: { metrics, workerKey },
-        estimatedImpact: "medium",
-        estimatedEffort: "quick_win",
-        assignee: "Content",
-        sourceWorkers: [workerKey],
-      });
-    }
-    
-    if (workerKey === "core_web_vitals" && metrics.score !== undefined) {
-      if (metrics.score < 50) {
-        suggestions.push({
-          suggestionId: `sug_${timestamp}_performance`,
+          suggestionId: getNextId("performance"),
           runId,
           siteId,
           suggestionType: "performance_fix",
-          title: "Improve Core Web Vitals",
-          description: `Performance score is ${metrics.score}. LCP of ${metrics.lcp}ms may be impacting user experience and rankings.`,
+          title: "Improve Overall Page Performance",
+          description: `Performance score is ${metrics.score}/100. Pages scoring below 50 may see ranking penalties.`,
           severity: metrics.score < 30 ? "critical" : "high",
           category: "performance",
           evidenceJson: { metrics, workerKey },
@@ -421,9 +650,155 @@ function generateSuggestions(
         });
       }
     }
+    
+    // Authority - Lost Links Recovery
+    if (workerKey === "backlink_authority" && metrics.lostLinks30d > 5) {
+      suggestions.push({
+        suggestionId: getNextId("lost_links"),
+        runId,
+        siteId,
+        suggestionType: "link_recovery",
+        title: `Recover ${metrics.lostLinks30d} Lost Backlinks`,
+        description: `You've lost ${metrics.lostLinks30d} backlinks in the past 30 days. Reclaiming these can restore authority.`,
+        severity: metrics.lostLinks30d > 10 ? "high" : "medium",
+        category: "authority",
+        evidenceJson: { 
+          lostLinks30d: metrics.lostLinks30d,
+          lostLinksDetails: metrics.lostLinksDetails,
+          workerKey,
+        },
+        actionsJson: [
+          "Identify high-value lost links using Ahrefs/SEMrush",
+          "Check if linked pages are returning 404 (fix with redirects)",
+          "Reach out to site owners to restore removed links",
+          "Create new content to attract replacement links",
+        ],
+        estimatedImpact: "high",
+        estimatedEffort: "moderate",
+        assignee: "SEO",
+        sourceWorkers: [workerKey],
+      });
+    }
+    
+    // Authority - Low Domain Authority
+    if (workerKey === "backlink_authority" && metrics.domainAuthority !== undefined) {
+      if (metrics.domainAuthority < 30) {
+        suggestions.push({
+          suggestionId: getNextId("build_authority"),
+          runId,
+          siteId,
+          suggestionType: "backlink_campaign",
+          title: "Build Domain Authority",
+          description: `Domain Authority is ${metrics.domainAuthority}. Building quality backlinks will improve rankings across all pages.`,
+          severity: metrics.domainAuthority < 20 ? "high" : "medium",
+          category: "authority",
+          evidenceJson: { 
+            domainAuthority: metrics.domainAuthority,
+            referringDomains: metrics.referringDomains,
+            workerKey,
+          },
+          actionsJson: [
+            "Create linkable assets (guides, tools, research)",
+            "Guest post on industry publications",
+            "Pursue HARO and journalist opportunities",
+            "Build relationships with industry influencers",
+          ],
+          estimatedImpact: "high",
+          estimatedEffort: "significant",
+          assignee: "SEO",
+          sourceWorkers: [workerKey],
+        });
+      }
+    }
+    
+    // Content Decay - Refresh declining pages
+    if (workerKey === "content_decay" && metrics.decayingPages > 0) {
+      suggestions.push({
+        suggestionId: getNextId("content_decay"),
+        runId,
+        siteId,
+        suggestionType: "content_refresh",
+        title: `Refresh ${metrics.decayingPages} Decaying Pages`,
+        description: `${metrics.decayingPages} pages are losing traffic. Updating these can recover lost organic visits.`,
+        severity: metrics.decayingPages > 3 ? "high" : "medium",
+        category: "content",
+        evidenceJson: { 
+          decayingPages: metrics.decayingPages,
+          decayedPagesList: metrics.decayedPagesList,
+          workerKey,
+        },
+        actionsJson: [
+          "Update statistics and dates to current year",
+          "Add new sections addressing recent developments",
+          "Improve internal linking to/from decaying pages",
+          "Add FAQ sections targeting related questions",
+          "Republish with updated date",
+        ],
+        impactedUrls: metrics.decayedPagesList?.map((p: any) => p.url),
+        estimatedImpact: "medium",
+        estimatedEffort: "moderate",
+        assignee: "Content",
+        sourceWorkers: [workerKey],
+      });
+    }
+    
+    // Competitive Gaps - Missing content opportunities
+    if (workerKey === "competitive_snapshot" && metrics.gapCount > 0) {
+      suggestions.push({
+        suggestionId: getNextId("competitive_gaps"),
+        runId,
+        siteId,
+        suggestionType: "content_gap",
+        title: `Create Content for ${metrics.gapCount} Competitive Gaps`,
+        description: `Competitors rank for ${metrics.gapCount} keywords/topics you don't cover. Creating this content can capture new traffic.`,
+        severity: metrics.gapCount >= 10 ? "high" : "medium",
+        category: "competitive",
+        evidenceJson: { 
+          gapCount: metrics.gapCount,
+          contentGaps: metrics.contentGaps,
+          workerKey,
+        },
+        actionsJson: [
+          "Prioritize gaps by search volume and difficulty",
+          "Create comprehensive content better than competitors",
+          "Include unique insights, data, or perspectives",
+          "Optimize for featured snippets where applicable",
+        ],
+        impactedKeywords: metrics.contentGaps?.map((g: any) => g.keyword),
+        estimatedImpact: "high",
+        estimatedEffort: "significant",
+        assignee: "Content",
+        sourceWorkers: [workerKey],
+      });
+    }
+    
+    // Content QA issues
+    if (workerKey === "content_qa" && metrics.issuesFound > 0) {
+      suggestions.push({
+        suggestionId: getNextId("content_quality"),
+        runId,
+        siteId,
+        suggestionType: "content_quality",
+        title: "Fix Content Quality Issues",
+        description: `Content QA found ${metrics.issuesFound} issues affecting content quality and user experience.`,
+        severity: metrics.issuesFound > 10 ? "high" : "medium",
+        category: "content",
+        evidenceJson: { metrics, workerKey },
+        estimatedImpact: "medium",
+        estimatedEffort: "quick_win",
+        assignee: "Content",
+        sourceWorkers: [workerKey],
+      });
+    }
   }
   
-  return suggestions;
+  // Sort by severity (critical > high > medium > low) and return
+  const severityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+  return suggestions.sort((a, b) => {
+    const aOrder = severityOrder[a.severity || "low"] ?? 4;
+    const bOrder = severityOrder[b.severity || "low"] ?? 4;
+    return aOrder - bOrder;
+  });
 }
 
 function generateKbaseInsights(
@@ -475,6 +850,72 @@ function generateKbaseInsights(
   return insights;
 }
 
+// Generate tickets from suggestions
+function generateTicketsFromSuggestions(
+  runId: string,
+  suggestions: InsertSeoSuggestion[]
+): { ticketId: string; runId: string; title: string; description: string; category: string; priority: string; status: string; assignee: string; steps: string[]; expectedImpact: string; evidence: Record<string, any> }[] {
+  const tickets: { ticketId: string; runId: string; title: string; description: string; category: string; priority: string; status: string; assignee: string; steps: string[]; expectedImpact: string; evidence: Record<string, any> }[] = [];
+  const timestamp = Date.now();
+  let ticketIndex = 0;
+  
+  for (const suggestion of suggestions) {
+    // Only create tickets for high severity items or critical categories
+    const shouldCreateTicket = 
+      suggestion.severity === "critical" || 
+      suggestion.severity === "high" ||
+      suggestion.category === "performance" ||
+      suggestion.category === "technical";
+    
+    if (!shouldCreateTicket) continue;
+    
+    // Determine ticket category (Engineering vs Content)
+    let ticketCategory = "SEO";
+    let assignee = suggestion.assignee || "SEO";
+    
+    if (suggestion.category === "performance" || suggestion.category === "technical") {
+      ticketCategory = "Engineering";
+      assignee = "Dev";
+    } else if (suggestion.category === "content" || suggestion.category === "competitive") {
+      ticketCategory = "Content";
+      assignee = "Content";
+    } else if (suggestion.category === "authority") {
+      ticketCategory = "SEO";
+      assignee = "SEO";
+    }
+    
+    // Map severity to priority
+    const priorityMap: Record<string, string> = {
+      critical: "Urgent",
+      high: "High",
+      medium: "Medium",
+      low: "Low",
+    };
+    
+    tickets.push({
+      ticketId: `TICK-${timestamp}-${++ticketIndex}`,
+      runId,
+      title: suggestion.title,
+      description: suggestion.description || "",
+      category: ticketCategory,
+      priority: priorityMap[suggestion.severity || "medium"] || "Medium",
+      status: "Open",
+      assignee,
+      steps: (suggestion.actionsJson as string[]) || [],
+      expectedImpact: `${suggestion.estimatedImpact || "medium"} impact on SEO performance`,
+      evidence: {
+        suggestionId: suggestion.suggestionId,
+        category: suggestion.category,
+        impactedUrls: suggestion.impactedUrls?.slice(0, 5),
+        impactedKeywords: suggestion.impactedKeywords?.slice(0, 10),
+        sourceWorkers: suggestion.sourceWorkers,
+      },
+    });
+  }
+  
+  return tickets;
+}
+
 export async function runWorkerOrchestration(
   runId: string,
   siteId: string = "empathyhealthclinic.com",
@@ -497,6 +938,21 @@ export async function runWorkerOrchestration(
   const workerServices = getWorkerServices().filter(s => 
     WORKER_KEYS.includes(s.serviceSlug as any)
   );
+  
+  // Create run record with "running" status
+  await storage.createSeoRun({
+    runId,
+    siteId,
+    domain: resolvedDomain!,
+    status: "running",
+    totalWorkers: workerServices.length,
+    completedWorkers: 0,
+    successWorkers: 0,
+    failedWorkers: 0,
+    skippedWorkers: 0,
+    startedAt,
+    workerStatusesJson: {},
+  });
   
   const configPromises = workerServices.map(async (mapping) => {
     const config = await resolveWorkerConfig(mapping.serviceSlug, siteId);
@@ -538,14 +994,71 @@ export async function runWorkerOrchestration(
     await storage.saveSeoKbaseInsights(insights);
   }
   
+  // Generate tickets from suggestions
+  const tickets = generateTicketsFromSuggestions(runId, suggestions);
+  if (tickets.length > 0) {
+    const ticketsToSave = tickets.map(t => ({
+      ticketId: t.ticketId,
+      runId: t.runId,
+      title: t.title,
+      description: t.description,
+      category: t.category,
+      priority: t.priority,
+      status: t.status,
+      owner: t.assignee,
+      steps: t.steps,
+      expectedImpact: t.expectedImpact,
+      evidence: t.evidence,
+    }));
+    await storage.saveTickets(ticketsToSave);
+  }
+  
   const finishedAt = new Date();
   const successCount = results.filter(r => r.status === "success").length;
   const failedCount = results.filter(r => r.status === "failed" || r.status === "timeout").length;
+  const skippedCount = results.filter(r => r.status === "skipped").length;
+  
+  // Build worker statuses map
+  const workerStatusesJson: Record<string, any> = {};
+  for (const result of results) {
+    workerStatusesJson[result.workerKey] = {
+      status: result.status,
+      durationMs: result.durationMs,
+      summary: result.summary,
+      error: result.errorCode,
+    };
+  }
+  
+  // Determine final run status
+  let runStatus: string;
+  if (successCount === results.length) {
+    runStatus = "complete";
+  } else if (successCount > 0) {
+    runStatus = "partial";
+  } else {
+    runStatus = "failed";
+  }
+  
+  // Update run record with final status
+  await storage.updateSeoRun(runId, {
+    status: runStatus,
+    completedWorkers: results.length,
+    successWorkers: successCount,
+    failedWorkers: failedCount,
+    skippedWorkers: skippedCount,
+    suggestionsGenerated: suggestions.length,
+    insightsGenerated: insights.length,
+    ticketsGenerated: tickets.length,
+    finishedAt,
+    workerStatusesJson,
+  });
   
   logger.info("WorkerOrchestrator", "Orchestration complete", {
     runId,
+    status: runStatus,
     successCount,
     failedCount,
+    skippedCount,
     suggestionsGenerated: suggestions.length,
     insightsGenerated: insights.length,
     durationMs: finishedAt.getTime() - startedAt.getTime(),
@@ -561,6 +1074,7 @@ export async function runWorkerOrchestration(
     failedCount,
     suggestions,
     insights,
+    tickets,
   };
 }
 

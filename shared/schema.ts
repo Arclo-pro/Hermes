@@ -1601,3 +1601,36 @@ export const insertSeoKbaseInsightSchema = createInsertSchema(seoKbaseInsights).
 });
 export type InsertSeoKbaseInsight = z.infer<typeof insertSeoKbaseInsightSchema>;
 export type SeoKbaseInsight = typeof seoKbaseInsights.$inferSelect;
+
+// SEO Runs - track orchestration run status for polling
+export const seoRuns = pgTable("seo_runs", {
+  id: serial("id").primaryKey(),
+  runId: text("run_id").notNull().unique(),
+  siteId: text("site_id").notNull(),
+  domain: text("domain").notNull(),
+  
+  status: text("status").notNull().default("queued"), // queued, running, complete, partial, failed
+  
+  workerStatusesJson: jsonb("worker_statuses_json"), // { workerKey: { status, startedAt, finishedAt } }
+  
+  totalWorkers: integer("total_workers").default(0),
+  completedWorkers: integer("completed_workers").default(0),
+  successWorkers: integer("success_workers").default(0),
+  failedWorkers: integer("failed_workers").default(0),
+  skippedWorkers: integer("skipped_workers").default(0),
+  
+  suggestionsGenerated: integer("suggestions_generated").default(0),
+  insightsGenerated: integer("insights_generated").default(0),
+  ticketsGenerated: integer("tickets_generated").default(0),
+  
+  startedAt: timestamp("started_at"),
+  finishedAt: timestamp("finished_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertSeoRunSchema = createInsertSchema(seoRuns).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertSeoRun = z.infer<typeof insertSeoRunSchema>;
+export type SeoRun = typeof seoRuns.$inferSelect;
