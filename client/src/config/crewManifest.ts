@@ -1,4 +1,4 @@
-import { Map, Binoculars, Wrench, Radio, Activity, Key, GitBranch, Radar, Bot, BookOpen, BarChart3, Search, FileText, Zap, Bell, Database, Globe, Shield, TrendingUp, Link2 } from "lucide-react";
+import { Map, Binoculars, Wrench, Radio, Activity, Key, GitBranch, Radar, Bot, BookOpen, BarChart3, Search, FileText, Zap, Bell, Database, Globe, Shield, TrendingUp, Link2, Eye, PenTool, Megaphone } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export type CrewMember = {
@@ -42,12 +42,12 @@ export const CREW_MANIFEST: Record<string, CrewMember> = {
   },
   competitive_snapshot: {
     service_id: "competitive_snapshot",
-    nickname: "Shadow",
-    role: "Deep Cover Agent",
-    color: "#1E293B",
-    icon: Binoculars,
-    blurb: "Infiltrates competitor SERPs, extracts intel on rankings, and identifies weaknesses to exploit.",
-    capabilities: ["Competitor Surveillance", "SERP Infiltration", "Gap Exploitation"],
+    nickname: "Natasha",
+    role: "Intelligence Operative",
+    color: "#7F1D1D",
+    icon: Eye,
+    blurb: "Gathers competitive intelligence, SERP movements, and strategic gaps.",
+    capabilities: ["Competitor Analysis", "SERP Recon", "Gap Detection"],
     dependencies: ["orchestrator"],
   },
   crawl_render: {
@@ -132,22 +132,22 @@ export const CREW_MANIFEST: Record<string, CrewMember> = {
   },
   content_generator: {
     service_id: "content_generator",
-    nickname: "Scribe",
-    role: "Content Creator",
-    color: "#14B8A6",
-    icon: BookOpen,
-    blurb: "Drafts SEO-optimized content based on gaps and best practices.",
-    capabilities: ["Content Drafts", "FAQ Generation", "Schema Markup"],
+    nickname: "Hemingway",
+    role: "Editorial Craftsman",
+    color: "#1E3A8A",
+    icon: PenTool,
+    blurb: "Writes clear, durable content optimized for humans and search engines.",
+    capabilities: ["Long-form Writing", "Rewrites", "Knowledge Articles"],
     dependencies: ["orchestrator", "seo_kbase"],
   },
   google_ads_connector: {
     service_id: "google_ads_connector",
-    nickname: "Banker",
-    role: "Ads Analyst",
-    color: "#3B82F6",
-    icon: BarChart3,
-    blurb: "Tracks Google Ads spend, conversions, and policy issues.",
-    capabilities: ["Spend Tracking", "Conversion Metrics", "Policy Alerts"],
+    nickname: "Madison",
+    role: "Growth Strategist",
+    color: "#EC4899",
+    icon: Megaphone,
+    blurb: "Designs campaigns, messaging, and experiments that drive acquisition and conversion.",
+    capabilities: ["Ad Strategy", "Copy Testing", "Conversion Optimization"],
     dependencies: ["orchestrator"],
   },
   notifications: {
