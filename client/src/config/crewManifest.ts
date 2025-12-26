@@ -42,12 +42,12 @@ export const CREW_MANIFEST: Record<string, CrewMember> = {
   },
   competitive_snapshot: {
     service_id: "competitive_snapshot",
-    nickname: "Scout",
-    role: "Recon Specialist",
-    color: "#F97316",
+    nickname: "Shadow",
+    role: "Deep Cover Agent",
+    color: "#1E293B",
     icon: Binoculars,
-    blurb: "Maps competitors, SERPs, and gaps worth attacking.",
-    capabilities: ["Competitor Analysis", "SERP Tracking", "Gap Detection"],
+    blurb: "Infiltrates competitor SERPs, extracts intel on rankings, and identifies weaknesses to exploit.",
+    capabilities: ["Competitor Surveillance", "SERP Infiltration", "Gap Exploitation"],
     dependencies: ["orchestrator"],
   },
   crawl_render: {
