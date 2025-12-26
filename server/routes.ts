@@ -4432,53 +4432,32 @@ When answering:
             break;
           }
           case "content_generator": {
-            // Check if the worker is configured via Bitwarden secret
-            const { bitwardenProvider: genProvider } = await import("./vault/BitwardenProvider");
-            const genSecret = await genProvider.getSecret("SEO_Content_GENERATOR");
+            // Use the workerConfigResolver which supports aliases and fallback env vars
+            const { resolveWorkerConfig } = await import("./workerConfigResolver");
+            const genConfig = await resolveWorkerConfig("content_generator");
             
-            const debug: any = { secretFound: !!genSecret, requestedUrls: [], responses: [] };
+            const debug: any = { 
+              secretFound: genConfig.rawValueType !== "null", 
+              secretName: genConfig.secretName,
+              requestedUrls: [], 
+              responses: [] 
+            };
             const expectedOutputs = ["drafts", "content_blocks", "faq_schema", "internal_links"];
             
-            let workerConfig: { base_url?: string; api_key?: string } | null = null;
-            let parseError: string | null = null;
-            
-            if (genSecret) {
-              try {
-                workerConfig = JSON.parse(genSecret);
-                debug.baseUrl = workerConfig?.base_url;
-              } catch (e: any) {
-                parseError = e.message || "Invalid JSON";
-                debug.parseError = parseError;
-              }
-            }
-            
-            if (!genSecret) {
+            if (!genConfig.valid || !genConfig.base_url) {
               checkResult = {
                 status: "fail",
-                summary: "Worker secret not found - add SEO_Content_GENERATOR to Bitwarden",
-                metrics: { secret_found: false, outputs_missing: expectedOutputs.length },
-                details: { debug, actualOutputs: [], missingOutputs: expectedOutputs },
-              };
-            } else if (parseError) {
-              checkResult = {
-                status: "fail",
-                summary: `Secret JSON invalid: ${parseError}`,
-                metrics: { secret_found: true, json_valid: false, outputs_missing: expectedOutputs.length },
-                details: { debug, actualOutputs: [], missingOutputs: expectedOutputs },
-              };
-            } else if (!workerConfig?.base_url) {
-              checkResult = {
-                status: "fail",
-                summary: "Worker secret missing base_url field",
-                metrics: { secret_found: true, base_url_present: false, outputs_missing: expectedOutputs.length },
+                summary: genConfig.error || "Worker not configured - add SEO_Blog_Writer to Bitwarden or set SEO_BLOG_WRITER_BASE_URL env var",
+                metrics: { secret_found: genConfig.rawValueType !== "null", outputs_missing: expectedOutputs.length },
                 details: { debug, actualOutputs: [], missingOutputs: expectedOutputs },
               };
             } else {
-              const baseUrl = workerConfig.base_url.replace(/\/$/, '');
+              const baseUrl = genConfig.base_url.replace(/\/$/, '');
+              debug.baseUrl = baseUrl;
               const headers: Record<string, string> = {};
-              if (workerConfig.api_key) {
-                headers["Authorization"] = `Bearer ${workerConfig.api_key}`;
-                headers["X-API-Key"] = workerConfig.api_key;
+              if (genConfig.api_key) {
+                headers["Authorization"] = `Bearer ${genConfig.api_key}`;
+                headers["X-API-Key"] = genConfig.api_key;
               }
               
               const healthUrl = `${baseUrl}/health`;
