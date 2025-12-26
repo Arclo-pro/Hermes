@@ -19,7 +19,8 @@ export interface ServiceSecretMapping {
   type: ServiceType;
   requiresBaseUrl: boolean;        // Workers need base_url, infrastructure does not
   category: "google" | "analysis" | "content" | "infrastructure" | "execution";
-  fallbackEnvVar?: string;         // Optional: env var for fallback when Bitwarden secret not JSON
+  fallbackEnvVar?: string;         // Optional: env var for API key fallback when Bitwarden secret not JSON
+  fallbackBaseUrlEnvVar?: string;  // Optional: env var for base URL fallback
   workerEndpoints?: Record<string, string>;  // Worker API endpoints
   requiresBearer?: boolean;        // Optional: if true, send Authorization: Bearer header in addition to x-api-key
 }
@@ -112,6 +113,8 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
     type: "worker",
     requiresBaseUrl: true,
     category: "analysis",
+    fallbackEnvVar: "SEO_TECHNICAL_CRAWLER_API_KEY",  // Replit secret for API key
+    fallbackBaseUrlEnvVar: "SEO_TECHNICAL_CRAWLER_BASE_URL",  // Env var for base URL
     workerEndpoints: {
       health: "/api/health",
       smokeTest: "/api/smoke-test",

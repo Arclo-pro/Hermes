@@ -65,6 +65,48 @@ function normalizeKeys(parsed: any): { base_url: string | null; api_key: string 
   };
 }
 
+function resolveFromFallbackEnvVars(mapping: ServiceSecretMapping): WorkerConfig {
+  const apiKey = mapping.fallbackEnvVar ? process.env[mapping.fallbackEnvVar] : null;
+  const baseUrl = mapping.fallbackBaseUrlEnvVar ? process.env[mapping.fallbackBaseUrlEnvVar] : null;
+  
+  const apiKeyFingerprint = apiKey ? computeKeyFingerprint(apiKey) : null;
+  const normalizedBaseUrl = baseUrl ? baseUrl.trim().replace(/\/+$/, "") : null;
+  
+  logger.info("WorkerConfig", `Using fallback env vars for ${mapping.serviceSlug}`, {
+    hasApiKey: !!apiKey,
+    hasBaseUrl: !!baseUrl,
+    baseUrl: normalizedBaseUrl,
+  });
+  
+  if (mapping.requiresBaseUrl && !normalizedBaseUrl) {
+    return {
+      ...DEFAULT_CONFIG,
+      secretName: `env:${mapping.fallbackEnvVar || mapping.fallbackBaseUrlEnvVar}`,
+      rawValueType: "string",
+      api_key: apiKey || null,
+      api_key_fingerprint: apiKeyFingerprint,
+      base_url: null,
+      valid: false,
+      error: `Fallback base URL env var not set: ${mapping.fallbackBaseUrlEnvVar}`,
+    };
+  }
+  
+  return {
+    base_url: normalizedBaseUrl,
+    api_key: apiKey || null,
+    api_key_fingerprint: apiKeyFingerprint,
+    health_path: mapping.workerEndpoints?.health || "/health",
+    start_path: mapping.workerEndpoints?.run || "/api/run",
+    status_path: "/api/status",
+    raw: { source: "fallback_env_vars" },
+    valid: true,
+    error: null,
+    secretName: `env:${mapping.fallbackEnvVar || mapping.fallbackBaseUrlEnvVar}`,
+    rawValueType: "string",
+    parseError: null,
+  };
+}
+
 export async function resolveWorkerConfig(
   serviceSlug: string,
   siteId?: string
@@ -79,6 +121,10 @@ export async function resolveWorkerConfig(
   }
 
   if (!mapping.bitwardenSecret) {
+    // Check for fallback env vars (Replit secrets)
+    if (mapping.fallbackEnvVar || mapping.fallbackBaseUrlEnvVar) {
+      return resolveFromFallbackEnvVars(mapping);
+    }
     return {
       ...DEFAULT_CONFIG,
       error: `No Bitwarden secret configured for service: ${serviceSlug}`,
@@ -92,6 +138,11 @@ export async function resolveWorkerConfig(
     const secretValue = await bitwardenProvider.getSecret(secretName);
 
     if (!secretValue) {
+      // Try fallback env vars before failing
+      if (mapping.fallbackEnvVar || mapping.fallbackBaseUrlEnvVar) {
+        logger.info("WorkerConfig", `Bitwarden secret not found, trying fallback env vars for ${serviceSlug}`);
+        return resolveFromFallbackEnvVars(mapping);
+      }
       return {
         ...DEFAULT_CONFIG,
         secretName,

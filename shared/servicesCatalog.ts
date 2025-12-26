@@ -268,11 +268,12 @@ export const servicesCatalog: ServiceDefinition[] = [
     description: "Performs technical SEO checks on your website including status codes, redirects, canonicals, and indexability. Can be configured for shallow or deep crawls.",
     purpose: "Detect technical SEO issues via crawl + render",
     inputs: ["site_domain", "crawl_scope", "robots_txt", "sitemap_xml"],
-    outputs: ["pages_crawled", "indexable_pages", "non_200_urls", "canonical_errors", "render_failures", "redirect_chains", "orphan_pages", "meta_tags"],
+    outputs: ["ok"],
     keyMetrics: ["total_pages", "error_count", "warning_count"],
     commonFailures: ["blocked_by_robots", "js_render_blank", "timeout", "network_error"],
     runTriggers: ["scheduled", "manual"],
     testMode: "worker",
+    secretKeyName: "SEO_Technical_Crawler",
   },
   {
     slug: "core_web_vitals",
