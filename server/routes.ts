@@ -1869,6 +1869,122 @@ When answering:
     }
   });
 
+  // Run KBASE worker to generate fresh insights
+  app.post("/api/kbase/run", async (req, res) => {
+    try {
+      const { resolveWorkerConfig } = await import("./workerConfigResolver");
+      const kbaseConfig = await resolveWorkerConfig("seo_kbase");
+      
+      if (!kbaseConfig.valid || !kbaseConfig.base_url) {
+        return res.status(400).json({ 
+          error: kbaseConfig.error || "SEO_KBASE not configured - add secret to Bitwarden",
+          configured: false,
+        });
+      }
+      
+      if (!kbaseConfig.api_key) {
+        return res.status(400).json({ 
+          error: "SEO_KBASE missing api_key",
+          configured: false,
+        });
+      }
+      
+      const baseUrl = kbaseConfig.base_url.replace(/\/+$/, '');
+      const domain = process.env.DOMAIN || 'empathyhealthclinic.com';
+      const runId = `kbase_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      
+      // Call the KBASE worker run endpoint
+      const runUrl = `${baseUrl}/run`;
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        "x-api-key": kbaseConfig.api_key,
+      };
+      
+      logger.info("KBASE", "Triggering KBASE run", { domain, runId });
+      
+      const response = await fetch(runUrl, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ 
+          domain,
+          mode: req.body?.mode || "quick",
+          run_id: runId,
+        }),
+        signal: AbortSignal.timeout(30000),
+      });
+      
+      const responseText = await response.text();
+      let responseData: any = {};
+      try {
+        responseData = JSON.parse(responseText);
+      } catch (e) {
+        responseData = { raw: responseText.slice(0, 500) };
+      }
+      
+      if (!response.ok) {
+        logger.error("KBASE", "KBASE run failed", { status: response.status, response: responseData });
+        return res.status(response.status).json({
+          error: responseData.error || `KBASE returned ${response.status}`,
+          details: responseData,
+        });
+      }
+      
+      // Extract findings count from response
+      const findingsCount = responseData.findings_count || 
+                           responseData.findingsCount || 
+                           responseData.data?.findings_count ||
+                           (Array.isArray(responseData.findings) ? responseData.findings.length : 0);
+      
+      // Store findings in database if returned
+      if (responseData.findings && Array.isArray(responseData.findings)) {
+        for (const finding of responseData.findings) {
+          try {
+            await storage.upsertFinding({
+              findingId: finding.finding_id || finding.id || `kbase_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+              siteId: null,
+              runId,
+              sourceIntegration: 'seo_kbase',
+              category: finding.category || 'recommendation',
+              severity: finding.severity || 'info',
+              title: finding.title || finding.check_name || 'KBASE Insight',
+              description: finding.description || finding.recommendation,
+              affectedUrl: finding.affected_url || finding.url,
+              metadata: finding,
+              status: 'open',
+            });
+          } catch (err: any) {
+            logger.warn("KBASE", "Failed to store finding", { error: err.message });
+          }
+        }
+      }
+      
+      // Record service run
+      await storage.createServiceRun({
+        runId,
+        runType: 'manual',
+        serviceId: 'seo_kbase',
+        serviceName: 'SEO Knowledge Base',
+        trigger: 'manual',
+        status: 'success',
+        startedAt: new Date(),
+        finishedAt: new Date(),
+        summary: `Generated ${findingsCount} insights`,
+      });
+      
+      logger.info("KBASE", "KBASE run completed", { findingsCount, runId });
+      
+      res.json({
+        success: true,
+        runId,
+        findingsCount,
+        data: responseData.data || responseData,
+      });
+    } catch (error: any) {
+      logger.error("KBASE", "KBASE run error", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.patch("/api/findings/:findingId/status", async (req, res) => {
     try {
       const { findingId } = req.params;

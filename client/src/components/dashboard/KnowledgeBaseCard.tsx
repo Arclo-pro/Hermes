@@ -1,10 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { BookOpen, Lightbulb, Clock, ArrowRight, RefreshCw, ExternalLink, AlertCircle } from "lucide-react";
 import { Link } from "wouter";
 import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
 
 interface Finding {
   findingId: string;
@@ -34,7 +35,9 @@ const severityColors: Record<string, string> = {
 };
 
 export function KnowledgeBaseCard() {
-  const { data: summary, isLoading, isError, error, refetch } = useQuery<FindingsSummary>({
+  const queryClient = useQueryClient();
+  
+  const { data: summary, isLoading, isError, error, refetch, isFetching } = useQuery<FindingsSummary>({
     queryKey: ["findingsSummary"],
     queryFn: async () => {
       const res = await fetch("/api/findings/summary");
@@ -45,6 +48,40 @@ export function KnowledgeBaseCard() {
     },
     refetchInterval: 60000,
   });
+
+  // Mutation to trigger KBASE worker run
+  const runKbaseMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/kbase/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "quick" }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `Failed to run KBASE: ${res.status}`);
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast.success("Knowledge Base updated", {
+        description: data.findingsCount ? `${data.findingsCount} insights generated` : "Insights refreshed",
+      });
+      // Refetch findings after run completes
+      queryClient.invalidateQueries({ queryKey: ["findingsSummary"] });
+    },
+    onError: (error: any) => {
+      toast.error("Failed to run Knowledge Base", {
+        description: error.message,
+      });
+    },
+  });
+
+  const handleRefresh = () => {
+    runKbaseMutation.mutate();
+  };
+
+  const isRefreshing = isFetching || runKbaseMutation.isPending;
 
   const kbaseFindings = summary?.latestFindings?.filter(f => f.sourceIntegration === 'seo_kbase') || [];
   const hasFindings = kbaseFindings.length > 0;
@@ -57,8 +94,15 @@ export function KnowledgeBaseCard() {
           <BookOpen className="w-5 h-5 text-indigo-600" />
           Knowledge Base Insights
         </CardTitle>
-        <Button variant="ghost" size="sm" onClick={() => refetch()} data-testid="button-refresh-kbase">
-          <RefreshCw className="w-4 h-4" />
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={handleRefresh} 
+          disabled={isRefreshing}
+          data-testid="button-refresh-kbase"
+          title="Run Knowledge Base to get fresh insights"
+        >
+          <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
         </Button>
       </CardHeader>
       <CardContent>
