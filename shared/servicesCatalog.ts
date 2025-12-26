@@ -371,11 +371,12 @@ export const servicesCatalog: ServiceDefinition[] = [
     description: "Drafts content for blogs, pages, and content refreshes based on keyword intent, competitor gaps, and SEO best practices.",
     purpose: "Generate SEO-optimized content drafts",
     inputs: ["target_keywords", "content_gaps", "page_urls"],
-    outputs: ["drafts", "content_blocks", "faq_schema", "internal_links"],
+    outputs: ["ok", "service", "version", "time"],
     keyMetrics: ["drafts", "content_pieces"],
     commonFailures: ["api_key_invalid", "rate_limited", "quota_exceeded", "timeout"],
     runTriggers: ["manual", "on_change"],
     testMode: "worker",
+    secretKeyName: "SEO_Blog_Writer",
     // Hub-and-Spoke capabilities
     producesArtifacts: ["content.draft", "content.revision"],
     consumesArtifacts: ["gap.report", "qa.fix_list", "comp.snapshot"],

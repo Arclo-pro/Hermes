@@ -182,13 +182,15 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
   {
     serviceSlug: "content_generator",  // Matches catalog
     displayName: "Content Generator",
-    bitwardenSecret: "SEO_Content_GENERATOR",
+    bitwardenSecret: "SEO_Blog_Writer",  // JSON: { base_url (with /api), api_key }
     type: "worker",
     requiresBaseUrl: true,
     category: "content",
+    fallbackEnvVar: "SEO_BLOG_WRITER_API_KEY",  // Replit secret for API key
+    fallbackBaseUrlEnvVar: "SEO_BLOG_WRITER_BASE_URL",  // Env var for base URL
     workerEndpoints: {
-      health: "/health",
-      smokeTest: "/smoke-test",
+      health: "/health",  // base_url already includes /api
+      smokeTest: "/health",
       capabilities: "/capabilities",
       run: "/run"
     }
