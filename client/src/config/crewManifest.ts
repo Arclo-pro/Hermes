@@ -119,8 +119,8 @@ export const CREW_MANIFEST: Record<string, CrewMember> = {
   },
   content_decay: {
     service_id: "content_decay",
-    nickname: "Archivist",
-    role: "Content Curator",
+    nickname: "Sentinel",
+    role: "Content Decay Monitor",
     color: "#6366F1",
     icon: FileText,
     blurb: "Identifies content losing traffic and prioritizes refreshes.",
