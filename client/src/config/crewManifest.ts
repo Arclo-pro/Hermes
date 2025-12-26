@@ -140,7 +140,7 @@ export const CREW_MANIFEST: Record<string, CrewMember> = {
   content_generator: {
     service_id: "content_generator",
     nickname: "Hemingway",
-    role: "Editorial Craftsman",
+    role: "Writer",
     color: "#1E3A8A",
     icon: PenTool,
     blurb: "Writes clear, durable content optimized for humans and search engines.",
