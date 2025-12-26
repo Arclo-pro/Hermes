@@ -360,11 +360,12 @@ export const servicesCatalog: ServiceDefinition[] = [
     description: "Tracks backlink acquisition and loss, domain authority changes, anchor text distribution, link velocity trends, and compares metrics against competitors.",
     purpose: "Monitor backlinks, domain authority, and link velocity",
     inputs: ["site_domain", "competitor_domains"],
-    outputs: ["new_links", "lost_links", "domain_authority", "anchor_distribution", "link_velocity"],
+    outputs: ["ok", "service", "version", "time"],  // Matches /api/health response
     keyMetrics: ["new_links", "lost_links", "domain_authority", "links_found"],
     commonFailures: ["api_key_invalid", "rate_limited", "quota_exceeded", "no_data"],
     runTriggers: ["scheduled", "manual"],
     testMode: "worker",
+    secretKeyName: "SEO_Backlinks",
   },
   {
     slug: "content_generator",

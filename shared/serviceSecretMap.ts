@@ -150,15 +150,18 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
   {
     serviceSlug: "backlink_authority",  // Matches catalog
     displayName: "Backlink & Authority Signals",
-    bitwardenSecret: "SEO_Backlinks",
+    bitwardenSecret: "SEO_Backlinks",  // JSON: { base_url (with /api), api_key }
     type: "worker",
     requiresBaseUrl: true,
     category: "analysis",
+    fallbackEnvVar: "SEO_BACKLINKS_API_KEY",
+    fallbackBaseUrlEnvVar: "SEO_BACKLINKS_BASE_URL",
     workerEndpoints: {
-      health: "/health",
-      smokeTest: "/smoke-test",
+      health: "/health",  // base_url includes /api
+      smokeTest: "/health",
       capabilities: "/capabilities",
-      run: "/run"
+      authCheck: "/auth/check",
+      run: "/backlinks/authority/refresh"
     }
   },
   {
