@@ -16,7 +16,7 @@ export type CrewMember = {
 export const CREW_MANIFEST: Record<string, CrewMember> = {
   orchestrator: {
     service_id: "orchestrator",
-    nickname: "Hermes",
+    nickname: "Herbert von Karajan",
     role: "Mission Control",
     color: "#4F46E5",
     icon: Radar,
