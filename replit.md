@@ -142,6 +142,14 @@ The platform uses Bitwarden Secrets Manager for secure credential storage:
 - Secrets are listed by organization ID, not project ID (SDK requirement)
 - Machine account must have read access to the project containing secrets
 
+#### Secret Alias Support
+The secret-loader supports fallback aliases for flexible naming:
+- Each service has a **preferred** secret name (e.g., `SEO_SERP_Keyword`)
+- If preferred secret is not found, **alias** names are tried in order (e.g., `SEO_Serp_Keyword`, `seo_serp_keyword`)
+- This handles mixed-case keys or legacy naming conventions
+- Configure aliases in `shared/serviceSecretMap.ts` via the `aliasSecrets` array
+- Logs indicate which secret name was resolved (preferred vs alias)
+
 ### Required Environment Variables
 ```
 DOMAIN=empathyhealthclinic.com

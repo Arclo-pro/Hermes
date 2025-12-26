@@ -107,6 +107,33 @@ function resolveFromFallbackEnvVars(mapping: ServiceSecretMapping): WorkerConfig
   };
 }
 
+async function tryGetSecretWithAliases(
+  preferredSecret: string,
+  aliasSecrets: string[] | undefined
+): Promise<{ value: string | null; resolvedName: string }> {
+  // Try preferred secret first
+  const preferredValue = await bitwardenProvider.getSecret(preferredSecret);
+  if (preferredValue) {
+    logger.info("WorkerConfig", `Found preferred secret: ${preferredSecret}`);
+    return { value: preferredValue, resolvedName: preferredSecret };
+  }
+
+  // Try aliases in order
+  if (aliasSecrets && aliasSecrets.length > 0) {
+    logger.info("WorkerConfig", `Preferred secret not found, trying ${aliasSecrets.length} aliases for ${preferredSecret}`);
+    for (const alias of aliasSecrets) {
+      const aliasValue = await bitwardenProvider.getSecret(alias);
+      if (aliasValue) {
+        logger.info("WorkerConfig", `Found alias secret: ${alias} (preferred was: ${preferredSecret})`);
+        return { value: aliasValue, resolvedName: alias };
+      }
+    }
+    logger.warn("WorkerConfig", `No aliases found either. Tried: [${preferredSecret}, ${aliasSecrets.join(", ")}]`);
+  }
+
+  return { value: null, resolvedName: preferredSecret };
+}
+
 export async function resolveWorkerConfig(
   serviceSlug: string,
   siteId?: string
@@ -132,22 +159,24 @@ export async function resolveWorkerConfig(
     };
   }
 
-  const secretName = mapping.bitwardenSecret;
-
   try {
-    const secretValue = await bitwardenProvider.getSecret(secretName);
+    // Try preferred secret first, then aliases
+    const { value: secretValue, resolvedName: secretName } = await tryGetSecretWithAliases(
+      mapping.bitwardenSecret,
+      mapping.aliasSecrets
+    );
 
     if (!secretValue) {
       // Try fallback env vars before failing
       if (mapping.fallbackEnvVar || mapping.fallbackBaseUrlEnvVar) {
-        logger.info("WorkerConfig", `Bitwarden secret not found, trying fallback env vars for ${serviceSlug}`);
+        logger.info("WorkerConfig", `No Bitwarden secrets found, trying fallback env vars for ${serviceSlug}`);
         return resolveFromFallbackEnvVars(mapping);
       }
       return {
         ...DEFAULT_CONFIG,
-        secretName,
+        secretName: mapping.bitwardenSecret,
         rawValueType: "null",
-        error: `Secret not found in Bitwarden: ${secretName}`,
+        error: `Secret not found in Bitwarden: ${mapping.bitwardenSecret}${mapping.aliasSecrets?.length ? ` (also tried aliases: ${mapping.aliasSecrets.join(", ")})` : ""}`,
       };
     }
 

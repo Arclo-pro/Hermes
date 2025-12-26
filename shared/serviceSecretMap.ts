@@ -15,7 +15,8 @@ export type ServiceType =
 export interface ServiceSecretMapping {
   serviceSlug: string;
   displayName: string;
-  bitwardenSecret: string | null;  // null = no secret needed or planned
+  bitwardenSecret: string | null;  // Primary/preferred secret name (null = no secret needed or planned)
+  aliasSecrets?: string[];         // Alternative secret names to try if preferred is not found (order matters)
   type: ServiceType;
   requiresBaseUrl: boolean;        // Workers need base_url, infrastructure does not
   category: "google" | "analysis" | "content" | "infrastructure" | "execution";
@@ -84,7 +85,8 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
   {
     serviceSlug: "serp_intel",  // Matches catalog
     displayName: "SERP & Keyword Intelligence",
-    bitwardenSecret: "SEO_SERP_Keyword",  // JSON: { base_url, api_key }
+    bitwardenSecret: "SEO_SERP_Keyword",  // Preferred: JSON: { base_url, api_key }
+    aliasSecrets: ["SEO_Serp_Keyword", "seo_serp_keyword", "SERP_Intel", "serp_intel"],
     type: "worker",
     requiresBaseUrl: true,
     category: "analysis",
@@ -109,7 +111,8 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
   {
     serviceSlug: "crawl_render",  // Matches catalog
     displayName: "Technical SEO",
-    bitwardenSecret: "SEO_Technical_Crawler",  // JSON: { base_url, api_key }
+    bitwardenSecret: "SEO_Technical_Crawler",  // Preferred: JSON: { base_url, api_key }
+    aliasSecrets: ["SEO_technical_crawler", "seo_technical_crawler", "Technical_Crawler", "Crawl_Render"],
     type: "worker",
     requiresBaseUrl: true,
     category: "analysis",
@@ -127,7 +130,8 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
   {
     serviceSlug: "core_web_vitals",  // Matches catalog
     displayName: "Core Web Vitals Monitor",
-    bitwardenSecret: "SEO_CORE_WEB_VITALS",  // JSON: { base_url, api_key }
+    bitwardenSecret: "SEO_CORE_WEB_VITALS",  // Preferred: JSON: { base_url, api_key }
+    aliasSecrets: ["SEO_Core_Web_Vitals", "seo_core_web_vitals", "Core_Web_Vitals", "CWV_Monitor"],
     type: "worker",
     requiresBaseUrl: true,
     category: "analysis",
@@ -150,7 +154,8 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
   {
     serviceSlug: "backlink_authority",  // Matches catalog
     displayName: "Backlink & Authority Signals",
-    bitwardenSecret: "SEO_Backlinks",  // JSON: { base_url (with /api), api_key }
+    bitwardenSecret: "SEO_Backlinks",  // Preferred: JSON: { base_url (with /api), api_key }
+    aliasSecrets: ["SEO_backlinks", "seo_backlinks", "Backlink_Authority", "Backlinks"],
     type: "worker",
     requiresBaseUrl: true,
     category: "analysis",
@@ -167,7 +172,8 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
   {
     serviceSlug: "competitive_snapshot",  // Matches catalog
     displayName: "Competitive Intelligence",
-    bitwardenSecret: "SEO_Competitive_Intel",
+    bitwardenSecret: "SEO_Competitive_Intel",  // Preferred
+    aliasSecrets: ["SEO_competitive_intel", "seo_competitive_intel", "Competitive_Intel", "Competitive_Snapshot"],
     type: "worker",
     requiresBaseUrl: true,
     category: "analysis",
@@ -185,7 +191,8 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
   {
     serviceSlug: "content_generator",  // Matches catalog
     displayName: "Content Generator",
-    bitwardenSecret: "SEO_Blog_Writer",  // JSON: { base_url (with /api), api_key }
+    bitwardenSecret: "SEO_Blog_Writer",  // Preferred: JSON: { base_url (with /api), api_key }
+    aliasSecrets: ["SEO_blog_writer", "seo_blog_writer", "Blog_Writer", "Content_Generator"],
     type: "worker",
     requiresBaseUrl: true,
     category: "content",
@@ -201,7 +208,8 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
   {
     serviceSlug: "content_decay",  // Matches catalog
     displayName: "Content Decay Monitor",
-    bitwardenSecret: "SEO_Content_Decay_Monitor",  // JSON: { base_url, api_key }
+    bitwardenSecret: "SEO_Content_Decay_Monitor",  // Preferred: JSON: { base_url, api_key }
+    aliasSecrets: ["SEO_content_decay_monitor", "seo_content_decay_monitor", "Content_Decay_Monitor", "Content_Decay"],
     type: "worker",
     requiresBaseUrl: true,
     category: "content",
@@ -217,7 +225,8 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
   {
     serviceSlug: "content_qa",  // Matches catalog
     displayName: "Content QA / Policy Validator",
-    bitwardenSecret: "SEO_Content_Validator",
+    bitwardenSecret: "SEO_Content_Validator",  // Preferred
+    aliasSecrets: ["SEO_content_validator", "seo_content_validator", "Content_Validator", "Content_QA"],
     type: "worker",
     requiresBaseUrl: true,
     category: "content",
