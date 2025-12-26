@@ -59,7 +59,7 @@ export const CREW_MANIFEST: Record<string, CrewMember> = {
   },
   crawl_render: {
     service_id: "crawl_render",
-    nickname: "Wrench",
+    nickname: "Scotty",
     role: "Systems Engineer",
     color: "#64748B",
     icon: Wrench,
