@@ -11,6 +11,7 @@ import { serpConnector } from "./connectors/serp";
 import { websiteChecker } from "./website_checks";
 import { analysisEngine } from "./analysis";
 import { runFullDiagnostic } from "./analysis/orchestrator";
+import { runWorkerOrchestration, getAggregatedDashboardMetrics } from "./workerOrchestrator";
 import { logger } from "./utils/logger";
 import { apiKeyAuth } from "./middleware/apiAuth";
 import { randomUUID } from "crypto";
@@ -437,6 +438,154 @@ export async function registerRoutes(
         error: error.message,
         startedAt: startedAt.toISOString(),
         finishedAt: new Date().toISOString(),
+      });
+    }
+  });
+
+  app.post("/api/run/workers", async (req, res) => {
+    const runId = generateRunId();
+    const siteId = req.body?.siteId || "empathyhealthclinic.com";
+    
+    try {
+      logger.info("API", "Starting worker orchestration", { runId, siteId });
+      
+      const result = await runWorkerOrchestration(runId, siteId);
+      
+      res.json({
+        ok: true,
+        runId: result.runId,
+        siteId: result.siteId,
+        startedAt: result.startedAt.toISOString(),
+        finishedAt: result.finishedAt.toISOString(),
+        durationMs: result.finishedAt.getTime() - result.startedAt.getTime(),
+        summary: {
+          total: result.workers.length,
+          success: result.successCount,
+          failed: result.failedCount,
+          skipped: result.workers.filter(w => w.status === "skipped").length,
+        },
+        workers: result.workers.map(w => ({
+          key: w.workerKey,
+          status: w.status,
+          durationMs: w.durationMs,
+          summary: w.summary,
+          error: w.errorCode,
+        })),
+        suggestionsGenerated: result.suggestions.length,
+        insightsGenerated: result.insights.length,
+      });
+    } catch (error: any) {
+      logger.error("API", "Worker orchestration failed", { runId, error: error.message });
+      res.status(500).json({ 
+        ok: false,
+        runId,
+        error: error.message,
+      });
+    }
+  });
+
+  app.get("/api/dashboard/metrics", async (req, res) => {
+    const siteId = (req.query.siteId as string) || "empathyhealthclinic.com";
+    
+    try {
+      const metrics = await getAggregatedDashboardMetrics(siteId);
+      
+      res.json({
+        ok: true,
+        siteId,
+        ...metrics,
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to get dashboard metrics", { error: error.message });
+      res.status(500).json({ 
+        ok: false,
+        error: error.message,
+      });
+    }
+  });
+
+  app.get("/api/suggestions/latest", async (req, res) => {
+    const siteId = (req.query.siteId as string) || "empathyhealthclinic.com";
+    const limit = parseInt(req.query.limit as string) || 20;
+    
+    try {
+      const suggestions = await storage.getLatestSeoSuggestions(siteId, limit);
+      
+      res.json({
+        ok: true,
+        siteId,
+        count: suggestions.length,
+        suggestions: suggestions.map(s => ({
+          id: s.suggestionId,
+          type: s.suggestionType,
+          title: s.title,
+          description: s.description,
+          severity: s.severity,
+          category: s.category,
+          status: s.status,
+          assignee: s.assignee,
+          estimatedImpact: s.estimatedImpact,
+          estimatedEffort: s.estimatedEffort,
+          impactedUrls: s.impactedUrls,
+          impactedKeywords: s.impactedKeywords,
+          sourceWorkers: s.sourceWorkers,
+          createdAt: s.createdAt,
+        })),
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to get suggestions", { error: error.message });
+      res.status(500).json({ 
+        ok: false,
+        error: error.message,
+      });
+    }
+  });
+
+  app.patch("/api/suggestions/:suggestionId/status", async (req, res) => {
+    const { suggestionId } = req.params;
+    const { status } = req.body;
+    
+    if (!status || !["open", "in_progress", "completed", "dismissed"].includes(status)) {
+      return res.status(400).json({ ok: false, error: "Invalid status" });
+    }
+    
+    try {
+      await storage.updateSeoSuggestionStatus(suggestionId, status);
+      res.json({ ok: true, suggestionId, status });
+    } catch (error: any) {
+      logger.error("API", "Failed to update suggestion status", { error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
+  app.get("/api/kbase/insights/latest", async (req, res) => {
+    const siteId = (req.query.siteId as string) || "empathyhealthclinic.com";
+    const limit = parseInt(req.query.limit as string) || 5;
+    
+    try {
+      const insights = await storage.getLatestSeoKbaseInsights(siteId, limit);
+      
+      res.json({
+        ok: true,
+        siteId,
+        count: insights.length,
+        insights: insights.map(i => ({
+          id: i.insightId,
+          title: i.title,
+          summary: i.summary,
+          fullContent: i.fullContent,
+          type: i.insightType,
+          priority: i.priority,
+          actions: i.actionsJson,
+          articleRefs: i.articleRefsJson,
+          createdAt: i.createdAt,
+        })),
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to get KB insights", { error: error.message });
+      res.status(500).json({ 
+        ok: false,
+        error: error.message,
       });
     }
   });
