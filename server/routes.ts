@@ -6171,7 +6171,7 @@ When answering:
         },
         {
           integrationId: "crawl_render",
-          name: "Crawl & Render Service",
+          name: "Technical SEO",
           description: "Technical SEO: status codes, redirects, canonicals, indexability, internal links, orphan pages, sitemap/robots, JS rendering",
           category: "analysis",
           expectedSignals: ["crawl_status", "render_status", "robots_txt", "sitemap", "meta_tags", "redirect_chains", "orphan_pages"],

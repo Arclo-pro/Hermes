@@ -102,7 +102,7 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
   },
   {
     serviceSlug: "crawl_render",  // Matches catalog
-    displayName: "Crawl & Render Service",
+    displayName: "Technical SEO",
     bitwardenSecret: "SEO_TECHNICAL_CRAWLER_API_KEY",
     type: "worker",
     requiresBaseUrl: true,

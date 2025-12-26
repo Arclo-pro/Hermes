@@ -263,7 +263,7 @@ export const servicesCatalog: ServiceDefinition[] = [
   },
   {
     slug: "crawl_render",
-    displayName: "Crawl & Render Service",
+    displayName: "Technical SEO",
     category: "analysis",
     description: "Performs technical SEO checks on your website including status codes, redirects, canonicals, and indexability. Can be configured for shallow or deep crawls.",
     purpose: "Detect technical SEO issues via crawl + render",
