@@ -59,7 +59,7 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
     category: "infrastructure",
     workerEndpoints: {
       health: "/health",
-      smokeTest: "/smoke-test",
+      smokeTest: "/health",  // Use /health - worker has no dedicated smoke-test endpoint
       capabilities: "/capabilities",
       run: "/run"
     }
