@@ -102,7 +102,7 @@ export const AGENTS: Record<string, CrewMember> = {
   },
   google_data_connector: {
     service_id: "google_data_connector",
-    nickname: "Pulse",
+    nickname: "Popular",
     role: "GA4",
     color: "#06B6D4",
     icon: Activity,
