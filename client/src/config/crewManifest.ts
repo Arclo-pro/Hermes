@@ -11,7 +11,26 @@ export type CrewMember = {
   capabilities?: string[];
   dependencies?: string[];
   endpoints?: { method: string; path: string; auth: "none" | "api_key" }[];
+  userFacing?: boolean;
+  watchDescription?: string;
 };
+
+export const USER_FACING_AGENTS = [
+  "seo_kbase",
+  "competitive_snapshot", 
+  "crawl_render",
+  "backlink_authority",
+  "google_data_connector",
+  "serp_intel",
+  "core_web_vitals",
+  "content_decay",
+  "content_generator",
+  "google_ads_connector",
+];
+
+export function isUserFacingAgent(serviceId: string): boolean {
+  return USER_FACING_AGENTS.includes(serviceId);
+}
 
 export const CREW_MANIFEST: Record<string, CrewMember> = {
   orchestrator: {
@@ -31,6 +50,7 @@ export const CREW_MANIFEST: Record<string, CrewMember> = {
     color: "#22C55E",
     icon: Map,
     blurb: "Turns findings into durable knowledge and makes them searchable.",
+    watchDescription: "SEO learnings and insights from all agents",
     capabilities: ["Read Articles", "Write Articles", "Search"],
     dependencies: ["orchestrator"],
     endpoints: [
@@ -47,6 +67,7 @@ export const CREW_MANIFEST: Record<string, CrewMember> = {
     color: "#7F1D1D",
     icon: Eye,
     blurb: "Gathers competitive intelligence, SERP movements, and strategic gaps.",
+    watchDescription: "Competitor rankings, content gaps, and market movements",
     capabilities: ["Competitor Analysis", "SERP Recon", "Gap Detection"],
     dependencies: ["orchestrator"],
     endpoints: [
@@ -64,6 +85,7 @@ export const CREW_MANIFEST: Record<string, CrewMember> = {
     color: "#64748B",
     icon: Wrench,
     blurb: "Performs technical SEO audits and crawl diagnostics.",
+    watchDescription: "Crawlability, rendering, and index health",
     capabilities: ["Site Crawl", "Render Check", "Technical Audit"],
     dependencies: ["orchestrator"],
   },
@@ -74,6 +96,7 @@ export const CREW_MANIFEST: Record<string, CrewMember> = {
     color: "#F59E0B",
     icon: Radio,
     blurb: "Tracks backlinks, domain authority, and link velocity.",
+    watchDescription: "Domain authority and link growth",
     capabilities: ["Link Tracking", "Authority Metrics", "Competitor Comparison"],
     dependencies: ["orchestrator"],
   },
@@ -84,6 +107,7 @@ export const CREW_MANIFEST: Record<string, CrewMember> = {
     color: "#06B6D4",
     icon: Activity,
     blurb: "Fetches analytics and search console data from Google APIs.",
+    watchDescription: "Website traffic, conversions, and user behavior",
     capabilities: ["GA4 Data", "GSC Data", "Traffic Metrics"],
     dependencies: ["orchestrator"],
   },
@@ -104,6 +128,7 @@ export const CREW_MANIFEST: Record<string, CrewMember> = {
     color: "#EC4899",
     icon: Search,
     blurb: "Tracks keyword rankings and SERP features over time.",
+    watchDescription: "Keyword rankings and SERP positions",
     capabilities: ["Rank Tracking", "SERP Snapshots", "Position Monitoring"],
     dependencies: ["orchestrator"],
   },
@@ -114,6 +139,7 @@ export const CREW_MANIFEST: Record<string, CrewMember> = {
     color: "#10B981",
     icon: Zap,
     blurb: "Monitors Core Web Vitals and page speed metrics.",
+    watchDescription: "Page load speed and Core Web Vitals scores",
     capabilities: ["LCP Tracking", "CLS Tracking", "INP Tracking"],
     dependencies: ["orchestrator"],
   },
@@ -124,6 +150,7 @@ export const CREW_MANIFEST: Record<string, CrewMember> = {
     color: "#6366F1",
     icon: FileText,
     blurb: "Identifies content losing traffic and prioritizes refreshes.",
+    watchDescription: "Content performance and traffic trends over time",
     capabilities: ["Decay Detection", "Refresh Prioritization", "Trend Analysis"],
     dependencies: ["orchestrator", "google_data_connector"],
   },
@@ -134,6 +161,7 @@ export const CREW_MANIFEST: Record<string, CrewMember> = {
     color: "#1E3A8A",
     icon: PenTool,
     blurb: "Writes and validates content optimized for humans and search engines.",
+    watchDescription: "Blog cadence, quality, and topical coverage",
     capabilities: ["Long-form Writing", "Rewrites", "Quality Scoring", "E-E-A-T Checks"],
     dependencies: ["orchestrator", "seo_kbase"],
   },
@@ -144,6 +172,7 @@ export const CREW_MANIFEST: Record<string, CrewMember> = {
     color: "#EC4899",
     icon: Megaphone,
     blurb: "Designs campaigns, messaging, and experiments that drive acquisition and conversion.",
+    watchDescription: "Ad spend, conversions, and campaign performance",
     capabilities: ["Ad Strategy", "Copy Testing", "Conversion Optimization"],
     dependencies: ["orchestrator"],
   },
@@ -184,6 +213,7 @@ export const CREW_MANIFEST: Record<string, CrewMember> = {
     color: "#D946EF",
     icon: TrendingUp,
     blurb: "Identifies content gaps compared to competitors.",
+    watchDescription: "Content coverage vs. competitors",
     capabilities: ["Gap Analysis", "Coverage Mapping", "Priority Scoring"],
     dependencies: ["orchestrator", "competitive_snapshot"],
   },
