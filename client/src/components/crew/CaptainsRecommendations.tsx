@@ -97,8 +97,19 @@ function ConfidenceBadge({ confidence }: { confidence: "High" | "Medium" | "Low"
 }
 
 function PriorityCard({ priority }: { priority: CaptainPriority }) {
+  const priorityColors = {
+    1: "border-l-red-500",
+    2: "border-l-amber-500", 
+    3: "border-l-blue-500",
+  };
   return (
-    <div className="flex gap-4 p-4 rounded-lg bg-muted/50" data-testid={`priority-${priority.rank}`}>
+    <div 
+      className={cn(
+        "flex gap-4 p-4 rounded-lg bg-white border border-slate-200 shadow-sm hover:shadow-md transition-shadow border-l-4",
+        priorityColors[priority.rank as 1 | 2 | 3] || "border-l-slate-300"
+      )} 
+      data-testid={`priority-${priority.rank}`}
+    >
       <div 
         className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center"
       >
@@ -163,11 +174,11 @@ export function CaptainsRecommendations({ data }: CaptainsRecommendationsProps) 
   const priorities = ensureThreePriorities(data.priorities);
 
   return (
-    <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent" data-testid="captains-recommendations">
-      <CardHeader className="pb-4">
+    <Card className="border border-slate-200 shadow-md bg-slate-50/80 overflow-hidden" data-testid="captains-recommendations">
+      <CardHeader className="pb-4 bg-gradient-to-r from-primary/10 to-primary/5 border-b border-slate-200">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center shadow-sm">
               <Compass className="w-5 h-5 text-primary" />
             </div>
             <div>
@@ -182,19 +193,19 @@ export function CaptainsRecommendations({ data }: CaptainsRecommendationsProps) 
           </div>
           <div className="flex items-center gap-2">
             <ConfidenceBadge confidence={data.confidence} />
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" className="text-xs bg-white">
               {data.coverage.active}/{data.coverage.total} agents
             </Badge>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-6 pt-5">
         <div>
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-2 mb-4 pb-2 border-b border-slate-200">
             <TrendingUp className="w-4 h-4 text-primary" />
             <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Priority Actions</h3>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-4">
             {priorities.map((priority) => (
               <PriorityCard key={priority.rank} priority={priority} />
             ))}
@@ -203,11 +214,11 @@ export function CaptainsRecommendations({ data }: CaptainsRecommendationsProps) 
 
         {data.blockers.length > 0 && (
           <div>
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-200">
               <AlertCircle className="w-4 h-4 text-amber-500" />
               <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Blockers</h3>
             </div>
-            <div className="space-y-2 p-3 rounded-lg bg-amber-50/50 border border-amber-100">
+            <div className="space-y-2 p-4 rounded-lg bg-amber-50 border-2 border-amber-200 shadow-sm">
               {data.blockers.map((blocker) => (
                 <BlockerItem key={blocker.id} blocker={blocker} />
               ))}
@@ -215,7 +226,7 @@ export function CaptainsRecommendations({ data }: CaptainsRecommendationsProps) 
           </div>
         )}
 
-        <p className="text-xs text-muted-foreground italic flex items-center gap-1 pt-2 border-t">
+        <p className="text-xs text-muted-foreground italic flex items-center gap-1 pt-3 border-t border-slate-200">
           <Lightbulb className="w-3 h-3" />
           Recommendations improve as more agents contribute data.
         </p>
