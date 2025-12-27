@@ -85,62 +85,103 @@ interface MetricCardData {
   verdict: 'good' | 'watch' | 'bad' | 'neutral';
   sparkline: number[];
   nextAction: { text: string; link: string };
+  benchmarkLink?: string;
 }
 
-function MiniSparkline({ data, color }: { data: number[]; color: string }) {
+function AreaSparkline({ data, color, fillColor }: { data: number[]; color: string; fillColor: string }) {
   const max = Math.max(...data);
   const min = Math.min(...data);
   const range = max - min || 1;
+  const padding = 8;
+  const width = 100;
+  const height = 50;
+  
   const points = data.map((val, i) => {
-    const x = (i / (data.length - 1)) * 100;
-    const y = 100 - ((val - min) / range) * 100;
-    return `${x},${y}`;
-  }).join(' ');
+    const x = padding + (i / (data.length - 1)) * (width - padding * 2);
+    const y = padding + (1 - (val - min) / range) * (height - padding * 2);
+    return { x, y, val };
+  });
+  
+  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+  const areaPath = `${linePath} L ${points[points.length - 1].x} ${height} L ${points[0].x} ${height} Z`;
   
   return (
-    <svg viewBox="0 0 100 40" className="w-full h-10" preserveAspectRatio="none">
-      <polyline
+    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-16" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id={`gradient-${color.replace('#', '')}`} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor={fillColor} stopOpacity="0.4" />
+          <stop offset="100%" stopColor={fillColor} stopOpacity="0.05" />
+        </linearGradient>
+      </defs>
+      <path
+        d={areaPath}
+        fill={`url(#gradient-${color.replace('#', '')})`}
+      />
+      <path
+        d={linePath}
         fill="none"
         stroke={color}
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
-        points={points}
       />
+      {points.map((p, i) => (
+        <circle
+          key={i}
+          cx={p.x}
+          cy={p.y}
+          r="3"
+          fill="white"
+          stroke={color}
+          strokeWidth="2"
+        />
+      ))}
     </svg>
   );
 }
 
 function MetricCard({ metric }: { metric: MetricCardData }) {
-  const colors = verdictColors[metric.verdict];
-  const sparklineColor = metric.verdict === 'good' ? '#22C55E' : metric.verdict === 'watch' ? '#F59E0B' : '#EF4444';
+  const cardStyles = {
+    good: { bg: 'bg-emerald-50', border: 'border-emerald-200', badgeBg: 'bg-emerald-100', badgeText: 'text-emerald-700', lineColor: '#10B981', fillColor: '#10B981' },
+    watch: { bg: 'bg-amber-50', border: 'border-amber-200', badgeBg: 'bg-amber-100', badgeText: 'text-amber-700', lineColor: '#F59E0B', fillColor: '#F59E0B' },
+    bad: { bg: 'bg-red-50', border: 'border-red-200', badgeBg: 'bg-red-100', badgeText: 'text-red-700', lineColor: '#EF4444', fillColor: '#EF4444' },
+    neutral: { bg: 'bg-slate-50', border: 'border-slate-200', badgeBg: 'bg-slate-100', badgeText: 'text-slate-600', lineColor: '#64748B', fillColor: '#64748B' },
+  };
+  const styles = cardStyles[metric.verdict];
   const TrendIcon = metric.deltaPct > 0 ? TrendingUp : metric.deltaPct < 0 ? TrendingDown : Minus;
+  const trendColor = metric.deltaPct > 0 ? 'text-emerald-600' : metric.deltaPct < 0 ? 'text-red-500' : 'text-slate-500';
   
   return (
-    <Card className={cn("transition-all overflow-hidden", colors.bg, colors.border)} data-testid={`metric-card-${metric.id}`}>
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between mb-2">
-          <span className="text-sm font-medium text-muted-foreground">{metric.label}</span>
-          <Badge className={cn("text-xs flex-shrink-0 max-w-[80px] truncate", colors.badge)}>
-            {metric.verdict === 'good' ? 'On Track' : metric.verdict === 'watch' ? 'Watch' : 'Needs Work'}
+    <Card className={cn("transition-all overflow-hidden rounded-2xl border-2", styles.bg, styles.border)} data-testid={`metric-card-${metric.id}`}>
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between mb-3">
+          <span className="text-base font-medium text-slate-700">{metric.label}</span>
+          <Badge className={cn("text-xs font-medium px-3 py-1 rounded-full", styles.badgeBg, styles.badgeText)}>
+            {metric.verdict === 'good' ? 'Good' : metric.verdict === 'watch' ? 'Watch' : metric.verdict === 'bad' ? 'Alert' : 'No Data'}
           </Badge>
         </div>
-        <div className="flex items-baseline gap-2 mb-2">
-          <span className="text-3xl font-bold">{metric.value}</span>
-          <span className={cn("text-sm flex items-center gap-1", colors.text)}>
-            <TrendIcon className="w-3 h-3" />
+        <div className="flex items-baseline gap-3 mb-4">
+          <span className="text-4xl font-bold text-slate-900">{metric.value}</span>
+          <span className={cn("text-base flex items-center gap-1 font-medium", trendColor)}>
+            <TrendIcon className="w-4 h-4" />
             {metric.delta}
           </span>
         </div>
-        <div className="h-10 mb-3 -mx-1">
-          <MiniSparkline data={metric.sparkline} color={sparklineColor} />
+        <div className="h-16 mb-4 -mx-2">
+          <AreaSparkline data={metric.sparkline} color={styles.lineColor} fillColor={styles.fillColor} />
         </div>
-        <Link href={metric.nextAction.link}>
-          <Button variant="ghost" size="sm" className="text-xs h-7 p-0 hover:bg-transparent">
-            {metric.nextAction.text}
-            <ArrowRight className="w-3 h-3 ml-1" />
-          </Button>
-        </Link>
+        <div className="space-y-2">
+          <Link href="/benchmarks">
+            <span className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1 cursor-pointer">
+              Compare industry benchmark <ArrowRight className="w-3 h-3" />
+            </span>
+          </Link>
+          <Link href={metric.nextAction.link}>
+            <span className="text-sm font-semibold text-slate-800 hover:text-slate-900 flex items-center gap-1 cursor-pointer">
+              {metric.nextAction.text} <ArrowRight className="w-4 h-4" />
+            </span>
+          </Link>
+        </div>
       </CardContent>
     </Card>
   );
