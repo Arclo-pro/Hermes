@@ -83,19 +83,25 @@ export function ShipCanvasA1(props: {
               const badge = isOrchestrator ? "Included" : isEnabled ? "Active" : isSelected ? "Selected" : "";
 
               const ringClass = isEnabled
-                ? "ring-2 ring-amber-400/40 shadow-[0_0_0_2px_rgba(245,158,11,0.15),0_18px_40px_rgba(0,0,0,0.45)]"
+                ? "ring-2 shadow-[0_0_0_2px_var(--color-progress-soft),0_18px_40px_rgba(0,0,0,0.45)]"
                 : isSelected
-                  ? "ring-2 ring-sky-400/40 shadow-[0_18px_40px_rgba(0,0,0,0.35)]"
+                  ? "ring-2 shadow-[0_0_0_2px_var(--color-primary-soft),0_18px_40px_rgba(0,0,0,0.35)]"
                   : "ring-1 ring-white/10";
+
+              const ringColor = isEnabled 
+                ? "var(--color-progress)" 
+                : isSelected 
+                  ? "var(--color-primary)" 
+                  : undefined;
 
               const borderClass = isEmpty
                 ? "border border-dashed border-white/20"
                 : "border border-white/15";
 
               const badgeClass = isOrchestrator || isEnabled
-                ? "bg-amber-400/15 text-amber-100 ring-amber-400/25"
+                ? "bg-progress-soft text-white/90"
                 : isSelected
-                  ? "bg-sky-400/15 text-sky-100 ring-sky-400/25"
+                  ? "bg-[rgba(124,58,237,0.18)] text-white/90"
                   : "";
 
               const left = `calc(${slot.xPct}% - ${tileSize / 2}px)`;
@@ -116,9 +122,10 @@ export function ShipCanvasA1(props: {
                       ringClass,
                       borderClass,
                     ].join(" ")}
+                    style={{ "--tw-ring-color": ringColor } as React.CSSProperties}
                   >
                     {badge && (
-                      <div className={`absolute right-1.5 top-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium ring-1 ${badgeClass}`}>
+                      <div className={`absolute right-1.5 top-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${badgeClass}`}>
                         {badge}
                       </div>
                     )}
