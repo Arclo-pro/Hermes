@@ -179,13 +179,15 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
     type: "worker",
     requiresBaseUrl: true,
     category: "analysis",
+    fallbackEnvVar: "SEO_COMPETITIVE_INTEL_API_KEY",
+    fallbackBaseUrlEnvVar: "SEO_COMPETITIVE_INTEL_BASE_URL",
     workerEndpoints: {
-      health: "/api/health",
-      smokeTest: "/api/run",  // Worker uses /api/run for smoke tests
-      capabilities: "/api/capabilities",
-      run: "/api/run",
-      authCheck: "/api/auth/check",
-      report: "/api/report"
+      health: "/health",  // base_url includes /api
+      smokeTest: "/health",
+      capabilities: "/capabilities",
+      run: "/run",
+      authCheck: "/auth/check",
+      report: "/report"
     }
   },
 
