@@ -55,10 +55,10 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
     fallbackEnvVar: "SEO_ORCHESTRATOR_API_KEY",
     fallbackBaseUrlEnvVar: "SEO_ORCHESTRATOR_BASE_URL",
     workerEndpoints: {
-      health: "/health",
-      smokeTest: "/smoke-test",
-      capabilities: "/capabilities",
-      run: "/run"
+      health: "/api/v1/health",
+      smokeTest: "/api/v1/health",
+      capabilities: "/api/v1/services",
+      run: "/api/v1/services"
     }
   },
   {
