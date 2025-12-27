@@ -16,18 +16,18 @@ type RoleSlot = {
 };
 
 const ROLE_SLOTS: RoleSlot[] = [
-  { roleId: "mission_control", roleName: "Mission Control", roleIcon: Compass, crewId: "orchestrator", xPct: 50, yPct: 10 },
-  { roleId: "competitive_intel", roleName: "Competitive Intel", roleIcon: Eye, crewId: "competitive_snapshot", xPct: 18, yPct: 32 },
-  { roleId: "serp_tracking", roleName: "SERP Tracking", roleIcon: Target, crewId: "serp_intel", xPct: 50, yPct: 32 },
-  { roleId: "analytics_signals", roleName: "Analytics", roleIcon: BarChart3, crewId: "google_data_connector", xPct: 82, yPct: 32 },
-  { roleId: "technical_seo", roleName: "Technical SEO", roleIcon: Wrench, crewId: "crawl_render", xPct: 30, yPct: 54 },
-  { roleId: "performance_monitoring", roleName: "Performance", roleIcon: Zap, crewId: "core_web_vitals", xPct: 70, yPct: 54 },
-  { roleId: "content_decay", roleName: "Content Decay", roleIcon: Search, crewId: "content_decay", xPct: 30, yPct: 76 },
-  { roleId: "content_strategy", roleName: "Content", roleIcon: PenTool, crewId: "content_generator", xPct: 70, yPct: 76 },
-  { roleId: "domain_authority", roleName: "Authority", roleIcon: Link2, crewId: "backlink_authority", xPct: 14, yPct: 98 },
-  { roleId: "ai_optimization", roleName: "AI", roleIcon: BrainCircuit, crewId: "ai_optimization", xPct: 38, yPct: 98 },
-  { roleId: "paid_ads", roleName: "Ads", roleIcon: Megaphone, crewId: "google_ads_connector", xPct: 62, yPct: 98 },
-  { roleId: "knowledge_base", roleName: "Knowledge", roleIcon: BookOpen, crewId: "seo_kbase", xPct: 86, yPct: 98 },
+  { roleId: "mission_control", roleName: "Mission Control", roleIcon: Compass, crewId: "orchestrator", xPct: 50, yPct: 8 },
+  { roleId: "competitive_intel", roleName: "Competitive Intel", roleIcon: Eye, crewId: "competitive_snapshot", xPct: 17, yPct: 28 },
+  { roleId: "serp_tracking", roleName: "SERP Tracking", roleIcon: Target, crewId: "serp_intel", xPct: 50, yPct: 28 },
+  { roleId: "analytics_signals", roleName: "Analytics", roleIcon: BarChart3, crewId: "google_data_connector", xPct: 83, yPct: 28 },
+  { roleId: "technical_seo", roleName: "Technical SEO", roleIcon: Wrench, crewId: "crawl_render", xPct: 28, yPct: 48 },
+  { roleId: "performance_monitoring", roleName: "Performance", roleIcon: Zap, crewId: "core_web_vitals", xPct: 72, yPct: 48 },
+  { roleId: "content_decay", roleName: "Content Decay", roleIcon: Search, crewId: "content_decay", xPct: 28, yPct: 68 },
+  { roleId: "content_strategy", roleName: "Content", roleIcon: PenTool, crewId: "content_generator", xPct: 72, yPct: 68 },
+  { roleId: "domain_authority", roleName: "Authority", roleIcon: Link2, crewId: "backlink_authority", xPct: 14, yPct: 88 },
+  { roleId: "ai_optimization", roleName: "AI", roleIcon: BrainCircuit, crewId: "ai_optimization", xPct: 38, yPct: 88 },
+  { roleId: "paid_ads", roleName: "Ads", roleIcon: Megaphone, crewId: "google_ads_connector", xPct: 62, yPct: 88 },
+  { roleId: "knowledge_base", roleName: "Knowledge", roleIcon: BookOpen, crewId: "seo_kbase", xPct: 86, yPct: 88 },
 ];
 
 function RoleInfoTooltip({ roleId }: { roleId: string }) {
@@ -91,7 +91,7 @@ export function ShipCanvasA1(props: {
         />
         
         <div className="relative w-full h-full flex items-center justify-center p-4 md:p-6">
-          <div className="relative w-full max-w-[1100px] h-full min-h-[900px]">
+          <div className="relative w-full max-w-[1100px] h-full min-h-[980px]">
             <ShipHullSvg className="absolute inset-0 w-full h-full" />
 
             <div className="pointer-events-none absolute inset-0">
@@ -160,7 +160,7 @@ export function ShipCanvasA1(props: {
                       )}
 
                       <div className="absolute inset-0 flex flex-col">
-                        <div className="flex-1 flex items-center justify-center pt-4 pb-0 px-1">
+                        <div className="flex-1 flex items-center justify-center pt-2 pb-0 px-1">
                           {isEmpty ? (
                             <RoleIcon className="w-[55%] h-[55%] max-w-[80px] max-h-[80px] text-white/20 group-hover:text-white/35 transition-colors" />
                           ) : slot.crewId && (
@@ -178,12 +178,12 @@ export function ShipCanvasA1(props: {
                           )}
                         </div>
 
-                        <div className="h-[20%] flex flex-col items-center justify-start px-2 pb-2">
-                          <div className={`text-sm font-semibold leading-tight text-center truncate w-full ${isEmpty ? "text-white/30" : "text-white/90"}`}>
+                        <div className="h-[18%] flex flex-col items-center justify-center px-2 pb-1.5">
+                          <div className={`text-base font-semibold leading-tight text-center truncate w-full ${isEmpty ? "text-white/30" : "text-white/90"}`}>
                             {isEmpty ? slot.roleName : (crew?.nickname || "Unknown")}
                           </div>
                           {isEmpty && (
-                            <div className="text-[9px] text-white/20 mt-0.5">Empty slot</div>
+                            <div className="text-[9px] text-white/20">Empty slot</div>
                           )}
                         </div>
                       </div>
