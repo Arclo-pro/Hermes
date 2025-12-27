@@ -86,6 +86,7 @@ interface MetricCardData {
   sparkline: number[];
   nextAction: { text: string; link: string };
   benchmarkLink?: string;
+  timeRange: string;
 }
 
 function AreaSparkline({ data, color, fillColor }: { data: number[]; color: string; fillColor: string }) {
@@ -154,12 +155,13 @@ function MetricCard({ metric }: { metric: MetricCardData }) {
   return (
     <Card className={cn("transition-all overflow-hidden rounded-2xl border-2", styles.bg, styles.border)} data-testid={`metric-card-${metric.id}`}>
       <CardContent className="p-5">
-        <div className="flex items-start justify-between mb-3">
+        <div className="flex items-start justify-between mb-1">
           <span className="text-base font-medium text-slate-700">{metric.label}</span>
           <Badge className={cn("text-xs font-medium px-3 py-1 rounded-full", styles.badgeBg, styles.badgeText)}>
             {metric.verdict === 'good' ? 'Good' : metric.verdict === 'watch' ? 'Watch' : metric.verdict === 'bad' ? 'Alert' : 'No Data'}
           </Badge>
         </div>
+        <p className="text-xs text-slate-500 mb-3">{metric.timeRange}</p>
         <div className="flex items-baseline gap-3 mb-4">
           <span className="text-4xl font-bold text-slate-900">{metric.value}</span>
           <span className={cn("text-base flex items-center gap-1 font-medium", trendColor)}>
@@ -198,6 +200,7 @@ function MetricCardsRow() {
       verdict: 'watch',
       sparkline: [3.8, 3.6, 3.4, 3.5, 3.3, 3.1, 3.2],
       nextAction: { text: 'Review Pulse', link: '/agents/ga4' },
+      timeRange: 'Last 7 days',
     },
     {
       id: 'bounce-rate',
@@ -208,6 +211,7 @@ function MetricCardsRow() {
       verdict: 'bad',
       sparkline: [38, 39, 40, 41, 43, 44, 42],
       nextAction: { text: 'Review Speedster', link: '/agents/performance' },
+      timeRange: 'Last 7 days',
     },
     {
       id: 'leads',
@@ -218,6 +222,7 @@ function MetricCardsRow() {
       verdict: 'good',
       sparkline: [95, 102, 98, 110, 115, 120, 127],
       nextAction: { text: 'Review Draper', link: '/agents/ads' },
+      timeRange: 'Last 7 days',
     },
   ];
 
