@@ -91,7 +91,7 @@ export function ShipCanvasA1(props: {
         />
         
         <div className="relative w-full h-full flex items-center justify-center p-4 md:p-6">
-          <div className="relative w-full max-w-[1000px] h-full min-h-[700px]">
+          <div className="relative w-full max-w-[1100px] h-full min-h-[900px]">
             <ShipHullSvg className="absolute inset-0 w-full h-full" />
 
             <div className="pointer-events-none absolute inset-0">
@@ -135,8 +135,8 @@ export function ShipCanvasA1(props: {
                       left: `${slot.xPct}%`,
                       top: `${slot.yPct}%`,
                       transform: `translate(-50%, -50%) scale(${scale})`,
-                      width: "clamp(140px, 14vw, 180px)",
-                      height: "clamp(140px, 14vw, 180px)",
+                      width: "clamp(180px, 18vw, 240px)",
+                      height: "clamp(180px, 18vw, 240px)",
                     }}
                     onClick={() => slot.crewId && onSlotClick(slot.crewId)}
                     data-testid={`ship-slot-${slot.roleId}`}
@@ -160,30 +160,30 @@ export function ShipCanvasA1(props: {
                       )}
 
                       <div className="absolute inset-0 flex flex-col">
-                        <div className="flex-1 flex items-center justify-center pt-5 pb-0 px-1">
+                        <div className="flex-1 flex items-center justify-center pt-4 pb-0 px-1">
                           {isEmpty ? (
-                            <RoleIcon className="w-[50%] h-[50%] max-w-[60px] max-h-[60px] text-white/20 group-hover:text-white/35 transition-colors" />
+                            <RoleIcon className="w-[55%] h-[55%] max-w-[80px] max-h-[80px] text-white/20 group-hover:text-white/35 transition-colors" />
                           ) : slot.crewId && (
                             <CrewAvatarTooltip crewId={slot.crewId}>
                               {crew?.avatar && typeof crew.avatar === 'string' && crew.avatar.includes('/') ? (
                                 <img 
                                   src={crew.avatar} 
                                   alt={crew.nickname || slot.roleName}
-                                  className="w-[80%] h-[80%] max-w-[110px] max-h-[110px] object-contain drop-shadow-lg"
+                                  className="w-[85%] h-[85%] max-w-[150px] max-h-[150px] object-contain drop-shadow-lg"
                                 />
                               ) : (
-                                <span className="text-5xl drop-shadow-lg">{crew?.avatar || "👤"}</span>
+                                <span className="text-6xl drop-shadow-lg">{crew?.avatar || "👤"}</span>
                               )}
                             </CrewAvatarTooltip>
                           )}
                         </div>
 
-                        <div className="h-[24%] flex flex-col items-center justify-center px-1.5 pb-1.5">
-                          <div className={`text-[10px] font-semibold leading-tight text-center truncate w-full ${isEmpty ? "text-white/30" : "text-white/90"}`}>
+                        <div className="h-[20%] flex flex-col items-center justify-start px-2 pb-2">
+                          <div className={`text-sm font-semibold leading-tight text-center truncate w-full ${isEmpty ? "text-white/30" : "text-white/90"}`}>
                             {isEmpty ? slot.roleName : (crew?.nickname || "Unknown")}
                           </div>
                           {isEmpty && (
-                            <div className="text-[8px] text-white/20 mt-0.5">Empty slot</div>
+                            <div className="text-[9px] text-white/20 mt-0.5">Empty slot</div>
                           )}
                         </div>
                       </div>
