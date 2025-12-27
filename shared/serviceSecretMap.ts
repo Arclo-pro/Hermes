@@ -258,6 +258,8 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
     type: "worker",
     requiresBaseUrl: true,
     category: "analysis",
+    fallbackEnvVar: "SEO_KBASE_API_KEY",
+    fallbackBaseUrlEnvVar: "SEO_KBASE_BASE_URL",
     workerEndpoints: {
       health: "/health",
       smokeTest: "/smoke-test",

@@ -1781,9 +1781,9 @@ When answering:
           totalSessions,
           totalClicks,
           totalImpressions,
-          avgCtr: avgCtr.toFixed(2),
-          avgPosition: avgPosition.toFixed(1),
-          conversionRate: conversionRate.toFixed(2),
+          avgCtr: avgCtr !== null ? avgCtr.toFixed(2) : null,
+          avgPosition: avgPosition !== null ? avgPosition.toFixed(1) : null,
+          conversionRate: conversionRate !== null ? conversionRate.toFixed(2) : null,
         },
       });
     } catch (error: any) {
