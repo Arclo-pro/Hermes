@@ -47,10 +47,19 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
   {
     serviceSlug: "orchestrator",  // Matches catalog
     displayName: "Orchestrator / Job Runner",
-    bitwardenSecret: "SEO_SCHEDULER_API_KEY",
-    type: "infrastructure",
-    requiresBaseUrl: false,
-    category: "infrastructure"
+    bitwardenSecret: "SEO_Orchestrator",
+    aliasSecrets: ["SEO_SCHEDULER_API_KEY", "seo_orchestrator"],
+    type: "worker",
+    requiresBaseUrl: true,
+    category: "infrastructure",
+    fallbackEnvVar: "SEO_ORCHESTRATOR_API_KEY",
+    fallbackBaseUrlEnvVar: "SEO_ORCHESTRATOR_BASE_URL",
+    workerEndpoints: {
+      health: "/health",
+      smokeTest: "/smoke-test",
+      capabilities: "/capabilities",
+      run: "/run"
+    }
   },
   {
     serviceSlug: "notifications",  // Matches catalog
