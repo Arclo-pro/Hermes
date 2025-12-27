@@ -92,7 +92,8 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
     type: "worker",
     requiresBaseUrl: true,
     category: "analysis",
-    fallbackEnvVar: "SERP_API_KEY",  // Legacy SerpAPI fallback
+    fallbackEnvVar: "SERP_INTELLIGENCE_API_KEY",  // Replit secret for API key
+    fallbackBaseUrlEnvVar: "SERP_INTELLIGENCE_BASE_URL",  // Env var for base URL
     workerEndpoints: {
       health: "/api/health",
       smokeTest: "/api/serp/sites",  // GET endpoint that lists configured sites
