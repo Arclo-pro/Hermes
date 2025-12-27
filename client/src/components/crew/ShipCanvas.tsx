@@ -123,75 +123,137 @@ function Compartment({
 
 export function ShipCanvas({ enabledAgents, selectedAgents, onSlotClick }: ShipCanvasProps) {
   return (
-    <div className="relative w-full h-full min-h-[480px] sm:min-h-[520px] p-2">
+    <div className="relative w-full min-h-[500px] sm:min-h-[560px]">
+      {/* SVG ship hull background */}
+      <svg
+        viewBox="0 0 400 560"
+        className="absolute inset-0 w-full h-full"
+        preserveAspectRatio="xMidYMid slice"
+      >
+        <defs>
+          <linearGradient id="hullGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="rgba(255,255,255,0.14)" />
+            <stop offset="40%" stopColor="rgba(255,255,255,0.08)" />
+            <stop offset="100%" stopColor="rgba(255,255,255,0.04)" />
+          </linearGradient>
+          <linearGradient id="cockpitGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="rgba(56,189,248,0.4)" />
+            <stop offset="100%" stopColor="rgba(56,189,248,0.1)" />
+          </linearGradient>
+          <radialGradient id="engineGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="rgba(34,211,238,0.95)" />
+            <stop offset="100%" stopColor="rgba(34,211,238,0)" />
+          </radialGradient>
+          <linearGradient id="highlightGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="rgba(255,255,255,0.18)" />
+            <stop offset="40%" stopColor="rgba(255,255,255,0)" />
+          </linearGradient>
+        </defs>
+
+        {/* Main hull shape */}
+        <path
+          d="M 200 15
+             C 320 15, 370 50, 385 100
+             L 395 200
+             C 400 280, 400 380, 395 460
+             L 375 510
+             C 340 545, 270 555, 200 555
+             C 130 555, 60 545, 25 510
+             L 5 460
+             C 0 380, 0 280, 5 200
+             L 15 100
+             C 30 50, 80 15, 200 15
+             Z"
+          fill="url(#hullGradient)"
+          stroke="rgba(255,255,255,0.18)"
+          strokeWidth="1.5"
+        />
+        
+        {/* Top-left hull highlight */}
+        <ellipse cx="120" cy="120" rx="80" ry="60" fill="url(#highlightGradient)" opacity="0.6" />
+
+        {/* Cockpit dome at top */}
+        <ellipse cx="200" cy="35" rx="60" ry="18" fill="url(#cockpitGradient)" />
+        <ellipse cx="200" cy="32" rx="45" ry="12" fill="rgba(56,189,248,0.25)" />
+        <ellipse cx="200" cy="30" rx="25" ry="6" fill="rgba(255,255,255,0.2)" />
+
+        {/* Subtle internal panel lines */}
+        <line x1="50" y1="100" x2="350" y2="100" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+        <line x1="30" y1="200" x2="370" y2="200" stroke="rgba(255,255,255,0.04)" strokeWidth="0.5" />
+        <line x1="30" y1="330" x2="370" y2="330" stroke="rgba(255,255,255,0.04)" strokeWidth="0.5" />
+        <line x1="50" y1="460" x2="350" y2="460" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+        <line x1="200" y1="70" x2="200" y2="500" stroke="rgba(255,255,255,0.03)" strokeWidth="0.5" />
+
+        {/* Engine bay at bottom */}
+        <path
+          d="M120 530 L150 560 L250 560 L280 530"
+          fill="rgba(30,41,59,0.95)"
+          stroke="rgba(255,255,255,0.15)"
+          strokeWidth="1"
+        />
+        <rect x="140" y="540" width="120" height="12" rx="3" fill="rgba(15,23,42,0.9)" />
+
+        {/* Engine glow effects */}
+        <circle cx="165" cy="550" r="8" fill="url(#engineGlow)" />
+        <circle cx="200" cy="553" r="10" fill="url(#engineGlow)" />
+        <circle cx="235" cy="550" r="8" fill="url(#engineGlow)" />
+        
+        {/* Small thruster accent dots */}
+        <circle cx="152" cy="545" r="3" fill="rgba(34,211,238,0.7)" />
+        <circle cx="248" cy="545" r="3" fill="rgba(34,211,238,0.7)" />
+      </svg>
+
+      {/* Compartments grid overlaid on hull */}
       <div
-        className={cn(
-          "absolute inset-0",
-          "bg-gradient-to-b from-slate-600/40 via-slate-700/50 to-slate-800/60",
-          "border-2 border-slate-500/50",
-          "shadow-[0_0_40px_rgba(0,0,0,0.4),inset_0_2px_0_rgba(255,255,255,0.05)]"
-        )}
+        className="absolute inset-0 p-4 sm:p-6"
         style={{
-          borderRadius: "40% 40% 35% 35% / 8% 8% 12% 12%",
           clipPath: `polygon(
-            15% 0%, 85% 0%,
-            95% 3%, 100% 10%,
-            100% 90%, 95% 97%,
-            85% 100%, 15% 100%,
-            5% 97%, 0% 90%,
-            0% 10%, 5% 3%
+            50% 3%,
+            85% 6%, 95% 18%,
+            98% 35%, 100% 50%, 98% 75%,
+            92% 90%, 80% 97%,
+            50% 99%,
+            20% 97%, 8% 90%,
+            2% 75%, 0% 50%, 2% 35%,
+            5% 18%, 15% 6%
           )`,
         }}
       >
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(148,163,184,0.12),transparent_50%)]" />
-        
-        <div className="absolute top-[2%] left-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.9)]" />
+        <div
+          className="h-full w-full pt-[8%] pb-[6%] px-[6%]"
+          style={{
+            display: "grid",
+            gridTemplateAreas: `
+              ". top ."
+              "upperleft . upperright"
+              "midleft center midright"
+              "lowerleft . lowerright"
+              "bottomleft . bottomright"
+            `,
+            gridTemplateColumns: "1fr 1.2fr 1fr",
+            gridTemplateRows: "0.85fr 1fr 1fr 1fr 0.85fr",
+            gap: "6px",
+          }}
+        >
+          {USER_FACING_AGENTS.map((agentId) => {
+            const position = COMPARTMENT_LAYOUT[agentId];
+            if (!position) return null;
 
-        <div className="absolute left-[15%] top-[15%] bottom-[15%] w-px bg-gradient-to-b from-transparent via-slate-500/25 to-transparent" />
-        <div className="absolute right-[15%] top-[15%] bottom-[15%] w-px bg-gradient-to-b from-transparent via-slate-500/25 to-transparent" />
-        <div className="absolute left-[20%] right-[20%] top-[50%] h-px bg-gradient-to-r from-transparent via-slate-500/25 to-transparent" />
-      </div>
+            const isEnabled = enabledAgents.includes(agentId);
+            const isSelected = selectedAgents.includes(agentId);
 
-      <div
-        className="relative h-full p-4 sm:p-6"
-        style={{
-          display: "grid",
-          gridTemplateAreas: `
-            ". top ."
-            "upperleft . upperright"
-            "midleft center midright"
-            "lowerleft . lowerright"
-            "bottomleft . bottomright"
-          `,
-          gridTemplateColumns: "1fr 1.2fr 1fr",
-          gridTemplateRows: "1fr 1fr 1fr 1fr 1fr",
-          gap: "8px",
-        }}
-      >
-        {USER_FACING_AGENTS.map((agentId) => {
-          const position = COMPARTMENT_LAYOUT[agentId];
-          if (!position) return null;
-
-          const isEnabled = enabledAgents.includes(agentId);
-          const isSelected = selectedAgents.includes(agentId);
-
-          return (
-            <Compartment
-              key={agentId}
-              agentId={agentId}
-              isEnabled={isEnabled}
-              isSelected={isSelected}
-              gridArea={position.gridArea}
-              onClick={() => onSlotClick(agentId)}
-            />
-          );
-        })}
-      </div>
-
-      <div className="absolute bottom-[-2%] left-1/2 -translate-x-1/2 w-[25%] h-[6%]">
-        <div className="w-full h-full bg-gradient-to-b from-slate-500/40 to-slate-600/30 rounded-b-full border-x border-b border-slate-500/40" />
-        <div className="absolute top-1/2 left-1/3 w-2 h-2 rounded-full bg-cyan-400/70 shadow-[0_0_10px_rgba(34,211,238,0.7)]" />
-        <div className="absolute top-1/2 right-1/3 w-2 h-2 rounded-full bg-cyan-400/70 shadow-[0_0_10px_rgba(34,211,238,0.7)]" />
+            return (
+              <Compartment
+                key={agentId}
+                agentId={agentId}
+                isEnabled={isEnabled}
+                isSelected={isSelected}
+                gridArea={position.gridArea}
+                onClick={() => onSlotClick(agentId)}
+              />
+            );
+          })}
+        </div>
       </div>
     </div>
   );
