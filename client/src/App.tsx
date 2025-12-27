@@ -18,6 +18,11 @@ import Authority from "@/pages/Authority";
 import Crew from "@/pages/Crew";
 import AgentDetail from "@/pages/AgentDetail";
 import KeywordRankings from "@/pages/KeywordRankings";
+import Runs from "@/pages/Runs";
+import RunDetail from "@/pages/RunDetail";
+import Audit from "@/pages/Audit";
+import Help from "@/pages/Help";
+import Benchmarks from "@/pages/Benchmarks";
 
 function Router() {
   return (
@@ -35,6 +40,11 @@ function Router() {
       <Route path="/crew" component={Crew} />
       <Route path="/agents/:agentId" component={AgentDetail} />
       <Route path="/changes" component={SuggestedChanges} />
+      <Route path="/runs" component={Runs} />
+      <Route path="/runs/:runId" component={RunDetail} />
+      <Route path="/audit" component={Audit} />
+      <Route path="/help" component={Help} />
+      <Route path="/benchmarks" component={Benchmarks} />
       <Route path="/settings" component={Settings} />
       <Route path="/">
         <Redirect to="/dashboard" />

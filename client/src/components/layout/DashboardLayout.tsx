@@ -14,7 +14,10 @@ import {
   Check,
   Link2,
   Lightbulb,
-  Users
+  Users,
+  Play,
+  ClipboardList,
+  HelpCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -91,9 +94,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const navItems = [
     { href: "/dashboard", label: "Mission Control", icon: LayoutDashboard },
     { href: "/crew", label: "Agents", icon: Users },
+    { href: "/runs", label: "Runs", icon: Play },
     { href: "/integrations", label: "Integrations", icon: Link2 },
     { href: "/sites", label: "Sites", icon: Globe },
+    { href: "/audit", label: "Audit Log", icon: ClipboardList },
     { href: "/settings", label: "Settings", icon: Settings },
+    { href: "/help", label: "Help", icon: HelpCircle },
   ];
 
   const activeSite = currentSite || selectedSite;
