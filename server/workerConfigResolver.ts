@@ -183,13 +183,35 @@ export async function resolveWorkerConfig(
     const trimmedValue = secretValue.trim();
 
     if (!trimmedValue.startsWith("{")) {
+      // Plain string secret = API key only, try to get base_url from fallback env var
+      const fallbackBaseUrl = mapping.fallbackBaseUrlEnvVar ? process.env[mapping.fallbackBaseUrlEnvVar] : null;
+      const normalizedBaseUrl = fallbackBaseUrl ? fallbackBaseUrl.trim().replace(/\/+$/, "") : null;
+      
+      if (mapping.requiresBaseUrl && !normalizedBaseUrl) {
+        return {
+          ...DEFAULT_CONFIG,
+          secretName,
+          rawValueType: "string",
+          api_key: trimmedValue,
+          api_key_fingerprint: computeKeyFingerprint(trimmedValue),
+          error: `Secret is API key only, base_url missing. Set ${mapping.fallbackBaseUrlEnvVar} env var.`,
+        };
+      }
+      
+      logger.info("WorkerConfig", `Using Bitwarden API key + fallback base URL for ${serviceSlug}`, {
+        secretName,
+        fallbackEnvVar: mapping.fallbackBaseUrlEnvVar,
+      });
+      
       return {
         ...DEFAULT_CONFIG,
         secretName,
         rawValueType: "string",
         api_key: trimmedValue,
         api_key_fingerprint: computeKeyFingerprint(trimmedValue),
-        error: "Secret is plain string (not JSON) - treating as API key only, base_url missing",
+        base_url: normalizedBaseUrl,
+        valid: true,
+        error: null,
       };
     }
 
@@ -233,6 +255,32 @@ export async function resolveWorkerConfig(
     const apiKeyFingerprint = normalized.api_key ? computeKeyFingerprint(normalized.api_key) : null;
     
     if (mapping.requiresBaseUrl && !normalized.base_url) {
+      // Try fallback base URL env var
+      const fallbackBaseUrl = mapping.fallbackBaseUrlEnvVar ? process.env[mapping.fallbackBaseUrlEnvVar] : null;
+      const normalizedFallbackBaseUrl = fallbackBaseUrl ? fallbackBaseUrl.trim().replace(/\/+$/, "") : null;
+      
+      if (normalizedFallbackBaseUrl) {
+        logger.info("WorkerConfig", `Using Bitwarden API key + fallback base URL for ${serviceSlug}`, {
+          secretName,
+          fallbackEnvVar: mapping.fallbackBaseUrlEnvVar,
+        });
+        
+        return {
+          base_url: normalizedFallbackBaseUrl,
+          api_key: normalized.api_key,
+          api_key_fingerprint: apiKeyFingerprint,
+          health_path: normalized.health_path,
+          start_path: normalized.start_path,
+          status_path: normalized.status_path,
+          raw: parsed,
+          valid: true,
+          error: null,
+          secretName,
+          rawValueType: "json",
+          parseError: null,
+        };
+      }
+      
       return {
         ...DEFAULT_CONFIG,
         secretName,
@@ -245,7 +293,7 @@ export async function resolveWorkerConfig(
         start_path: normalized.start_path,
         status_path: normalized.status_path,
         valid: false,
-        error: "missing base_url",
+        error: `missing base_url. Set ${mapping.fallbackBaseUrlEnvVar} env var.`,
       };
     }
 
