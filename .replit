@@ -55,5 +55,5 @@ SEO_BLOG_WRITER_BASE_URL = "https://worker-blog-writer--providers2.replit.app/ap
 SEO_CONTENT_DECAY_MONITOR_BASE_URL = "https://decay-monitor--providers2.replit.app/api"
 SEO_BACKLINKS_BASE_URL = "https://backlink-blaster--providers2.replit.app/api"
 SEO_NOTIFICATIONS_BASE_URL = "https://notification-system--providers2.replit.app/api"
-SEO_AUDIT_LOG_BASE_URL = "https://service-audit--providers2.replit.app/api"
+SEO_AUDIT_LOG_BASE_URL = "https://service-audit--providers2.replit.app"
 SEO_COMPETITIVE_INTEL_BASE_URL = "https://worker-competitive-intelligence--providers2.replit.app/api"

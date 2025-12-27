@@ -231,6 +231,33 @@ export async function resolveWorkerConfig(
     const normalized = normalizeKeys(parsed);
 
     if (normalized.base_url && !normalized.base_url.startsWith("http")) {
+      // Invalid base_url in Bitwarden secret - try fallback env var
+      const fallbackBaseUrl = mapping.fallbackBaseUrlEnvVar ? process.env[mapping.fallbackBaseUrlEnvVar] : null;
+      const normalizedFallbackBaseUrl = fallbackBaseUrl ? fallbackBaseUrl.trim().replace(/\/+$/, "") : null;
+      
+      if (normalizedFallbackBaseUrl && normalizedFallbackBaseUrl.startsWith("http")) {
+        logger.info("WorkerConfig", `Invalid Bitwarden base_url for ${serviceSlug}, using fallback env var`, {
+          secretName,
+          invalidBaseUrl: normalized.base_url,
+          fallbackEnvVar: mapping.fallbackBaseUrlEnvVar,
+        });
+        
+        return {
+          base_url: normalizedFallbackBaseUrl,
+          api_key: normalized.api_key,
+          api_key_fingerprint: normalized.api_key ? computeKeyFingerprint(normalized.api_key) : null,
+          health_path: normalized.health_path,
+          start_path: normalized.start_path,
+          status_path: normalized.status_path,
+          raw: parsed,
+          valid: true,
+          error: null,
+          secretName,
+          rawValueType: "json",
+          parseError: null,
+        };
+      }
+      
       return {
         ...DEFAULT_CONFIG,
         secretName,

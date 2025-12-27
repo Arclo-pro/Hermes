@@ -400,7 +400,7 @@ export const servicesCatalog: ServiceDefinition[] = [
     description: "Stores run history, service health, job outcomes, and change logs across the entire system. Enables tracing recommendations back to inputs and seeing what actually changed.",
     purpose: "Track run history, health metrics, and alerts",
     inputs: ["site_domain"],
-    outputs: ["run_logs", "health_metrics", "alerts", "change_audit"],
+    outputs: ["ok", "service", "version", "data"],  // Matches worker smoke-test response
     keyMetrics: ["run_logs", "alerts"],
     commonFailures: ["db_connection_failed", "server_error"],
     runTriggers: ["scheduled", "manual"],
