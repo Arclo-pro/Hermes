@@ -349,7 +349,8 @@ function AgentSummaryCard({ agent }: { agent: { serviceId: string; score: number
   );
 }
 
-function AgentSummaryGrid({ agents }: { agents: Array<{ serviceId: string; score: number; status: 'good' | 'watch' | 'bad' }> }) {
+function AgentSummaryGrid({ agents, totalAgents }: { agents: Array<{ serviceId: string; score: number; status: 'good' | 'watch' | 'bad' }>; totalAgents: number }) {
+  const enabledCount = agents.length;
   const agentData = agents.slice(0, 6).map(agent => {
     const mockData = getMockAgentData(agent.serviceId);
     const finding = mockData?.findings?.[0];
@@ -365,7 +366,10 @@ function AgentSummaryGrid({ agents }: { agents: Array<{ serviceId: string; score
   return (
     <div data-testid="agent-summary-grid">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">Agent Summary</h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg font-semibold">Agent Summary</h2>
+          <Badge variant="secondary" className="text-xs">{enabledCount} of {totalAgents} enabled</Badge>
+        </div>
         <Link href="/crew">
           <Button variant="ghost" size="sm" className="text-xs">
             View all agents <ChevronRight className="w-3 h-3 ml-1" />
@@ -667,7 +671,7 @@ export default function MissionControl() {
 
         <MetricCardsRow />
 
-        <AgentSummaryGrid agents={userAgents} />
+        <AgentSummaryGrid agents={userAgents} totalAgents={USER_FACING_AGENTS.length} />
 
         <ActionQueueCard actions={mockActions} />
 

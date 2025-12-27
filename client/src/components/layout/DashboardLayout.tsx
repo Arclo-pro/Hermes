@@ -15,7 +15,6 @@ import {
   Link2,
   Lightbulb,
   Users,
-  Play,
   ClipboardList,
   HelpCircle
 } from "lucide-react";
@@ -94,7 +93,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const navItems = [
     { href: "/dashboard", label: "Mission Control", icon: LayoutDashboard },
     { href: "/crew", label: "Agents", icon: Users },
-    { href: "/runs", label: "Runs", icon: Play },
     { href: "/integrations", label: "Integrations", icon: Link2 },
     { href: "/sites", label: "Sites", icon: Globe },
     { href: "/audit", label: "Audit Log", icon: ClipboardList },
