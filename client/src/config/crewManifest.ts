@@ -60,7 +60,7 @@ export const CREW_MANIFEST: Record<string, CrewMember> = {
   crawl_render: {
     service_id: "crawl_render",
     nickname: "Scotty",
-    role: "Systems Engineer",
+    role: "Technical SEO",
     color: "#64748B",
     icon: Wrench,
     blurb: "Performs technical SEO audits and crawl diagnostics.",
