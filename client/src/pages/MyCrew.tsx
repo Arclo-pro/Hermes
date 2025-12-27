@@ -8,7 +8,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { USER_FACING_AGENTS, getCrewMember, type CrewMember } from "@/config/agents";
 import { Check, Zap, Lock, Sparkles, TrendingUp, Shield, Eye, FileText, Activity, Plus, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ShipCanvas } from "@/components/crew/ShipCanvas";
+import { ShipCanvasA1 } from "@/components/crew/ShipCanvasA1";
 
 const CREW_ROLES = USER_FACING_AGENTS;
 
@@ -716,7 +716,7 @@ export default function MyCrew() {
             onAddRequiredCrew={handleAddRequiredCrew}
           />
           
-          <ShipCanvas 
+          <ShipCanvasA1 
             enabledAgents={enabledAgents}
             selectedAgents={selectedAgents}
             onSlotClick={handleSlotClick}
