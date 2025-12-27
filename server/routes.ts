@@ -1882,13 +1882,6 @@ When answering:
         });
       }
       
-      if (!kbaseConfig.api_key) {
-        return res.status(400).json({ 
-          error: "SEO_KBASE missing api_key",
-          configured: false,
-        });
-      }
-      
       const baseUrl = kbaseConfig.base_url.replace(/\/+$/, '');
       const domain = process.env.DOMAIN || 'empathyhealthclinic.com';
       const runId = `kbase_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -1897,8 +1890,13 @@ When answering:
       const runUrl = `${baseUrl}/run`;
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
-        "x-api-key": kbaseConfig.api_key,
       };
+      
+      // Add API key if available
+      if (kbaseConfig.api_key) {
+        headers["x-api-key"] = kbaseConfig.api_key;
+        headers["Authorization"] = `Bearer ${kbaseConfig.api_key}`;
+      }
       
       logger.info("KBASE", "Triggering KBASE run", { domain, runId });
       
