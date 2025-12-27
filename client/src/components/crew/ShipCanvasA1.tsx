@@ -1,32 +1,37 @@
 import React from "react";
 import { ShipHullSvg } from "./ShipHullSvg";
 import { getCrewMember } from "@/config/agents";
+import { Info, Eye, Target, BarChart3, Wrench, Zap, Search, PenTool, Link2, Megaphone, Compass } from "lucide-react";
 
-type Slot = {
-  id: string;
-  label: string;
-  subtitle: string;
-  avatar: string;
+type RoleSlot = {
+  roleId: string;
+  roleName: string;
+  roleIcon: React.ElementType;
+  crewId: string | null;
   xPct: number;
   yPct: number;
 };
 
-const SLOTS: Slot[] = [
-  { id: "orchestrator", label: "Major Tom", subtitle: "Orchestrator", avatar: "🎖️", xPct: 50, yPct: 8 },
+const ROLE_SLOTS: RoleSlot[] = [
+  // COMMAND - Top (10%)
+  { roleId: "mission_control", roleName: "Mission Control", roleIcon: Compass, crewId: "orchestrator", xPct: 50, yPct: 10 },
 
-  { id: "content_decay", label: "Sentinel", subtitle: "Content Decay", avatar: "🔍", xPct: 50, yPct: 25 },
-  { id: "competitive_snapshot", label: "Natasha", subtitle: "Competitive Intel", avatar: "🕵️", xPct: 30, yPct: 28 },
-  { id: "serp_intel", label: "Lookout", subtitle: "SERP Tracking", avatar: "🔭", xPct: 70, yPct: 28 },
+  // INTELLIGENCE - Upper section (32%)
+  { roleId: "competitive_intel", roleName: "Competitive Intel", roleIcon: Eye, crewId: "competitive_snapshot", xPct: 25, yPct: 32 },
+  { roleId: "serp_tracking", roleName: "SERP Tracking", roleIcon: Target, crewId: "serp_intel", xPct: 50, yPct: 32 },
+  { roleId: "analytics_signals", roleName: "Analytics & Signals", roleIcon: BarChart3, crewId: "google_data_connector", xPct: 75, yPct: 32 },
 
-  { id: "seo_kbase", label: "Socrates", subtitle: "Knowledge Base", avatar: "🧠", xPct: 25, yPct: 48 },
-  { id: "backlink_authority", label: "Beacon", subtitle: "Authority", avatar: "🏛️", xPct: 50, yPct: 45 },
-  { id: "google_data_connector", label: "Popular", subtitle: "Signals", avatar: "📊", xPct: 75, yPct: 48 },
+  // CONTENT SYSTEMS - Middle upper (52%)
+  { roleId: "content_decay", roleName: "Content Decay", roleIcon: Search, crewId: "content_decay", xPct: 32, yPct: 52 },
+  { roleId: "content_strategy", roleName: "Content Strategy", roleIcon: PenTool, crewId: "content_generator", xPct: 68, yPct: 52 },
 
-  { id: "crawl_render", label: "Scotty", subtitle: "Technical SEO", avatar: "🔧", xPct: 32, yPct: 65 },
-  { id: "core_web_vitals", label: "Speedster", subtitle: "Performance", avatar: "⚡", xPct: 68, yPct: 65 },
+  // ENGINEERING - Middle lower (72%)
+  { roleId: "technical_seo", roleName: "Technical SEO", roleIcon: Wrench, crewId: "crawl_render", xPct: 32, yPct: 72 },
+  { roleId: "performance", roleName: "Performance", roleIcon: Zap, crewId: "core_web_vitals", xPct: 68, yPct: 72 },
 
-  { id: "content_generator", label: "Hemingway", subtitle: "Content Strategy", avatar: "✍️", xPct: 40, yPct: 82 },
-  { id: "google_ads_connector", label: "Draper", subtitle: "Ads Growth", avatar: "📈", xPct: 60, yPct: 82 },
+  // AUTHORITY & GROWTH - Bottom section (92%)
+  { roleId: "domain_authority", roleName: "Domain Authority", roleIcon: Link2, crewId: "backlink_authority", xPct: 38, yPct: 92 },
+  { roleId: "paid_ads", roleName: "Paid Ads", roleIcon: Megaphone, crewId: "google_ads_connector", xPct: 62, yPct: 92 },
 ];
 
 export function ShipCanvasA1(props: {
@@ -79,15 +84,15 @@ export function ShipCanvasA1(props: {
           </div>
 
           <div className="absolute inset-0">
-            {SLOTS.map((slot) => {
-              const crew = getCrewMember(slot.id);
-              const isOrchestrator = slot.id === "orchestrator";
-              const isEnabled = enabledAgents.includes(slot.id) || isOrchestrator;
-              const isSelected = selectedAgents.includes(slot.id);
+            {ROLE_SLOTS.map((slot) => {
+              const crew = slot.crewId ? getCrewMember(slot.crewId) : null;
+              const isMissionControl = slot.roleId === "mission_control";
+              const isEnabled = slot.crewId && (enabledAgents.includes(slot.crewId) || isMissionControl);
+              const isSelected = slot.crewId && selectedAgents.includes(slot.crewId);
               const isEmpty = !isEnabled && !isSelected;
+              const RoleIcon = slot.roleIcon;
 
-              const opacity = isEnabled ? 1 : isSelected ? 0.7 : 0.25;
-              const badge = isOrchestrator ? "Included" : isEnabled ? "Active" : isSelected ? "Selected" : "";
+              const badge = isMissionControl ? "Included" : isEnabled ? "Active" : isSelected ? "Selected" : null;
 
               const ringClass = isEnabled
                 ? "ring-2 shadow-[0_0_0_2px_var(--color-progress-soft),0_18px_40px_rgba(0,0,0,0.45)]"
@@ -105,23 +110,24 @@ export function ShipCanvasA1(props: {
                 ? "border border-dashed border-white/20"
                 : "border border-white/15";
 
-              const badgeClass = isOrchestrator || isEnabled
+              const badgeClass = isMissionControl || isEnabled
                 ? "bg-progress-soft text-white/90"
                 : isSelected
                   ? "bg-[rgba(124,58,237,0.18)] text-white/90"
                   : "";
 
-              const currentTileSize = isOrchestrator ? tileSize * 1.15 : tileSize;
+              const currentTileSize = isMissionControl ? tileSize * 1.08 : tileSize;
               const left = `calc(${slot.xPct}% - ${currentTileSize / 2}px)`;
               const top = `calc(${slot.yPct}% - ${currentTileSize / 2}px)`;
 
               return (
                 <button
-                  key={slot.id}
-                  className="absolute transition-transform hover:scale-105"
+                  key={slot.roleId}
+                  className="absolute transition-transform hover:scale-105 group"
                   style={{ left, top, width: currentTileSize, height: currentTileSize }}
-                  onClick={() => onSlotClick(slot.id)}
-                  data-testid={`ship-slot-${slot.id}`}
+                  onClick={() => slot.crewId && onSlotClick(slot.crewId)}
+                  data-testid={`ship-slot-${slot.roleId}`}
+                  title={isEmpty ? "Assign a crew member to this role" : `View ${crew?.nickname || slot.roleName} details`}
                 >
                   <div
                     className={[
@@ -138,26 +144,40 @@ export function ShipCanvasA1(props: {
                       </div>
                     )}
 
-                    <div className="flex h-full flex-col items-center justify-center gap-1.5 px-2">
-                      {crew.avatar && typeof crew.avatar === 'string' && crew.avatar.includes('/') ? (
-                        <img 
-                          src={crew.avatar} 
-                          alt={crew.nickname || slot.label}
-                          className="h-14 w-14 object-contain transition-opacity"
-                          style={{ opacity }}
-                        />
-                      ) : (
-                        <span 
-                          className="text-4xl transition-opacity"
-                          style={{ opacity }}
-                        >
-                          {crew.avatar || slot.avatar}
-                        </span>
-                      )}
-                      <div className="text-center">
-                        <div className="text-xs font-semibold text-white/90 leading-tight">{crew.nickname || slot.label}</div>
-                        <div className="text-[10px] text-white/50 leading-tight">{crew.signalType || slot.subtitle}</div>
+                    {isEmpty && (
+                      <div className="absolute left-1.5 top-1.5 opacity-40 group-hover:opacity-70 transition-opacity">
+                        <Info className="w-3.5 h-3.5 text-white/60" />
                       </div>
+                    )}
+
+                    <div className="flex h-full flex-col items-center justify-center gap-1 px-2">
+                      {isEmpty ? (
+                        <>
+                          <RoleIcon className="w-8 h-8 text-white/30 group-hover:text-white/50 transition-colors" />
+                          <div className="text-center">
+                            <div className="text-[11px] font-medium text-white/40 leading-tight">{slot.roleName}</div>
+                            <div className="text-[10px] text-white/30 leading-tight">Empty slot</div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          {crew?.avatar && typeof crew.avatar === 'string' && crew.avatar.includes('/') ? (
+                            <img 
+                              src={crew.avatar} 
+                              alt={crew.nickname || slot.roleName}
+                              className="h-12 w-12 object-contain"
+                            />
+                          ) : (
+                            <span className="text-3xl">
+                              {crew?.avatar || "👤"}
+                            </span>
+                          )}
+                          <div className="text-center">
+                            <div className="text-[11px] font-semibold text-white/90 leading-tight">{crew?.nickname || "Unknown"}</div>
+                            <div className="text-[10px] text-white/50 leading-tight">{slot.roleName}</div>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 </button>

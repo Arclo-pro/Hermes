@@ -727,7 +727,7 @@ export default function MyCrew() {
                   enabledAgents={enabledAgents}
                   selectedAgents={selectedAgents}
                   onSlotClick={handleSlotClick}
-                  tileSize={140}
+                  tileSize={110}
                 />
               </div>
             </div>
