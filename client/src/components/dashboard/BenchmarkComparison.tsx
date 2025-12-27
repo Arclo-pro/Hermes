@@ -38,7 +38,9 @@ interface ComparisonData {
 }
 
 const industryLabels: Record<string, string> = {
+  psychiatry: "Psychiatry / Mental Health",
   healthcare: "Healthcare",
+  general_seo: "General SEO (All Industries)",
   ecommerce: "E-commerce",
   saas: "SaaS",
   finance: "Finance",
@@ -55,6 +57,16 @@ const metricLabels: Record<string, string> = {
   session_duration: "Session Duration",
   pages_per_session: "Pages/Session",
   conversion_rate: "Conversion Rate",
+  local_visibility: "Local Visibility",
+  review_rating: "Review Rating",
+  mobile_traffic: "Mobile Traffic",
+  lcp: "LCP (Loading)",
+  cls: "CLS (Stability)",
+  inp: "INP (Interactivity)",
+  ctr_position_1: "CTR Position #1",
+  ctr_position_2: "CTR Position #2",
+  ctr_position_3: "CTR Position #3",
+  indexed_pages_ratio: "Indexed Pages",
 };
 
 const percentileColors: Record<string, { bg: string; text: string; label: string }> = {
@@ -96,7 +108,7 @@ function PercentileBar({ value, benchmarks, metric, unit }: {
 }) {
   if (value === null) return null;
   
-  const isLowerBetter = metric === 'avg_position' || metric === 'bounce_rate';
+  const isLowerBetter = ['avg_position', 'bounce_rate', 'lcp', 'cls', 'inp'].includes(metric);
   const min = isLowerBetter ? benchmarks.p90 * 0.5 : 0;
   const max = isLowerBetter ? benchmarks.p25 * 1.5 : benchmarks.p90 * 1.2;
   const range = max - min;
@@ -129,7 +141,7 @@ function MetricCard({ data }: { data: BenchmarkMetric }) {
   const getIcon = () => {
     if (data.actualValue === null) return <Minus className="w-4 h-4" />;
     
-    const isLowerBetter = data.metric === 'avg_position' || data.metric === 'bounce_rate';
+    const isLowerBetter = ['avg_position', 'bounce_rate', 'lcp', 'cls', 'inp'].includes(data.metric);
     
     if (data.percentile === 'excellent' || data.percentile === 'above_average') {
       return <TrendingUp className="w-4 h-4 text-green-600" />;
@@ -178,7 +190,7 @@ function MetricCard({ data }: { data: BenchmarkMetric }) {
 }
 
 export function BenchmarkComparison() {
-  const [selectedIndustry, setSelectedIndustry] = useState<string>("healthcare");
+  const [selectedIndustry, setSelectedIndustry] = useState<string>("psychiatry");
   
   const { data: industriesData, isLoading: industriesLoading } = useQuery({
     queryKey: ['benchmark-industries'],
