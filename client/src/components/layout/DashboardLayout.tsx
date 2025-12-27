@@ -90,9 +90,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/sites", label: "Sites", icon: Globe },
     { href: "/integrations", label: "Integrations", icon: Link2 },
     { href: "/crew", label: "Agents", icon: Users },
+    { href: "/sites", label: "Sites", icon: Globe },
     { href: "/settings", label: "Settings", icon: Settings },
   ];
 
