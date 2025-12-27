@@ -38,7 +38,7 @@ import { Label } from "@/components/ui/label";
 import { useSiteContext } from "@/hooks/useSiteContext";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import logoImage from "@assets/generated_images/minimalist_cross_symbol_with_data_graph_lines.png";
+import logoImage from "@assets/image_1766866825580.png";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -121,8 +121,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="p-6 flex items-center gap-3 border-b border-border/50">
           <img src={logoImage} alt="Logo" className="w-8 h-8 rounded-md" />
           <div>
-            <h1 className="font-bold text-sm tracking-tight text-foreground">Hermes</h1>
-            <p className="text-xs text-muted-foreground font-medium">SEO Orchestrator</p>
+            <h1 className="font-bold text-sm tracking-tight text-foreground">Arco</h1>
+            <p className="text-xs text-muted-foreground font-medium">Dashboard</p>
           </div>
           <Button 
             variant="ghost" 
