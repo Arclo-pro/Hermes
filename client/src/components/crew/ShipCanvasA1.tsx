@@ -16,18 +16,18 @@ type RoleSlot = {
 };
 
 const ROLE_SLOTS: RoleSlot[] = [
-  { roleId: "mission_control", roleName: "Mission Control", roleIcon: Compass, crewId: "orchestrator", xPct: 50, yPct: 8 },
-  { roleId: "competitive_intel", roleName: "Competitive Intel", roleIcon: Eye, crewId: "competitive_snapshot", xPct: 17, yPct: 28 },
-  { roleId: "serp_tracking", roleName: "SERP Tracking", roleIcon: Target, crewId: "serp_intel", xPct: 50, yPct: 28 },
-  { roleId: "analytics_signals", roleName: "Analytics & Signals", roleIcon: BarChart3, crewId: "google_data_connector", xPct: 83, yPct: 28 },
-  { roleId: "technical_seo", roleName: "Technical SEO", roleIcon: Wrench, crewId: "crawl_render", xPct: 28, yPct: 50 },
-  { roleId: "performance_monitoring", roleName: "Performance", roleIcon: Zap, crewId: "core_web_vitals", xPct: 72, yPct: 50 },
-  { roleId: "content_decay", roleName: "Content Decay", roleIcon: Search, crewId: "content_decay", xPct: 28, yPct: 72 },
-  { roleId: "content_strategy", roleName: "Content Strategy", roleIcon: PenTool, crewId: "content_generator", xPct: 72, yPct: 72 },
-  { roleId: "domain_authority", roleName: "Authority", roleIcon: Link2, crewId: "backlink_authority", xPct: 13, yPct: 94 },
-  { roleId: "ai_optimization", roleName: "AI Optimization", roleIcon: BrainCircuit, crewId: "ai_optimization", xPct: 37, yPct: 94 },
-  { roleId: "paid_ads", roleName: "Paid Ads", roleIcon: Megaphone, crewId: "google_ads_connector", xPct: 63, yPct: 94 },
-  { roleId: "knowledge_base", roleName: "Knowledge", roleIcon: BookOpen, crewId: "seo_kbase", xPct: 87, yPct: 94 },
+  { roleId: "mission_control", roleName: "Mission Control", roleIcon: Compass, crewId: "orchestrator", xPct: 50, yPct: 10 },
+  { roleId: "competitive_intel", roleName: "Competitive Intel", roleIcon: Eye, crewId: "competitive_snapshot", xPct: 18, yPct: 32 },
+  { roleId: "serp_tracking", roleName: "SERP Tracking", roleIcon: Target, crewId: "serp_intel", xPct: 50, yPct: 32 },
+  { roleId: "analytics_signals", roleName: "Analytics", roleIcon: BarChart3, crewId: "google_data_connector", xPct: 82, yPct: 32 },
+  { roleId: "technical_seo", roleName: "Technical SEO", roleIcon: Wrench, crewId: "crawl_render", xPct: 30, yPct: 54 },
+  { roleId: "performance_monitoring", roleName: "Performance", roleIcon: Zap, crewId: "core_web_vitals", xPct: 70, yPct: 54 },
+  { roleId: "content_decay", roleName: "Content Decay", roleIcon: Search, crewId: "content_decay", xPct: 30, yPct: 76 },
+  { roleId: "content_strategy", roleName: "Content", roleIcon: PenTool, crewId: "content_generator", xPct: 70, yPct: 76 },
+  { roleId: "domain_authority", roleName: "Authority", roleIcon: Link2, crewId: "backlink_authority", xPct: 14, yPct: 98 },
+  { roleId: "ai_optimization", roleName: "AI", roleIcon: BrainCircuit, crewId: "ai_optimization", xPct: 38, yPct: 98 },
+  { roleId: "paid_ads", roleName: "Ads", roleIcon: Megaphone, crewId: "google_ads_connector", xPct: 62, yPct: 98 },
+  { roleId: "knowledge_base", roleName: "Knowledge", roleIcon: BookOpen, crewId: "seo_kbase", xPct: 86, yPct: 98 },
 ];
 
 function RoleInfoTooltip({ roleId }: { roleId: string }) {
@@ -135,8 +135,8 @@ export function ShipCanvasA1(props: {
                       left: `${slot.xPct}%`,
                       top: `${slot.yPct}%`,
                       transform: `translate(-50%, -50%) scale(${scale})`,
-                      width: "clamp(160px, 16vw, 220px)",
-                      height: "clamp(160px, 16vw, 220px)",
+                      width: "clamp(140px, 14vw, 180px)",
+                      height: "clamp(140px, 14vw, 180px)",
                     }}
                     onClick={() => slot.crewId && onSlotClick(slot.crewId)}
                     data-testid={`ship-slot-${slot.roleId}`}
@@ -160,30 +160,30 @@ export function ShipCanvasA1(props: {
                       )}
 
                       <div className="absolute inset-0 flex flex-col">
-                        <div className="flex-1 flex items-center justify-center pt-6 pb-1 px-2">
+                        <div className="flex-1 flex items-center justify-center pt-5 pb-0 px-1">
                           {isEmpty ? (
-                            <RoleIcon className="w-[55%] h-[55%] max-w-[80px] max-h-[80px] text-white/20 group-hover:text-white/35 transition-colors" />
+                            <RoleIcon className="w-[50%] h-[50%] max-w-[60px] max-h-[60px] text-white/20 group-hover:text-white/35 transition-colors" />
                           ) : slot.crewId && (
                             <CrewAvatarTooltip crewId={slot.crewId}>
                               {crew?.avatar && typeof crew.avatar === 'string' && crew.avatar.includes('/') ? (
                                 <img 
                                   src={crew.avatar} 
                                   alt={crew.nickname || slot.roleName}
-                                  className="w-[75%] h-[75%] max-w-[140px] max-h-[140px] object-contain drop-shadow-lg"
+                                  className="w-[80%] h-[80%] max-w-[110px] max-h-[110px] object-contain drop-shadow-lg"
                                 />
                               ) : (
-                                <span className="text-6xl drop-shadow-lg">{crew?.avatar || "👤"}</span>
+                                <span className="text-5xl drop-shadow-lg">{crew?.avatar || "👤"}</span>
                               )}
                             </CrewAvatarTooltip>
                           )}
                         </div>
 
-                        <div className="h-[28%] flex flex-col items-center justify-start px-2 pb-2">
-                          <div className={`text-[11px] font-semibold leading-tight text-center truncate w-full ${isEmpty ? "text-white/30" : "text-white/90"}`}>
+                        <div className="h-[24%] flex flex-col items-center justify-center px-1.5 pb-1.5">
+                          <div className={`text-[10px] font-semibold leading-tight text-center truncate w-full ${isEmpty ? "text-white/30" : "text-white/90"}`}>
                             {isEmpty ? slot.roleName : (crew?.nickname || "Unknown")}
                           </div>
                           {isEmpty && (
-                            <div className="text-[9px] text-white/20 mt-0.5">Empty slot</div>
+                            <div className="text-[8px] text-white/20 mt-0.5">Empty slot</div>
                           )}
                         </div>
                       </div>
