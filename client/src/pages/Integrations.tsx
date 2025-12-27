@@ -489,6 +489,8 @@ export default function Integrations() {
       if (!res.ok) return [];
       return res.json();
     },
+    staleTime: 30 * 60 * 1000, // 30 minutes - only refetch after test runs
+    gcTime: 60 * 60 * 1000, // 1 hour cache retention
   });
 
   // Fetch service runs to show last run info per service
@@ -499,6 +501,8 @@ export default function Integrations() {
       if (!res.ok) return [];
       return res.json();
     },
+    staleTime: 30 * 60 * 1000, // 30 minutes - only refetch after test runs
+    gcTime: 60 * 60 * 1000, // 1 hour cache retention
   });
 
   // Fetch diagnostics for selected catalog service
@@ -561,6 +565,8 @@ export default function Integrations() {
       if (!res.ok) return { services: [], slugLabels: {} };
       return res.json();
     },
+    staleTime: 30 * 60 * 1000, // 30 minutes - only refetch after test runs
+    gcTime: 60 * 60 * 1000, // 1 hour cache retention
   });
 
   const catalogServices = catalogData?.services || [];
