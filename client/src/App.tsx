@@ -17,6 +17,7 @@ import Integrations from "@/pages/Integrations";
 import SuggestedChanges from "@/pages/SuggestedChanges";
 import Authority from "@/pages/Authority";
 import Crew from "@/pages/Crew";
+import AgentDetail from "@/pages/AgentDetail";
 
 function Router() {
   return (
@@ -31,6 +32,7 @@ function Router() {
       <Route path="/authority" component={Authority} />
       <Route path="/integrations" component={Integrations} />
       <Route path="/crew" component={Crew} />
+      <Route path="/agents/:agentId" component={AgentDetail} />
       <Route path="/changes" component={SuggestedChanges} />
       <Route path="/settings" component={Settings} />
       <Route path="/">

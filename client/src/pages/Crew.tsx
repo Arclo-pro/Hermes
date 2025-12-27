@@ -1,3 +1,4 @@
+import { useLocation } from "wouter";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Badge } from "@/components/ui/badge";
 import { AgentCard } from "@/components/crew/AgentCard";
@@ -23,6 +24,8 @@ function formatRelativeTime(dateString: string): string {
 }
 
 export default function CrewPage() {
+  const [, navigate] = useLocation();
+  
   const userFacingAgents = USER_FACING_AGENTS
     .map((serviceId) => {
       const crew = getCrewMember(serviceId);
@@ -85,6 +88,7 @@ export default function CrewPage() {
                 lastCheckIn={agent.lastCheckIn}
                 findings={agent.findings}
                 nextSteps={agent.nextSteps}
+                onClick={() => navigate(`/agents/${agent.serviceId}`)}
               />
             </div>
           ))}
