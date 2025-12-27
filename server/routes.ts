@@ -2109,11 +2109,12 @@ When answering:
   app.get("/api/dashboard/stats", async (req, res) => {
     try {
       const now = new Date();
-      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      // Fetch 60 days to support both 7-day and 30-day period comparisons
+      const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
       
       const formatDate = (d: Date) => d.toISOString().split("T")[0].replace(/-/g, "");
       const endDate = formatDate(now);
-      const startDate = formatDate(weekAgo);
+      const startDate = formatDate(sixtyDaysAgo);
       
       const endDateDash = now.toISOString().split("T")[0];
 
@@ -2122,10 +2123,6 @@ When answering:
         storage.getAdsDataByDateRange(startDate, endDate),
         storage.getWebChecksByDate(endDateDash),
       ]);
-
-      const totalSessions = ga4Data.reduce((sum, d) => sum + d.sessions, 0);
-      const totalSpend = adsData.reduce((sum, d) => sum + d.spend, 0);
-      const healthScore = webChecks.filter(c => c.statusCode === 200).length / Math.max(webChecks.length, 1) * 100;
 
       // Aggregate sessions by date
       const ga4ByDate = ga4Data.reduce((acc, d) => {
@@ -2145,10 +2142,29 @@ When answering:
         .map(([date, value]) => ({ date, value }))
         .sort((a, b) => a.date.localeCompare(b.date));
 
+      // Calculate period-over-period comparisons
+      const recent7d = ga4Trend.slice(-7).reduce((sum, d) => sum + d.value, 0);
+      const previous7d = ga4Trend.slice(-14, -7).reduce((sum, d) => sum + d.value, 0);
+      const recent30d = ga4Trend.slice(-30).reduce((sum, d) => sum + d.value, 0);
+      const previous30d = ga4Trend.slice(-60, -30).reduce((sum, d) => sum + d.value, 0);
+      
+      const change7d = previous7d > 0 ? ((recent7d - previous7d) / previous7d) * 100 : null;
+      const change30d = previous30d > 0 ? ((recent30d - previous30d) / previous30d) * 100 : null;
+
+      const totalSessions = ga4Trend.reduce((sum, d) => sum + d.value, 0);
+      const totalSpend = adsTrend.reduce((sum, d) => sum + d.value, 0);
+      const healthScore = webChecks.filter(c => c.statusCode === 200).length / Math.max(webChecks.length, 1) * 100;
+
       res.json({
         organicTraffic: {
           total: totalSessions,
           trend: ga4Trend,
+          recent7d,
+          previous7d,
+          change7d: change7d !== null ? Math.round(change7d * 10) / 10 : null,
+          recent30d,
+          previous30d,
+          change30d: change30d !== null ? Math.round(change30d * 10) / 10 : null,
         },
         adsSpend: {
           total: totalSpend,
