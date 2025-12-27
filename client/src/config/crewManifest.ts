@@ -63,7 +63,7 @@ export const CREW_MANIFEST: Record<string, CrewMember> = {
   competitive_snapshot: {
     service_id: "competitive_snapshot",
     nickname: "Natasha",
-    role: "Intelligence Operative",
+    role: "Competitive Intelligence",
     color: "#7F1D1D",
     icon: Eye,
     blurb: "Gathers competitive intelligence, SERP movements, and strategic gaps.",
