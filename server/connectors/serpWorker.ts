@@ -68,7 +68,7 @@ export class SerpWorkerClient {
     if (this.initialized) return true;
 
     try {
-      const config = await bitwardenProvider.getWorkerConfig("SEO_SERP_&_Keyword");
+      const config = await bitwardenProvider.getWorkerConfig("SEO_SERP_Keyword");
       
       if (config.valid && config.baseUrl) {
         this.baseUrl = config.baseUrl;
@@ -189,7 +189,7 @@ export class SerpWorkerClient {
       if (!initialized || !this.baseUrl) {
         return { 
           success: false, 
-          message: "Failed to initialize - check Bitwarden secret SEO_SERP_&_Keyword (needs JSON with base_url and api_key)",
+          message: "Failed to initialize - check Bitwarden secret SEO_SERP_Keyword (needs JSON with base_url and api_key)",
           debug,
         };
       }
