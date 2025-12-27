@@ -120,7 +120,7 @@ export default function CrewPage() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-6">
           {userFacingAgents.map((agent) => (
             <div key={agent.serviceId} id={agent.serviceId}>
               <AgentCard

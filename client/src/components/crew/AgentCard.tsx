@@ -16,11 +16,11 @@ interface AgentCardProps {
 }
 
 const STATUS_CONFIG = {
-  healthy: { label: "Healthy", color: "bg-green-100 text-green-700", icon: CheckCircle },
-  degraded: { label: "Needs Attention", color: "bg-yellow-100 text-yellow-700", icon: AlertTriangle },
-  down: { label: "Down", color: "bg-red-100 text-red-700", icon: XCircle },
-  disabled: { label: "Disabled", color: "bg-gray-100 text-gray-500", icon: Clock },
-  unknown: { label: "Unknown", color: "bg-gray-100 text-gray-500", icon: Clock },
+  healthy: { label: "Healthy", color: "bg-green-50 text-green-600 border-green-200", icon: CheckCircle },
+  degraded: { label: "Needs Attention", color: "bg-amber-50 text-amber-600 border-amber-200", icon: AlertTriangle },
+  down: { label: "Down", color: "bg-red-50 text-red-600 border-red-200", icon: XCircle },
+  disabled: { label: "Disabled", color: "bg-gray-50 text-gray-500 border-gray-200", icon: Clock },
+  unknown: { label: "Unknown", color: "bg-gray-50 text-gray-500 border-gray-200", icon: Clock },
 };
 
 const DEFAULT_NEXT_STEPS: AgentNextStep[] = [
@@ -28,6 +28,18 @@ const DEFAULT_NEXT_STEPS: AgentNextStep[] = [
   { step: 2, action: "Run first scan" },
   { step: 3, action: "Review results after completion" },
 ];
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-[10px] font-medium text-muted-foreground/70 uppercase tracking-wider mb-2">
+      {children}
+    </p>
+  );
+}
+
+function SectionDivider() {
+  return <div className="border-t border-muted/40" />;
+}
 
 export function AgentCard({ 
   serviceId, 
@@ -49,77 +61,88 @@ export function AgentCard({
   return (
     <Card 
       className={cn(
-        "relative overflow-hidden transition-all hover:shadow-md",
+        "relative overflow-hidden transition-all shadow-sm hover:shadow-md rounded-xl border-l-2",
         onClick && "cursor-pointer",
         className
       )}
-      style={{ borderLeftColor: crew.color, borderLeftWidth: 4 }}
+      style={{ borderLeftColor: `${crew.color}80` }}
       onClick={onClick}
       data-testid={`agent-card-${serviceId}`}
     >
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
+      <CardHeader className="pb-4 pt-5 px-5">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div
-              className="w-10 h-10 rounded-lg flex items-center justify-center"
-              style={{ backgroundColor: `${crew.color}20` }}
+              className="w-8 h-8 rounded-lg flex items-center justify-center"
+              style={{ backgroundColor: `${crew.color}15` }}
             >
-              <Icon className="w-5 h-5" style={{ color: crew.color }} />
+              <Icon className="w-4 h-4" style={{ color: crew.color }} />
             </div>
             <div>
-              <h3 className="font-semibold" style={{ color: crew.color }}>
+              <h3 className="font-semibold text-base leading-tight" style={{ color: crew.color }}>
                 {crew.nickname}
               </h3>
-              <p className="text-xs text-muted-foreground">{crew.role}</p>
+              <p className="text-xs text-muted-foreground/80">{crew.role}</p>
             </div>
           </div>
-          <Badge className={cn("flex items-center gap-1 text-xs", statusConfig.color)}>
+          <Badge 
+            variant="outline" 
+            className={cn("flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1", statusConfig.color)}
+          >
             <StatusIcon className="w-3 h-3" />
             {statusConfig.label}
           </Badge>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4 pt-0">
+
+      <CardContent className="px-5 pb-5 pt-0 space-y-5">
         {crew.watchDescription && (
-          <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">What I watch</p>
-            <p className="text-sm">{crew.watchDescription}</p>
-          </div>
+          <>
+            <div>
+              <SectionLabel>What I watch</SectionLabel>
+              <p className="text-sm text-foreground/90 leading-relaxed">{crew.watchDescription}</p>
+            </div>
+            <SectionDivider />
+          </>
         )}
 
         <div>
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">What I found</p>
+          <SectionLabel>What I found</SectionLabel>
           {displayFindings.length > 0 ? (
-            <ul className="text-sm space-y-1">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-2">
               {displayFindings.map((finding, i) => (
-                <li key={i} className="flex items-center justify-between">
-                  <span className="text-muted-foreground">{finding.label}</span>
-                  <span className="font-medium">{finding.value}</span>
-                </li>
+                <div key={i} className="flex justify-between items-baseline">
+                  <span className="text-sm text-muted-foreground">{finding.label}</span>
+                  <span className="text-sm font-medium text-foreground">{finding.value}</span>
+                </div>
               ))}
-            </ul>
+            </div>
           ) : (
-            <p className="text-sm text-muted-foreground italic">No data collected yet</p>
+            <p className="text-sm text-muted-foreground/70 italic">No data collected yet</p>
           )}
         </div>
 
-        <div>
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Last checked</p>
-          <p className="text-sm">{lastCheckIn || "Never"}</p>
+        <SectionDivider />
+
+        <div className="flex items-baseline justify-between">
+          <SectionLabel>Last checked</SectionLabel>
+          <p className="text-sm text-foreground/80">{lastCheckIn || "Never"}</p>
         </div>
 
+        <SectionDivider />
+
         <div>
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Next steps</p>
-          <ol className="text-sm space-y-1.5">
+          <SectionLabel>Next steps</SectionLabel>
+          <ol className="space-y-2.5">
             {displaySteps.slice(0, 3).map((step) => (
-              <li key={step.step} className="flex items-start gap-2">
+              <li key={step.step} className="flex items-start gap-2.5">
                 <span 
-                  className="flex-shrink-0 w-5 h-5 rounded-full text-xs font-medium flex items-center justify-center"
-                  style={{ backgroundColor: `${crew.color}20`, color: crew.color }}
+                  className="flex-shrink-0 w-5 h-5 rounded-full text-[10px] font-semibold flex items-center justify-center mt-0.5"
+                  style={{ backgroundColor: `${crew.color}12`, color: crew.color }}
                 >
                   {step.step}
                 </span>
-                <span>{step.action}</span>
+                <span className="text-sm text-foreground/90 leading-relaxed">{step.action}</span>
               </li>
             ))}
           </ol>
