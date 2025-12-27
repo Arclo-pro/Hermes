@@ -2,8 +2,10 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AgentCard } from "@/components/crew/AgentCard";
+import { CaptainsRecommendations } from "@/components/crew/CaptainsRecommendations";
 import { CREW_MANIFEST, getCrewMember, isUserFacingAgent } from "@/config/crewManifest";
 import { getMockAgentData } from "@/config/mockAgentInsights";
+import { getMockCaptainRecommendations } from "@/config/mockCaptainRecommendations";
 import { useQuery } from "@tanstack/react-query";
 import { Bot } from "lucide-react";
 
@@ -83,6 +85,8 @@ export default function CrewPage() {
   const degradedCount = userFacingAgents.filter((a) => a.status === "degraded").length;
   const downCount = userFacingAgents.filter((a) => a.status === "down").length;
 
+  const captainData = getMockCaptainRecommendations();
+
   return (
     <DashboardLayout>
       <div className="space-y-6" data-testid="agents-page">
@@ -96,18 +100,21 @@ export default function CrewPage() {
           </p>
         </div>
 
+        <CaptainsRecommendations data={captainData} />
+
         <div className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             <div className="grid md:grid-cols-2 gap-4">
               {userFacingAgents.map((agent) => (
-                <AgentCard
-                  key={agent.serviceId}
-                  serviceId={agent.serviceId}
-                  status={agent.status}
-                  lastCheckIn={agent.lastCheckIn}
-                  findings={agent.findings}
-                  nextSteps={agent.nextSteps}
-                />
+                <div key={agent.serviceId} id={agent.serviceId}>
+                  <AgentCard
+                    serviceId={agent.serviceId}
+                    status={agent.status}
+                    lastCheckIn={agent.lastCheckIn}
+                    findings={agent.findings}
+                    nextSteps={agent.nextSteps}
+                  />
+                </div>
               ))}
             </div>
           </div>
