@@ -17,8 +17,10 @@ import {
   Loader2,
   ExternalLink,
   AlertTriangle,
-  ChevronRight
+  ChevronRight,
+  Info
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSiteContext } from "@/hooks/useSiteContext";
 import { USER_FACING_AGENTS, getCrewMember } from "@/config/agents";
@@ -218,10 +220,53 @@ function AgentSummaryCard({ agent }: { agent: { serviceId: string; score: number
           )}
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between">
-              <h4 className="font-semibold text-sm" style={{ color: crew.color }}>{crew.nickname}</h4>
+              <div className="flex items-center gap-1">
+                <h4 className="font-semibold text-sm" style={{ color: crew.color }}>{crew.nickname}</h4>
+                {crew.tooltipInfo && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button 
+                          className="text-muted-foreground hover:text-foreground transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                          data-testid={`button-tooltip-${agent.serviceId}`}
+                        >
+                          <Info className="w-3 h-3" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-xs p-3">
+                        <div className="space-y-2">
+                          <div>
+                            <p className="font-semibold" style={{ color: crew.color }}>{crew.nickname}</p>
+                            <p className="text-xs text-muted-foreground">{crew.role}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium mb-1">What it does</p>
+                            <p className="text-xs text-muted-foreground">{crew.tooltipInfo.whatItDoes}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium mb-1">What it outputs</p>
+                            <ul className="text-xs text-muted-foreground space-y-0.5">
+                              {crew.tooltipInfo.outputs.map((output, i) => (
+                                <li key={i} className="flex items-center gap-1">
+                                  <span className="w-1 h-1 rounded-full bg-current" />
+                                  {output}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </div>
               <span className="text-lg font-bold" style={{ color: scoreColor }}>{agent.score}</span>
             </div>
             <p className="text-xs text-muted-foreground truncate">{crew.role}</p>
+            {crew.shortDescription && (
+              <p className="text-xs text-muted-foreground/70 truncate">{crew.shortDescription}</p>
+            )}
             <div className="w-full h-1.5 rounded-full bg-muted mt-1 overflow-hidden">
               <div 
                 className="h-full rounded-full transition-all"

@@ -21,6 +21,11 @@ export type CrewMember = {
   icon: LucideIcon;
   avatar?: string;
   blurb?: string;
+  shortDescription?: string;
+  tooltipInfo?: {
+    whatItDoes: string;
+    outputs: string[];
+  };
   capabilities?: string[];
   dependencies?: string[];
   endpoints?: { method: string; path: string; auth: "none" | "api_key" }[];
@@ -64,6 +69,11 @@ export const AGENTS: Record<string, CrewMember> = {
     icon: Map,
     avatar: socratesAvatar,
     blurb: "Turns findings into durable knowledge and makes them searchable.",
+    shortDescription: "Collects and summarizes learnings from all agents.",
+    tooltipInfo: {
+      whatItDoes: "Aggregates insights from every agent into a searchable knowledge base. Helps you understand patterns and make data-driven decisions.",
+      outputs: ["Consolidated insights", "Searchable learnings", "Cross-agent patterns"],
+    },
     watchDescription: "SEO learnings and insights from all agents",
     capabilities: ["Read Articles", "Write Articles", "Search"],
     dependencies: ["orchestrator"],
@@ -82,6 +92,11 @@ export const AGENTS: Record<string, CrewMember> = {
     icon: Eye,
     avatar: natashaAvatar,
     blurb: "Gathers competitive intelligence, SERP movements, and strategic gaps.",
+    shortDescription: "Tracks competitors, content gaps, and market shifts.",
+    tooltipInfo: {
+      whatItDoes: "Monitors your competitors' rankings, content strategies, and market positioning. Identifies opportunities where you can outperform them.",
+      outputs: ["Competitor rankings", "Content gap analysis", "Market shift alerts"],
+    },
     watchDescription: "Competitor rankings, content gaps, and market movements",
     capabilities: ["Competitor Analysis", "SERP Recon", "Gap Detection"],
     dependencies: ["orchestrator"],
@@ -101,6 +116,11 @@ export const AGENTS: Record<string, CrewMember> = {
     icon: Wrench,
     avatar: scottyAvatar,
     blurb: "Performs technical SEO audits and crawl diagnostics.",
+    shortDescription: "Checks crawlability, rendering, and technical health.",
+    tooltipInfo: {
+      whatItDoes: "Crawls your site like Google does, checking for indexing blockers, render issues, and technical SEO problems that hurt rankings.",
+      outputs: ["Crawl errors", "Render issues", "Index blockers"],
+    },
     watchDescription: "Crawlability, rendering, and index health",
     capabilities: ["Site Crawl", "Render Check", "Technical Audit"],
     dependencies: ["orchestrator"],
@@ -113,6 +133,11 @@ export const AGENTS: Record<string, CrewMember> = {
     icon: Radio,
     avatar: beaconAvatar,
     blurb: "Tracks backlinks, domain authority, and link velocity.",
+    shortDescription: "Monitors authority, backlinks, and link quality.",
+    tooltipInfo: {
+      whatItDoes: "Tracks your domain authority score, new and lost backlinks, and link quality changes. Helps you build a stronger link profile.",
+      outputs: ["Authority score", "New backlinks", "Link quality alerts"],
+    },
     watchDescription: "Domain authority and link growth",
     capabilities: ["Link Tracking", "Authority Metrics", "Competitor Comparison"],
     dependencies: ["orchestrator"],
@@ -125,6 +150,11 @@ export const AGENTS: Record<string, CrewMember> = {
     icon: Activity,
     avatar: pulseAvatar,
     blurb: "Fetches analytics and search console data from Google APIs.",
+    shortDescription: "Monitors traffic, conversions, and landing pages.",
+    tooltipInfo: {
+      whatItDoes: "Connects to Google Analytics and Search Console to track sessions, conversions, bounce rates, and landing page performance in real-time.",
+      outputs: ["Traffic trends", "Conversion rates", "Top landing pages"],
+    },
     watchDescription: "Website traffic, conversions, and user behavior",
     capabilities: ["GA4 Data", "GSC Data", "Traffic Metrics"],
     dependencies: ["orchestrator"],
@@ -147,6 +177,11 @@ export const AGENTS: Record<string, CrewMember> = {
     icon: Search,
     avatar: lookoutAvatar,
     blurb: "Tracks keyword rankings and SERP features over time.",
+    shortDescription: "Tracks keyword rankings and SERP movements.",
+    tooltipInfo: {
+      whatItDoes: "Monitors your keyword positions daily, detects ranking changes, and identifies new opportunities in the search results.",
+      outputs: ["Position tracking", "Ranking changes", "SERP feature alerts"],
+    },
     watchDescription: "Keyword rankings and SERP positions",
     capabilities: ["Rank Tracking", "SERP Snapshots", "Position Monitoring"],
     dependencies: ["orchestrator"],
@@ -159,6 +194,11 @@ export const AGENTS: Record<string, CrewMember> = {
     icon: Zap,
     avatar: speedsterAvatar,
     blurb: "Monitors Core Web Vitals and page speed metrics.",
+    shortDescription: "Monitors page speed and Core Web Vitals.",
+    tooltipInfo: {
+      whatItDoes: "Tracks LCP, CLS, and INP scores to ensure your site loads fast and provides a smooth user experience that Google rewards.",
+      outputs: ["Core Web Vitals scores", "Speed insights", "Performance trends"],
+    },
     watchDescription: "Page load speed and Core Web Vitals scores",
     capabilities: ["LCP Tracking", "CLS Tracking", "INP Tracking"],
     dependencies: ["orchestrator"],
@@ -171,6 +211,11 @@ export const AGENTS: Record<string, CrewMember> = {
     icon: FileText,
     avatar: sentinelAvatar,
     blurb: "Identifies content losing traffic and prioritizes refreshes.",
+    shortDescription: "Detects content losing traffic over time.",
+    tooltipInfo: {
+      whatItDoes: "Analyzes content performance trends to identify pages losing traffic. Prioritizes which content needs refreshing to recover rankings.",
+      outputs: ["Decay alerts", "Refresh priorities", "Traffic trends"],
+    },
     watchDescription: "Content performance and traffic trends over time",
     capabilities: ["Decay Detection", "Refresh Prioritization", "Trend Analysis"],
     dependencies: ["orchestrator", "google_data_connector"],
@@ -183,6 +228,11 @@ export const AGENTS: Record<string, CrewMember> = {
     icon: PenTool,
     avatar: hemingwayAvatar,
     blurb: "Writes and validates content optimized for humans and search engines.",
+    shortDescription: "Recommends content topics and updates.",
+    tooltipInfo: {
+      whatItDoes: "Identifies content opportunities based on rankings and gaps. Recommends topics to write and existing content to update for better performance.",
+      outputs: ["Topic recommendations", "Content briefs", "Update priorities"],
+    },
     watchDescription: "Blog cadence, quality, and topical coverage",
     capabilities: ["Long-form Writing", "Rewrites", "Quality Scoring", "E-E-A-T Checks"],
     dependencies: ["orchestrator", "seo_kbase"],
@@ -195,6 +245,11 @@ export const AGENTS: Record<string, CrewMember> = {
     icon: Megaphone,
     avatar: draperAvatar,
     blurb: "Designs campaigns, messaging, and experiments that drive acquisition and conversion.",
+    shortDescription: "Monitors ad spend, conversions, and campaigns.",
+    tooltipInfo: {
+      whatItDoes: "Connects to Google Ads to track campaign performance, conversion rates, and ROI. Identifies opportunities to improve your paid traffic.",
+      outputs: ["Campaign performance", "Conversion tracking", "Spend analysis"],
+    },
     watchDescription: "Ad spend, conversions, and campaign performance",
     capabilities: ["Ad Strategy", "Copy Testing", "Conversion Optimization"],
     dependencies: ["orchestrator"],
