@@ -35,7 +35,7 @@ export function isUserFacingAgent(serviceId: string): boolean {
 export const AGENTS: Record<string, CrewMember> = {
   orchestrator: {
     service_id: "orchestrator",
-    nickname: "Herbert von Karajan",
+    nickname: "Major Tom",
     role: "Mission Control",
     color: "#4F46E5",
     icon: Radar,
