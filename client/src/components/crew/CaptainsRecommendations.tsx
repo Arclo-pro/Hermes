@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Compass, AlertCircle, ArrowRight, Lightbulb, TrendingUp, Clock } from "lucide-react";
-import { getCrewMember } from "@/config/crewManifest";
+import { getCrewMember } from "@/config/agents";
 import type { CaptainsRecommendations as CaptainsRecommendationsType, CaptainPriority, CaptainBlocker } from "@shared/captainsRecommendations";
 import { cn } from "@/lib/utils";
 

@@ -34,7 +34,7 @@ import {
 } from "lucide-react";
 import { CrewToggle, useCrewNamesToggle } from "@/components/crew/CrewToggle";
 import { CrewBadge } from "@/components/crew/CrewBadge";
-import { getCrewMember } from "@/config/crewManifest";
+import { getCrewMember } from "@/config/agents";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {

@@ -2,7 +2,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Badge } from "@/components/ui/badge";
 import { AgentCard } from "@/components/crew/AgentCard";
 import { CaptainsRecommendations } from "@/components/crew/CaptainsRecommendations";
-import { CREW_MANIFEST, getCrewMember, isUserFacingAgent } from "@/config/crewManifest";
+import { AGENTS, getCrewMember, isUserFacingAgent } from "@/config/agents";
 import { getMockAgentData } from "@/config/mockAgentInsights";
 import { getMockCaptainRecommendations } from "@/config/mockCaptainRecommendations";
 import { useQuery } from "@tanstack/react-query";
@@ -58,7 +58,7 @@ export default function CrewPage() {
   const services = summaryData?.services || [];
   
   const allServiceIds = new Set([
-    ...Object.keys(CREW_MANIFEST),
+    ...Object.keys(AGENTS),
     ...services.map((s) => s.slug),
   ]);
 

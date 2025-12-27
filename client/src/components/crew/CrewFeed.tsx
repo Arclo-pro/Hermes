@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { getCrewEvents, type CrewEvent } from "@/lib/crewEvents";
-import { getCrewMember } from "@/config/crewManifest";
+import { getCrewMember } from "@/config/agents";
 import { CrewBadge } from "./CrewBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";

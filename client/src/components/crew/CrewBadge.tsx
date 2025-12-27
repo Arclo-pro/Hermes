@@ -1,4 +1,4 @@
-import { getCrewMember } from "@/config/crewManifest";
+import { getCrewMember } from "@/config/agents";
 import { cn } from "@/lib/utils";
 
 interface CrewBadgeProps {

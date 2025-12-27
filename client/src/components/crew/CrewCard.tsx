@@ -1,4 +1,4 @@
-import { getCrewMember, type CrewMember } from "@/config/crewManifest";
+import { getCrewMember, type CrewMember } from "@/config/agents";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";

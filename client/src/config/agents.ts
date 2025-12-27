@@ -32,7 +32,7 @@ export function isUserFacingAgent(serviceId: string): boolean {
   return USER_FACING_AGENTS.includes(serviceId);
 }
 
-export const CREW_MANIFEST: Record<string, CrewMember> = {
+export const AGENTS: Record<string, CrewMember> = {
   orchestrator: {
     service_id: "orchestrator",
     nickname: "Herbert von Karajan",
@@ -220,8 +220,8 @@ export const CREW_MANIFEST: Record<string, CrewMember> = {
 };
 
 export function getCrewMember(serviceId: string): CrewMember {
-  if (CREW_MANIFEST[serviceId]) {
-    return CREW_MANIFEST[serviceId];
+  if (AGENTS[serviceId]) {
+    return AGENTS[serviceId];
   }
   const titleCase = serviceId
     .split("_")
