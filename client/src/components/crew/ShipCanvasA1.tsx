@@ -20,27 +20,27 @@ type RoleSlot = {
 // Do not add or remove slots without redesigning the ship image
 // ═══════════════════════════════════════════════════════════════════════════
 const ROLE_SLOTS: RoleSlot[] = [
-  // ROW 1 - COMMAND (10%) - 1 slot
-  { roleId: "mission_control", roleName: "Mission Control", roleIcon: Compass, crewId: "orchestrator", xPct: 50, yPct: 10 },
+  // ROW 1 - COMMAND (8%) - 1 slot
+  { roleId: "mission_control", roleName: "Mission Control", roleIcon: Compass, crewId: "orchestrator", xPct: 50, yPct: 8 },
 
-  // ROW 2 - INTELLIGENCE & VISIBILITY (32%) - 3 slots
-  { roleId: "competitive_intel", roleName: "Competitive Intel", roleIcon: Eye, crewId: "competitive_snapshot", xPct: 18, yPct: 32 },
-  { roleId: "serp_tracking", roleName: "SERP Tracking", roleIcon: Target, crewId: "serp_intel", xPct: 50, yPct: 32 },
-  { roleId: "analytics_signals", roleName: "Analytics & Signals", roleIcon: BarChart3, crewId: "google_data_connector", xPct: 82, yPct: 32 },
+  // ROW 2 - INTELLIGENCE & VISIBILITY (30%) - 3 slots
+  { roleId: "competitive_intel", roleName: "Competitive Intel", roleIcon: Eye, crewId: "competitive_snapshot", xPct: 17, yPct: 30 },
+  { roleId: "serp_tracking", roleName: "SERP Tracking", roleIcon: Target, crewId: "serp_intel", xPct: 50, yPct: 30 },
+  { roleId: "analytics_signals", roleName: "Analytics & Signals", roleIcon: BarChart3, crewId: "google_data_connector", xPct: 83, yPct: 30 },
 
-  // ROW 3 - ENGINEERING & PERFORMANCE (54%) - 2 slots
-  { roleId: "technical_seo", roleName: "Technical SEO", roleIcon: Wrench, crewId: "crawl_render", xPct: 30, yPct: 54 },
-  { roleId: "performance_monitoring", roleName: "Performance Monitoring", roleIcon: Zap, crewId: "core_web_vitals", xPct: 70, yPct: 54 },
+  // ROW 3 - ENGINEERING & PERFORMANCE (52%) - 2 slots
+  { roleId: "technical_seo", roleName: "Technical SEO", roleIcon: Wrench, crewId: "crawl_render", xPct: 28, yPct: 52 },
+  { roleId: "performance_monitoring", roleName: "Performance Monitoring", roleIcon: Zap, crewId: "core_web_vitals", xPct: 72, yPct: 52 },
 
-  // ROW 4 - CONTENT SYSTEMS (76%) - 2 slots
-  { roleId: "content_decay", roleName: "Content Decay", roleIcon: Search, crewId: "content_decay", xPct: 30, yPct: 76 },
-  { roleId: "content_strategy", roleName: "Content Strategy", roleIcon: PenTool, crewId: "content_generator", xPct: 70, yPct: 76 },
+  // ROW 4 - CONTENT SYSTEMS (74%) - 2 slots
+  { roleId: "content_decay", roleName: "Content Decay", roleIcon: Search, crewId: "content_decay", xPct: 28, yPct: 74 },
+  { roleId: "content_strategy", roleName: "Content Strategy", roleIcon: PenTool, crewId: "content_generator", xPct: 72, yPct: 74 },
 
-  // ROW 5 - AUTHORITY, AI, ADS, KNOWLEDGE (98%) - 4 slots spread wide
-  { roleId: "domain_authority", roleName: "Domain Authority", roleIcon: Link2, crewId: "backlink_authority", xPct: 12, yPct: 98 },
-  { roleId: "ai_optimization", roleName: "AI Optimization", roleIcon: BrainCircuit, crewId: "ai_optimization", xPct: 37, yPct: 98 },
-  { roleId: "paid_ads", roleName: "Paid Ads", roleIcon: Megaphone, crewId: "google_ads_connector", xPct: 63, yPct: 98 },
-  { roleId: "knowledge_base", roleName: "Knowledge Base", roleIcon: BookOpen, crewId: "seo_kbase", xPct: 88, yPct: 98 },
+  // ROW 5 - AUTHORITY, AI, ADS, KNOWLEDGE (96%) - 4 slots spread wide
+  { roleId: "domain_authority", roleName: "Domain Authority", roleIcon: Link2, crewId: "backlink_authority", xPct: 13, yPct: 96 },
+  { roleId: "ai_optimization", roleName: "AI Optimization", roleIcon: BrainCircuit, crewId: "ai_optimization", xPct: 37, yPct: 96 },
+  { roleId: "paid_ads", roleName: "Paid Ads", roleIcon: Megaphone, crewId: "google_ads_connector", xPct: 63, yPct: 96 },
+  { roleId: "knowledge_base", roleName: "Knowledge Base", roleIcon: BookOpen, crewId: "seo_kbase", xPct: 87, yPct: 96 },
 ];
 
 function RoleInfoTooltip({ roleId, isEmpty }: { roleId: string; isEmpty: boolean }) {
@@ -51,14 +51,14 @@ function RoleInfoTooltip({ roleId, isEmpty }: { roleId: string; isEmpty: boolean
     <Tooltip delayDuration={200}>
       <TooltipTrigger asChild>
         <div
-          className={`absolute right-1.5 top-1.5 rounded-full p-0.5 cursor-help transition-all ${
+          className={`absolute right-2.5 top-2.5 rounded-full p-1 cursor-help transition-all ${
             isEmpty 
               ? "opacity-40 hover:opacity-80 hover:bg-white/10" 
               : "opacity-30 hover:opacity-70 hover:bg-white/10"
           }`}
           onClick={(e) => e.stopPropagation()}
         >
-          <Info className="w-3.5 h-3.5 text-white/70" />
+          <Info className="w-4 h-4 text-white/70" />
         </div>
       </TooltipTrigger>
       <TooltipContent 
@@ -119,7 +119,7 @@ export function ShipCanvasA1(props: {
   onSlotClick: (id: string) => void;
   tileSize?: number;
 }) {
-  const { enabledAgents, selectedAgents, onSlotClick, tileSize = 240 } = props;
+  const { enabledAgents, selectedAgents, onSlotClick, tileSize = 280 } = props;
 
   return (
     <TooltipProvider>
@@ -266,12 +266,12 @@ export function ShipCanvasA1(props: {
                       <RoleInfoTooltip roleId={slot.roleId} isEmpty={false} />
                       
                       {badge && (
-                        <div className={`absolute left-1.5 top-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${badgeClass}`}>
+                        <div className={`absolute left-2.5 top-2.5 rounded-full px-2 py-1 text-xs font-medium ${badgeClass}`}>
                           {badge}
                         </div>
                       )}
 
-                      <div className="flex h-full flex-col items-center justify-center gap-1">
+                      <div className="flex h-full flex-col items-center justify-center gap-2 pt-6 pb-4">
                         {slot.crewId && (
                           <CrewAvatarTooltip crewId={slot.crewId}>
                             {crew?.avatar && typeof crew.avatar === 'string' && crew.avatar.includes('/') ? (
@@ -287,7 +287,7 @@ export function ShipCanvasA1(props: {
                             )}
                           </CrewAvatarTooltip>
                         )}
-                        <div className="text-base font-semibold text-white/90 leading-tight">
+                        <div className="text-lg font-semibold text-white/90 leading-tight px-2 text-center">
                           {crew?.nickname || "Unknown"}
                         </div>
                       </div>
