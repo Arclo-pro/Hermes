@@ -1,12 +1,14 @@
 import type { AgentFinding, AgentNextStep } from "@shared/agentInsight";
 
 export interface MockAgentData {
+  score: number;
   findings: AgentFinding[];
   nextSteps: AgentNextStep[];
 }
 
 export const MOCK_AGENT_INSIGHTS: Record<string, MockAgentData> = {
   seo_kbase: {
+    score: 85,
     findings: [
       { label: "Total learnings stored", value: 47 },
       { label: "Unique topics covered", value: 12 },
@@ -19,6 +21,7 @@ export const MOCK_AGENT_INSIGHTS: Record<string, MockAgentData> = {
     ],
   },
   competitive_snapshot: {
+    score: 80,
     findings: [
       { label: "Competitors tracked", value: 5 },
       { label: "Ranking gaps identified", value: 23 },
@@ -31,6 +34,7 @@ export const MOCK_AGENT_INSIGHTS: Record<string, MockAgentData> = {
     ],
   },
   crawl_render: {
+    score: 15,
     findings: [
       { label: "URLs blocked by robots.txt", value: 14 },
       { label: "Pages failing JS render", value: 3 },
@@ -43,6 +47,7 @@ export const MOCK_AGENT_INSIGHTS: Record<string, MockAgentData> = {
     ],
   },
   backlink_authority: {
+    score: 86,
     findings: [
       { label: "Domain Authority", value: "28 (+2 this month)" },
       { label: "New backlinks (7 days)", value: 5 },
@@ -55,6 +60,7 @@ export const MOCK_AGENT_INSIGHTS: Record<string, MockAgentData> = {
     ],
   },
   google_data_connector: {
+    score: 72,
     findings: [
       { label: "Sessions (7 days)", value: "2,847" },
       { label: "Conversions", value: 34 },
@@ -67,6 +73,7 @@ export const MOCK_AGENT_INSIGHTS: Record<string, MockAgentData> = {
     ],
   },
   serp_intel: {
+    score: 68,
     findings: [
       { label: "Keywords tracked", value: 48 },
       { label: "Keywords in Top 10", value: 12 },
@@ -79,6 +86,7 @@ export const MOCK_AGENT_INSIGHTS: Record<string, MockAgentData> = {
     ],
   },
   core_web_vitals: {
+    score: 78,
     findings: [
       { label: "LCP", value: "2.4s (Good)" },
       { label: "CLS", value: "0.08 (Good)" },
@@ -91,6 +99,7 @@ export const MOCK_AGENT_INSIGHTS: Record<string, MockAgentData> = {
     ],
   },
   content_decay: {
+    score: 42,
     findings: [
       { label: "Pages losing traffic", value: 8 },
       { label: "High-priority refreshes", value: 3 },
@@ -103,6 +112,7 @@ export const MOCK_AGENT_INSIGHTS: Record<string, MockAgentData> = {
     ],
   },
   content_generator: {
+    score: 55,
     findings: [
       { label: "Total blog posts", value: 18 },
       { label: "Ranking on page 1", value: 6 },
@@ -115,6 +125,7 @@ export const MOCK_AGENT_INSIGHTS: Record<string, MockAgentData> = {
     ],
   },
   google_ads_connector: {
+    score: 74,
     findings: [
       { label: "Monthly spend", value: "$2,450" },
       { label: "Conversions", value: 67 },

@@ -2,38 +2,10 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Badge } from "@/components/ui/badge";
 import { AgentCard } from "@/components/crew/AgentCard";
 import { CaptainsRecommendations } from "@/components/crew/CaptainsRecommendations";
-import { AGENTS, getCrewMember, isUserFacingAgent } from "@/config/agents";
+import { USER_FACING_AGENTS, getCrewMember } from "@/config/agents";
 import { getMockAgentData } from "@/config/mockAgentInsights";
 import { getMockCaptainRecommendations } from "@/config/mockCaptainRecommendations";
-import { useQuery } from "@tanstack/react-query";
 import { Bot } from "lucide-react";
-
-interface SiteSummaryService {
-  slug: string;
-  displayName: string;
-  category: string;
-  runState: string;
-  configState: string;
-  buildState: string;
-  lastRun: {
-    finishedAt: string;
-  } | null;
-}
-
-function mapRunStateToStatus(runState: string): "healthy" | "degraded" | "down" | "disabled" | "unknown" {
-  switch (runState) {
-    case "success":
-      return "healthy";
-    case "partial":
-      return "degraded";
-    case "failed":
-      return "down";
-    case "never_ran":
-      return "unknown";
-    default:
-      return "unknown";
-  }
-}
 
 function formatRelativeTime(dateString: string): string {
   const date = new Date(dateString);
@@ -51,38 +23,24 @@ function formatRelativeTime(dateString: string): string {
 }
 
 export default function CrewPage() {
-  const { data: summaryData } = useQuery<{ services: SiteSummaryService[] }>({
-    queryKey: ["/api/sites/site_empathy_health_clinic/integrations/summary"],
-  });
-
-  const services = summaryData?.services || [];
-  
-  const allServiceIds = new Set([
-    ...Object.keys(AGENTS),
-    ...services.map((s) => s.slug),
-  ]);
-
-  const userFacingAgents = Array.from(allServiceIds)
-    .filter(isUserFacingAgent)
+  const userFacingAgents = USER_FACING_AGENTS
     .map((serviceId) => {
-      const service = services.find((s) => s.slug === serviceId);
       const crew = getCrewMember(serviceId);
       const mockData = getMockAgentData(serviceId);
       return {
         serviceId,
         crew,
-        status: service ? mapRunStateToStatus(service.runState) : "unknown",
-        lastCheckIn: service?.lastRun?.finishedAt
-          ? formatRelativeTime(service.lastRun.finishedAt)
-          : null,
+        score: mockData?.score || 0,
+        lastCheckIn: mockData ? "1 hour ago" : null,
         findings: mockData?.findings || [],
         nextSteps: mockData?.nextSteps || [],
       };
     });
 
-  const healthyCount = userFacingAgents.filter((a) => a.status === "healthy").length;
-  const degradedCount = userFacingAgents.filter((a) => a.status === "degraded").length;
-  const downCount = userFacingAgents.filter((a) => a.status === "down").length;
+  const avgScore = userFacingAgents.length > 0 
+    ? Math.round(userFacingAgents.reduce((sum, a) => sum + a.score, 0) / userFacingAgents.length)
+    : 0;
+  const needsAttention = userFacingAgents.filter((a) => a.score < 50).length;
 
   const captainData = getMockCaptainRecommendations();
 
@@ -101,22 +59,20 @@ export default function CrewPage() {
 
         <CaptainsRecommendations data={captainData} />
 
-        <div className="flex flex-wrap items-center gap-4 text-sm">
+        <div className="flex flex-wrap items-center gap-6 text-sm">
           <div className="flex items-center gap-2">
-            <span className="text-muted-foreground">Active:</span>
+            <span className="text-muted-foreground">Active Agents:</span>
             <Badge variant="secondary">{userFacingAgents.length}</Badge>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-muted-foreground">Healthy:</span>
-            <Badge className="bg-green-100 text-green-700">{healthyCount}</Badge>
+            <span className="text-muted-foreground">Avg Score:</span>
+            <Badge className={avgScore >= 70 ? "bg-green-100 text-green-700" : avgScore >= 40 ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700"}>
+              {avgScore}
+            </Badge>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-muted-foreground">Needs Attention:</span>
-            <Badge className="bg-yellow-100 text-yellow-700">{degradedCount}</Badge>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-muted-foreground">Down:</span>
-            <Badge className="bg-red-100 text-red-700">{downCount}</Badge>
+            <Badge className="bg-amber-100 text-amber-700">{needsAttention}</Badge>
           </div>
         </div>
 
@@ -125,7 +81,7 @@ export default function CrewPage() {
             <div key={agent.serviceId} id={agent.serviceId}>
               <AgentCard
                 serviceId={agent.serviceId}
-                status={agent.status}
+                score={agent.score}
                 lastCheckIn={agent.lastCheckIn}
                 findings={agent.findings}
                 nextSteps={agent.nextSteps}
