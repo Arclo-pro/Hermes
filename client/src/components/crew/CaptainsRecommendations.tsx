@@ -105,7 +105,7 @@ function PriorityCard({ priority }: { priority: CaptainPriority }) {
   return (
     <div 
       className={cn(
-        "flex gap-4 p-4 rounded-lg bg-white border-2 border-slate-300 shadow-sm hover:shadow-md transition-shadow border-l-4",
+        "flex gap-4 p-4 rounded-lg bg-white border-2 border-slate-400 shadow-sm hover:shadow-md transition-shadow border-l-4",
         priorityColors[priority.rank as 1 | 2 | 3] || "border-l-slate-300"
       )} 
       data-testid={`priority-${priority.rank}`}
