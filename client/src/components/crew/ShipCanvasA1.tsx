@@ -36,11 +36,11 @@ const ROLE_SLOTS: RoleSlot[] = [
   { roleId: "content_decay", roleName: "Content Decay", roleIcon: Search, crewId: "content_decay", xPct: 35, yPct: 66 },
   { roleId: "content_strategy", roleName: "Content Strategy", roleIcon: PenTool, crewId: "content_generator", xPct: 65, yPct: 66 },
 
-  // ROW 5 - AUTHORITY, AI, GROWTH, KNOWLEDGE (84%) - 4 slots
-  { roleId: "domain_authority", roleName: "Domain Authority", roleIcon: Link2, crewId: "backlink_authority", xPct: 20, yPct: 84 },
-  { roleId: "ai_optimization", roleName: "AI Optimization", roleIcon: BrainCircuit, crewId: "ai_optimization", xPct: 40, yPct: 84 },
-  { roleId: "paid_ads", roleName: "Paid Ads", roleIcon: Megaphone, crewId: "google_ads_connector", xPct: 60, yPct: 84 },
-  { roleId: "knowledge_base", roleName: "Knowledge Base", roleIcon: BookOpen, crewId: "seo_kbase", xPct: 80, yPct: 84 },
+  // ROW 5 - AUTHORITY, AI, GROWTH, KNOWLEDGE (84%) - 4 slots (wider spread to prevent overlap with larger tiles)
+  { roleId: "domain_authority", roleName: "Domain Authority", roleIcon: Link2, crewId: "backlink_authority", xPct: 17, yPct: 84 },
+  { roleId: "ai_optimization", roleName: "AI Optimization", roleIcon: BrainCircuit, crewId: "ai_optimization", xPct: 39, yPct: 84 },
+  { roleId: "paid_ads", roleName: "Paid Ads", roleIcon: Megaphone, crewId: "google_ads_connector", xPct: 61, yPct: 84 },
+  { roleId: "knowledge_base", roleName: "Knowledge Base", roleIcon: BookOpen, crewId: "seo_kbase", xPct: 83, yPct: 84 },
 ];
 
 function RoleInfoTooltip({ roleId, isEmpty }: { roleId: string; isEmpty: boolean }) {
@@ -119,7 +119,7 @@ export function ShipCanvasA1(props: {
   onSlotClick: (id: string) => void;
   tileSize?: number;
 }) {
-  const { enabledAgents, selectedAgents, onSlotClick, tileSize = 100 } = props;
+  const { enabledAgents, selectedAgents, onSlotClick, tileSize = 120 } = props;
 
   return (
     <TooltipProvider>
@@ -214,10 +214,10 @@ export function ShipCanvasA1(props: {
                     >
                       <div className="relative h-full w-full rounded-2xl border-2 border-dashed border-white/15 bg-white/[0.02] transition-all duration-200 group-hover:border-white/30 group-hover:bg-white/[0.04]">
                         <RoleInfoTooltip roleId={slot.roleId} isEmpty={true} />
-                        <div className="flex h-full flex-col items-center justify-center gap-1 px-2">
-                          <RoleIcon className="w-8 h-8 text-white/25 group-hover:text-white/40 transition-colors" />
+                        <div className="flex h-full flex-col items-center justify-center gap-1.5 px-2">
+                          <RoleIcon className="w-10 h-10 text-white/25 group-hover:text-white/40 transition-colors" />
                           <div className="text-center">
-                            <div className="text-[10px] font-medium text-white/35 leading-tight">{slot.roleName}</div>
+                            <div className="text-[11px] font-medium text-white/35 leading-tight">{slot.roleName}</div>
                             <div className="text-[9px] text-white/25 leading-tight">
                               {slot.roleId === "ai_optimization" ? "Optimize for AI discovery" : "Empty slot"}
                             </div>
@@ -278,10 +278,10 @@ export function ShipCanvasA1(props: {
                               <img 
                                 src={crew.avatar} 
                                 alt={crew.nickname || slot.roleName}
-                                className="h-14 w-14 object-contain drop-shadow-lg"
+                                className="h-16 w-16 object-contain drop-shadow-lg"
                               />
                             ) : (
-                              <span className="text-3xl drop-shadow-lg">
+                              <span className="text-4xl drop-shadow-lg">
                                 {crew?.avatar || "👤"}
                               </span>
                             )}
