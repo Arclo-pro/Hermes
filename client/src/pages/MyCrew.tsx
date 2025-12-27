@@ -131,64 +131,99 @@ function MaturityBadge({ percent }: { percent: number }) {
 function StatusCard({ 
   enabledCount, 
   totalRoles, 
-  nextRecommended,
-  onAddToShip 
+  enabledAgents = []
 }: { 
   enabledCount: number;
   totalRoles: number;
-  nextRecommended: CrewMember | null;
-  onAddToShip: (agentId: string) => void;
+  enabledAgents: string[];
 }) {
+  const [activeTab, setActiveTab] = useState<"progress" | "nextup">("progress");
   const percent = Math.round((enabledCount / totalRoles) * 100);
+  
+  const agents = enabledAgents || [];
+  const missingForRevenue = SET_BONUSES[0].requirements.filter(r => !agents.includes(r));
+  const missingForExecution = SET_BONUSES[1].requirements.filter(r => !agents.includes(r));
   
   return (
     <Card className="bg-slate-900/80 border-slate-700 text-white" data-testid="status-card">
-      <CardContent className="p-6 space-y-6">
-        <div className="flex items-center gap-4">
-          <ProgressRing percent={percent} />
-          <div>
-            <MaturityBadge percent={percent} />
-            <p className="text-sm text-slate-400 mt-1">Operational</p>
-            <p className="text-lg font-semibold">{enabledCount} / {totalRoles} Roles staffed</p>
-          </div>
-        </div>
-        
-        {nextRecommended && (
-          <div className="pt-4 border-t border-slate-700">
-            <p className="text-xs text-slate-400 uppercase tracking-wide mb-3">Next Recommended Crew Member:</p>
-            <div className="flex items-start gap-3 mb-3">
-              {nextRecommended.avatar ? (
-                <img src={nextRecommended.avatar} alt={nextRecommended.nickname} className="w-10 h-10 object-contain" />
-              ) : (
-                <div 
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold"
-                  style={{ backgroundColor: nextRecommended.color }}
-                >
-                  {nextRecommended.nickname.slice(0, 2)}
-                </div>
-              )}
+      <div className="flex border-b border-slate-700">
+        <button
+          onClick={() => setActiveTab("progress")}
+          className={cn(
+            "flex-1 py-3 text-sm font-medium transition-colors",
+            activeTab === "progress" 
+              ? "text-amber-400 border-b-2 border-amber-400" 
+              : "text-slate-400 hover:text-slate-300"
+          )}
+          data-testid="tab-progress"
+        >
+          Progress
+        </button>
+        <button
+          onClick={() => setActiveTab("nextup")}
+          className={cn(
+            "flex-1 py-3 text-sm font-medium transition-colors",
+            activeTab === "nextup" 
+              ? "text-amber-400 border-b-2 border-amber-400" 
+              : "text-slate-400 hover:text-slate-300"
+          )}
+          data-testid="tab-nextup"
+        >
+          Next Up
+        </button>
+      </div>
+      
+      <CardContent className="p-5">
+        {activeTab === "progress" ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              <ProgressRing percent={percent} />
               <div>
-                <p className="font-semibold" style={{ color: nextRecommended.color }}>{nextRecommended.nickname}</p>
-                <p className="text-xs text-slate-400">{nextRecommended.role}</p>
+                <MaturityBadge percent={percent} />
+                <p className="text-sm text-slate-400 mt-1">Operational</p>
+                <p className="text-lg font-semibold">{enabledCount} / {totalRoles} Roles staffed</p>
               </div>
             </div>
-            {nextRecommended.tooltipInfo && (
-              <ul className="text-xs text-slate-300 space-y-1 mb-4 ml-1">
-                {nextRecommended.tooltipInfo.outputs.slice(0, 3).map((output, i) => (
-                  <li key={i} className="flex items-center gap-2">
-                    <Check className="w-3 h-3 text-amber-400" />
-                    {output}
-                  </li>
-                ))}
-              </ul>
+            <p className="text-xs text-slate-500">
+              {percent >= 80 ? "Best-in-class coverage achieved!" :
+               percent >= 60 ? "Ahead of 65% of similar sites" :
+               percent >= 40 ? "Ahead of 45% of similar sites" :
+               "Getting started — enable more crew members"}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <p className="text-xs text-slate-400 uppercase tracking-wide">Lowest friction wins</p>
+            
+            {missingForRevenue.length > 0 && missingForRevenue.length <= 2 && (
+              <div className="p-3 rounded-lg bg-slate-800/60 border border-slate-700">
+                <p className="text-sm font-medium text-amber-300 mb-1">
+                  <TrendingUp className="w-4 h-4 inline mr-1" />
+                  Unlock Revenue Attribution
+                </p>
+                <p className="text-xs text-slate-400">
+                  Missing: {missingForRevenue.map(id => getCrewMember(id).nickname).join(" + ")}
+                </p>
+              </div>
             )}
-            <Button 
-              className="w-full bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold"
-              onClick={() => onAddToShip(nextRecommended.service_id)}
-              data-testid="button-add-to-ship"
-            >
-              Add to Ship
-            </Button>
+            
+            {missingForExecution.length > 0 && missingForExecution.length <= 2 && (
+              <div className="p-3 rounded-lg bg-slate-800/60 border border-slate-700">
+                <p className="text-sm font-medium text-sky-300 mb-1">
+                  <Zap className="w-4 h-4 inline mr-1" />
+                  Unlock Automated Execution
+                </p>
+                <p className="text-xs text-slate-400">
+                  Missing: {missingForExecution.map(id => getCrewMember(id).nickname).join(" + ")}
+                </p>
+              </div>
+            )}
+            
+            {missingForRevenue.length > 2 && missingForExecution.length > 2 && (
+              <p className="text-sm text-slate-400">
+                Enable crew members to unlock set bonuses and capabilities.
+              </p>
+            )}
           </div>
         )}
       </CardContent>
@@ -493,11 +528,6 @@ export default function MyCrew() {
 
   const enabledAgents = crewState?.enabledAgents || [];
   const totalRoles = CREW_ROLES.length;
-  
-  const nextRecommended = CREW_ROLES
-    .filter(id => !enabledAgents.includes(id))
-    .map(id => getCrewMember(id))
-    .find(crew => crew.avatar);
 
   const handleSlotClick = (agentId: string) => {
     setDrawerAgentId(agentId);
@@ -513,14 +543,6 @@ export default function MyCrew() {
     );
   };
 
-  const handleAddToShip = (agentId: string) => {
-    setSelectedAgents(prev => 
-      prev.includes(agentId) ? prev : [...prev, agentId]
-    );
-    setDrawerAgentId(agentId);
-    setDrawerOpen(true);
-  };
-
   return (
     <DashboardLayout>
       <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 -m-6 p-6">
@@ -533,8 +555,7 @@ export default function MyCrew() {
           <StatusCard 
             enabledCount={enabledAgents.length}
             totalRoles={totalRoles}
-            nextRecommended={nextRecommended || null}
-            onAddToShip={handleAddToShip}
+            enabledAgents={enabledAgents}
           />
           
           <ShipCanvas 
