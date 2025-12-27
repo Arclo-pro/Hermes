@@ -38,10 +38,10 @@ function RoleInfoTooltip({ roleId }: { roleId: string }) {
     <Tooltip delayDuration={200}>
       <TooltipTrigger asChild>
         <div
-          className="rounded-full p-0.5 cursor-help transition-all opacity-50 hover:opacity-90 hover:bg-white/10"
+          className="w-5 h-5 rounded-full flex items-center justify-center cursor-help transition-all opacity-60 hover:opacity-100 hover:bg-white/15"
           onClick={(e) => e.stopPropagation()}
         >
-          <Info className="w-3 h-3 text-white/70" />
+          <Info className="w-3.5 h-3.5 text-white/80" />
         </div>
       </TooltipTrigger>
       <TooltipContent side="top" className="max-w-[240px] bg-[#1a1a2e] border border-white/10 rounded-lg p-2.5 shadow-xl z-50">
@@ -151,29 +151,29 @@ export function ShipCanvasA1(props: {
                       ].join(" ")}
                       style={{ "--tw-ring-color": ringColor } as React.CSSProperties}
                     >
-                      <div className="absolute left-2 top-2 z-10">
+                      <div className="absolute left-2.5 top-2.5 z-10">
                         <RoleInfoTooltip roleId={slot.roleId} />
                       </div>
 
                       {badge && (
-                        <div className={`absolute right-2 top-2 z-10 rounded-full px-1.5 py-0.5 text-[8px] font-medium whitespace-nowrap ${badgeClass}`}>
+                        <div className={`absolute right-2.5 top-2.5 z-10 rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap ${badgeClass}`}>
                           {badge}
                         </div>
                       )}
 
-                      <div className="absolute inset-0 flex flex-col items-center justify-center px-2 pt-6 pb-2">
-                        <div className="flex-1 flex items-center justify-center">
+                      <div className="absolute inset-x-3 top-6 bottom-2.5 flex flex-col items-center">
+                        <div className="flex-1 flex items-center justify-center w-full">
                           {isEmpty ? (
-                            <RoleIcon className="w-[55%] h-[55%] max-w-[80px] max-h-[80px] text-white/20 group-hover:text-white/35 transition-colors" />
+                            <RoleIcon className="w-[60%] h-[60%] max-w-[90px] max-h-[90px] text-white/20 group-hover:text-white/35 transition-colors" />
                           ) : slot.crewId && (
                             <CrewAvatarTooltip crewId={slot.crewId}>
                               {crew?.avatar && typeof crew.avatar === 'string' && crew.avatar.includes('/') ? (
-                                <div className="w-[75%] h-[75%] max-w-[140px] max-h-[140px] overflow-hidden flex items-center justify-center">
+                                <div className="w-[80%] h-[80%] max-w-[145px] max-h-[145px] overflow-hidden flex items-center justify-center">
                                   <img 
                                     src={crew.avatar} 
                                     alt={crew.nickname || slot.roleName}
                                     className="w-full h-full object-contain drop-shadow-lg"
-                                    style={{ transform: "scale(1.35) translateY(-2px)" }}
+                                    style={{ transform: "scale(1.4) translateY(-1px)" }}
                                   />
                                 </div>
                               ) : (
@@ -183,11 +183,11 @@ export function ShipCanvasA1(props: {
                           )}
                         </div>
 
-                        <div className={`mt-1 text-lg font-semibold leading-tight text-center truncate w-full ${isEmpty ? "text-white/30" : "text-white/90"}`}>
+                        <div className={`text-lg font-semibold leading-none text-center truncate w-full ${isEmpty ? "text-white/30" : "text-white/90"}`}>
                           {isEmpty ? slot.roleName : (crew?.nickname || "Unknown")}
                         </div>
                         {isEmpty && (
-                          <div className="text-[9px] text-white/20 mt-0.5">Empty slot</div>
+                          <div className="text-[10px] text-white/20 mt-0.5">Empty slot</div>
                         )}
                       </div>
                     </div>
