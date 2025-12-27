@@ -91,7 +91,7 @@ export function ShipCanvasA1(props: {
         />
         
         <div className="relative w-full h-full flex items-center justify-center p-4 md:p-6">
-          <div className="relative w-full max-w-[1100px] h-full min-h-[1200px]">
+          <div className="relative w-full max-w-[1100px] h-full min-h-[1500px]">
             <ShipHullSvg className="absolute inset-0 w-full h-full" />
 
             <div className="pointer-events-none absolute inset-0">
