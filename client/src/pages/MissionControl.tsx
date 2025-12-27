@@ -144,12 +144,20 @@ function AgentHighlightStrip({ agents }: { agents: Array<{ serviceId: string; sc
                   )}
                   data-testid={`agent-highlight-${agent.serviceId}`}
                 >
-                  <div 
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
-                    style={{ backgroundColor: crew.color }}
-                  >
-                    {crew.nickname.slice(0, 2)}
-                  </div>
+                  {crew.avatar ? (
+                    <img 
+                      src={crew.avatar} 
+                      alt={crew.nickname} 
+                      className="w-10 h-10 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div 
+                      className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                      style={{ backgroundColor: crew.color }}
+                    >
+                      {crew.nickname.slice(0, 2)}
+                    </div>
+                  )}
                   <div>
                     <div className="text-sm font-medium">{crew.nickname}</div>
                     <div className="text-xs text-muted-foreground">{agent.score}</div>

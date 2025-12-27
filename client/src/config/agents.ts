@@ -1,12 +1,25 @@
 import { Map, Binoculars, Wrench, Radio, Activity, Key, GitBranch, Radar, Bot, BookOpen, BarChart3, Search, FileText, Zap, Bell, Database, Globe, Shield, TrendingUp, Link2, Eye, PenTool, Megaphone } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
+import socratesAvatar from "@assets/generated_images/socrates_cyan_knowledge_robot.png";
+import pulseAvatar from "@assets/generated_images/pulse_green_analytics_robot.png";
+import scottyAvatar from "@assets/generated_images/scotty_orange_technical_robot.png";
+import lookoutAvatar from "@assets/generated_images/lookout_purple_serp_robot.png";
+import beaconAvatar from "@assets/generated_images/beacon_orange_authority_robot.png";
+import natashaAvatar from "@assets/generated_images/natasha_fedora_spy_robot.png";
+import hemingwayAvatar from "@assets/generated_images/hemingway_green_writer_robot.png";
+import blogwriterAvatar from "@assets/generated_images/blogwriter_red_content_robot.png";
+import draperAvatar from "@assets/generated_images/draper_pink_ads_robot.png";
+import speedsterAvatar from "@assets/generated_images/speedster_teal_performance_robot.png";
+import sentinelAvatar from "@assets/generated_images/sentinel_indigo_decay_robot.png";
+
 export type CrewMember = {
   service_id: string;
   nickname: string;
   role: string;
   color: string;
   icon: LucideIcon;
+  avatar?: string;
   blurb?: string;
   capabilities?: string[];
   dependencies?: string[];
@@ -49,6 +62,7 @@ export const AGENTS: Record<string, CrewMember> = {
     role: "Knowledge Base",
     color: "#22C55E",
     icon: Map,
+    avatar: socratesAvatar,
     blurb: "Turns findings into durable knowledge and makes them searchable.",
     watchDescription: "SEO learnings and insights from all agents",
     capabilities: ["Read Articles", "Write Articles", "Search"],
@@ -66,6 +80,7 @@ export const AGENTS: Record<string, CrewMember> = {
     role: "Competitive Intelligence",
     color: "#7F1D1D",
     icon: Eye,
+    avatar: natashaAvatar,
     blurb: "Gathers competitive intelligence, SERP movements, and strategic gaps.",
     watchDescription: "Competitor rankings, content gaps, and market movements",
     capabilities: ["Competitor Analysis", "SERP Recon", "Gap Detection"],
@@ -84,6 +99,7 @@ export const AGENTS: Record<string, CrewMember> = {
     role: "Technical SEO",
     color: "#64748B",
     icon: Wrench,
+    avatar: scottyAvatar,
     blurb: "Performs technical SEO audits and crawl diagnostics.",
     watchDescription: "Crawlability, rendering, and index health",
     capabilities: ["Site Crawl", "Render Check", "Technical Audit"],
@@ -95,6 +111,7 @@ export const AGENTS: Record<string, CrewMember> = {
     role: "Domain Authority",
     color: "#F59E0B",
     icon: Radio,
+    avatar: beaconAvatar,
     blurb: "Tracks backlinks, domain authority, and link velocity.",
     watchDescription: "Domain authority and link growth",
     capabilities: ["Link Tracking", "Authority Metrics", "Competitor Comparison"],
@@ -106,6 +123,7 @@ export const AGENTS: Record<string, CrewMember> = {
     role: "GA4",
     color: "#06B6D4",
     icon: Activity,
+    avatar: pulseAvatar,
     blurb: "Fetches analytics and search console data from Google APIs.",
     watchDescription: "Website traffic, conversions, and user behavior",
     capabilities: ["GA4 Data", "GSC Data", "Traffic Metrics"],
@@ -127,6 +145,7 @@ export const AGENTS: Record<string, CrewMember> = {
     role: "SERP Analyst",
     color: "#EC4899",
     icon: Search,
+    avatar: lookoutAvatar,
     blurb: "Tracks keyword rankings and SERP features over time.",
     watchDescription: "Keyword rankings and SERP positions",
     capabilities: ["Rank Tracking", "SERP Snapshots", "Position Monitoring"],
@@ -138,6 +157,7 @@ export const AGENTS: Record<string, CrewMember> = {
     role: "Performance Monitor",
     color: "#10B981",
     icon: Zap,
+    avatar: speedsterAvatar,
     blurb: "Monitors Core Web Vitals and page speed metrics.",
     watchDescription: "Page load speed and Core Web Vitals scores",
     capabilities: ["LCP Tracking", "CLS Tracking", "INP Tracking"],
@@ -149,6 +169,7 @@ export const AGENTS: Record<string, CrewMember> = {
     role: "Content Decay Monitor",
     color: "#6366F1",
     icon: FileText,
+    avatar: sentinelAvatar,
     blurb: "Identifies content losing traffic and prioritizes refreshes.",
     watchDescription: "Content performance and traffic trends over time",
     capabilities: ["Decay Detection", "Refresh Prioritization", "Trend Analysis"],
@@ -160,6 +181,7 @@ export const AGENTS: Record<string, CrewMember> = {
     role: "BlogWriter",
     color: "#1E3A8A",
     icon: PenTool,
+    avatar: hemingwayAvatar,
     blurb: "Writes and validates content optimized for humans and search engines.",
     watchDescription: "Blog cadence, quality, and topical coverage",
     capabilities: ["Long-form Writing", "Rewrites", "Quality Scoring", "E-E-A-T Checks"],
@@ -171,6 +193,7 @@ export const AGENTS: Record<string, CrewMember> = {
     role: "Google Ads",
     color: "#EC4899",
     icon: Megaphone,
+    avatar: draperAvatar,
     blurb: "Designs campaigns, messaging, and experiments that drive acquisition and conversion.",
     watchDescription: "Ad spend, conversions, and campaign performance",
     capabilities: ["Ad Strategy", "Copy Testing", "Conversion Optimization"],
