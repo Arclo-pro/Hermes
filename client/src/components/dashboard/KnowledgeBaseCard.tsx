@@ -2,10 +2,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { BookOpen, Lightbulb, Clock, ArrowRight, RefreshCw, ExternalLink, AlertCircle } from "lucide-react";
+import { BookOpen, Lightbulb, Clock, ArrowRight, RefreshCw, ExternalLink, AlertCircle, FileDown } from "lucide-react";
 import { Link } from "wouter";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
+import { getCrewMember } from "@/config/agents";
 
 interface Finding {
   findingId: string;
@@ -147,25 +148,46 @@ export function KnowledgeBaseCard() {
             </div>
 
             <div className="space-y-2">
-              {kbaseFindings.slice(0, 3).map((finding) => (
-                <div
-                  key={finding.findingId}
-                  className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                  data-testid={`finding-${finding.findingId}`}
-                >
-                  <Badge className={severityColors[finding.severity] || severityColors.info}>
-                    {finding.severity}
-                  </Badge>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{finding.title}</p>
-                    {finding.description && (
-                      <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
-                        {finding.description}
-                      </p>
+              {kbaseFindings.slice(0, 3).map((finding) => {
+                const crew = getCrewMember('knowledge_base');
+                const findingTime = formatDistanceToNow(new Date(finding.createdAt), { addSuffix: true });
+                
+                return (
+                  <div
+                    key={finding.findingId}
+                    className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                    data-testid={`finding-${finding.findingId}`}
+                  >
+                    {crew.avatar ? (
+                      <img src={crew.avatar} alt="Socrates" className="w-8 h-8 rounded-full flex-shrink-0" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: crew.color }}>
+                        So
+                      </div>
                     )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium truncate flex-1">{finding.title}</p>
+                        <span className="text-xs text-muted-foreground flex-shrink-0">{findingTime}</span>
+                      </div>
+                      {finding.description && (
+                        <p className="text-xs text-muted-foreground line-clamp-1 mt-1">
+                          {finding.description}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-2 mt-2">
+                        <Badge className={`${severityColors[finding.severity] || severityColors.info} text-xs`}>
+                          {finding.severity}
+                        </Badge>
+                        <Button variant="ghost" size="sm" className="h-6 text-xs px-2">
+                          <FileDown className="w-3 h-3 mr-1" />
+                          Export Prompt
+                        </Button>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {summary?.kbaseCount && summary.kbaseCount > 3 && (

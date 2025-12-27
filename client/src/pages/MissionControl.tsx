@@ -29,19 +29,6 @@ import { Link } from "wouter";
 import { toast } from "sonner";
 import { BenchmarkComparison } from "@/components/dashboard/BenchmarkComparison";
 import { KnowledgeBaseCard } from "@/components/dashboard/KnowledgeBaseCard";
-import { TicketList } from "@/components/dashboard/TicketList";
-
-interface OutcomeTile {
-  id: string;
-  label: string;
-  value: string | number;
-  delta?: string;
-  deltaPct?: number;
-  verdict: 'good' | 'watch' | 'bad' | 'neutral';
-  reason: string;
-  nextAction: { text: string; link?: string };
-  agentId?: string;
-}
 
 const verdictColors = {
   good: { bg: "bg-green-50", border: "border-green-200", text: "text-green-700", badge: "bg-green-100 text-green-700" },
@@ -87,30 +74,68 @@ function StatusBadge({ status }: { status: string }) {
   return <Badge className={cn("text-xs capitalize", colors[status] || colors.new)}>{status}</Badge>;
 }
 
-function OutcomeTileCard({ tile }: { tile: OutcomeTile }) {
-  const colors = verdictColors[tile.verdict];
-  const TrendIcon = tile.deltaPct && tile.deltaPct > 0 ? TrendingUp : tile.deltaPct && tile.deltaPct < 0 ? TrendingDown : Minus;
+interface MetricCardData {
+  id: string;
+  label: string;
+  value: string;
+  delta: string;
+  deltaPct: number;
+  verdict: 'good' | 'watch' | 'bad' | 'neutral';
+  sparkline: number[];
+  nextAction: { text: string; link: string };
+}
+
+function MiniSparkline({ data, color }: { data: number[]; color: string }) {
+  const max = Math.max(...data);
+  const min = Math.min(...data);
+  const range = max - min || 1;
+  const points = data.map((val, i) => {
+    const x = (i / (data.length - 1)) * 100;
+    const y = 100 - ((val - min) / range) * 100;
+    return `${x},${y}`;
+  }).join(' ');
   
   return (
-    <Card className={cn("transition-all hover:shadow-md", colors.bg, colors.border)} data-testid={`outcome-tile-${tile.id}`}>
+    <svg viewBox="0 0 100 40" className="w-full h-10" preserveAspectRatio="none">
+      <polyline
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        points={points}
+      />
+    </svg>
+  );
+}
+
+function MetricCard({ metric }: { metric: MetricCardData }) {
+  const colors = verdictColors[metric.verdict];
+  const sparklineColor = metric.verdict === 'good' ? '#22C55E' : metric.verdict === 'watch' ? '#F59E0B' : '#EF4444';
+  const TrendIcon = metric.deltaPct > 0 ? TrendingUp : metric.deltaPct < 0 ? TrendingDown : Minus;
+  
+  return (
+    <Card className={cn("transition-all hover:shadow-md overflow-hidden", colors.bg, colors.border)} data-testid={`metric-card-${metric.id}`}>
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-2">
-          <span className="text-sm font-medium text-muted-foreground">{tile.label}</span>
-          <VerdictBadge verdict={tile.verdict} />
+          <span className="text-sm font-medium text-muted-foreground">{metric.label}</span>
+          <Badge className={cn("text-xs flex-shrink-0 max-w-[80px] truncate", colors.badge)}>
+            {metric.verdict === 'good' ? 'On Track' : metric.verdict === 'watch' ? 'Watch' : 'Needs Work'}
+          </Badge>
         </div>
-        <div className="flex items-baseline gap-2 mb-1">
-          <span className="text-2xl font-bold">{tile.value}</span>
-          {tile.delta && (
-            <span className={cn("text-sm flex items-center gap-1", colors.text)}>
-              <TrendIcon className="w-3 h-3" />
-              {tile.delta}
-            </span>
-          )}
+        <div className="flex items-baseline gap-2 mb-2">
+          <span className="text-3xl font-bold">{metric.value}</span>
+          <span className={cn("text-sm flex items-center gap-1", colors.text)}>
+            <TrendIcon className="w-3 h-3" />
+            {metric.delta}
+          </span>
         </div>
-        <p className="text-xs text-muted-foreground mb-3">{tile.reason}</p>
-        <Link href={tile.nextAction.link || "#"}>
+        <div className="h-10 mb-3 -mx-1">
+          <MiniSparkline data={metric.sparkline} color={sparklineColor} />
+        </div>
+        <Link href={metric.nextAction.link}>
           <Button variant="ghost" size="sm" className="text-xs h-7 p-0 hover:bg-transparent">
-            {tile.nextAction.text}
+            {metric.nextAction.text}
             <ArrowRight className="w-3 h-3 ml-1" />
           </Button>
         </Link>
@@ -119,56 +144,145 @@ function OutcomeTileCard({ tile }: { tile: OutcomeTile }) {
   );
 }
 
-function AgentHighlightStrip({ agents }: { agents: Array<{ serviceId: string; score: number; status: 'good' | 'watch' | 'bad' }> }) {
+function MetricCardsRow() {
+  const metrics: MetricCardData[] = [
+    {
+      id: 'conversion-rate',
+      label: 'Conversion Rate',
+      value: '3.2%',
+      delta: '-0.5%',
+      deltaPct: -0.5,
+      verdict: 'watch',
+      sparkline: [3.8, 3.6, 3.4, 3.5, 3.3, 3.1, 3.2],
+      nextAction: { text: 'Review Pulse', link: '/agents/ga4' },
+    },
+    {
+      id: 'bounce-rate',
+      label: 'Bounce Rate',
+      value: '42%',
+      delta: '+3%',
+      deltaPct: 3,
+      verdict: 'bad',
+      sparkline: [38, 39, 40, 41, 43, 44, 42],
+      nextAction: { text: 'Review Speedster', link: '/agents/performance' },
+    },
+    {
+      id: 'leads',
+      label: 'Leads / Form Submits',
+      value: '127',
+      delta: '+12%',
+      deltaPct: 12,
+      verdict: 'good',
+      sparkline: [95, 102, 98, 110, 115, 120, 127],
+      nextAction: { text: 'Review Draper', link: '/agents/ads' },
+    },
+  ];
+
   return (
-    <Card data-testid="agent-highlights">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg">Agent Highlights</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-wrap gap-3">
-          {agents.map((agent) => {
-            const crew = getCrewMember(agent.serviceId);
-            const statusColors = {
-              good: "border-green-300 bg-green-50",
-              watch: "border-amber-300 bg-amber-50",
-              bad: "border-red-300 bg-red-50",
-            };
-            
-            return (
-              <Link key={agent.serviceId} href={`/agents/${agent.serviceId}`}>
-                <div 
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-lg border transition-all hover:shadow-md cursor-pointer",
-                    statusColors[agent.status]
-                  )}
-                  data-testid={`agent-highlight-${agent.serviceId}`}
-                >
-                  {crew.avatar ? (
-                    <img 
-                      src={crew.avatar} 
-                      alt={crew.nickname} 
-                      className="w-10 h-10 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div 
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold"
-                      style={{ backgroundColor: crew.color }}
-                    >
-                      {crew.nickname.slice(0, 2)}
-                    </div>
-                  )}
-                  <div>
-                    <div className="text-sm font-medium">{crew.nickname}</div>
-                    <div className="text-xs text-muted-foreground">{agent.score}</div>
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
+    <div data-testid="metric-cards-row">
+      <h2 className="text-lg font-semibold mb-4">Key Metrics</h2>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {metrics.map((metric) => (
+          <MetricCard key={metric.id} metric={metric} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
+function AgentSummaryCard({ agent }: { agent: { serviceId: string; score: number; status: 'good' | 'watch' | 'bad'; keyMetric: string; keyMetricValue: string; delta: string; whatChanged: string } }) {
+  const crew = getCrewMember(agent.serviceId);
+  const mockData = getMockAgentData(agent.serviceId);
+  const statusColors = verdictColors[agent.status];
+  
+  const scoreColor = agent.score >= 70 ? "#22C55E" : agent.score >= 40 ? "#F59E0B" : "#EF4444";
+  
+  return (
+    <Card className={cn("transition-all hover:shadow-md border", statusColors.border)} data-testid={`agent-summary-${agent.serviceId}`}>
+      <CardContent className="p-4">
+        <div className="flex items-start gap-3 mb-3">
+          {crew.avatar ? (
+            <img 
+              src={crew.avatar} 
+              alt={crew.nickname}
+              className="w-12 h-12 rounded-lg object-cover"
+            />
+          ) : (
+            <div 
+              className="w-12 h-12 rounded-lg flex items-center justify-center text-white text-sm font-bold"
+              style={{ backgroundColor: crew.color }}
+            >
+              {crew.nickname.slice(0, 2)}
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between">
+              <h4 className="font-semibold text-sm" style={{ color: crew.color }}>{crew.nickname}</h4>
+              <span className="text-lg font-bold" style={{ color: scoreColor }}>{agent.score}</span>
+            </div>
+            <p className="text-xs text-muted-foreground truncate">{crew.role}</p>
+            <div className="w-full h-1.5 rounded-full bg-muted mt-1 overflow-hidden">
+              <div 
+                className="h-full rounded-full transition-all"
+                style={{ width: `${agent.score}%`, backgroundColor: scoreColor }}
+              />
+            </div>
+          </div>
         </div>
+        
+        <div className="flex items-baseline gap-2 mb-1">
+          <span className="text-xl font-bold">{agent.keyMetricValue}</span>
+          <span className={cn("text-sm", agent.delta.startsWith('-') ? "text-red-600" : "text-green-600")}>
+            {agent.delta}
+          </span>
+        </div>
+        <p className="text-xs text-muted-foreground mb-1">{agent.keyMetric}</p>
+        
+        <div className="flex items-center justify-between mt-3 pt-3 border-t">
+          <VerdictBadge verdict={agent.status} />
+          <Link href={`/agents/${agent.serviceId}`}>
+            <Button variant="ghost" size="sm" className="text-xs h-7 px-2">
+              Review {crew.nickname} <ArrowRight className="w-3 h-3 ml-1" />
+            </Button>
+          </Link>
+        </div>
+        
+        <p className="text-xs text-muted-foreground mt-2 italic">{agent.whatChanged}</p>
       </CardContent>
     </Card>
+  );
+}
+
+function AgentSummaryGrid({ agents }: { agents: Array<{ serviceId: string; score: number; status: 'good' | 'watch' | 'bad' }> }) {
+  const agentData = agents.slice(0, 6).map(agent => {
+    const mockData = getMockAgentData(agent.serviceId);
+    const finding = mockData?.findings?.[0];
+    return {
+      ...agent,
+      keyMetric: finding?.label || "Agent score",
+      keyMetricValue: String(finding?.value || agent.score),
+      delta: agent.score >= 70 ? "+5%" : agent.score >= 40 ? "-12%" : "-50%",
+      whatChanged: mockData?.nextSteps?.[0]?.action || "Run diagnostics to see insights",
+    };
+  });
+
+  return (
+    <div data-testid="agent-summary-grid">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold">Agent Summary</h2>
+        <Link href="/crew">
+          <Button variant="ghost" size="sm" className="text-xs">
+            View all agents <ChevronRight className="w-3 h-3 ml-1" />
+          </Button>
+        </Link>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {agentData.map((agent) => (
+          <AgentSummaryCard key={agent.serviceId} agent={agent} />
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -406,65 +520,6 @@ export default function MissionControl() {
 
   const captainData = getMockCaptainRecommendations();
 
-  const outcomeTiles: OutcomeTile[] = [
-    {
-      id: "traffic",
-      label: "Website Traffic",
-      value: dashboardStats?.organicTraffic?.recent7d?.toLocaleString() || "—",
-      delta: dashboardStats?.organicTraffic?.changePercent ? `${dashboardStats.organicTraffic.changePercent > 0 ? '+' : ''}${dashboardStats.organicTraffic.changePercent.toFixed(0)}%` : undefined,
-      deltaPct: dashboardStats?.organicTraffic?.changePercent,
-      verdict: !dashboardStats?.organicTraffic ? 'neutral' : 
-        dashboardStats.organicTraffic.changePercent > 5 ? 'good' : 
-        dashboardStats.organicTraffic.changePercent < -10 ? 'bad' : 'watch',
-      reason: !dashboardStats?.organicTraffic ? "Run diagnostics to fetch GA4 data" :
-        dashboardStats.organicTraffic.changePercent > 5 ? "Traffic growing steadily" :
-        dashboardStats.organicTraffic.changePercent < -10 ? "Traffic declining, investigate ranking drops" :
-        "Traffic stable, monitor for changes",
-      nextAction: { text: "Review Popular", link: "/agents/google_data_connector" },
-      agentId: "google_data_connector",
-    },
-    {
-      id: "technical",
-      label: "Technical SEO",
-      value: dashboardStats?.webChecks ? `${Math.round((dashboardStats.webChecks.passed / dashboardStats.webChecks.total) * 100)}%` : "—",
-      verdict: !dashboardStats?.webChecks ? 'neutral' :
-        dashboardStats.webChecks.passed / dashboardStats.webChecks.total >= 0.9 ? 'good' :
-        dashboardStats.webChecks.passed / dashboardStats.webChecks.total >= 0.75 ? 'watch' : 'bad',
-      reason: !dashboardStats?.webChecks ? "Run diagnostics to check site health" :
-        dashboardStats.webChecks.passed === dashboardStats.webChecks.total ? "All checks passing" :
-        `${dashboardStats.webChecks.total - dashboardStats.webChecks.passed} issues found`,
-      nextAction: { text: "Review Scotty", link: "/agents/crawl_render" },
-      agentId: "crawl_render",
-    },
-    {
-      id: "keywords",
-      label: "Keyword Rankings",
-      value: dashboardStats?.keywords?.top10Count || "—",
-      delta: dashboardStats?.keywords?.positionChange ? `${dashboardStats.keywords.positionChange > 0 ? '+' : ''}${dashboardStats.keywords.positionChange.toFixed(1)}` : undefined,
-      deltaPct: dashboardStats?.keywords?.positionChange,
-      verdict: !dashboardStats?.keywords ? 'neutral' :
-        dashboardStats.keywords.top10Count >= 15 ? 'good' :
-        dashboardStats.keywords.top10Count >= 5 ? 'watch' : 'bad',
-      reason: !dashboardStats?.keywords ? "Run SERP tracking to monitor rankings" :
-        `${dashboardStats.keywords.top10Count} keywords in top 10`,
-      nextAction: { text: "Review Lookout", link: "/keywords" },
-      agentId: "serp_intel",
-    },
-    {
-      id: "authority",
-      label: "Domain Authority",
-      value: dashboardStats?.authority?.score || "—",
-      delta: dashboardStats?.authority?.change ? `+${dashboardStats.authority.change}` : undefined,
-      verdict: !dashboardStats?.authority ? 'neutral' :
-        dashboardStats.authority.score >= 30 ? 'good' :
-        dashboardStats.authority.score >= 15 ? 'watch' : 'bad',
-      reason: !dashboardStats?.authority ? "Connect Beacon to track authority" :
-        `${dashboardStats.authority.newBacklinks || 0} new backlinks this week`,
-      nextAction: { text: "Review Beacon", link: "/agents/backlink_authority" },
-      agentId: "backlink_authority",
-    },
-  ];
-
   const mockActions = captainData.priorities.map((p, idx) => ({
     id: idx + 1,
     title: p.title,
@@ -515,16 +570,9 @@ export default function MissionControl() {
           updatedAt={captainData.generated_at ? new Date(captainData.generated_at).toLocaleDateString() : undefined}
         />
 
-        <div>
-          <h2 className="text-lg font-semibold mb-4">Key Outcomes</h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {outcomeTiles.map((tile) => (
-              <OutcomeTileCard key={tile.id} tile={tile} />
-            ))}
-          </div>
-        </div>
+        <MetricCardsRow />
 
-        <AgentHighlightStrip agents={userAgents} />
+        <AgentSummaryGrid agents={userAgents} />
 
         <ActionQueueCard actions={mockActions} />
 
@@ -532,22 +580,6 @@ export default function MissionControl() {
           <BenchmarkComparison />
           <KnowledgeBaseCard />
         </div>
-
-        <Card data-testid="diagnostic-tickets">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Diagnostic Tickets</CardTitle>
-              <Link href="/tickets">
-                <Button variant="ghost" size="sm" className="text-xs">
-                  View all <ChevronRight className="w-3 h-3 ml-1" />
-                </Button>
-              </Link>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <TicketList limit={5} />
-          </CardContent>
-        </Card>
       </div>
     </DashboardLayout>
   );
