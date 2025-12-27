@@ -143,8 +143,14 @@ export function ShipCanvasA1(props: {
                       <div className="absolute left-1.5 top-1.5 opacity-40 group-hover:opacity-70 transition-opacity">
                         <Info className="w-3.5 h-3.5 text-white/60" />
                       </div>
-                      <div className="flex h-full items-center justify-center">
-                        <RoleIcon className="w-10 h-10 text-white/20 group-hover:text-white/40 transition-colors" />
+                      <div className="flex h-full flex-col items-center justify-center gap-1 px-2">
+                        <RoleIcon className="w-8 h-8 text-white/25 group-hover:text-white/40 transition-colors" />
+                        <div className="text-center">
+                          <div className="text-[10px] font-medium text-white/35 leading-tight">{slot.roleName}</div>
+                          <div className="text-[9px] text-white/25 leading-tight">
+                            {slot.roleId === "ai_optimization" ? "Optimize for AI discovery" : "Empty slot"}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </button>
@@ -193,18 +199,21 @@ export function ShipCanvasA1(props: {
                       </div>
                     )}
 
-                    <div className="flex h-full items-center justify-center">
+                    <div className="flex h-full flex-col items-center justify-center gap-1">
                       {crew?.avatar && typeof crew.avatar === 'string' && crew.avatar.includes('/') ? (
                         <img 
                           src={crew.avatar} 
                           alt={crew.nickname || slot.roleName}
-                          className="h-16 w-16 object-contain drop-shadow-lg"
+                          className="h-14 w-14 object-contain drop-shadow-lg"
                         />
                       ) : (
-                        <span className="text-4xl drop-shadow-lg">
+                        <span className="text-3xl drop-shadow-lg">
                           {crew?.avatar || "👤"}
                         </span>
                       )}
+                      <div className="text-[11px] font-semibold text-white/90 leading-tight">
+                        {crew?.nickname || "Unknown"}
+                      </div>
                     </div>
                   </div>
                 </button>
