@@ -15,35 +15,22 @@ type RoleSlot = {
   yPct: number;
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
-// FINAL CREW MANIFEST - LOCKED (12 slots)
-// Do not add or remove slots without redesigning the ship image
-// ═══════════════════════════════════════════════════════════════════════════
 const ROLE_SLOTS: RoleSlot[] = [
-  // ROW 1 - COMMAND (6%) - 1 slot
-  { roleId: "mission_control", roleName: "Mission Control", roleIcon: Compass, crewId: "orchestrator", xPct: 50, yPct: 6 },
-
-  // ROW 2 - INTELLIGENCE & VISIBILITY (28%) - 3 slots
-  { roleId: "competitive_intel", roleName: "Competitive Intel", roleIcon: Eye, crewId: "competitive_snapshot", xPct: 16, yPct: 28 },
+  { roleId: "mission_control", roleName: "Mission Control", roleIcon: Compass, crewId: "orchestrator", xPct: 50, yPct: 8 },
+  { roleId: "competitive_intel", roleName: "Competitive Intel", roleIcon: Eye, crewId: "competitive_snapshot", xPct: 17, yPct: 28 },
   { roleId: "serp_tracking", roleName: "SERP Tracking", roleIcon: Target, crewId: "serp_intel", xPct: 50, yPct: 28 },
-  { roleId: "analytics_signals", roleName: "Analytics & Signals", roleIcon: BarChart3, crewId: "google_data_connector", xPct: 84, yPct: 28 },
-
-  // ROW 3 - ENGINEERING & PERFORMANCE (50%) - 2 slots
-  { roleId: "technical_seo", roleName: "Technical SEO", roleIcon: Wrench, crewId: "crawl_render", xPct: 27, yPct: 50 },
-  { roleId: "performance_monitoring", roleName: "Performance Monitoring", roleIcon: Zap, crewId: "core_web_vitals", xPct: 73, yPct: 50 },
-
-  // ROW 4 - CONTENT SYSTEMS (72%) - 2 slots
-  { roleId: "content_decay", roleName: "Content Decay", roleIcon: Search, crewId: "content_decay", xPct: 27, yPct: 72 },
-  { roleId: "content_strategy", roleName: "Content Strategy", roleIcon: PenTool, crewId: "content_generator", xPct: 73, yPct: 72 },
-
-  // ROW 5 - AUTHORITY, AI, ADS, KNOWLEDGE (94%) - 4 slots spread wide
-  { roleId: "domain_authority", roleName: "Domain Authority", roleIcon: Link2, crewId: "backlink_authority", xPct: 13, yPct: 94 },
+  { roleId: "analytics_signals", roleName: "Analytics & Signals", roleIcon: BarChart3, crewId: "google_data_connector", xPct: 83, yPct: 28 },
+  { roleId: "technical_seo", roleName: "Technical SEO", roleIcon: Wrench, crewId: "crawl_render", xPct: 28, yPct: 50 },
+  { roleId: "performance_monitoring", roleName: "Performance", roleIcon: Zap, crewId: "core_web_vitals", xPct: 72, yPct: 50 },
+  { roleId: "content_decay", roleName: "Content Decay", roleIcon: Search, crewId: "content_decay", xPct: 28, yPct: 72 },
+  { roleId: "content_strategy", roleName: "Content Strategy", roleIcon: PenTool, crewId: "content_generator", xPct: 72, yPct: 72 },
+  { roleId: "domain_authority", roleName: "Authority", roleIcon: Link2, crewId: "backlink_authority", xPct: 13, yPct: 94 },
   { roleId: "ai_optimization", roleName: "AI Optimization", roleIcon: BrainCircuit, crewId: "ai_optimization", xPct: 37, yPct: 94 },
   { roleId: "paid_ads", roleName: "Paid Ads", roleIcon: Megaphone, crewId: "google_ads_connector", xPct: 63, yPct: 94 },
-  { roleId: "knowledge_base", roleName: "Knowledge Base", roleIcon: BookOpen, crewId: "seo_kbase", xPct: 87, yPct: 94 },
+  { roleId: "knowledge_base", roleName: "Knowledge", roleIcon: BookOpen, crewId: "seo_kbase", xPct: 87, yPct: 94 },
 ];
 
-function RoleInfoTooltip({ roleId, isEmpty }: { roleId: string; isEmpty: boolean }) {
+function RoleInfoTooltip({ roleId }: { roleId: string }) {
   const roleTooltip = getRoleTooltip(roleId);
   if (!roleTooltip) return null;
 
@@ -51,26 +38,16 @@ function RoleInfoTooltip({ roleId, isEmpty }: { roleId: string; isEmpty: boolean
     <Tooltip delayDuration={200}>
       <TooltipTrigger asChild>
         <div
-          className={`absolute right-2.5 top-2.5 rounded-full p-1 cursor-help transition-all ${
-            isEmpty 
-              ? "opacity-40 hover:opacity-80 hover:bg-white/10" 
-              : "opacity-30 hover:opacity-70 hover:bg-white/10"
-          }`}
+          className="absolute left-1.5 top-1.5 z-10 rounded-full p-0.5 cursor-help transition-all opacity-50 hover:opacity-90 hover:bg-white/10"
           onClick={(e) => e.stopPropagation()}
         >
-          <Info className="w-4 h-4 text-white/70" />
+          <Info className="w-3.5 h-3.5 text-white/70" />
         </div>
       </TooltipTrigger>
-      <TooltipContent 
-        side="top" 
-        className="max-w-[260px] bg-[#1a1a2e] border border-white/10 rounded-lg p-3 shadow-xl"
-      >
-        <div className="space-y-1.5">
-          <div className="text-[11px] font-semibold text-white/90">{roleTooltip.title}</div>
-          <div className="text-[10px] text-white/60 leading-relaxed">{roleTooltip.description}</div>
-          {roleTooltip.exampleOutcome && (
-            <div className="text-[9px] text-cyan-400/70 italic">"{roleTooltip.exampleOutcome}"</div>
-          )}
+      <TooltipContent side="top" className="max-w-[240px] bg-[#1a1a2e] border border-white/10 rounded-lg p-2.5 shadow-xl z-50">
+        <div className="space-y-1">
+          <div className="text-[10px] font-semibold text-white/90">{roleTooltip.title}</div>
+          <div className="text-[9px] text-white/60 leading-relaxed">{roleTooltip.description}</div>
         </div>
       </TooltipContent>
     </Tooltip>
@@ -84,29 +61,14 @@ function CrewAvatarTooltip({ crewId, children }: { crewId: string; children: Rea
   return (
     <Tooltip delayDuration={300}>
       <TooltipTrigger asChild>
-        <div className="cursor-pointer">{children}</div>
+        <div className="cursor-pointer flex items-center justify-center">{children}</div>
       </TooltipTrigger>
-      <TooltipContent 
-        side="top" 
-        className="max-w-[260px] bg-[#1a1a2e] border border-white/10 rounded-lg p-3 shadow-xl"
-      >
-        <div className="space-y-1.5">
-          <div className="text-[11px] font-semibold text-white/90">
+      <TooltipContent side="top" className="max-w-[240px] bg-[#1a1a2e] border border-white/10 rounded-lg p-2.5 shadow-xl z-50">
+        <div className="space-y-1">
+          <div className="text-[10px] font-semibold text-white/90">
             {crewTooltip.name} <span className="font-normal text-white/50">— {crewTooltip.role}</span>
           </div>
-          <div className="text-[10px] text-white/60 leading-relaxed">{crewTooltip.shortDescription}</div>
-          {crewTooltip.handledSignals && crewTooltip.handledSignals.length > 0 && (
-            <div className="flex flex-wrap gap-1 pt-1">
-              {crewTooltip.handledSignals.map((signal) => (
-                <span 
-                  key={signal} 
-                  className="text-[8px] px-1.5 py-0.5 rounded bg-white/5 text-white/40"
-                >
-                  {signal}
-                </span>
-              ))}
-            </div>
-          )}
+          <div className="text-[9px] text-white/60 leading-relaxed">{crewTooltip.shortDescription}</div>
         </div>
       </TooltipContent>
     </Tooltip>
@@ -117,22 +79,19 @@ export function ShipCanvasA1(props: {
   enabledAgents: string[];
   selectedAgents: string[];
   onSlotClick: (id: string) => void;
-  tileSize?: number;
 }) {
-  const { enabledAgents, selectedAgents, onSlotClick, tileSize = 340 } = props;
+  const { enabledAgents, selectedAgents, onSlotClick } = props;
 
   return (
     <TooltipProvider>
       <div className="relative w-full h-full rounded-3xl border border-white/10 bg-gradient-to-b from-white/[0.03] to-transparent overflow-hidden">
         <div 
           className="absolute inset-0 pointer-events-none"
-          style={{
-            background: "radial-gradient(ellipse 80% 50% at 50% 30%, rgba(245,158,11,0.06) 0%, transparent 60%)",
-          }}
+          style={{ background: "radial-gradient(ellipse 80% 50% at 50% 30%, rgba(245,158,11,0.06) 0%, transparent 60%)" }}
         />
         
-        <div className="relative w-full h-full flex items-center justify-center p-4 md:p-8">
-          <div className="relative w-full max-w-[900px] h-full max-h-[800px]">
+        <div className="relative w-full h-full flex items-center justify-center p-4 md:p-6">
+          <div className="relative w-full max-w-[1000px] h-full min-h-[700px]">
             <ShipHullSvg className="absolute inset-0 w-full h-full" />
 
             <div className="pointer-events-none absolute inset-0">
@@ -140,54 +99,13 @@ export function ShipCanvasA1(props: {
                 <defs>
                   <mask id="outsideMask">
                     <rect x="0" y="0" width="1000" height="560" fill="white" />
-                    <path
-                      d="M110,80 C180,30 300,10 500,10 C700,10 820,30 890,80
-                         C945,120 980,175 980,280
-                         C980,385 945,440 890,480
-                         C820,530 700,550 500,550
-                         C300,550 180,530 110,480
-                         C55,440 20,385 20,280
-                         C20,175 55,120 110,80 Z"
-                      fill="black"
-                    />
+                    <path d="M110,80 C180,30 300,10 500,10 C700,10 820,30 890,80 C945,120 980,175 980,280 C980,385 945,440 890,480 C820,530 700,550 500,550 C300,550 180,530 110,480 C55,440 20,385 20,280 C20,175 55,120 110,80 Z" fill="black" />
                   </mask>
                 </defs>
-                <rect
-                  x="0"
-                  y="0"
-                  width="1000"
-                  height="560"
-                  fill="rgba(0,0,0,0.50)"
-                  mask="url(#outsideMask)"
-                />
+                <rect x="0" y="0" width="1000" height="560" fill="rgba(0,0,0,0.50)" mask="url(#outsideMask)" />
               </svg>
             </div>
 
-            {/* BACKGROUND LAYER: Role labels (not clickable) */}
-            <div className="absolute inset-0 pointer-events-none">
-              {ROLE_SLOTS.map((slot) => {
-                const currentTileSize = slot.roleId === "mission_control" ? tileSize * 1.1 : tileSize;
-                const labelOffset = currentTileSize / 2 + 14;
-                
-                return (
-                  <div
-                    key={`label-${slot.roleId}`}
-                    className="absolute text-center"
-                    style={{
-                      left: `${slot.xPct}%`,
-                      top: `calc(${slot.yPct}% - ${labelOffset}px)`,
-                      transform: "translateX(-50%)",
-                    }}
-                  >
-                    <span className="text-[10px] font-medium text-white/40 whitespace-nowrap">
-                      {slot.roleName}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* INTERACTIVE LAYER: Crew tiles and empty bays */}
             <div className="absolute inset-0">
               {ROLE_SLOTS.map((slot) => {
                 const crew = slot.crewId ? getCrewMember(slot.crewId) : null;
@@ -198,97 +116,75 @@ export function ShipCanvasA1(props: {
                 const RoleIcon = slot.roleIcon;
 
                 const badge = isMissionControl ? "Included" : isEnabled ? "Active" : isSelected ? "Selected" : null;
-
-                const currentTileSize = isMissionControl ? tileSize * 1.1 : tileSize;
-                const left = `calc(${slot.xPct}% - ${currentTileSize / 2}px)`;
-                const top = `calc(${slot.yPct}% - ${currentTileSize / 2}px)`;
-
-                if (isEmpty) {
-                  return (
-                    <button
-                      key={slot.roleId}
-                      className="absolute transition-all hover:scale-105 group"
-                      style={{ left, top, width: currentTileSize, height: currentTileSize }}
-                      onClick={() => slot.crewId && onSlotClick(slot.crewId)}
-                      data-testid={`ship-slot-${slot.roleId}`}
-                    >
-                      <div className="relative h-full w-full rounded-2xl border-2 border-dashed border-white/15 bg-white/[0.02] transition-all duration-200 group-hover:border-white/30 group-hover:bg-white/[0.04]">
-                        <RoleInfoTooltip roleId={slot.roleId} isEmpty={true} />
-                        <div className="flex h-full flex-col items-center justify-center gap-4 px-4">
-                          <RoleIcon className="w-20 h-20 text-white/25 group-hover:text-white/40 transition-colors" />
-                          <div className="text-center">
-                            <div className="text-base font-medium text-white/35 leading-tight">{slot.roleName}</div>
-                            <div className="text-sm text-white/25 leading-tight mt-1">
-                              {slot.roleId === "ai_optimization" ? "Optimize for AI discovery" : "Empty slot"}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                }
+                const scale = isMissionControl ? 1.12 : 1;
 
                 const ringClass = isEnabled
-                  ? "ring-2 shadow-[0_0_0_2px_var(--color-progress-soft),0_18px_40px_rgba(0,0,0,0.45)]"
+                  ? "ring-2 shadow-[0_0_0_2px_var(--color-progress-soft),0_12px_32px_rgba(0,0,0,0.4)]"
                   : isSelected
-                    ? "ring-2 shadow-[0_0_0_2px_var(--color-primary-soft),0_18px_40px_rgba(0,0,0,0.35)]"
-                    : "ring-1 ring-white/10";
-
-                const ringColor = isEnabled 
-                  ? "var(--color-progress)" 
-                  : isSelected 
-                    ? "var(--color-primary)" 
-                    : undefined;
-
-                const badgeClass = isMissionControl || isEnabled
-                  ? "bg-progress-soft text-white/90"
-                  : isSelected
-                    ? "bg-[rgba(124,58,237,0.18)] text-white/90"
+                    ? "ring-2 shadow-[0_0_0_2px_var(--color-primary-soft),0_12px_32px_rgba(0,0,0,0.3)]"
                     : "";
+
+                const ringColor = isEnabled ? "var(--color-progress)" : isSelected ? "var(--color-primary)" : undefined;
+                const badgeClass = isMissionControl || isEnabled ? "bg-progress-soft text-white/90" : isSelected ? "bg-[rgba(124,58,237,0.18)] text-white/90" : "";
 
                 return (
                   <button
                     key={slot.roleId}
-                    className="absolute transition-transform hover:scale-105 group"
-                    style={{ left, top, width: currentTileSize, height: currentTileSize }}
+                    className="absolute transition-all duration-200 hover:scale-105 group"
+                    style={{
+                      left: `${slot.xPct}%`,
+                      top: `${slot.yPct}%`,
+                      transform: `translate(-50%, -50%) scale(${scale})`,
+                      width: "clamp(160px, 16vw, 220px)",
+                      height: "clamp(160px, 16vw, 220px)",
+                    }}
                     onClick={() => slot.crewId && onSlotClick(slot.crewId)}
                     data-testid={`ship-slot-${slot.roleId}`}
                   >
                     <div
                       className={[
-                        "relative h-full w-full rounded-2xl bg-white/[0.06] backdrop-blur-sm",
-                        "transition-all duration-200 hover:bg-white/[0.08]",
+                        "relative h-full w-full rounded-xl",
+                        isEmpty 
+                          ? "border-2 border-dashed border-white/20 bg-white/[0.02] group-hover:border-white/35 group-hover:bg-white/[0.04]" 
+                          : "bg-white/[0.06] backdrop-blur-sm border border-white/20 group-hover:bg-white/[0.08]",
                         ringClass,
-                        "border border-white/15",
                       ].join(" ")}
                       style={{ "--tw-ring-color": ringColor } as React.CSSProperties}
                     >
-                      <RoleInfoTooltip roleId={slot.roleId} isEmpty={false} />
-                      
+                      <RoleInfoTooltip roleId={slot.roleId} />
+
                       {badge && (
-                        <div className={`absolute left-2.5 top-2.5 rounded-full px-2 py-1 text-xs font-medium ${badgeClass}`}>
+                        <div className={`absolute right-1.5 top-1.5 z-10 rounded-full px-1.5 py-0.5 text-[9px] font-medium whitespace-nowrap ${badgeClass}`}>
                           {badge}
                         </div>
                       )}
 
-                      <div className="flex h-full flex-col items-center justify-center gap-3 px-4 py-6">
-                        {slot.crewId && (
-                          <CrewAvatarTooltip crewId={slot.crewId}>
-                            {crew?.avatar && typeof crew.avatar === 'string' && crew.avatar.includes('/') ? (
-                              <img 
-                                src={crew.avatar} 
-                                alt={crew.nickname || slot.roleName}
-                                className="h-32 w-32 object-contain drop-shadow-lg"
-                              />
-                            ) : (
-                              <span className="text-7xl drop-shadow-lg">
-                                {crew?.avatar || "👤"}
-                              </span>
-                            )}
-                          </CrewAvatarTooltip>
-                        )}
-                        <div className="text-xl font-semibold text-white/90 leading-tight px-3 text-center">
-                          {crew?.nickname || "Unknown"}
+                      <div className="absolute inset-0 flex flex-col">
+                        <div className="flex-1 flex items-center justify-center pt-6 pb-1 px-2">
+                          {isEmpty ? (
+                            <RoleIcon className="w-[55%] h-[55%] max-w-[80px] max-h-[80px] text-white/20 group-hover:text-white/35 transition-colors" />
+                          ) : slot.crewId && (
+                            <CrewAvatarTooltip crewId={slot.crewId}>
+                              {crew?.avatar && typeof crew.avatar === 'string' && crew.avatar.includes('/') ? (
+                                <img 
+                                  src={crew.avatar} 
+                                  alt={crew.nickname || slot.roleName}
+                                  className="w-[75%] h-[75%] max-w-[140px] max-h-[140px] object-contain drop-shadow-lg"
+                                />
+                              ) : (
+                                <span className="text-6xl drop-shadow-lg">{crew?.avatar || "👤"}</span>
+                              )}
+                            </CrewAvatarTooltip>
+                          )}
+                        </div>
+
+                        <div className="h-[28%] flex flex-col items-center justify-start px-2 pb-2">
+                          <div className={`text-[11px] font-semibold leading-tight text-center truncate w-full ${isEmpty ? "text-white/30" : "text-white/90"}`}>
+                            {isEmpty ? slot.roleName : (crew?.nickname || "Unknown")}
+                          </div>
+                          {isEmpty && (
+                            <div className="text-[9px] text-white/20 mt-0.5">Empty slot</div>
+                          )}
                         </div>
                       </div>
                     </div>
