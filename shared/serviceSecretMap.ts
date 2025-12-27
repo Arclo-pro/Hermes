@@ -38,9 +38,11 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
     serviceSlug: "audit_log",  // Matches catalog
     displayName: "Audit Log & Observability",
     bitwardenSecret: "SEO_Audit_Log",
-    type: "infrastructure",
-    requiresBaseUrl: false,
-    category: "infrastructure"
+    type: "worker",
+    requiresBaseUrl: true,
+    category: "infrastructure",
+    fallbackEnvVar: "SEO_AUDIT_LOG_API_KEY",
+    fallbackBaseUrlEnvVar: "SEO_AUDIT_LOG_BASE_URL",
   },
   {
     serviceSlug: "orchestrator",  // Matches catalog
