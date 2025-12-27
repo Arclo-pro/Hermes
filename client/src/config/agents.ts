@@ -1,17 +1,17 @@
 import { Map, Binoculars, Wrench, Radio, Activity, Key, GitBranch, Radar, Bot, BookOpen, BarChart3, Search, FileText, Zap, Bell, Database, Globe, Shield, TrendingUp, Link2, Eye, PenTool, Megaphone } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-import socratesAvatar from "@assets/generated_images/socrates_cyan_robot_white_bg.png";
-import pulseAvatar from "@assets/generated_images/pulse_green_analytics_robot.png";
-import scottyAvatar from "@assets/generated_images/scotty_orange_technical_robot.png";
-import lookoutAvatar from "@assets/generated_images/lookout_purple_serp_robot.png";
-import beaconAvatar from "@assets/generated_images/beacon_orange_authority_robot.png";
-import natashaAvatar from "@assets/generated_images/natasha_fedora_spy_robot.png";
-import hemingwayAvatar from "@assets/generated_images/hemingway_green_writer_robot.png";
-import blogwriterAvatar from "@assets/generated_images/blogwriter_red_content_robot.png";
-import draperAvatar from "@assets/generated_images/draper_pink_ads_robot.png";
-import speedsterAvatar from "@assets/generated_images/speedster_teal_performance_robot.png";
-import sentinelAvatar from "@assets/generated_images/sentinel_indigo_decay_robot.png";
+import socratesAvatar from "@assets/generated_images/socrates_cyan_robot_dark_bg.png";
+import pulseAvatar from "@assets/generated_images/pulse_green_robot_dark_bg.png";
+import scottyAvatar from "@assets/generated_images/scotty_orange_robot_dark_bg.png";
+import lookoutAvatar from "@assets/generated_images/lookout_purple_robot_dark_bg.png";
+import beaconAvatar from "@assets/generated_images/beacon_amber_robot_dark_bg.png";
+import natashaAvatar from "@assets/generated_images/natasha_spy_robot_dark_bg.png";
+import hemingwayAvatar from "@assets/generated_images/hemingway_writer_robot_dark_bg.png";
+import blogwriterAvatar from "@assets/generated_images/blogwriter_red_robot_dark_bg.png";
+import draperAvatar from "@assets/generated_images/draper_ads_robot_dark_bg.png";
+import speedsterAvatar from "@assets/generated_images/speedster_teal_robot_dark_bg.png";
+import sentinelAvatar from "@assets/generated_images/sentinel_indigo_robot_dark_bg.png";
 
 export type CrewMember = {
   service_id: string;
