@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils";
 import { 
   LayoutDashboard, 
   Settings, 
-  Activity, 
   FileText, 
   LogOut,
   Menu,
@@ -93,7 +92,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/sites", label: "Sites", icon: Globe },
     { href: "/tickets", label: "Tickets", icon: FileText },
-    { href: "/analysis", label: "Analysis", icon: Activity },
     { href: "/integrations", label: "Integrations", icon: Link2 },
     { href: "/crew", label: "Agents", icon: Users },
     { href: "/settings", label: "Settings", icon: Settings },

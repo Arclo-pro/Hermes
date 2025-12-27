@@ -8,7 +8,6 @@ import { SiteProvider } from "@/hooks/useSiteContext";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/Dashboard";
 import Tickets from "@/pages/Tickets";
-import Analysis from "@/pages/Analysis";
 import Settings from "@/pages/Settings";
 import SERP from "@/pages/SERP";
 import Sites from "@/pages/Sites";
@@ -27,7 +26,6 @@ function Router() {
       <Route path="/sites/new" component={SiteDetail} />
       <Route path="/sites/:siteId" component={SiteDetail} />
       <Route path="/tickets" component={Tickets} />
-      <Route path="/analysis" component={Analysis} />
       <Route path="/serp" component={SERP} />
       <Route path="/authority" component={Authority} />
       <Route path="/integrations" component={Integrations} />
