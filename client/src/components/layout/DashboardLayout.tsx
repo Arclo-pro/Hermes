@@ -14,7 +14,6 @@ import {
   Check,
   Link2,
   Lightbulb,
-  ClipboardList,
   HelpCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -93,7 +92,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { href: "/dashboard", label: "Mission Control", icon: LayoutDashboard },
     { href: "/integrations", label: "Integrations", icon: Link2 },
     { href: "/sites", label: "Sites", icon: Globe },
-    { href: "/audit", label: "Audit Log", icon: ClipboardList },
     { href: "/settings", label: "Settings", icon: Settings },
     { href: "/help", label: "Help", icon: HelpCircle },
   ];
