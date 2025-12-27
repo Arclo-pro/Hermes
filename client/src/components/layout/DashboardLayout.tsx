@@ -9,14 +9,12 @@ import {
   LogOut,
   Menu,
   X,
-  Search,
   Globe,
   ChevronDown,
   Plus,
   Check,
   Link2,
   Lightbulb,
-  Award,
   Users
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -96,8 +94,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { href: "/sites", label: "Sites", icon: Globe },
     { href: "/tickets", label: "Tickets", icon: FileText },
     { href: "/analysis", label: "Analysis", icon: Activity },
-    { href: "/serp", label: "SERP Tracking", icon: Search },
-    { href: "/authority", label: "Web Authority", icon: Award },
     { href: "/integrations", label: "Integrations", icon: Link2 },
     { href: "/crew", label: "Agents", icon: Users },
     { href: "/settings", label: "Settings", icon: Settings },
