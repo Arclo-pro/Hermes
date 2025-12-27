@@ -1710,3 +1710,24 @@ export const insertActionQueueSchema = createInsertSchema(actionQueue).omit({
 });
 export type InsertActionQueue = z.infer<typeof insertActionQueueSchema>;
 export type ActionItem = typeof actionQueue.$inferSelect;
+
+// Crew State - tracks enabled agents per site
+export const crewState = pgTable("crew_state", {
+  id: serial("id").primaryKey(),
+  siteId: text("site_id").notNull(),
+  agentId: text("agent_id").notNull(),
+  enabled: boolean("enabled").notNull().default(false),
+  needsConfig: boolean("needs_config").notNull().default(true),
+  lastRunAt: timestamp("last_run_at"),
+  health: text("health").default("unknown"), // healthy, degraded, error, unknown
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertCrewStateSchema = createInsertSchema(crewState).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertCrewState = z.infer<typeof insertCrewStateSchema>;
+export type CrewState = typeof crewState.$inferSelect;

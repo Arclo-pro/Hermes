@@ -7742,5 +7742,89 @@ When answering:
     }
   });
 
+  // ==================== CREW STATE API ====================
+  
+  // Get crew state for a site
+  app.get("/api/crew/state", async (req, res) => {
+    try {
+      const siteId = (req.query.siteId as string) || "default";
+      const crewStates = await storage.getCrewState(siteId);
+      
+      // Build response with enabled agents and status
+      const enabledAgents = crewStates.filter(s => s.enabled).map(s => s.agentId);
+      const agentStatus: Record<string, { health: string; needsConfig: boolean; lastRun: string | null }> = {};
+      
+      for (const state of crewStates) {
+        agentStatus[state.agentId] = {
+          health: state.health || "unknown",
+          needsConfig: state.needsConfig,
+          lastRun: state.lastRunAt?.toISOString() || null,
+        };
+      }
+      
+      res.json({
+        siteId,
+        enabledAgents,
+        agentStatus,
+        totalEnabled: enabledAgents.length,
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to get crew state", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Enable an agent
+  app.post("/api/crew/enable", async (req, res) => {
+    try {
+      const { agentId, siteId = "default" } = req.body;
+      
+      if (!agentId) {
+        return res.status(400).json({ error: "agentId is required" });
+      }
+      
+      await storage.enableCrewAgent(siteId, agentId);
+      const crewStates = await storage.getCrewState(siteId);
+      const enabledAgents = crewStates.filter(s => s.enabled).map(s => s.agentId);
+      
+      res.json({
+        success: true,
+        agentId,
+        siteId,
+        enabledAgents,
+        totalEnabled: enabledAgents.length,
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to enable crew agent", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Disable an agent
+  app.post("/api/crew/disable", async (req, res) => {
+    try {
+      const { agentId, siteId = "default" } = req.body;
+      
+      if (!agentId) {
+        return res.status(400).json({ error: "agentId is required" });
+      }
+      
+      await storage.disableCrewAgent(siteId, agentId);
+      const crewStates = await storage.getCrewState(siteId);
+      const enabledAgents = crewStates.filter(s => s.enabled).map(s => s.agentId);
+      
+      res.json({
+        success: true,
+        agentId,
+        siteId,
+        enabledAgents,
+        totalEnabled: enabledAgents.length,
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to disable crew agent", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }

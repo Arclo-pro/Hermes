@@ -36,6 +36,9 @@ import {
   changeProposals,
   changeProposalActions,
   connectorDiagnostics,
+  crewState,
+  type CrewState,
+  type InsertCrewState,
   type OAuthToken,
   type InsertOAuthToken,
   type GA4Daily,
@@ -379,6 +382,11 @@ export interface IStorage {
   updateSeoRun(runId: string, updates: Partial<InsertSeoRun>): Promise<SeoRun | undefined>;
   getLatestSeoRun(siteId: string): Promise<SeoRun | undefined>;
   getRecentSeoRuns(siteId: string, limit?: number): Promise<SeoRun[]>;
+  
+  // Crew State
+  getCrewState(siteId: string): Promise<CrewState[]>;
+  enableCrewAgent(siteId: string, agentId: string): Promise<CrewState>;
+  disableCrewAgent(siteId: string, agentId: string): Promise<void>;
 }
 
 class DBStorage implements IStorage {
@@ -1925,6 +1933,45 @@ class DBStorage implements IStorage {
       .where(eq(seoRuns.siteId, siteId))
       .orderBy(desc(seoRuns.createdAt))
       .limit(limit);
+  }
+
+  // Crew State
+  async getCrewState(siteId: string): Promise<CrewState[]> {
+    return db
+      .select()
+      .from(crewState)
+      .where(eq(crewState.siteId, siteId))
+      .orderBy(asc(crewState.agentId));
+  }
+
+  async enableCrewAgent(siteId: string, agentId: string): Promise<CrewState> {
+    const existing = await db
+      .select()
+      .from(crewState)
+      .where(and(eq(crewState.siteId, siteId), eq(crewState.agentId, agentId)))
+      .limit(1);
+    
+    if (existing.length > 0) {
+      const [updated] = await db
+        .update(crewState)
+        .set({ enabled: true, updatedAt: new Date() })
+        .where(and(eq(crewState.siteId, siteId), eq(crewState.agentId, agentId)))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db
+        .insert(crewState)
+        .values({ siteId, agentId, enabled: true, needsConfig: false })
+        .returning();
+      return created;
+    }
+  }
+
+  async disableCrewAgent(siteId: string, agentId: string): Promise<void> {
+    await db
+      .update(crewState)
+      .set({ enabled: false, updatedAt: new Date() })
+      .where(and(eq(crewState.siteId, siteId), eq(crewState.agentId, agentId)));
   }
 }
 
