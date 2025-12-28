@@ -757,14 +757,12 @@ export default function MyCrew() {
             </div>
 
             <div className="min-w-0">
-              <div className="relative w-full min-h-[720px] lg:h-[calc(100vh-180px)] max-h-[980px] overflow-hidden">
-                <ShipCanvasA1 
-                  enabledAgents={enabledAgents}
-                  selectedAgents={selectedAgents}
-                  onSlotClick={handleSlotClick}
-                  tileSize={110}
-                />
-              </div>
+              <ShipCanvasA1 
+                enabledAgents={enabledAgents}
+                selectedAgents={selectedAgents}
+                onSlotClick={handleSlotClick}
+                tileSize={110}
+              />
             </div>
           </div>
         </section>

@@ -5,6 +5,7 @@ import { getRoleTooltip } from "@/config/roleTooltips";
 import { getCrewTooltip } from "@/config/crewTooltips";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info, Eye, Target, BarChart3, Wrench, Zap, Search, PenTool, Link2, Megaphone, Compass, BrainCircuit, BookOpen, Plus } from "lucide-react";
+import shipInteriorBg from "@assets/generated_images/tall_vertical_ship_interior.png";
 
 type GridSlot = {
   roleId: string;
@@ -217,55 +218,72 @@ export function ShipCanvasA1(props: {
   return (
     <TooltipProvider>
       <div 
-        className="relative w-full rounded-3xl border border-white/10 overflow-hidden"
+        className="relative w-full min-h-[1200px] rounded-3xl border border-white/10 overflow-hidden"
         style={{
-          background: "linear-gradient(180deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)",
+          background: "linear-gradient(180deg, #0a0f1a 0%, #0f172a 20%, #1a2540 50%, #0f172a 80%, #0a0f1a 100%)",
         }}
       >
         <div 
           className="absolute inset-0 pointer-events-none z-0"
           style={{
-            background: "radial-gradient(ellipse 120% 80% at 50% 20%, rgba(56,189,248,0.06) 0%, transparent 50%), radial-gradient(ellipse 80% 60% at 50% 80%, rgba(245,158,11,0.04) 0%, transparent 50%)",
+            backgroundImage: `url(${shipInteriorBg})`,
+            backgroundSize: "auto 100%",
+            backgroundPosition: "center top",
+            backgroundRepeat: "no-repeat",
+            opacity: 0.35,
           }}
         />
         
         <div 
           className="absolute inset-0 pointer-events-none z-0"
           style={{
-            background: "radial-gradient(ellipse 100% 100% at 50% 50%, transparent 40%, rgba(0,0,0,0.6) 100%)",
+            background: "linear-gradient(180deg, rgba(10,15,26,0.9) 0%, rgba(10,15,26,0.3) 15%, transparent 30%, transparent 70%, rgba(10,15,26,0.3) 85%, rgba(10,15,26,0.9) 100%)",
+          }}
+        />
+        
+        <div 
+          className="absolute inset-0 pointer-events-none z-0"
+          style={{
+            background: "radial-gradient(ellipse 60% 100% at 50% 50%, transparent 30%, rgba(0,0,0,0.7) 100%)",
           }}
         />
 
-        <ShipHullSvg className="absolute inset-0 w-full h-full pointer-events-none z-0 opacity-25" />
+        <div 
+          className="absolute left-1/2 top-0 bottom-0 w-px pointer-events-none z-0 opacity-20"
+          style={{
+            background: "linear-gradient(180deg, transparent 5%, rgba(56,189,248,0.3) 20%, rgba(56,189,248,0.5) 50%, rgba(56,189,248,0.3) 80%, transparent 95%)",
+          }}
+        />
 
-        <div className="relative z-10 w-full p-6 lg:p-10">
+        <div className="relative z-10 w-full py-16 px-6 lg:px-10">
           <div 
-            className="absolute inset-6 lg:inset-10 grid gap-x-7 gap-y-8 pointer-events-none"
+            className="relative grid gap-x-7 gap-y-10 mx-auto"
             style={{
               gridTemplateColumns: "repeat(4, minmax(150px, 200px))",
-              gridTemplateRows: "repeat(4, 180px)",
+              gridTemplateRows: "repeat(4, 200px)",
               justifyContent: "center",
             }}
           >
-            {ALL_BAY_POSITIONS.map((pos) => (
-              <div 
-                key={`bay-${pos.row}-${pos.col}`}
-                className="relative"
-                style={{ gridRow: pos.row, gridColumn: pos.col }}
-              >
-                <BayPlate />
-              </div>
-            ))}
-          </div>
+            <div 
+              className="absolute -inset-4 grid gap-x-7 gap-y-10 pointer-events-none"
+              style={{
+                gridTemplateColumns: "repeat(4, minmax(150px, 200px))",
+                gridTemplateRows: "repeat(4, 200px)",
+                justifyContent: "center",
+                padding: "16px",
+              }}
+            >
+              {ALL_BAY_POSITIONS.map((pos) => (
+                <div 
+                  key={`bay-${pos.row}-${pos.col}`}
+                  className="relative"
+                  style={{ gridRow: pos.row, gridColumn: pos.col }}
+                >
+                  <BayPlate />
+                </div>
+              ))}
+            </div>
 
-          <div 
-            className="relative z-20 grid gap-x-7 gap-y-8 mx-auto"
-            style={{
-              gridTemplateColumns: "repeat(4, minmax(150px, 200px))",
-              gridTemplateRows: "repeat(4, 180px)",
-              justifyContent: "center",
-            }}
-          >
             <div style={{ gridRow: 1, gridColumn: 1 }} />
             
             {GRID_SLOTS.map((slot) => {
