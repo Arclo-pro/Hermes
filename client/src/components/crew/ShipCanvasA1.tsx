@@ -191,9 +191,12 @@ function CrewCard({
                   )}
                 </CrewAvatarTooltip>
               </div>
-              <div className="w-full h-10 flex items-center justify-center px-1 rounded-b-xl" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.2) 70%, transparent 100%)" }}>
+              <div className="w-full h-14 flex flex-col items-center justify-center px-1 rounded-b-xl" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.2) 70%, transparent 100%)" }}>
                 <div className="text-sm font-semibold text-white/80 text-center truncate w-full">
                   {crew?.nickname || "Unknown"}
+                </div>
+                <div className="text-[10px] text-white/50 text-center truncate w-full">
+                  {crew?.role || slot.roleName}
                 </div>
               </div>
             </>
