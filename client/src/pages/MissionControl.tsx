@@ -61,6 +61,17 @@ function getCrewAccentStyles(hexColor: string) {
   };
 }
 
+function getCrewBadgeStyles(hexColor: string) {
+  const rgb = hexToRgb(hexColor);
+  if (!rgb) return {};
+  const { r, g, b } = rgb;
+  return {
+    backgroundColor: `rgba(${r}, ${g}, ${b}, 0.15)`,
+    color: hexColor,
+    borderColor: `rgba(${r}, ${g}, ${b}, 0.4)`,
+  };
+}
+
 function getHighlightedCardStyles(hexColor: string) {
   const rgb = hexToRgb(hexColor);
   if (!rgb) return {};
@@ -290,17 +301,13 @@ function MetricCardsRow() {
 function AgentSummaryCard({ agent }: { agent: { serviceId: string; score: number; status: 'good' | 'watch' | 'bad'; keyMetric: string; keyMetricValue: string; delta: string; whatChanged: string } }) {
   const crew = getCrewMember(agent.serviceId);
   const mockData = getMockAgentData(agent.serviceId);
-  const statusColors = verdictColors[agent.status];
   
-  const scoreColor = agent.score >= 70 ? "#22C55E" : agent.score >= 40 ? "#EAB308" : "#EF4444";
   const crewAccentStyles = getCrewAccentStyles(crew.color);
+  const crewBadgeStyles = getCrewBadgeStyles(crew.color);
   
   return (
     <Card 
-      className={cn(
-        "transition-all bg-card/80 backdrop-blur-sm rounded-xl border-x border-b",
-        statusColors.border
-      )}
+      className="transition-all bg-card/80 backdrop-blur-sm rounded-xl border-x border-b border-border"
       style={crewAccentStyles}
       data-testid={`agent-summary-${agent.serviceId}`}
     >
@@ -365,7 +372,7 @@ function AgentSummaryCard({ agent }: { agent: { serviceId: string; score: number
                   </TooltipProvider>
                 )}
               </div>
-              <span className="text-lg font-bold" style={{ color: scoreColor }}>{agent.score}</span>
+              <span className="text-lg font-bold" style={{ color: crew.color }}>{agent.score}</span>
             </div>
             <p className="text-xs text-muted-foreground truncate">{crew.role}</p>
             {crew.shortDescription && (
@@ -374,7 +381,7 @@ function AgentSummaryCard({ agent }: { agent: { serviceId: string; score: number
             <div className="w-full h-1.5 rounded-full bg-muted mt-1 overflow-hidden">
               <div 
                 className="h-full rounded-full transition-all"
-                style={{ width: `${agent.score}%`, backgroundColor: scoreColor }}
+                style={{ width: `${agent.score}%`, backgroundColor: crew.color }}
               />
             </div>
           </div>
@@ -389,7 +396,13 @@ function AgentSummaryCard({ agent }: { agent: { serviceId: string; score: number
         <p className="text-xs text-muted-foreground mb-1">{agent.keyMetric}</p>
         
         <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
-          <VerdictBadge verdict={agent.status} />
+          <Badge 
+            variant="outline" 
+            className="text-xs px-2 py-0.5 rounded-full border"
+            style={crewBadgeStyles}
+          >
+            {agent.status === 'good' ? 'Good' : agent.status === 'watch' ? 'Watch' : 'Alert'}
+          </Badge>
           <Link href={`/agents/${agent.serviceId}`}>
             <Button variant="ghost" size="sm" className="text-xs h-7 px-2 text-foreground hover:text-foreground/80">
               Review {crew.nickname} <ArrowRight className="w-3 h-3 ml-1" />
