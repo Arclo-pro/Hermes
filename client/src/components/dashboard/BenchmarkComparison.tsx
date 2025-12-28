@@ -151,39 +151,37 @@ function MetricCard({ data }: { data: BenchmarkMetric }) {
   };
   
   return (
-    <Card className="bg-card/60 backdrop-blur-sm border-border hover:shadow-lg transition-shadow">
-      <CardContent className="pt-4">
-        <div className="flex items-start justify-between mb-2">
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">
-              {metricLabels[data.metric] || data.metric}
-            </p>
-            <p className="text-2xl font-bold text-foreground">
-              {formatMetricValue(data.actualValue, data.metric, data.unit)}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            {getIcon()}
-            <Badge className={`${percentileStyle.bg} ${percentileStyle.text} border-0 text-xs`}>
-              {percentileStyle.label}
-            </Badge>
-          </div>
+    <div className="w-full p-4 bg-card/60 backdrop-blur-sm rounded-lg border border-border">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-muted-foreground">
+            {metricLabels[data.metric] || data.metric}
+          </span>
+          <span className="text-lg font-semibold text-foreground">
+            {formatMetricValue(data.actualValue, data.metric, data.unit)}
+          </span>
         </div>
-        
-        <PercentileBar 
-          value={data.actualValue} 
-          benchmarks={data.benchmarks} 
-          metric={data.metric}
-          unit={data.unit}
-        />
-        
-        {data.source && (
-          <p className="text-xs text-muted-foreground mt-2">
-            Source: {data.source} ({data.sourceYear})
-          </p>
-        )}
-      </CardContent>
-    </Card>
+        <div className="flex items-center gap-2">
+          {getIcon()}
+          <Badge className={`${percentileStyle.bg} ${percentileStyle.text} border-0 text-xs`}>
+            {percentileStyle.label}
+          </Badge>
+        </div>
+      </div>
+      
+      <PercentileBar 
+        value={data.actualValue} 
+        benchmarks={data.benchmarks} 
+        metric={data.metric}
+        unit={data.unit}
+      />
+      
+      {data.source && (
+        <p className="text-xs text-muted-foreground mt-2">
+          Source: {data.source} ({data.sourceYear})
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -317,7 +315,7 @@ export function BenchmarkComparison() {
               </div>
             )}
             
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="flex flex-col gap-3">
               {relevantMetrics.map((metric) => (
                 <MetricCard key={metric.metric} data={metric} />
               ))}
