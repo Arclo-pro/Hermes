@@ -24,6 +24,7 @@ import RunDetail from "@/pages/RunDetail";
 import Audit from "@/pages/Audit";
 import Help from "@/pages/Help";
 import Benchmarks from "@/pages/Benchmarks";
+import CrewPalette from "@/pages/CrewPalette";
 
 function Router() {
   return (
@@ -49,6 +50,7 @@ function Router() {
       <Route path="/audit" component={Audit} />
       <Route path="/help" component={Help} />
       <Route path="/benchmarks" component={Benchmarks} />
+      <Route path="/dev/palette" component={CrewPalette} />
       <Route path="/settings" component={Settings} />
       <Route path="/">
         <Redirect to="/dashboard" />
