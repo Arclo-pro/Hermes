@@ -438,8 +438,11 @@ function ActionQueueCard({ actions }: { actions: Array<{ id: number; title: stri
                     return (
                       <Badge 
                         key={agentId} 
-                        className="text-xs font-medium text-white border-0"
-                        style={{ backgroundColor: crew.color }}
+                        className="text-xs font-medium border-0"
+                        style={{ 
+                          backgroundColor: `${crew.color}26`,
+                          color: crew.color 
+                        }}
                       >
                         {crew.nickname}
                       </Badge>
@@ -540,8 +543,11 @@ function CaptainsRecommendationsSection({ priorities, blockers, confidence, cove
                     return (
                       <Badge 
                         key={agent.id} 
-                        className="text-xs font-medium text-white border-0"
-                        style={{ backgroundColor: crew.color }}
+                        className="text-xs font-medium border-0"
+                        style={{ 
+                          backgroundColor: `${crew.color}26`,
+                          color: crew.color 
+                        }}
                       >
                         {agent.name}
                       </Badge>
