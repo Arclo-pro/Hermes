@@ -570,8 +570,8 @@ function CaptainsRecommendationsSection({ priorities, blockers, confidence, cove
         </div>
       </CardHeader>
       <CardContent>
-        <div className="rounded-xl border border-purple bg-purple-soft p-4">
-          <h4 className="text-sm font-semibold text-purple-accent flex items-center gap-2 mb-3 tracking-wide">
+        <div className="rounded-xl border border-gold bg-gold-soft p-4">
+          <h4 className="text-sm font-semibold text-gold flex items-center gap-2 mb-3 tracking-wide">
             <Target className="w-4 h-4" />
             PRIORITY ACTIONS
           </h4>
@@ -584,9 +584,7 @@ function CaptainsRecommendationsSection({ priorities, blockers, confidence, cove
               >
                 <div className={cn(
                   "flex-shrink-0 w-6 h-6 rounded-full font-bold flex items-center justify-center text-xs mt-0.5",
-                  idx === 0 ? "bg-semantic-danger-soft text-semantic-danger" : 
-                  idx === 1 ? "bg-semantic-warning-soft text-semantic-warning" : 
-                  "bg-muted text-muted-foreground"
+                  "bg-[var(--color-gold)] text-background"
                 )}>
                   {idx + 1}
                 </div>
