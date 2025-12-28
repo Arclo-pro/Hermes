@@ -450,7 +450,7 @@ function ActionQueueCard({ actions }: { actions: Array<{ id: number; title: stri
                 <Button size="sm" className="text-xs bg-card hover:bg-muted border border-border text-foreground rounded-xl">
                   Review
                 </Button>
-                <Button size="sm" className="text-xs bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-[0_0_15px_-3px_rgba(124,58,237,0.4)]">
+                <Button size="sm" className="text-xs text-white rounded-xl shadow-[0_0_20px_-3px_rgba(168,85,247,0.5)] hover:shadow-[0_0_25px_-3px_rgba(168,85,247,0.6)] hover:-translate-y-0.5 active:translate-y-0 transition-all bg-gradient-to-r from-purple-600 via-fuchsia-500 to-violet-400">
                   Approve
                 </Button>
                 <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-foreground opacity-70 hover:opacity-100">
@@ -666,7 +666,7 @@ export default function MissionControl() {
               size="sm" 
               onClick={() => runDiagnostics.mutate()}
               disabled={runDiagnostics.isPending}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-[0_0_20px_-5px_rgba(56,189,248,0.4)]"
+              className="text-white rounded-xl shadow-[0_0_20px_-3px_rgba(168,85,247,0.5)] hover:shadow-[0_0_25px_-3px_rgba(168,85,247,0.6)] hover:-translate-y-0.5 active:translate-y-0 transition-all bg-gradient-to-r from-purple-600 via-fuchsia-500 to-violet-400"
             >
               {runDiagnostics.isPending ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />

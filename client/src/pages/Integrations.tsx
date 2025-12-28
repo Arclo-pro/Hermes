@@ -1147,7 +1147,7 @@ export default function Integrations() {
               <Button
                 onClick={() => runQaMutation.mutate(qaMode)}
                 disabled={runningQa}
-                className="rounded-l-none rounded-r-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-[0_0_20px_-5px_rgba(124,58,237,0.4)]"
+                className="rounded-l-none rounded-r-xl text-white shadow-[0_0_20px_-3px_rgba(168,85,247,0.5)] hover:shadow-[0_0_25px_-3px_rgba(168,85,247,0.6)] hover:-translate-y-0.5 active:translate-y-0 transition-all bg-gradient-to-r from-purple-600 via-fuchsia-500 to-violet-400"
                 data-testid="button-run-qa"
               >
                 {runningQa ? (
@@ -1232,7 +1232,7 @@ export default function Integrations() {
                   <Button
                     onClick={() => selectedSiteId && runDiagnosisMutation.mutate(selectedSiteId)}
                     disabled={!selectedSiteId || runningDiagnosis}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-[0_0_20px_-5px_rgba(124,58,237,0.4)]"
+                    className="text-white rounded-xl shadow-[0_0_20px_-3px_rgba(168,85,247,0.5)] hover:shadow-[0_0_25px_-3px_rgba(168,85,247,0.6)] hover:-translate-y-0.5 active:translate-y-0 transition-all bg-gradient-to-r from-purple-600 via-fuchsia-500 to-violet-400"
                     data-testid="button-run-diagnosis"
                   >
                     {runningDiagnosis ? (
