@@ -20,7 +20,8 @@ import {
   AlertTriangle,
   ChevronRight,
   Info,
-  Package
+  Package,
+  Target
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -569,54 +570,57 @@ function CaptainsRecommendationsSection({ priorities, blockers, confidence, cove
         </div>
       </CardHeader>
       <CardContent>
-        <h4 className="text-sm font-semibold text-muted-foreground mb-3 tracking-wide">PRIORITY ACTIONS</h4>
-        <div className="grid gap-3 lg:grid-cols-2">
-          {priorities.slice(0, 3).map((priority, idx) => (
-            <div 
-              key={idx} 
-              className="flex gap-4 p-4 rounded-xl bg-muted/30 border border-border"
-              data-testid={`priority-${idx + 1}`}
-            >
-              <div className={cn(
-                "flex-shrink-0 w-8 h-8 rounded-full font-bold flex items-center justify-center text-sm",
-                idx === 0 ? "bg-semantic-danger-soft text-semantic-danger" : 
-                idx === 1 ? "bg-semantic-warning-soft text-semantic-warning" : 
-                "bg-muted text-muted-foreground"
-              )}>
-                {idx + 1}
-              </div>
-              <div className="flex-1 space-y-2">
-                <h4 className="font-medium text-sm text-foreground">{priority.title}</h4>
-                <p className="text-xs text-muted-foreground">{priority.why}</p>
-                <div className="flex flex-wrap items-center gap-2">
-                  {priority.agents?.map((agent: any) => {
-                    const crew = getCrewMember(agent.id);
-                    return (
-                      <Badge 
-                        key={agent.id} 
-                        className="text-xs font-medium border-0"
-                        style={{ 
-                          backgroundColor: `${crew.color}26`,
-                          color: crew.color 
-                        }}
-                      >
-                        {agent.name}
-                      </Badge>
-                    );
-                  })}
+        <div className="rounded-xl border border-purple bg-purple-soft p-4">
+          <h4 className="text-sm font-semibold text-purple-accent flex items-center gap-2 mb-3 tracking-wide">
+            <Target className="w-4 h-4" />
+            PRIORITY ACTIONS
+          </h4>
+          <div className="space-y-2">
+            {priorities.slice(0, 3).map((priority, idx) => (
+              <div 
+                key={idx} 
+                className="flex items-start gap-3 text-sm"
+                data-testid={`priority-${idx + 1}`}
+              >
+                <div className={cn(
+                  "flex-shrink-0 w-6 h-6 rounded-full font-bold flex items-center justify-center text-xs mt-0.5",
+                  idx === 0 ? "bg-semantic-danger-soft text-semantic-danger" : 
+                  idx === 1 ? "bg-semantic-warning-soft text-semantic-warning" : 
+                  "bg-muted text-muted-foreground"
+                )}>
+                  {idx + 1}
                 </div>
-                <div className="flex items-center justify-between pt-2">
-                  <div className="flex items-center gap-2">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium text-foreground">{priority.title}</span>
+                    {priority.agents?.map((agent: any) => {
+                      const crew = getCrewMember(agent.id);
+                      return (
+                        <Badge 
+                          key={agent.id} 
+                          className="text-xs font-medium border-0"
+                          style={{ 
+                            backgroundColor: `${crew.color}26`,
+                            color: crew.color 
+                          }}
+                        >
+                          {agent.name}
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                  <p className="text-muted-foreground text-xs mt-1">{priority.why}</p>
+                  <div className="flex items-center gap-2 mt-2">
                     <ImpactBadge impact={priority.impact || "Medium"} />
                     <EffortBadge effort={priority.effort || "M"} />
+                    <Button variant="ghost" size="sm" className="text-xs h-6 px-2 ml-auto text-muted-foreground hover:text-foreground">
+                      Review <ArrowRight className="w-3 h-3 ml-1" />
+                    </Button>
                   </div>
-                  <Button variant="ghost" size="sm" className="text-xs h-7 text-foreground hover:text-foreground/80">
-                    Review <ArrowRight className="w-3 h-3 ml-1" />
-                  </Button>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         {blockers.length > 0 && (
