@@ -108,7 +108,8 @@ async function computeIntegrationSummary(siteId: string, storageInstance: typeof
   const healthy = services.filter(s => s.healthStatus === 'healthy').length;
   const degraded = services.filter(s => s.healthStatus === 'degraded').length;
   const error = services.filter(s => s.healthStatus === 'error').length;
-  const configured = services.filter(s => s.configState === 'configured').length;
+  // 'ready' means configured; 'missing_config', 'blocked', 'needs_config' mean not configured
+  const configured = services.filter(s => s.configState === 'configured' || s.configState === 'ready').length;
   
   // Compute next actions
   const nextActions: Array<{ priority: string; action: string; target: string }> = [];

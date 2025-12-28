@@ -493,6 +493,27 @@ export default function Integrations() {
     summary: { total: number; healthy: number; failed: number; secretsFound: number } | null;
   }>({ refreshedAt: null, vaultConnected: false, vaultReason: null, vaultError: null, secretsCount: 0, summary: null });
 
+  // Quick cached summary for instant loading (SWR pattern)
+  const { data: cachedSummary, isLoading: cachedSummaryLoading } = useQuery<{
+    siteId: string;
+    cachedAt: string;
+    isStale: boolean;
+    summary: { totalServices: number; healthy: number; degraded: number; error: number; configured: number; unconfigured: number };
+    services: Array<{ slug: string; displayName: string; category: string; healthStatus: string; lastRunAt: string | null; lastRunStatus: string | null }>;
+    nextActions: Array<{ priority: string; action: string; target: string }>;
+    lastRefreshError: string | null;
+  }>({
+    queryKey: ["integrationsSummaryCache", selectedSiteId],
+    queryFn: async () => {
+      const siteId = selectedSiteId || 'default';
+      const res = await fetch(`/api/integrations/summary?siteId=${siteId}`);
+      if (!res.ok) return null;
+      return res.json();
+    },
+    staleTime: 30 * 1000, // 30 seconds - will trigger background refresh if stale
+    gcTime: 5 * 60 * 1000, // 5 minute cache retention
+  });
+
   const { data: integrations, isLoading } = useQuery<Integration[]>({
     queryKey: ["platformIntegrations"],
     queryFn: async () => {
@@ -1109,11 +1130,30 @@ export default function Integrations() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground" data-testid="text-page-title">
-              Integrations
-            </h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold tracking-tight text-foreground" data-testid="text-page-title">
+                Integrations
+              </h1>
+              {cachedSummary?.isStale && (
+                <Badge variant="outline" className="text-xs border-yellow-500/50 text-yellow-600" data-testid="badge-stale-cache">
+                  <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                  Updating...
+                </Badge>
+              )}
+              {cachedSummary?.lastRefreshError && (
+                <Badge variant="outline" className="text-xs border-orange-500/50 text-orange-600" data-testid="badge-cache-error">
+                  <AlertTriangle className="w-3 h-3 mr-1" />
+                  Showing cached data
+                </Badge>
+              )}
+            </div>
             <p className="text-muted-foreground">
               Platform services, data sources, and their operational health
+              {cachedSummary?.cachedAt && (
+                <span className="text-xs ml-2 text-muted-foreground/70">
+                  (Last updated: {new Date(cachedSummary.cachedAt).toLocaleTimeString()})
+                </span>
+              )}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -1175,7 +1215,7 @@ export default function Integrations() {
           </div>
         </div>
 
-        {isLoading ? (
+        {isLoading && !cachedSummary ? (
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
