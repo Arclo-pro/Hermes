@@ -5,7 +5,7 @@ import { getRoleTooltip } from "@/config/roleTooltips";
 import { getCrewTooltip } from "@/config/crewTooltips";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info, Eye, Target, BarChart3, Wrench, Zap, Search, PenTool, Link2, Megaphone, Compass, BrainCircuit, BookOpen, Plus } from "lucide-react";
-import shipInteriorBg from "@assets/generated_images/tall_vertical_ship_interior.png";
+import shipInteriorBg from "@assets/generated_images/new_ship_transparent.png";
 
 type GridSlot = {
   roleId: string;
