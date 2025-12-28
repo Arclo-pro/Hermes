@@ -26,6 +26,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSiteContext } from "@/hooks/useSiteContext";
+import { SiteSelector } from "@/components/site/SiteSelector";
 import { USER_FACING_AGENTS, getCrewMember } from "@/config/agents";
 import { getMockAgentData } from "@/config/mockAgentInsights";
 import { getMockCaptainRecommendations } from "@/config/mockCaptainRecommendations";
@@ -717,12 +718,15 @@ export default function MissionControl() {
       <div className="space-y-6" data-testid="mission-control-page">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2 text-foreground">
-              <Compass className="w-7 h-7 text-primary" />
-              Mission Control
-            </h1>
+            <div className="flex items-center gap-3 mb-1">
+              <h1 className="text-2xl font-bold flex items-center gap-2 text-foreground">
+                <Compass className="w-7 h-7 text-primary" />
+                Mission Control
+              </h1>
+              <SiteSelector variant="header" showManageLink={true} />
+            </div>
             <p className="text-muted-foreground text-sm">
-              Daily diagnostic report for <span className="font-medium text-foreground">{currentSite?.displayName || "your site"}</span>
+              Daily diagnostic report for your site
             </p>
           </div>
           <div className="flex items-center gap-2">

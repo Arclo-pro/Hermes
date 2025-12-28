@@ -66,6 +66,10 @@ export function SiteProvider({ children }: { children: ReactNode }) {
   const setSelectedSiteId = (siteId: string) => {
     setSelectedSiteIdState(siteId);
     localStorage.setItem(STORAGE_KEY, siteId);
+    
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.set('siteId', siteId);
+    window.history.replaceState({}, '', currentUrl.pathname + currentUrl.search);
   };
 
   const selectedSite = sites.find(s => s.siteId === selectedSiteId) || null;

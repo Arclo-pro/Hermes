@@ -30,7 +30,9 @@ function Router() {
     <Switch>
       <Route path="/dashboard" component={MissionControl} />
       <Route path="/mission-control" component={MissionControl} />
-      <Route path="/sites" component={Sites} />
+      <Route path="/sites">
+        <Redirect to="/settings?tab=sites" />
+      </Route>
       <Route path="/sites/new" component={SiteDetail} />
       <Route path="/sites/:siteId" component={SiteDetail} />
       <Route path="/tickets" component={Tickets} />

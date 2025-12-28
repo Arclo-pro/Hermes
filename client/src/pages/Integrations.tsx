@@ -3,8 +3,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
+import { useSiteContext } from "@/hooks/useSiteContext";
+import { SiteSelector } from "@/components/site/SiteSelector";
 import { 
   CheckCircle, 
   XCircle, 
@@ -440,7 +442,7 @@ export default function Integrations() {
   const [selectedRun, setSelectedRun] = useState<ServiceRun | null>(null);
   const [editingIntegration, setEditingIntegration] = useState<Integration | null>(null);
   const [viewMode, setViewMode] = useState<'operational' | 'diagnostics'>('operational');
-  const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
+  const { selectedSiteId } = useSiteContext();
   const [runningDiagnosis, setRunningDiagnosis] = useState(false);
   const [editForm, setEditForm] = useState<{
     baseUrl: string;
@@ -556,16 +558,6 @@ export default function Integrations() {
     refetchInterval: 60000, // Refetch every minute
   });
 
-  // Fetch sites for site selection
-  const { data: sites } = useQuery<Site[]>({
-    queryKey: ["sites"],
-    queryFn: async () => {
-      const res = await fetch("/api/sites");
-      if (!res.ok) return [];
-      return res.json();
-    },
-  });
-
   // Fetch service catalog with combined run data
   const { data: catalogData } = useQuery<ServiceCatalogResponse>({
     queryKey: ["serviceCatalog"],
@@ -584,13 +576,6 @@ export default function Integrations() {
   const getSlugLabel = (slug: string): string => {
     return slugLabels[slug] || slug.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
-
-  // Auto-select first site if none selected
-  useEffect(() => {
-    if (sites && sites.length > 0 && !selectedSiteId) {
-      setSelectedSiteId(sites[0].siteId);
-    }
-  }, [sites, selectedSiteId]);
 
   // Fetch site integrations summary (operational cockpit)
   const { data: siteSummary, isLoading: siteSummaryLoading, refetch: refetchSiteSummary } = useQuery<SiteSummaryResponse>({
@@ -1211,26 +1196,9 @@ export default function Integrations() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
-                      <Globe className="w-4 h-4 text-muted-foreground" />
                       <span className="text-sm font-medium text-foreground">Site:</span>
-                      <select
-                        className="border border-border rounded-lg px-3 py-1.5 text-sm bg-card/50 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                        value={selectedSiteId || ""}
-                        onChange={(e) => setSelectedSiteId(e.target.value)}
-                        data-testid="select-site"
-                      >
-                        {sites?.map((site) => (
-                          <option key={site.siteId} value={site.siteId} className="bg-card text-foreground">
-                            {site.displayName}
-                          </option>
-                        ))}
-                      </select>
+                      <SiteSelector variant="default" showManageLink={true} />
                     </div>
-                    {selectedSiteId && sites?.find(s => s.siteId === selectedSiteId) && (
-                      <span className="text-xs text-muted-foreground">
-                        {sites.find(s => s.siteId === selectedSiteId)?.baseUrl}
-                      </span>
-                    )}
                   </div>
                   <Button
                     onClick={() => selectedSiteId && runDiagnosisMutation.mutate(selectedSiteId)}
