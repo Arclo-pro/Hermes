@@ -7342,18 +7342,44 @@ When answering:
       });
       
       // Get all integrations and run those that are ready
+      // Skip Draper (Paid Ads) and Deployer (Change Agent) from diagnostics
+      const DIAGNOSTICS_SKIP = ["google_ads_connector", "deployer", "notifications"];
+      
       const allIntegrations = await storage.getIntegrations();
       const readyServices = allIntegrations.filter(i => 
-        i.buildState === "built" && i.configState === "ready"
+        i.buildState === "built" && 
+        i.configState === "ready" &&
+        !DIAGNOSTICS_SKIP.includes(i.integrationId)
+      );
+      const skippedServices = allIntegrations.filter(i => 
+        DIAGNOSTICS_SKIP.includes(i.integrationId)
       );
       const blockedServices = allIntegrations.filter(i => 
-        i.buildState === "planned" || i.configState === "blocked" || i.configState === "missing_config"
+        (i.buildState === "planned" || i.configState === "blocked" || i.configState === "missing_config") &&
+        !DIAGNOSTICS_SKIP.includes(i.integrationId)
       );
+      
+      logger.info("API", "Starting diagnostics run", { 
+        runId: diagRunId, 
+        siteId: site.siteId,
+        readyCount: readyServices.length,
+        skippedCount: skippedServices.length,
+        blockedCount: blockedServices.length,
+      });
       
       let servicesRun = 0;
       let servicesSuccess = 0;
       let servicesFailed = 0;
       const serviceResults: Array<{ serviceId: string; status: string; summary: string }> = [];
+      
+      // Add skipped services to results
+      for (const service of skippedServices) {
+        serviceResults.push({
+          serviceId: service.integrationId,
+          status: "skipped",
+          summary: `Skipped (${service.integrationId === "google_ads_connector" ? "Paid Ads" : "System Agent"})`,
+        });
+      }
       
       // For each ready service, create a service run and execute (simplified for now)
       for (const service of readyServices) {
@@ -7457,13 +7483,15 @@ When answering:
       await storage.updateSiteLastDiagnosis(siteId);
       
       res.json({
+        ok: true,
         runId: diagRunId,
         siteId: site.siteId,
         status: finalStatus,
-        summary: `Ran ${servicesRun} services: ${servicesSuccess} succeeded, ${servicesFailed} failed, ${blockedServices.length} blocked`,
+        summary: `Ran ${servicesRun} services: ${servicesSuccess} succeeded, ${servicesFailed} failed, ${skippedServices.length} skipped, ${blockedServices.length} blocked`,
         servicesRun,
         servicesSuccess,
         servicesFailed,
+        servicesSkipped: skippedServices.length,
         servicesBlocked: blockedServices.length,
         durationMs: finishedAt.getTime() - startedAt.getTime(),
         results: serviceResults,

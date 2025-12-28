@@ -615,16 +615,26 @@ export default function MissionControl() {
 
   const runDiagnostics = useMutation({
     mutationFn: async () => {
-      const res = await fetch("/api/run", { method: "POST" });
-      if (!res.ok) throw new Error("Failed to run diagnostics");
-      return res.json();
+      if (!currentSite?.siteId) {
+        throw new Error("No site selected. Please select a site first.");
+      }
+      const res = await fetch("/api/diagnostics/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ siteId: currentSite.siteId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || data.message || "Failed to run diagnostics");
+      }
+      return data;
     },
-    onSuccess: () => {
-      toast.success("Diagnostics started");
+    onSuccess: (data) => {
+      toast.success(`Diagnostics started (Run ID: ${data.runId?.slice(0, 12) || "started"})`);
       queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
     },
-    onError: () => {
-      toast.error("Failed to start diagnostics");
+    onError: (error: Error) => {
+      toast.error(`Diagnostics failed: ${error.message}`);
     },
   });
 
