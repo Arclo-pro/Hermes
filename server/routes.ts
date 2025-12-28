@@ -764,17 +764,110 @@ export async function registerRoutes(
 
   app.get("/api/dashboard/metrics", async (req, res) => {
     const siteId = (req.query.siteId as string) || "empathyhealthclinic.com";
+    const forceRefresh = req.query.refresh === 'true';
     
     try {
+      // Get cached snapshot first (instant response)
+      const snapshot = await storage.getDashboardMetricSnapshot(siteId);
+      
+      // If we have a snapshot and not forcing refresh, return it immediately
+      // and trigger background refresh if stale
+      if (snapshot && !forceRefresh) {
+        const capturedAt = new Date(snapshot.capturedAt);
+        const ageSeconds = (Date.now() - capturedAt.getTime()) / 1000;
+        const isStale = ageSeconds > 120; // 2 minute TTL
+        
+        // Trigger async background refresh if stale
+        if (isStale) {
+          setImmediate(async () => {
+            try {
+              await storage.updateDashboardSnapshotRefreshStatus(siteId, 'refreshing');
+              const freshMetrics = await getAggregatedDashboardMetrics(siteId);
+              
+              // Only save if we got valid data (not all nulls)
+              const hasData = freshMetrics.lastUpdated || 
+                freshMetrics.traffic.sessions || 
+                freshMetrics.keywords.total ||
+                freshMetrics.performance.lcp;
+                
+              if (hasData) {
+                await storage.saveDashboardMetricSnapshot(siteId, freshMetrics);
+              } else {
+                await storage.updateDashboardSnapshotRefreshStatus(siteId, 'partial', 'Some metrics unavailable');
+              }
+            } catch (err: any) {
+              await storage.updateDashboardSnapshotRefreshStatus(siteId, 'failed', err.message);
+            }
+          });
+        }
+        
+        // Return cached data immediately
+        const metrics = snapshot.metricsJson as Record<string, any>;
+        return res.json({
+          ok: true,
+          siteId,
+          capturedAt: snapshot.capturedAt,
+          isStale,
+          lastRefreshStatus: snapshot.lastRefreshStatus,
+          lastRefreshError: snapshot.lastRefreshError,
+          ...metrics,
+        });
+      }
+      
+      // No snapshot or force refresh - compute fresh metrics
       const metrics = await getAggregatedDashboardMetrics(siteId);
+      
+      // Check if we have valid data before saving
+      const hasData = metrics.lastUpdated || 
+        metrics.traffic.sessions || 
+        metrics.keywords.total ||
+        metrics.performance.lcp;
+      
+      if (hasData) {
+        // Save successful computation to snapshot
+        await storage.saveDashboardMetricSnapshot(siteId, metrics);
+      } else if (snapshot) {
+        // No fresh data but we have a snapshot - return snapshot
+        const cachedMetrics = snapshot.metricsJson as Record<string, any>;
+        return res.json({
+          ok: true,
+          siteId,
+          capturedAt: snapshot.capturedAt,
+          isStale: true,
+          lastRefreshStatus: 'failed',
+          lastRefreshError: 'Unable to fetch fresh data',
+          ...cachedMetrics,
+        });
+      }
       
       res.json({
         ok: true,
         siteId,
+        capturedAt: new Date(),
+        isStale: false,
         ...metrics,
       });
     } catch (error: any) {
       logger.error("API", "Failed to get dashboard metrics", { error: error.message });
+      
+      // On error, try to return cached snapshot
+      try {
+        const snapshot = await storage.getDashboardMetricSnapshot(siteId);
+        if (snapshot) {
+          await storage.updateDashboardSnapshotRefreshStatus(siteId, 'failed', error.message);
+          const metrics = snapshot.metricsJson as Record<string, any>;
+          return res.json({
+            ok: true,
+            siteId,
+            capturedAt: snapshot.capturedAt,
+            isStale: true,
+            lastRefreshStatus: 'failed',
+            lastRefreshError: error.message,
+            ...metrics,
+          });
+        }
+      } catch {}
+      
       res.status(500).json({ 
         ok: false,
         error: error.message,
@@ -2906,7 +2999,7 @@ When answering:
       const scaleFactor = 30 / daysInRange;
       
       // Map actual values to metric keys
-      const actualMetrics: Record<string, number | null> = {
+      const freshMetrics: Record<string, number | null> = {
         sessions: totalSessions > 0 ? Math.round(totalSessions * scaleFactor) : null,
         clicks: totalClicks > 0 ? Math.round(totalClicks * scaleFactor) : null,
         impressions: totalImpressions > 0 ? Math.round(totalImpressions * scaleFactor) : null,
@@ -2921,6 +3014,29 @@ When answering:
         cls: cwvMetrics?.cls ?? null,
         inp: cwvMetrics?.inp ?? null,
       };
+      
+      // Get cached snapshot and merge - never return null if we have previous values
+      const snapshot = await storage.getDashboardMetricSnapshot(targetSiteId);
+      const cachedMetrics = (snapshot?.metricsJson as Record<string, number | null>) || {};
+      
+      // Merge fresh metrics with cached - prefer fresh non-null values
+      const actualMetrics: Record<string, number | null> = {};
+      for (const key of Object.keys(freshMetrics)) {
+        actualMetrics[key] = freshMetrics[key] !== null ? freshMetrics[key] : (cachedMetrics[key] ?? null);
+      }
+      
+      // Save successful fresh metrics to snapshot (only non-null values)
+      const hasAnyFreshData = Object.values(freshMetrics).some(v => v !== null);
+      if (hasAnyFreshData) {
+        const metricsToSave = { ...actualMetrics };
+        // Only overwrite with non-null fresh values
+        for (const [key, value] of Object.entries(freshMetrics)) {
+          if (value !== null) {
+            metricsToSave[key] = value;
+          }
+        }
+        await storage.saveDashboardMetricSnapshot(targetSiteId, metricsToSave).catch(() => {});
+      }
       
       // Metrics where lower is better
       const lowerIsBetter = ['avg_position', 'bounce_rate', 'lcp', 'cls', 'inp'];
@@ -2998,6 +3114,41 @@ When answering:
       });
     } catch (error: any) {
       logger.error("API", "Failed to compare benchmarks", { error: error.message });
+      
+      // Try to return cached snapshot on error
+      try {
+        let targetSiteId = siteId as string;
+        if (!targetSiteId || targetSiteId === 'default') {
+          const allSites = await storage.getSites(true);
+          const activeSite = allSites.find(s => s.active);
+          targetSiteId = activeSite?.siteId || 'site_empathy_health_clinic';
+        }
+        
+        const snapshot = await storage.getDashboardMetricSnapshot(targetSiteId);
+        if (snapshot) {
+          await storage.updateDashboardSnapshotRefreshStatus(targetSiteId, 'failed', error.message);
+          const cachedMetrics = snapshot.metricsJson as Record<string, any>;
+          
+          // Return cached data with stale indicator
+          return res.json({
+            industry,
+            siteId: siteId || 'default',
+            isStale: true,
+            capturedAt: snapshot.capturedAt,
+            lastRefreshError: error.message,
+            comparison: [], // Cannot compute comparison without benchmarks
+            summary: {
+              totalSessions: cachedMetrics.sessions,
+              totalClicks: cachedMetrics.clicks,
+              totalImpressions: cachedMetrics.impressions,
+              avgCtr: cachedMetrics.organic_ctr?.toFixed(2) ?? null,
+              avgPosition: cachedMetrics.avg_position?.toFixed(1) ?? null,
+              conversionRate: cachedMetrics.conversion_rate?.toFixed(2) ?? null,
+            },
+          });
+        }
+      } catch {}
+      
       res.status(500).json({ error: error.message });
     }
   });
