@@ -1133,6 +1133,122 @@ Format your response as JSON with these keys:
     }
   });
 
+  // Agent Data API - Unified endpoint for agent dashboards
+  app.get("/api/agents/:agentId/data", async (req, res) => {
+    const { agentId } = req.params;
+    const siteId = (req.query.site_id as string) || "default";
+    
+    try {
+      const [suggestions, agentFindings, workerResults] = await Promise.all([
+        storage.getSuggestionsByAgent(siteId, agentId, 10),
+        storage.getFindingsByAgent(siteId, agentId, 10),
+        storage.getSeoWorkerResultsBySite(siteId, 50).then(results => 
+          results.filter(r => r.workerKey === agentId)
+        ),
+      ]);
+      
+      const latestRun = workerResults.length > 0 ? workerResults[0] : null;
+      
+      // Combine suggestions and findings into unified findings list
+      const suggestionFindings = suggestions.map(s => ({
+        label: s.title,
+        value: s.severity === 'critical' ? 'Critical' : s.severity === 'high' ? 'High Priority' : 'Review',
+        severity: s.severity,
+        category: s.category,
+        source: 'suggestion' as const,
+        createdAt: s.createdAt,
+      }));
+      
+      const webhookFindings = agentFindings.map(f => ({
+        label: f.title,
+        value: f.severity === 'critical' ? 'Critical' : f.severity === 'high' ? 'High Priority' : 'Review',
+        severity: f.severity,
+        category: f.category,
+        source: 'webhook' as const,
+        createdAt: f.createdAt,
+      }));
+      
+      // Merge and dedupe by title, keep most recent
+      const allFindings = [...suggestionFindings, ...webhookFindings]
+        .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+      
+      const seenTitles = new Set<string>();
+      const findings = allFindings.filter(f => {
+        if (seenTitles.has(f.label)) return false;
+        seenTitles.add(f.label);
+        return true;
+      }).slice(0, 10);
+      
+      const nextSteps = suggestions.slice(0, 3).flatMap((s, idx) => {
+        if (Array.isArray(s.actionsJson)) {
+          return s.actionsJson.map((action, i) => ({
+            step: idx * 3 + i + 1,
+            action: typeof action === 'string' ? action : String(action),
+          }));
+        }
+        return [{
+          step: idx + 1,
+          action: s.title,
+        }];
+      });
+      
+      const score = latestRun?.metricsJson?.score || 
+        (suggestions.length === 0 ? 0 : 
+          suggestions.some(s => s.severity === 'critical') ? 40 :
+          suggestions.some(s => s.severity === 'high') ? 60 : 80);
+      
+      res.json({
+        ok: true,
+        agentId,
+        siteId,
+        score,
+        findings: findings.length > 0 ? findings : null,
+        nextSteps: nextSteps.length > 0 ? nextSteps.slice(0, 5) : null,
+        lastRun: latestRun ? {
+          runId: latestRun.runId,
+          status: latestRun.status,
+          durationMs: latestRun.durationMs,
+          summary: latestRun.summaryText,
+          metrics: latestRun.metricsJson,
+          createdAt: latestRun.createdAt,
+        } : null,
+        suggestionsCount: suggestions.length,
+        findingsCount: agentFindings.length,
+        isRealData: suggestions.length > 0 || agentFindings.length > 0 || workerResults.length > 0,
+      });
+    } catch (error: any) {
+      logger.error("API", `Failed to get agent data for ${agentId}`, { error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
+  // Agent Status API - Quick health check for agent
+  app.get("/api/agents/:agentId/status", async (req, res) => {
+    const { agentId } = req.params;
+    const siteId = (req.query.site_id as string) || "default";
+    
+    try {
+      const diagnostic = await storage.getLatestConnectorDiagnostic(agentId, siteId);
+      const crewState = await storage.getCrewState(siteId);
+      const isEnabled = crewState.some(c => c.agentId === agentId && c.enabled);
+      
+      res.json({
+        ok: true,
+        agentId,
+        enabled: isEnabled,
+        lastDiagnostic: diagnostic ? {
+          status: diagnostic.status,
+          stages: diagnostic.stagesJson,
+          durationMs: diagnostic.durationMs,
+          createdAt: diagnostic.createdAt,
+        } : null,
+      });
+    } catch (error: any) {
+      logger.error("API", `Failed to get agent status for ${agentId}`, { error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
   // /api/latest/* endpoints for fast UI reads
   app.get("/api/latest/worker-results", async (req, res) => {
     const siteId = (req.query.siteId as string) || "empathyhealthclinic.com";

@@ -2,8 +2,27 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getCrewMember } from "@/config/agents";
-import { getMockAgentData } from "@/config/mockAgentInsights";
-import { PlayCircle, AlertCircle, CheckCircle2, Clock, Wrench } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { PlayCircle, AlertCircle, CheckCircle2, Clock, Wrench, Loader2 } from "lucide-react";
+import { useSiteContext } from "@/hooks/useSiteContext";
+
+interface AgentData {
+  ok: boolean;
+  agentId: string;
+  score: number;
+  findings: { label: string; value: string; severity: string; category: string }[] | null;
+  nextSteps: { step: number; action: string }[] | null;
+  lastRun: {
+    runId: string;
+    status: string;
+    durationMs: number;
+    summary: string;
+    createdAt: string;
+  } | null;
+  suggestionsCount: number;
+  findingsCount: number;
+  isRealData: boolean;
+}
 
 interface GenericAgentContentProps {
   agentId: string;
@@ -11,10 +30,36 @@ interface GenericAgentContentProps {
 
 export default function GenericAgentContent({ agentId }: GenericAgentContentProps) {
   const crew = getCrewMember(agentId);
-  const mockData = getMockAgentData(agentId);
+  const { activeSite } = useSiteContext();
+  const siteId = activeSite?.id || "default";
+
+  const { data, isLoading } = useQuery<AgentData>({
+    queryKey: ['agent-data', agentId, siteId],
+    queryFn: async () => {
+      const res = await fetch(`/api/agents/${agentId}/data?site_id=${siteId}`);
+      if (!res.ok) throw new Error('Failed to fetch agent data');
+      return res.json();
+    },
+    refetchInterval: 60000,
+  });
+
+  const findings = data?.findings || [];
+  const nextSteps = data?.nextSteps || [];
+  const hasRealData = data?.isRealData ?? false;
 
   return (
     <div className="space-y-6">
+      {!hasRealData && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 flex items-center gap-2">
+          <Badge variant="outline" className="bg-amber-500/20 text-amber-600 border-amber-500/30">
+            No Data
+          </Badge>
+          <span className="text-sm text-muted-foreground">
+            Run this agent or wait for webhook findings to populate this dashboard.
+          </span>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
@@ -27,15 +72,28 @@ export default function GenericAgentContent({ agentId }: GenericAgentContentProp
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {mockData?.findings && mockData.findings.length > 0 ? (
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : findings.length > 0 ? (
               <div className="space-y-3">
-                {mockData.findings.map((finding, i) => (
+                {findings.map((finding, i) => (
                   <div 
                     key={i} 
                     className="flex justify-between items-center p-3 bg-muted/50 rounded-lg"
                   >
                     <span className="text-sm text-muted-foreground">{finding.label}</span>
-                    <span className="text-sm font-semibold">{finding.value}</span>
+                    <Badge 
+                      variant="secondary"
+                      className={
+                        finding.severity === 'critical' ? 'bg-red-500/20 text-red-600' :
+                        finding.severity === 'high' ? 'bg-amber-500/20 text-amber-600' :
+                        'bg-blue-500/20 text-blue-600'
+                      }
+                    >
+                      {finding.value}
+                    </Badge>
                   </div>
                 ))}
               </div>
@@ -62,9 +120,13 @@ export default function GenericAgentContent({ agentId }: GenericAgentContentProp
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {mockData?.nextSteps && mockData.nextSteps.length > 0 ? (
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : nextSteps.length > 0 ? (
               <ol className="space-y-3">
-                {mockData.nextSteps.map((step) => (
+                {nextSteps.map((step) => (
                   <li 
                     key={step.step}
                     className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg"
@@ -115,6 +177,26 @@ export default function GenericAgentContent({ agentId }: GenericAgentContentProp
               Configure
             </Button>
           </div>
+          
+          {data?.lastRun && (
+            <div className="mt-6 pt-6 border-t">
+              <h4 className="text-sm font-medium mb-3">Last Run</h4>
+              <div className="flex items-center gap-4 text-sm">
+                <Badge variant={data.lastRun.status === 'success' ? 'default' : 'destructive'}>
+                  {data.lastRun.status}
+                </Badge>
+                <span className="text-muted-foreground">
+                  {new Date(data.lastRun.createdAt).toLocaleString()}
+                </span>
+                <span className="text-muted-foreground">
+                  {data.lastRun.durationMs}ms
+                </span>
+              </div>
+              {data.lastRun.summary && (
+                <p className="text-sm text-muted-foreground mt-2">{data.lastRun.summary}</p>
+              )}
+            </div>
+          )}
           
           <div className="mt-6 pt-6 border-t">
             <h4 className="text-sm font-medium mb-3">Service Endpoints</h4>

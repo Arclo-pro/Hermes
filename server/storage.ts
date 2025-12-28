@@ -128,7 +128,7 @@ import {
   type SeoRun,
   type InsertSeoRun,
 } from "@shared/schema";
-import { eq, desc, and, gte, sql, asc, or, isNull } from "drizzle-orm";
+import { eq, desc, and, gte, sql, asc, or, isNull, arrayContains } from "drizzle-orm";
 
 export interface IStorage {
   // OAuth Token Management
@@ -368,6 +368,8 @@ export interface IStorage {
   getLatestSeoSuggestions(siteId: string, limit?: number): Promise<SeoSuggestion[]>;
   updateSeoSuggestionStatus(suggestionId: string, status: string): Promise<void>;
   getSeoSuggestionById(suggestionId: string): Promise<SeoSuggestion | undefined>;
+  getSuggestionsByAgent(siteId: string, agentId: string, limit?: number): Promise<SeoSuggestion[]>;
+  getFindingsByAgent(siteId: string, agentId: string, limit?: number): Promise<Finding[]>;
   
   // SEO KBase Insights
   saveSeoKbaseInsight(insight: InsertSeoKbaseInsight): Promise<SeoKbaseInsight>;
@@ -1870,6 +1872,30 @@ class DBStorage implements IStorage {
       .where(eq(seoSuggestions.suggestionId, suggestionId))
       .limit(1);
     return suggestion;
+  }
+
+  async getSuggestionsByAgent(siteId: string, agentId: string, limit = 20): Promise<SeoSuggestion[]> {
+    return db
+      .select()
+      .from(seoSuggestions)
+      .where(and(
+        eq(seoSuggestions.siteId, siteId),
+        arrayContains(seoSuggestions.sourceWorkers, [agentId])
+      ))
+      .orderBy(desc(seoSuggestions.createdAt))
+      .limit(limit);
+  }
+
+  async getFindingsByAgent(siteId: string, agentId: string, limit = 20): Promise<Finding[]> {
+    return db
+      .select()
+      .from(findings)
+      .where(and(
+        eq(findings.siteId, siteId),
+        eq(findings.sourceIntegration, agentId)
+      ))
+      .orderBy(desc(findings.createdAt))
+      .limit(limit);
   }
 
   // SEO KBase Insights

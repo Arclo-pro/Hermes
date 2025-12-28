@@ -32,6 +32,8 @@ const DASHBOARD_GET_PATHS = [
   "/api/crew",
   "/api/export",
   "/api/missions",
+  "/api/agents",
+  "/api/latest",
 ];
 
 // Paths that allow unauthenticated POST access (only basic safe operations)
