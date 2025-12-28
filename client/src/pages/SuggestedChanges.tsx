@@ -317,7 +317,7 @@ export default function SuggestedChanges() {
           <div>
             <h1 className="text-2xl font-bold" data-testid="text-page-title">Suggested Changes</h1>
             <p className="text-muted-foreground mt-1">
-              Review and apply system recommendations
+              Review and apply system missions
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -393,7 +393,7 @@ export default function SuggestedChanges() {
               <CheckCircle2 className="h-12 w-12 mx-auto text-green-500 mb-4" />
               <h3 className="text-lg font-medium">No proposals to review</h3>
               <p className="text-muted-foreground mt-2">
-                All caught up! Run diagnostics to generate new recommendations.
+                All caught up! Run diagnostics to generate new missions.
               </p>
             </CardContent>
           </Card>

@@ -398,7 +398,7 @@ function ActionQueueCard({ actions }: { actions: Array<{ id: number; title: stri
         {actions.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <CheckCircle2 className="w-8 h-8 mx-auto mb-2 opacity-50" />
-            <p>No pending actions. Run diagnostics to generate recommendations.</p>
+            <p>No pending actions. Run diagnostics to generate missions.</p>
           </div>
         ) : (
           actions.map((action, idx) => (
@@ -471,7 +471,7 @@ function CaptainsRecommendationsSection({ priorities, blockers, confidence, cove
               <Compass className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <CardTitle className="text-lg">Recommendations</CardTitle>
+              <CardTitle className="text-lg">Missions</CardTitle>
               <p className="text-xs text-muted-foreground flex items-center gap-2">
                 <span>Sourced from {coverage.active} agents</span>
                 {updatedAt && (

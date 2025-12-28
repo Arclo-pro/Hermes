@@ -184,7 +184,7 @@ export function CaptainsRecommendations({ data }: CaptainsRecommendationsProps) 
               <Compass className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <CardTitle className="text-lg">Recommendations</CardTitle>
+              <CardTitle className="text-lg">Missions</CardTitle>
               <p className="text-xs text-muted-foreground flex items-center gap-2">
                 <span>Based on {data.coverage.active} active agents</span>
                 <span>•</span>
