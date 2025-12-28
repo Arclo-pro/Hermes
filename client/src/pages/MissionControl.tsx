@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -261,17 +261,37 @@ function MetricCardsRow() {
   const { activeSite } = useSiteContext();
   const siteId = activeSite?.id || 'default';
   
-  const { data: benchmarkData } = useQuery({
+  // Preserve last known values to prevent blanks
+  const lastKnownMetricsRef = useRef<Record<string, any>>({});
+  
+  const { data: benchmarkData, isStale } = useQuery({
     queryKey: ['benchmark-comparison', 'psychiatry', siteId],
     queryFn: async () => {
       const res = await fetch(`/api/benchmarks/compare?industry=psychiatry&siteId=${siteId}`);
       if (!res.ok) return null;
       return res.json();
     },
+    staleTime: 60000, // Keep cached data for 1 minute
+    gcTime: 300000, // Keep in cache for 5 minutes
   });
   
+  // Merge function that preserves previous non-null values
   const getMetricFromBenchmarks = (metric: string) => {
-    return benchmarkData?.comparison?.find((c: any) => c.metric === metric);
+    const freshData = benchmarkData?.comparison?.find((c: any) => c.metric === metric);
+    
+    if (freshData && freshData.actualValue !== null) {
+      // Got fresh data, update cache
+      lastKnownMetricsRef.current[metric] = freshData;
+      return freshData;
+    }
+    
+    // Return cached value if available
+    if (lastKnownMetricsRef.current[metric]) {
+      return lastKnownMetricsRef.current[metric];
+    }
+    
+    // Return fresh data even if null (first load)
+    return freshData;
   };
   
   const bounceData = getMetricFromBenchmarks('bounce_rate');
