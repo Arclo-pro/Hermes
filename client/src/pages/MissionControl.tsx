@@ -42,6 +42,36 @@ const verdictColors = {
   neutral: { bg: "bg-muted", border: "border-border", text: "text-muted-foreground", badge: "bg-muted text-muted-foreground" },
 };
 
+function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : null;
+}
+
+function getCrewAccentStyles(hexColor: string) {
+  const rgb = hexToRgb(hexColor);
+  if (!rgb) return {};
+  const { r, g, b } = rgb;
+  return {
+    borderTop: `2px solid rgba(${r}, ${g}, ${b}, 0.5)`,
+    boxShadow: `inset 0 1px 0 0 rgba(${r}, ${g}, ${b}, 0.15), 0 0 16px -8px rgba(${r}, ${g}, ${b}, 0.3)`,
+  };
+}
+
+function getHighlightedCardStyles(hexColor: string) {
+  const rgb = hexToRgb(hexColor);
+  if (!rgb) return {};
+  const { r, g, b } = rgb;
+  return {
+    background: `rgba(${r}, ${g}, ${b}, 0.10)`,
+    border: `1px solid rgba(${r}, ${g}, ${b}, 0.30)`,
+    boxShadow: `inset 0 1px 0 0 rgba(${r}, ${g}, ${b}, 0.18), 0 0 24px -6px rgba(${r}, ${g}, ${b}, 0.28)`,
+  };
+}
+
 function VerdictBadge({ verdict }: { verdict: 'good' | 'watch' | 'bad' | 'neutral' }) {
   const labels = { good: "Good", watch: "Watch", bad: "Bad", neutral: "No Data" };
   return (
@@ -153,7 +183,7 @@ function AreaSparkline({ data, color, fillColor }: { data: number[]; color: stri
   );
 }
 
-function MetricCard({ metric }: { metric: MetricCardData }) {
+function MetricCard({ metric, highlighted = false }: { metric: MetricCardData; highlighted?: boolean }) {
   const cardStyles = {
     good: { glow: 'shadow-[inset_0_1px_0_0_rgba(34,197,94,0.15),0_0_20px_-5px_rgba(34,197,94,0.2)]', border: 'border-semantic-success-border', badgeBg: 'bg-semantic-success-soft', badgeText: 'text-semantic-success', lineColor: '#22C55E', fillColor: '#22C55E' },
     watch: { glow: 'shadow-[inset_0_1px_0_0_rgba(234,179,8,0.15),0_0_20px_-5px_rgba(234,179,8,0.2)]', border: 'border-semantic-warning-border', badgeBg: 'bg-semantic-warning-soft', badgeText: 'text-semantic-warning', lineColor: '#EAB308', fillColor: '#EAB308' },
@@ -164,8 +194,14 @@ function MetricCard({ metric }: { metric: MetricCardData }) {
   const TrendIcon = metric.deltaPct > 0 ? TrendingUp : metric.deltaPct < 0 ? TrendingDown : Minus;
   const trendColor = metric.deltaPct > 0 ? 'text-semantic-success' : metric.deltaPct < 0 ? 'text-semantic-danger' : 'text-muted-foreground';
   
+  const highlightStyles = highlighted ? getHighlightedCardStyles(styles.lineColor) : {};
+  
   return (
-    <Card className={cn("transition-all overflow-hidden rounded-2xl bg-card/80 backdrop-blur-sm border", styles.border, styles.glow)} data-testid={`metric-card-${metric.id}`}>
+    <Card 
+      className={cn("transition-all overflow-hidden rounded-2xl backdrop-blur-sm", !highlighted && "bg-card/80 border", !highlighted && styles.border, !highlighted && styles.glow)} 
+      style={highlighted ? highlightStyles : {}}
+      data-testid={`metric-card-${metric.id}`}
+    >
       <CardContent className="p-5">
         <div className="flex items-start justify-between mb-1">
           <span className="text-base font-semibold text-foreground">{metric.label}</span>
@@ -243,7 +279,7 @@ function MetricCardsRow() {
       <h2 className="text-lg font-semibold text-foreground mb-4">Key Metrics</h2>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {metrics.map((metric) => (
-          <MetricCard key={metric.id} metric={metric} />
+          <MetricCard key={metric.id} metric={metric} highlighted={metric.id === 'bounce-rate'} />
         ))}
       </div>
     </div>
@@ -257,15 +293,15 @@ function AgentSummaryCard({ agent }: { agent: { serviceId: string; score: number
   const statusColors = verdictColors[agent.status];
   
   const scoreColor = agent.score >= 70 ? "#22C55E" : agent.score >= 40 ? "#EAB308" : "#EF4444";
-  const glowColor = agent.score >= 70 ? "rgba(34,197,94,0.15)" : agent.score >= 40 ? "rgba(234,179,8,0.15)" : "rgba(239,68,68,0.15)";
+  const crewAccentStyles = getCrewAccentStyles(crew.color);
   
   return (
     <Card 
       className={cn(
-        "transition-all border bg-card/80 backdrop-blur-sm rounded-xl",
+        "transition-all bg-card/80 backdrop-blur-sm rounded-xl border-x border-b",
         statusColors.border
-      )} 
-      style={{ boxShadow: `inset 0 1px 0 0 ${glowColor}, 0 0 20px -5px ${glowColor}` }}
+      )}
+      style={crewAccentStyles}
       data-testid={`agent-summary-${agent.serviceId}`}
     >
       <CardContent className="p-4">
