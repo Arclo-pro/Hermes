@@ -36,10 +36,10 @@ import { KnowledgeBaseCard } from "@/components/dashboard/KnowledgeBaseCard";
 import { ExportFixPackModal } from "@/components/export/ExportFixPackModal";
 
 const verdictColors = {
-  good: { bg: "bg-green-50", border: "border-green-200", text: "text-green-700", badge: "bg-green-100 text-green-700" },
-  watch: { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700", badge: "bg-amber-100 text-amber-700" },
-  bad: { bg: "bg-red-50", border: "border-red-200", text: "text-red-700", badge: "bg-red-100 text-red-700" },
-  neutral: { bg: "bg-slate-50", border: "border-slate-200", text: "text-slate-600", badge: "bg-slate-100 text-slate-600" },
+  good: { bg: "bg-semantic-success-soft", border: "border-semantic-success-border", text: "text-semantic-success", badge: "bg-semantic-success-soft text-semantic-success" },
+  watch: { bg: "bg-semantic-warning-soft", border: "border-semantic-warning-border", text: "text-semantic-warning", badge: "bg-semantic-warning-soft text-semantic-warning" },
+  bad: { bg: "bg-semantic-danger-soft", border: "border-semantic-danger-border", text: "text-semantic-danger", badge: "bg-semantic-danger-soft text-semantic-danger" },
+  neutral: { bg: "bg-muted", border: "border-border", text: "text-muted-foreground", badge: "bg-muted text-muted-foreground" },
 };
 
 function VerdictBadge({ verdict }: { verdict: 'good' | 'watch' | 'bad' | 'neutral' }) {
@@ -53,9 +53,9 @@ function VerdictBadge({ verdict }: { verdict: 'good' | 'watch' | 'bad' | 'neutra
 
 function ImpactBadge({ impact }: { impact: "High" | "Medium" | "Low" }) {
   const colors = {
-    High: "bg-red-100 text-red-700",
-    Medium: "bg-amber-100 text-amber-700",
-    Low: "bg-green-100 text-green-700",
+    High: "bg-semantic-danger-soft text-semantic-danger",
+    Medium: "bg-semantic-warning-soft text-semantic-warning",
+    Low: "bg-semantic-success-soft text-semantic-success",
   };
   return <Badge className={cn("text-xs", colors[impact])}>{impact}</Badge>;
 }
@@ -71,10 +71,10 @@ function EffortBadge({ effort }: { effort: "S" | "M" | "L" }) {
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
-    new: "bg-blue-100 text-blue-700",
-    reviewed: "bg-purple-100 text-purple-700",
-    approved: "bg-green-100 text-green-700",
-    done: "bg-slate-100 text-slate-600",
+    new: "bg-semantic-info-soft text-semantic-info",
+    reviewed: "bg-primary-soft text-primary",
+    approved: "bg-semantic-success-soft text-semantic-success",
+    done: "bg-muted text-muted-foreground",
   };
   return <Badge className={cn("text-xs capitalize", colors[status] || colors.new)}>{status}</Badge>;
 }
@@ -139,7 +139,7 @@ function AreaSparkline({ data, color, fillColor }: { data: number[]; color: stri
           cx={p.x}
           cy={p.y}
           r="4"
-          fill="white"
+          fill="hsl(var(--card))"
           stroke={color}
           strokeWidth="2"
         />
@@ -150,27 +150,27 @@ function AreaSparkline({ data, color, fillColor }: { data: number[]; color: stri
 
 function MetricCard({ metric }: { metric: MetricCardData }) {
   const cardStyles = {
-    good: { bg: 'bg-emerald-50', border: 'border-emerald-200', badgeBg: 'bg-emerald-100', badgeText: 'text-emerald-700', lineColor: '#10B981', fillColor: '#10B981' },
-    watch: { bg: 'bg-amber-50', border: 'border-amber-200', badgeBg: 'bg-amber-100', badgeText: 'text-amber-700', lineColor: '#F59E0B', fillColor: '#F59E0B' },
-    bad: { bg: 'bg-red-50', border: 'border-red-200', badgeBg: 'bg-red-100', badgeText: 'text-red-700', lineColor: '#EF4444', fillColor: '#EF4444' },
-    neutral: { bg: 'bg-slate-50', border: 'border-slate-200', badgeBg: 'bg-slate-100', badgeText: 'text-slate-600', lineColor: '#64748B', fillColor: '#64748B' },
+    good: { glow: 'shadow-[inset_0_1px_0_0_rgba(34,197,94,0.15),0_0_20px_-5px_rgba(34,197,94,0.2)]', border: 'border-semantic-success-border', badgeBg: 'bg-semantic-success-soft', badgeText: 'text-semantic-success', lineColor: '#22C55E', fillColor: '#22C55E' },
+    watch: { glow: 'shadow-[inset_0_1px_0_0_rgba(234,179,8,0.15),0_0_20px_-5px_rgba(234,179,8,0.2)]', border: 'border-semantic-warning-border', badgeBg: 'bg-semantic-warning-soft', badgeText: 'text-semantic-warning', lineColor: '#EAB308', fillColor: '#EAB308' },
+    bad: { glow: 'shadow-[inset_0_1px_0_0_rgba(239,68,68,0.15),0_0_20px_-5px_rgba(239,68,68,0.2)]', border: 'border-semantic-danger-border', badgeBg: 'bg-semantic-danger-soft', badgeText: 'text-semantic-danger', lineColor: '#EF4444', fillColor: '#EF4444' },
+    neutral: { glow: 'shadow-[inset_0_1px_0_0_rgba(100,116,139,0.1)]', border: 'border-border', badgeBg: 'bg-muted', badgeText: 'text-muted-foreground', lineColor: '#64748B', fillColor: '#64748B' },
   };
   const styles = cardStyles[metric.verdict];
   const TrendIcon = metric.deltaPct > 0 ? TrendingUp : metric.deltaPct < 0 ? TrendingDown : Minus;
-  const trendColor = metric.deltaPct > 0 ? 'text-emerald-600' : metric.deltaPct < 0 ? 'text-red-500' : 'text-slate-500';
+  const trendColor = metric.deltaPct > 0 ? 'text-semantic-success' : metric.deltaPct < 0 ? 'text-semantic-danger' : 'text-muted-foreground';
   
   return (
-    <Card className={cn("transition-all overflow-hidden rounded-2xl border-2", styles.bg, styles.border)} data-testid={`metric-card-${metric.id}`}>
+    <Card className={cn("transition-all overflow-hidden rounded-2xl bg-card/80 backdrop-blur-sm border", styles.border, styles.glow)} data-testid={`metric-card-${metric.id}`}>
       <CardContent className="p-5">
         <div className="flex items-start justify-between mb-1">
-          <span className="text-base font-medium text-slate-700">{metric.label}</span>
+          <span className="text-base font-semibold text-foreground">{metric.label}</span>
           <Badge className={cn("text-xs font-medium px-3 py-1 rounded-full", styles.badgeBg, styles.badgeText)}>
             {metric.verdict === 'good' ? 'Good' : metric.verdict === 'watch' ? 'Watch' : metric.verdict === 'bad' ? 'Alert' : 'No Data'}
           </Badge>
         </div>
-        <p className="text-xs text-slate-500 mb-3">{metric.timeRange}</p>
+        <p className="text-xs text-muted-foreground mb-3">{metric.timeRange}</p>
         <div className="flex items-baseline gap-3 mb-4">
-          <span className="text-4xl font-bold text-slate-900">{metric.value}</span>
+          <span className="text-4xl font-bold text-foreground">{metric.value}</span>
           <span className={cn("text-base flex items-center gap-1 font-medium", trendColor)}>
             <TrendIcon className="w-4 h-4" />
             {metric.delta}
@@ -181,12 +181,12 @@ function MetricCard({ metric }: { metric: MetricCardData }) {
         </div>
         <div className="space-y-2">
           <Link href="/benchmarks">
-            <span className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1 cursor-pointer">
+            <span className="text-sm text-primary hover:text-primary/80 flex items-center gap-1 cursor-pointer">
               Compare industry benchmark <ArrowRight className="w-3 h-3" />
             </span>
           </Link>
           <Link href={metric.nextAction.link}>
-            <span className="text-sm font-semibold text-slate-800 hover:text-slate-900 flex items-center gap-1 cursor-pointer">
+            <span className="text-sm font-semibold text-foreground hover:text-foreground/80 flex items-center gap-1 cursor-pointer">
               {metric.nextAction.text} <ArrowRight className="w-4 h-4" />
             </span>
           </Link>
@@ -235,7 +235,7 @@ function MetricCardsRow() {
 
   return (
     <div data-testid="metric-cards-row">
-      <h2 className="text-lg font-semibold mb-4">Key Metrics</h2>
+      <h2 className="text-lg font-semibold text-foreground mb-4">Key Metrics</h2>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {metrics.map((metric) => (
           <MetricCard key={metric.id} metric={metric} />
@@ -251,10 +251,18 @@ function AgentSummaryCard({ agent }: { agent: { serviceId: string; score: number
   const mockData = getMockAgentData(agent.serviceId);
   const statusColors = verdictColors[agent.status];
   
-  const scoreColor = agent.score >= 70 ? "#22C55E" : agent.score >= 40 ? "#F59E0B" : "#EF4444";
+  const scoreColor = agent.score >= 70 ? "#22C55E" : agent.score >= 40 ? "#EAB308" : "#EF4444";
+  const glowColor = agent.score >= 70 ? "rgba(34,197,94,0.15)" : agent.score >= 40 ? "rgba(234,179,8,0.15)" : "rgba(239,68,68,0.15)";
   
   return (
-    <Card className={cn("transition-all border", statusColors.border)} data-testid={`agent-summary-${agent.serviceId}`}>
+    <Card 
+      className={cn(
+        "transition-all border bg-card/80 backdrop-blur-sm rounded-xl",
+        statusColors.border
+      )} 
+      style={{ boxShadow: `inset 0 1px 0 0 ${glowColor}, 0 0 20px -5px ${glowColor}` }}
+      data-testid={`agent-summary-${agent.serviceId}`}
+    >
       <CardContent className="p-4">
         <div className="flex items-start gap-3 mb-3">
           {crew.avatar ? (
@@ -330,17 +338,17 @@ function AgentSummaryCard({ agent }: { agent: { serviceId: string; score: number
         </div>
         
         <div className="flex items-baseline gap-2 mb-1">
-          <span className="text-xl font-bold">{agent.keyMetricValue}</span>
-          <span className={cn("text-sm", agent.delta.startsWith('-') ? "text-red-600" : "text-green-600")}>
+          <span className="text-xl font-bold text-foreground">{agent.keyMetricValue}</span>
+          <span className={cn("text-sm", agent.delta.startsWith('-') ? "text-semantic-danger" : "text-semantic-success")}>
             {agent.delta}
           </span>
         </div>
         <p className="text-xs text-muted-foreground mb-1">{agent.keyMetric}</p>
         
-        <div className="flex items-center justify-between mt-3 pt-3 border-t">
+        <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
           <VerdictBadge verdict={agent.status} />
           <Link href={`/agents/${agent.serviceId}`}>
-            <Button variant="ghost" size="sm" className="text-xs h-7 px-2">
+            <Button variant="ghost" size="sm" className="text-xs h-7 px-2 text-foreground hover:text-foreground/80">
               Review {crew.nickname} <ArrowRight className="w-3 h-3 ml-1" />
             </Button>
           </Link>
@@ -370,12 +378,12 @@ function AgentSummaryGrid({ agents, totalAgents }: { agents: Array<{ serviceId: 
     <div data-testid="agent-summary-grid">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <h2 className="text-lg font-semibold">Agent Summary</h2>
-          <Badge variant="secondary" className="text-xs">{enabledCount} of {totalAgents} enabled</Badge>
+          <h2 className="text-lg font-semibold text-foreground">Crew Summary</h2>
+          <Badge variant="secondary" className="text-xs bg-muted text-muted-foreground">{enabledCount} of {totalAgents} enabled</Badge>
         </div>
-        <Link href="/agents">
-          <Button variant="ghost" size="sm" className="text-xs">
-            View all agents <ChevronRight className="w-3 h-3 ml-1" />
+        <Link href="/crew">
+          <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-foreground">
+            View all crew <ChevronRight className="w-3 h-3 ml-1" />
           </Button>
         </Link>
       </div>
@@ -390,11 +398,11 @@ function AgentSummaryGrid({ agents, totalAgents }: { agents: Array<{ serviceId: 
 
 function ActionQueueCard({ actions }: { actions: Array<{ id: number; title: string; sourceAgents: string[]; impact: string; effort: string; status: string }> }) {
   return (
-    <Card data-testid="action-queue">
+    <Card className="bg-card/80 backdrop-blur-sm border-border" data-testid="action-queue">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">Action Queue</CardTitle>
-          <Badge variant="outline">{actions.length} pending</Badge>
+          <CardTitle className="text-lg text-foreground">Action Queue</CardTitle>
+          <Badge variant="outline" className="border-border text-muted-foreground">{actions.length} pending</Badge>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -407,17 +415,17 @@ function ActionQueueCard({ actions }: { actions: Array<{ id: number; title: stri
           actions.map((action, idx) => (
             <div 
               key={action.id} 
-              className="flex items-start gap-4 p-4 rounded-lg bg-muted/50 border"
+              className="flex items-start gap-4 p-4 rounded-xl bg-muted/30 border border-border"
               data-testid={`action-item-${action.id}`}
             >
               <div className={cn(
                 "flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
-                idx === 0 ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-600"
+                idx === 0 ? "bg-semantic-danger-soft text-semantic-danger" : "bg-muted text-muted-foreground"
               )}>
                 {idx + 1}
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="font-medium text-sm">{action.title}</h4>
+                <h4 className="font-medium text-sm text-foreground">{action.title}</h4>
                 <div className="flex flex-wrap items-center gap-2 mt-2">
                   <span className="text-xs text-muted-foreground">Sources:</span>
                   {action.sourceAgents?.map((agentId) => {
@@ -440,13 +448,13 @@ function ActionQueueCard({ actions }: { actions: Array<{ id: number; title: stri
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" className="text-xs">
+                <Button variant="outline" size="sm" className="text-xs border-border text-foreground hover:bg-muted">
                   Review
                 </Button>
-                <Button variant="outline" size="sm" className="text-xs">
+                <Button variant="outline" size="sm" className="text-xs border-border text-foreground hover:bg-muted">
                   Approve
                 </Button>
-                <Button variant="ghost" size="sm" className="text-xs">
+                <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-foreground">
                   Export Prompt
                 </Button>
               </div>
@@ -466,17 +474,17 @@ function CaptainsRecommendationsSection({ priorities, blockers, confidence, cove
   updatedAt?: string;
 }) {
   return (
-    <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent" data-testid="captains-recommendations">
+    <Card className="bg-card/80 backdrop-blur-sm border-primary/30 shadow-[inset_0_1px_0_0_rgba(56,189,248,0.1),0_0_30px_-10px_rgba(56,189,248,0.2)]" data-testid="captains-recommendations">
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
               <Compass className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <CardTitle className="text-lg">Missions</CardTitle>
+              <CardTitle className="text-lg text-foreground">Missions</CardTitle>
               <p className="text-xs text-muted-foreground flex items-center gap-2">
-                <span>Sourced from {coverage.active} agents</span>
+                <span>Sourced from {coverage.active} crew members</span>
                 {updatedAt && (
                   <>
                     <span>•</span>
@@ -490,37 +498,37 @@ function CaptainsRecommendationsSection({ priorities, blockers, confidence, cove
           <div className="flex items-center gap-2">
             <Badge className={cn(
               "text-xs",
-              confidence === "High" ? "bg-green-100 text-green-700" :
-              confidence === "Medium" ? "bg-amber-100 text-amber-700" :
-              "bg-red-100 text-red-700"
+              confidence === "High" ? "bg-semantic-success-soft text-semantic-success" :
+              confidence === "Medium" ? "bg-semantic-warning-soft text-semantic-warning" :
+              "bg-semantic-danger-soft text-semantic-danger"
             )}>
               {confidence} Confidence
             </Badge>
-            <Badge variant="outline" className="text-xs">
-              {coverage.active}/{coverage.total} agents
+            <Badge variant="outline" className="text-xs border-border text-muted-foreground">
+              {coverage.active}/{coverage.total} crew
             </Badge>
           </div>
         </div>
       </CardHeader>
       <CardContent>
-        <h4 className="text-sm font-medium text-muted-foreground mb-3">PRIORITY ACTIONS</h4>
+        <h4 className="text-sm font-semibold text-muted-foreground mb-3 tracking-wide">PRIORITY ACTIONS</h4>
         <div className="grid gap-3 lg:grid-cols-2">
           {priorities.slice(0, 3).map((priority, idx) => (
             <div 
               key={idx} 
-              className="flex gap-4 p-4 rounded-lg bg-muted/50 border"
+              className="flex gap-4 p-4 rounded-xl bg-muted/30 border border-border"
               data-testid={`priority-${idx + 1}`}
             >
               <div className={cn(
                 "flex-shrink-0 w-8 h-8 rounded-full font-bold flex items-center justify-center text-sm",
-                idx === 0 ? "bg-red-100 text-red-700" : 
-                idx === 1 ? "bg-amber-100 text-amber-700" : 
-                "bg-slate-100 text-slate-600"
+                idx === 0 ? "bg-semantic-danger-soft text-semantic-danger" : 
+                idx === 1 ? "bg-semantic-warning-soft text-semantic-warning" : 
+                "bg-muted text-muted-foreground"
               )}>
                 {idx + 1}
               </div>
               <div className="flex-1 space-y-2">
-                <h4 className="font-medium text-sm">{priority.title}</h4>
+                <h4 className="font-medium text-sm text-foreground">{priority.title}</h4>
                 <p className="text-xs text-muted-foreground">{priority.why}</p>
                 <div className="flex flex-wrap items-center gap-2">
                   {priority.agents?.map((agent: any) => {
@@ -542,7 +550,7 @@ function CaptainsRecommendationsSection({ priorities, blockers, confidence, cove
                     <ImpactBadge impact={priority.impact || "Medium"} />
                     <EffortBadge effort={priority.effort || "M"} />
                   </div>
-                  <Button variant="ghost" size="sm" className="text-xs h-7">
+                  <Button variant="ghost" size="sm" className="text-xs h-7 text-foreground hover:text-foreground/80">
                     Review <ArrowRight className="w-3 h-3 ml-1" />
                   </Button>
                 </div>
@@ -553,9 +561,9 @@ function CaptainsRecommendationsSection({ priorities, blockers, confidence, cove
 
         {blockers.length > 0 && (
           <>
-            <Separator className="my-4" />
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-              <h4 className="text-sm font-medium text-amber-800 flex items-center gap-2 mb-3">
+            <Separator className="my-4 bg-border" />
+            <div className="rounded-xl border border-semantic-warning-border bg-semantic-warning-soft/30 p-4">
+              <h4 className="text-sm font-semibold text-semantic-warning flex items-center gap-2 mb-3 tracking-wide">
                 <AlertTriangle className="w-4 h-4" />
                 BLOCKERS
               </h4>
@@ -564,7 +572,7 @@ function CaptainsRecommendationsSection({ priorities, blockers, confidence, cove
                   const crew = getCrewMember(blocker.id);
                   return (
                     <div key={idx} className="flex items-start gap-3 text-sm">
-                      <AlertCircle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                      <AlertCircle className="w-4 h-4 text-semantic-warning flex-shrink-0 mt-0.5" />
                       <div>
                         <span className="font-medium" style={{ color: crew.color }}>{blocker.title}</span>
                         <span className="text-muted-foreground"> — {blocker.fix}</span>
@@ -637,12 +645,12 @@ export default function MissionControl() {
       <div className="space-y-6" data-testid="mission-control-page">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
+            <h1 className="text-2xl font-bold flex items-center gap-2 text-foreground">
               <Compass className="w-7 h-7 text-primary" />
               Mission Control
             </h1>
             <p className="text-muted-foreground text-sm">
-              Daily diagnostic report for <span className="font-medium">{currentSite?.displayName || "your site"}</span>
+              Daily diagnostic report for <span className="font-medium text-foreground">{currentSite?.displayName || "your site"}</span>
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -650,6 +658,7 @@ export default function MissionControl() {
               variant="outline" 
               size="sm"
               onClick={() => setExportModalOpen(true)}
+              className="border-border text-foreground hover:bg-muted rounded-xl"
               data-testid="button-export"
             >
               <Package className="w-4 h-4 mr-2" />
@@ -659,6 +668,7 @@ export default function MissionControl() {
               size="sm" 
               onClick={() => runDiagnostics.mutate()}
               disabled={runDiagnostics.isPending}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-[0_0_20px_-5px_rgba(56,189,248,0.4)]"
             >
               {runDiagnostics.isPending ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
