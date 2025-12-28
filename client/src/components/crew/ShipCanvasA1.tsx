@@ -31,6 +31,13 @@ const GRID_SLOTS: GridSlot[] = [
   { roleId: "knowledge_base", roleName: "Knowledge Base", roleIcon: BookOpen, crewId: "seo_kbase", row: 4, col: 4, valueProp: "Store insights and learn over time." },
 ];
 
+const ALL_BAY_POSITIONS = [
+  { row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 }, { row: 1, col: 4 },
+  { row: 2, col: 1 }, { row: 2, col: 2 }, { row: 2, col: 3 }, { row: 2, col: 4 },
+  { row: 3, col: 1 }, { row: 3, col: 2 }, { row: 3, col: 3 }, { row: 3, col: 4 },
+  { row: 4, col: 1 }, { row: 4, col: 2 }, { row: 4, col: 3 }, { row: 4, col: 4 },
+];
+
 function RoleInfoTooltip({ roleId }: { roleId: string }) {
   const roleTooltip = getRoleTooltip(roleId);
   if (!roleTooltip) return null;
@@ -76,6 +83,19 @@ function CrewAvatarTooltip({ crewId, children }: { crewId: string; children: Rea
   );
 }
 
+function BayPlate() {
+  return (
+    <div 
+      className="absolute inset-1 rounded-xl pointer-events-none"
+      style={{
+        background: "linear-gradient(180deg, rgba(30,40,55,0.5) 0%, rgba(20,28,40,0.6) 100%)",
+        border: "1px solid rgba(255,255,255,0.08)",
+        boxShadow: "inset 0 2px 4px rgba(0,0,0,0.3), inset 0 -1px 2px rgba(255,255,255,0.03), 0 1px 3px rgba(0,0,0,0.2)",
+      }}
+    />
+  );
+}
+
 function CrewCard({ 
   slot, 
   crew, 
@@ -104,7 +124,7 @@ function CrewCard({
 
   return (
     <button
-      className="w-full h-full transition-all duration-200 hover:scale-[1.02] group"
+      className="w-full h-full transition-all duration-200 hover:scale-[1.02] group relative"
       onClick={() => slot.crewId && onSlotClick(slot.crewId)}
       data-testid={`ship-slot-${slot.roleId}`}
     >
@@ -112,12 +132,22 @@ function CrewCard({
         className={[
           "relative h-full w-full rounded-xl",
           isEmpty 
-            ? "border-2 border-dashed border-white/20 bg-white/[0.03] group-hover:border-white/40 group-hover:bg-white/[0.06]" 
-            : "bg-white/[0.06] backdrop-blur-sm border border-white/20 group-hover:bg-white/[0.08]",
+            ? "border-2 border-dashed border-white/15 bg-white/[0.02] group-hover:border-white/30 group-hover:bg-white/[0.04]" 
+            : "bg-gradient-to-b from-white/[0.08] to-white/[0.04] backdrop-blur-sm border border-white/15 group-hover:from-white/[0.10] group-hover:to-white/[0.06]",
           ringClass,
         ].join(" ")}
-        style={{ "--tw-ring-color": ringColor } as React.CSSProperties}
+        style={{ 
+          "--tw-ring-color": ringColor,
+          boxShadow: isEmpty 
+            ? "inset 0 1px 2px rgba(255,255,255,0.05)" 
+            : "inset 0 1px 2px rgba(255,255,255,0.08), 0 4px 12px rgba(0,0,0,0.3)",
+        } as React.CSSProperties}
       >
+        <div 
+          className="absolute inset-x-0 -bottom-1 h-2 rounded-full blur-md pointer-events-none"
+          style={{ background: isEnabled ? "rgba(34,197,94,0.15)" : isEmpty ? "transparent" : "rgba(56,189,248,0.08)" }}
+        />
+
         <div className="absolute left-1.5 top-1.5 z-20">
           <RoleInfoTooltip roleId={slot.roleId} />
         </div>
@@ -183,12 +213,50 @@ export function ShipCanvasA1(props: {
 
   return (
     <TooltipProvider>
-      <div className="relative w-full rounded-3xl border border-white/10 bg-gradient-to-b from-white/[0.02] to-transparent overflow-hidden">
-        <ShipHullSvg className="absolute inset-0 w-full h-full pointer-events-none z-0 opacity-40" />
+      <div 
+        className="relative w-full rounded-3xl border border-white/10 overflow-hidden"
+        style={{
+          background: "linear-gradient(180deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)",
+        }}
+      >
+        <div 
+          className="absolute inset-0 pointer-events-none z-0"
+          style={{
+            background: "radial-gradient(ellipse 120% 80% at 50% 20%, rgba(56,189,248,0.06) 0%, transparent 50%), radial-gradient(ellipse 80% 60% at 50% 80%, rgba(245,158,11,0.04) 0%, transparent 50%)",
+          }}
+        />
+        
+        <div 
+          className="absolute inset-0 pointer-events-none z-0"
+          style={{
+            background: "radial-gradient(ellipse 100% 100% at 50% 50%, transparent 40%, rgba(0,0,0,0.6) 100%)",
+          }}
+        />
+
+        <ShipHullSvg className="absolute inset-0 w-full h-full pointer-events-none z-0 opacity-25" />
 
         <div className="relative z-10 w-full p-6 lg:p-10">
           <div 
-            className="grid gap-x-7 gap-y-8 mx-auto"
+            className="absolute inset-6 lg:inset-10 grid gap-x-7 gap-y-8 pointer-events-none"
+            style={{
+              gridTemplateColumns: "repeat(4, minmax(150px, 200px))",
+              gridTemplateRows: "repeat(4, 180px)",
+              justifyContent: "center",
+            }}
+          >
+            {ALL_BAY_POSITIONS.map((pos) => (
+              <div 
+                key={`bay-${pos.row}-${pos.col}`}
+                className="relative"
+                style={{ gridRow: pos.row, gridColumn: pos.col }}
+              >
+                <BayPlate />
+              </div>
+            ))}
+          </div>
+
+          <div 
+            className="relative z-20 grid gap-x-7 gap-y-8 mx-auto"
             style={{
               gridTemplateColumns: "repeat(4, minmax(150px, 200px))",
               gridTemplateRows: "repeat(4, 180px)",
@@ -207,9 +275,9 @@ export function ShipCanvasA1(props: {
               const badge = isMissionControl ? "Included" : isEnabled ? "Active" : isSelected ? "Selected" : null;
 
               const ringClass = isEnabled
-                ? "ring-2 shadow-[0_0_0_2px_var(--color-progress-soft),0_8px_24px_rgba(0,0,0,0.4)]"
+                ? "ring-2 shadow-[0_0_0_2px_var(--color-progress-soft),0_4px_16px_rgba(0,0,0,0.4)]"
                 : isSelected
-                  ? "ring-2 shadow-[0_0_0_2px_var(--color-primary-soft),0_8px_24px_rgba(0,0,0,0.3)]"
+                  ? "ring-2 shadow-[0_0_0_2px_var(--color-primary-soft),0_4px_16px_rgba(0,0,0,0.3)]"
                   : "";
 
               const ringColor = isEnabled ? "var(--color-progress)" : isSelected ? "var(--color-primary)" : undefined;
