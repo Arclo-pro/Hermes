@@ -581,27 +581,16 @@ function SetBonusCard({
           {nextCrew && (
             <div className="bg-slate-800/50 rounded-lg p-3 mb-3">
               <p className="text-xs text-slate-400 mb-2">Next to unlock:</p>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {nextCrew.avatar && nextCrew.avatar.includes('/') ? (
-                    <img src={nextCrew.avatar} alt={nextCrew.nickname} className="w-8 h-8 object-contain" />
-                  ) : (
-                    <span className="text-2xl">{nextCrew.avatar || "👤"}</span>
-                  )}
-                  <div>
-                    <p className="text-sm font-medium text-white">{nextCrew.nickname}</p>
-                    <p className="text-xs text-slate-500">{nextCrew.signalType}</p>
-                  </div>
+              <div className="flex items-center gap-2">
+                {nextCrew.avatar && nextCrew.avatar.includes('/') ? (
+                  <img src={nextCrew.avatar} alt={nextCrew.nickname} className="w-8 h-8 object-contain" />
+                ) : (
+                  <span className="text-2xl">{nextCrew.avatar || "👤"}</span>
+                )}
+                <div>
+                  <p className="text-sm font-medium text-white">{nextCrew.nickname}</p>
+                  <p className="text-xs text-slate-500">{nextCrew.signalType}</p>
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="border-sky-500 text-sky-400 hover:bg-sky-950 text-xs h-7"
-                  onClick={() => onSelectAgent(nextToUnlock!)}
-                  data-testid={`select-next-${nextToUnlock}`}
-                >
-                  Select {nextCrew.nickname}
-                </Button>
               </div>
             </div>
           )}
