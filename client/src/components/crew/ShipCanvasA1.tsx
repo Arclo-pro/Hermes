@@ -18,25 +18,31 @@ type GridSlot = {
 };
 
 const GRID_SLOTS: GridSlot[] = [
+  // Row 1: Mission Control (centered)
   { roleId: "mission_control", roleName: "Mission Control", roleIcon: Compass, crewId: "orchestrator", row: 1, col: 2 },
+  // Row 2: Intelligence
   { roleId: "competitive_intel", roleName: "Competitive Intel", roleIcon: Eye, crewId: "competitive_snapshot", row: 2, col: 1, valueProp: "Monitor competitor movements." },
   { roleId: "serp_tracking", roleName: "SERP Tracking", roleIcon: Target, crewId: "serp_intel", row: 2, col: 2, valueProp: "Track rankings and explain movement." },
   { roleId: "analytics_signals", roleName: "Analytics & Signals", roleIcon: BarChart3, crewId: "google_data_connector", row: 2, col: 3, valueProp: "Tie SEO work to traffic outcomes." },
+  // Row 3: Engineering & Performance
   { roleId: "technical_seo", roleName: "Technical SEO", roleIcon: Wrench, crewId: "crawl_render", row: 3, col: 1, valueProp: "Find crawl/render issues blocking rank." },
   { roleId: "performance_monitoring", roleName: "Performance", roleIcon: Zap, crewId: "core_web_vitals", row: 3, col: 2, valueProp: "Fix speed issues hurting conversion." },
   { roleId: "content_decay", roleName: "Content Decay", roleIcon: Search, crewId: "content_decay", row: 3, col: 3, valueProp: "Detect declining content before it tanks." },
-  { roleId: "content_strategy", roleName: "Content Strategy", roleIcon: PenTool, crewId: "content_generator", row: 3, col: 4, valueProp: "Generate optimized content at scale." },
-  { roleId: "domain_authority", roleName: "Domain Authority", roleIcon: Link2, crewId: "backlink_authority", row: 4, col: 1, valueProp: "Build and monitor link equity." },
-  { roleId: "ai_optimization", roleName: "AI Optimization", roleIcon: BrainCircuit, crewId: "ai_optimization", row: 4, col: 2, valueProp: "Make your site discoverable to AI." },
-  { roleId: "paid_ads", roleName: "Paid Ads", roleIcon: Megaphone, crewId: "google_ads_connector", row: 4, col: 3, valueProp: "Turn learnings into faster growth." },
-  { roleId: "knowledge_base", roleName: "Knowledge Base", roleIcon: BookOpen, crewId: "seo_kbase", row: 4, col: 4, valueProp: "Store insights and learn over time." },
+  // Row 4: Content & Authority
+  { roleId: "content_strategy", roleName: "Content Strategy", roleIcon: PenTool, crewId: "content_generator", row: 4, col: 1, valueProp: "Generate optimized content at scale." },
+  { roleId: "domain_authority", roleName: "Domain Authority", roleIcon: Link2, crewId: "backlink_authority", row: 4, col: 2, valueProp: "Build and monitor link equity." },
+  { roleId: "ai_optimization", roleName: "AI Optimization", roleIcon: BrainCircuit, crewId: "ai_optimization", row: 4, col: 3, valueProp: "Make your site discoverable to AI." },
+  // Row 5: Growth & Knowledge
+  { roleId: "paid_ads", roleName: "Paid Ads", roleIcon: Megaphone, crewId: "google_ads_connector", row: 5, col: 1, valueProp: "Turn learnings into faster growth." },
+  { roleId: "knowledge_base", roleName: "Knowledge Base", roleIcon: BookOpen, crewId: "seo_kbase", row: 5, col: 2, valueProp: "Store insights and learn over time." },
 ];
 
 const ALL_BAY_POSITIONS = [
-  { row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 }, { row: 1, col: 4 },
-  { row: 2, col: 1 }, { row: 2, col: 2 }, { row: 2, col: 3 }, { row: 2, col: 4 },
-  { row: 3, col: 1 }, { row: 3, col: 2 }, { row: 3, col: 3 }, { row: 3, col: 4 },
-  { row: 4, col: 1 }, { row: 4, col: 2 }, { row: 4, col: 3 }, { row: 4, col: 4 },
+  { row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 },
+  { row: 2, col: 1 }, { row: 2, col: 2 }, { row: 2, col: 3 },
+  { row: 3, col: 1 }, { row: 3, col: 2 }, { row: 3, col: 3 },
+  { row: 4, col: 1 }, { row: 4, col: 2 }, { row: 4, col: 3 },
+  { row: 5, col: 1 }, { row: 5, col: 2 }, { row: 5, col: 3 },
 ];
 
 function RoleInfoTooltip({ roleId }: { roleId: string }) {
@@ -259,16 +265,16 @@ export function ShipCanvasA1(props: {
           <div 
             className="relative grid gap-x-7 gap-y-10 mx-auto"
             style={{
-              gridTemplateColumns: "repeat(4, minmax(150px, 200px))",
-              gridTemplateRows: "repeat(4, 200px)",
+              gridTemplateColumns: "repeat(3, minmax(150px, 220px))",
+              gridTemplateRows: "repeat(5, 200px)",
               justifyContent: "center",
             }}
           >
             <div 
               className="absolute -inset-4 grid gap-x-7 gap-y-10 pointer-events-none"
               style={{
-                gridTemplateColumns: "repeat(4, minmax(150px, 200px))",
-                gridTemplateRows: "repeat(4, 200px)",
+                gridTemplateColumns: "repeat(3, minmax(150px, 220px))",
+                gridTemplateRows: "repeat(5, 200px)",
                 justifyContent: "center",
                 padding: "16px",
               }}
@@ -330,7 +336,7 @@ export function ShipCanvasA1(props: {
             })}
             
             <div style={{ gridRow: 1, gridColumn: 3 }} />
-            <div style={{ gridRow: 1, gridColumn: 4 }} />
+            <div style={{ gridRow: 5, gridColumn: 3 }} />
           </div>
         </div>
       </div>
