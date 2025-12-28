@@ -2103,33 +2103,99 @@ When answering:
         });
       }
       
-      // Extract findings count from response
-      const findingsCount = responseData.findings_count || 
-                           responseData.findingsCount || 
-                           responseData.data?.findings_count ||
-                           (Array.isArray(responseData.findings) ? responseData.findings.length : 0);
+      // Normalize worker outputs into findings
+      const { v4: uuidv4 } = await import("uuid");
+      const dataPayload = responseData.data || responseData;
+      const findingsToSave: any[] = [];
       
-      // Store findings in database if returned
+      // Map SEO recommendations to findings
+      const recommendations = dataPayload.seo_recommendations || dataPayload.recommendations || [];
+      if (Array.isArray(recommendations)) {
+        for (const rec of recommendations) {
+          findingsToSave.push({
+            findingId: `kbase_${uuidv4().slice(0, 8)}`,
+            siteId: null,
+            sourceIntegration: 'seo_kbase',
+            runId,
+            category: 'kbase',
+            severity: rec.severity || rec.priority || 'medium',
+            impactScore: rec.impact_score || 50,
+            confidence: rec.confidence || 0.7,
+            title: rec.title || rec.name || 'SEO Recommendation',
+            description: rec.description || rec.details || rec.summary,
+            evidence: rec.evidence ? { items: rec.evidence } : null,
+            recommendedActions: Array.isArray(rec.actions) ? rec.actions : 
+                                rec.action ? [rec.action] : 
+                                rec.recommendation ? [rec.recommendation] : [],
+            status: 'open',
+          });
+        }
+      }
+      
+      // Map best practices to findings
+      const bestPractices = dataPayload.best_practices || [];
+      if (Array.isArray(bestPractices)) {
+        for (const bp of bestPractices) {
+          findingsToSave.push({
+            findingId: `kbase_bp_${uuidv4().slice(0, 8)}`,
+            siteId: null,
+            sourceIntegration: 'seo_kbase',
+            runId,
+            category: 'kbase',
+            severity: 'info',
+            impactScore: 30,
+            confidence: 0.9,
+            title: typeof bp === 'string' ? bp : bp.title || bp.name || 'Best Practice',
+            description: typeof bp === 'string' ? bp : bp.description || bp.details,
+            recommendedActions: typeof bp === 'string' ? [bp] : bp.actions || [],
+            status: 'open',
+          });
+        }
+      }
+      
+      // Map optimization tips to findings
+      const tips = dataPayload.optimization_tips || [];
+      if (Array.isArray(tips)) {
+        for (const tip of tips) {
+          findingsToSave.push({
+            findingId: `kbase_tip_${uuidv4().slice(0, 8)}`,
+            siteId: null,
+            sourceIntegration: 'seo_kbase',
+            runId,
+            category: 'kbase',
+            severity: 'low',
+            impactScore: 40,
+            confidence: 0.8,
+            title: typeof tip === 'string' ? tip : tip.title || tip.name || 'Optimization Tip',
+            description: typeof tip === 'string' ? tip : tip.description,
+            recommendedActions: typeof tip === 'string' ? [tip] : tip.actions || [],
+            status: 'open',
+          });
+        }
+      }
+      
+      // Also check for direct findings array (legacy format)
       if (responseData.findings && Array.isArray(responseData.findings)) {
         for (const finding of responseData.findings) {
-          try {
-            await storage.upsertFinding({
-              findingId: finding.finding_id || finding.id || `kbase_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-              siteId: null,
-              runId,
-              sourceIntegration: 'seo_kbase',
-              category: finding.category || 'recommendation',
-              severity: finding.severity || 'info',
-              title: finding.title || finding.check_name || 'KBASE Insight',
-              description: finding.description || finding.recommendation,
-              affectedUrl: finding.affected_url || finding.url,
-              metadata: finding,
-              status: 'open',
-            });
-          } catch (err: any) {
-            logger.warn("KBASE", "Failed to store finding", { error: err.message });
-          }
+          findingsToSave.push({
+            findingId: finding.finding_id || finding.id || `kbase_${uuidv4().slice(0, 8)}`,
+            siteId: null,
+            runId,
+            sourceIntegration: 'seo_kbase',
+            category: finding.category || 'recommendation',
+            severity: finding.severity || 'info',
+            title: finding.title || finding.check_name || 'KBASE Insight',
+            description: finding.description || finding.recommendation,
+            status: 'open',
+          });
         }
+      }
+      
+      // Save all findings
+      const findingsCount = findingsToSave.length;
+      if (findingsToSave.length > 0) {
+        await storage.saveFindings(findingsToSave);
+        logger.info("KBASE", `Saved ${findingsToSave.length} KBASE findings`, { runId });
       }
       
       // Record service run
@@ -2151,7 +2217,7 @@ When answering:
         success: true,
         runId,
         findingsCount,
-        data: responseData.data || responseData,
+        data: dataPayload,
       });
     } catch (error: any) {
       logger.error("KBASE", "KBASE run error", { error: error.message });
