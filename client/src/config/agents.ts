@@ -13,6 +13,7 @@ import draperAvatar from "@assets/generated_images/draper_friendly_robot_transpa
 import speedsterAvatar from "@assets/generated_images/speedster_friendly_robot_transparent.png";
 import sentinelAvatar from "@assets/generated_images/sentinel_friendly_robot_transparent.png";
 import majorTomAvatar from "@assets/generated_images/major_tom_commander_transparent.png";
+import atlasAvatar from "@assets/generated_images/atlas_ai_robot_avatar.png";
 
 export type CrewMember = {
   service_id: string;
@@ -325,7 +326,7 @@ export const AGENTS: Record<string, CrewMember> = {
     role: "AI Optimization",
     color: "#8B5CF6",
     icon: BrainCircuit,
-    avatar: "/attached_assets/generated_images/atlas_ai_robot_avatar.png",
+    avatar: atlasAvatar,
     blurb: "Optimizes your site for AI assistants and LLM discovery.",
     shortDescription: "Improves AI discoverability and LLM-readiness.",
     tooltipInfo: {
