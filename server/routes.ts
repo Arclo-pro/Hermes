@@ -2208,6 +2208,66 @@ When answering:
   });
 
   // Industry Benchmarks Endpoints
+  
+  // Summary endpoint - returns real site metrics for date range
+  app.get("/api/benchmarks/summary", async (req, res) => {
+    try {
+      const { siteId, from, to } = req.query;
+      const targetSiteId = (siteId as string) || 'default';
+      
+      // Default to last 30 days if not specified
+      const now = new Date();
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const formatDate = (d: Date) => d.toISOString().split("T")[0].replace(/-/g, "");
+      
+      const startDate = (from as string) || formatDate(thirtyDaysAgo);
+      const endDate = (to as string) || formatDate(now);
+      
+      const [gscData, ga4Data] = await Promise.all([
+        storage.getGSCDataByDateRange(startDate, endDate, targetSiteId),
+        storage.getGA4DataByDateRange(startDate, endDate, targetSiteId),
+      ]);
+      
+      // Calculate aggregated metrics
+      const totalClicks = gscData.reduce((sum, d) => sum + d.clicks, 0);
+      const totalImpressions = gscData.reduce((sum, d) => sum + d.impressions, 0);
+      const avgCtr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : null;
+      const avgPosition = gscData.length > 0 
+        ? gscData.reduce((sum, d) => sum + d.position, 0) / gscData.length 
+        : null;
+      
+      const totalSessions = ga4Data.reduce((sum, d) => sum + d.sessions, 0);
+      const totalUsers = ga4Data.reduce((sum, d) => sum + d.users, 0);
+      const totalConversions = ga4Data.reduce((sum, d) => sum + d.conversions, 0);
+      
+      // Get latest update timestamps
+      const gscLatest = gscData.length > 0 ? gscData[gscData.length - 1].createdAt : null;
+      const ga4Latest = ga4Data.length > 0 ? ga4Data[ga4Data.length - 1].createdAt : null;
+      
+      res.json({
+        siteId: targetSiteId,
+        from: startDate,
+        to: endDate,
+        metrics: {
+          sessions: { value: totalSessions || null, source: "ga4", lastUpdatedAt: ga4Latest },
+          users: { value: totalUsers || null, source: "ga4", lastUpdatedAt: ga4Latest },
+          conversions: { value: totalConversions || null, source: "ga4", lastUpdatedAt: ga4Latest },
+          clicks: { value: totalClicks || null, source: "gsc", lastUpdatedAt: gscLatest },
+          impressions: { value: totalImpressions || null, source: "gsc", lastUpdatedAt: gscLatest },
+          ctr: { value: avgCtr, source: "gsc", lastUpdatedAt: gscLatest },
+          position: { value: avgPosition, source: "gsc", lastUpdatedAt: gscLatest },
+        },
+        dataPoints: {
+          ga4: ga4Data.length,
+          gsc: gscData.length,
+        },
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to fetch benchmark summary", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
   app.get("/api/benchmarks", async (req, res) => {
     try {
       const { industry } = req.query;

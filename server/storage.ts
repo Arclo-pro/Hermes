@@ -468,7 +468,16 @@ class DBStorage implements IStorage {
   }
 
   async getGSCDataByDateRange(startDate: string, endDate: string, siteId?: string): Promise<GSCDaily[]> {
-    const conditions = [gte(gscDaily.date, startDate), sql`${gscDaily.date} <= ${endDate}`];
+    // Normalize date format: convert YYYYMMDD to YYYY-MM-DD if needed
+    const normalizeDate = (d: string) => {
+      if (d.includes('-')) return d;
+      if (d.length === 8) return `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`;
+      return d;
+    };
+    const normalizedStart = normalizeDate(startDate);
+    const normalizedEnd = normalizeDate(endDate);
+    
+    const conditions = [gte(gscDaily.date, normalizedStart), sql`${gscDaily.date} <= ${normalizedEnd}`];
     if (siteId) {
       conditions.push(eq(gscDaily.siteId, siteId));
     }
