@@ -9,11 +9,11 @@ import beaconAvatar from "@assets/generated_images/beacon_friendly_robot_transpa
 import natashaAvatar from "@assets/generated_images/natasha_friendly_robot_transparent.png";
 import hemingwayAvatar from "@assets/generated_images/hemingway_friendly_robot_transparent.png";
 import blogwriterAvatar from "@assets/generated_images/blogwriter_friendly_robot_transparent.png";
-import draperAvatar from "@assets/generated_images/draper_friendly_robot_transparent.png";
+import draperAvatar from "@assets/generated_images/socrates_friendly_robot_transparent.png";
 import speedsterAvatar from "@assets/generated_images/speedster_friendly_robot_transparent.png";
 import sentinelAvatar from "@assets/generated_images/sentinel_friendly_robot_transparent.png";
 import majorTomAvatar from "@assets/generated_images/major_tom_commander_transparent.png";
-import atlasAvatar from "@assets/generated_images/socrates_friendly_robot_transparent.png";
+import atlasAvatar from "@assets/generated_images/draper_friendly_robot_transparent.png";
 
 export type CrewMember = {
   service_id: string;
