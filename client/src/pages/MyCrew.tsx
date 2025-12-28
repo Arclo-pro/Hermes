@@ -623,10 +623,12 @@ function SetBonusCard({
               {missingAgents.slice(1).map((agentId) => {
                 const crew = getCrewMember(agentId);
                 return (
-                  <button
+                  <Button
                     key={agentId}
+                    variant="ghost"
+                    size="sm"
                     onClick={() => onRequirementClick(agentId)}
-                    className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-slate-800 text-slate-500 hover:text-slate-300 hover:bg-slate-700 text-xs transition-colors"
+                    className="h-auto px-2 py-1"
                     data-testid={`missing-chip-${agentId}`}
                   >
                     {crew.avatar && crew.avatar.includes('/') ? (
@@ -635,7 +637,7 @@ function SetBonusCard({
                       <span className="text-sm">{crew.avatar || "👤"}</span>
                     )}
                     {crew.nickname}
-                  </button>
+                  </Button>
                 );
               })}
             </div>

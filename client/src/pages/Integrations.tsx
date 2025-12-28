@@ -2704,7 +2704,9 @@ export default function Integrations() {
                         >
                           {serviceDiagnostics.diagnostic.overallStatus.toUpperCase()}
                         </Badge>
-                        <button 
+                        <Button 
+                          variant="link"
+                          size="sm"
                           onClick={() => {
                             const stages = serviceDiagnostics.diagnostic?.stagesJson || [];
                             const blob = JSON.stringify({
@@ -2720,12 +2722,11 @@ export default function Integrations() {
                             }, null, 2);
                             navigator.clipboard.writeText(blob);
                           }}
-                          className="text-xs text-blue-600 hover:underline flex items-center gap-1"
                           data-testid="button-copy-diagnostics"
                         >
                           <Copy className="w-3 h-3" />
                           Copy
-                        </button>
+                        </Button>
                       </div>
                     </div>
                     

@@ -328,13 +328,15 @@ function AgentSummaryCard({ agent }: { agent: { serviceId: string; score: number
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <button 
-                          className="text-muted-foreground hover:text-foreground transition-colors"
+                        <Button 
+                          variant="ghost"
+                          size="icon"
+                          className="h-5 w-5 text-muted-foreground hover:text-foreground"
                           onClick={(e) => e.stopPropagation()}
                           data-testid={`button-tooltip-${agent.serviceId}`}
                         >
                           <Info className="w-3 h-3" />
-                        </button>
+                        </Button>
                       </TooltipTrigger>
                       <TooltipContent side="right" className="max-w-xs p-3">
                         <div className="space-y-2">
