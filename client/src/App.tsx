@@ -25,6 +25,7 @@ import Audit from "@/pages/Audit";
 import Help from "@/pages/Help";
 import Benchmarks from "@/pages/Benchmarks";
 import CrewPalette from "@/pages/CrewPalette";
+import DevLineage from "@/pages/DevLineage";
 
 function Router() {
   return (
@@ -51,6 +52,7 @@ function Router() {
       <Route path="/help" component={Help} />
       <Route path="/benchmarks" component={Benchmarks} />
       <Route path="/dev/palette" component={CrewPalette} />
+      <Route path="/dev/lineage" component={DevLineage} />
       <Route path="/settings" component={Settings} />
       <Route path="/">
         <Redirect to="/dashboard" />

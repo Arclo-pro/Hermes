@@ -357,20 +357,30 @@ export const LEGACY_TO_CANONICAL: Record<string, MetricKey> = {
   'inp': 'vitals.inp',
   'performance_score': 'vitals.performance_score',
   
-  // GSC data
+  // GSC data (raw and prefixed variants)
   'clicks': 'gsc.clicks',
+  'gsc_clicks': 'gsc.clicks',
   'impressions': 'gsc.impressions',
+  'gsc_impressions': 'gsc.impressions',
   'ctr': 'gsc.ctr',
+  'gsc_ctr': 'gsc.ctr',
   'position': 'gsc.position',
   'avg_position': 'gsc.position',
+  'gsc_position': 'gsc.position',
   
-  // GA4 data
+  // GA4 data (raw and prefixed variants)
   'sessions': 'ga4.sessions',
+  'ga4_sessions': 'ga4.sessions',
   'users': 'ga4.users',
+  'ga4_users': 'ga4.users',
   'conversions': 'ga4.conversions',
+  'ga4_conversions': 'ga4.conversions',
   'bounceRate': 'ga4.bounce_rate',
+  'ga4_bounce_rate': 'ga4.bounce_rate',
   'avgSessionDuration': 'ga4.session_duration',
+  'ga4_session_duration': 'ga4.session_duration',
   'pagesPerSession': 'ga4.pages_per_session',
+  'ga4_pages_per_session': 'ga4.pages_per_session',
   
   // Benchmark API legacy keys
   'organic_ctr': 'gsc.ctr',
@@ -378,6 +388,7 @@ export const LEGACY_TO_CANONICAL: Record<string, MetricKey> = {
   'session_duration': 'ga4.session_duration',
   'pages_per_session': 'ga4.pages_per_session',
   'conversion_rate': 'ga4.conversion_rate',
+  'ga4_conversion_rate': 'ga4.conversion_rate',
 };
 
 /**

@@ -182,18 +182,38 @@ export function flattenWorkerResultsToCanonical(
         break;
       }
       case 'google_data_connector': {
-        // Worker stores aggregated metrics
+        // Worker stores aggregated metrics with prefixed keys
         if ('ga4_sessions' in raw) allMetrics['ga4.sessions'] = raw.ga4_sessions;
         if ('ga4_users' in raw) allMetrics['ga4.users'] = raw.ga4_users;
         if ('ga4_conversions' in raw) allMetrics['ga4.conversions'] = raw.ga4_conversions;
+        if ('ga4_bounce_rate' in raw) allMetrics['ga4.bounce_rate'] = raw.ga4_bounce_rate;
+        if ('ga4_session_duration' in raw) allMetrics['ga4.session_duration'] = raw.ga4_session_duration;
         if ('gsc_clicks' in raw) allMetrics['gsc.clicks'] = raw.gsc_clicks;
         if ('gsc_impressions' in raw) allMetrics['gsc.impressions'] = raw.gsc_impressions;
+        if ('gsc_ctr' in raw) allMetrics['gsc.ctr'] = raw.gsc_ctr;
+        if ('gsc_position' in raw) allMetrics['gsc.position'] = raw.gsc_position;
+        // Also check non-prefixed versions
+        if ('sessions' in raw && !allMetrics['ga4.sessions']) allMetrics['ga4.sessions'] = raw.sessions;
+        if ('users' in raw && !allMetrics['ga4.users']) allMetrics['ga4.users'] = raw.users;
+        if ('clicks' in raw && !allMetrics['gsc.clicks']) allMetrics['gsc.clicks'] = raw.clicks;
+        if ('impressions' in raw && !allMetrics['gsc.impressions']) allMetrics['gsc.impressions'] = raw.impressions;
         break;
       }
       default: {
-        // Generic normalization for other workers
-        const normalized = normalizeMetrics(result.workerKey, raw);
-        Object.assign(allMetrics, normalized);
+        // Generic normalization using LEGACY_TO_CANONICAL map
+        for (const [key, value] of Object.entries(raw)) {
+          if (typeof value !== 'number' && value !== null) continue;
+          
+          const canonicalKey = LEGACY_TO_CANONICAL[key];
+          if (canonicalKey) {
+            // Special handling for lcp_ms conversion
+            if (key === 'lcp_ms' && typeof value === 'number') {
+              allMetrics[canonicalKey] = value / 1000;
+            } else {
+              allMetrics[canonicalKey] = value;
+            }
+          }
+        }
       }
     }
   }
