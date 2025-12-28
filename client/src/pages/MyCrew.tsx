@@ -524,8 +524,8 @@ function SetBonusCard({
   
   return (
     <div className={cn(
-      "p-4 rounded-xl border transition-all",
-      bonus.comingSoon ? "bg-slate-900/30 border-slate-800 opacity-50" :
+      "p-4 rounded-xl border transition-all relative",
+      bonus.comingSoon ? "bg-slate-900/30 border-slate-800 opacity-60" :
       isActive ? "bg-gradient-to-br from-amber-900/30 to-slate-900 border-amber-500/50" :
       "bg-slate-900/50 border-slate-700"
     )}>
@@ -539,18 +539,20 @@ function SetBonusCard({
           {bonus.comingSoon ? <Lock className="w-5 h-5" /> : <Icon className="w-5 h-5" />}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-start justify-between gap-2 mb-1">
             <h4 className="font-semibold text-white text-sm">{bonus.title}</h4>
-            {isActive && (
-              <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-[10px]">
-                <Check className="w-3 h-3 mr-1" /> Active
-              </Badge>
-            )}
-            {bonus.comingSoon && (
-              <Badge variant="outline" className="text-[10px] border-slate-700 text-slate-500">
-                Coming Soon
-              </Badge>
-            )}
+            <div className="flex items-center gap-1.5 shrink-0">
+              {isActive && (
+                <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-[10px] whitespace-nowrap">
+                  <Check className="w-3 h-3 mr-1" /> Active
+                </Badge>
+              )}
+              {bonus.comingSoon && (
+                <Badge variant="outline" className="text-[10px] border-slate-600 text-slate-500 whitespace-nowrap">
+                  Coming Soon
+                </Badge>
+              )}
+            </div>
           </div>
           <p className="text-xs text-slate-400 leading-relaxed">{bonus.valueProp}</p>
         </div>
