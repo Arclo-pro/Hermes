@@ -325,7 +325,7 @@ export const AGENTS: Record<string, CrewMember> = {
     role: "AI Optimization",
     color: "#8B5CF6",
     icon: BrainCircuit,
-    avatar: "🧠",
+    avatar: "/attached_assets/generated_images/atlas_ai_robot_avatar.png",
     blurb: "Optimizes your site for AI assistants and LLM discovery.",
     shortDescription: "Improves AI discoverability and LLM-readiness.",
     tooltipInfo: {
