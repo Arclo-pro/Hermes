@@ -5660,8 +5660,9 @@ When answering:
                 headers["X-API-Key"] = vitalsConfig.api_key;
               }
               
-              // First check health
-              const healthUrl = `${baseUrl}/health`;
+              // First check health - try /api/health first, fallback to /health
+              const apiHealthUrl = `${baseUrl}/api/health`;
+              const healthUrl = apiHealthUrl;
               debug.requestedUrls.push(healthUrl);
               
               try {
@@ -5687,37 +5688,70 @@ When answering:
                     details: { baseUrl, debug, actualOutputs: [], missingOutputs: expectedOutputs },
                   };
                 } else {
-                  // Worker is reachable - now fetch actual vitals data via /run
-                  const runUrl = `${baseUrl}/run`;
-                  debug.requestedUrls.push(runUrl);
-                  
-                  // Get target site URL
+                  // Worker is reachable - get website summary or latest results
+                  // First try to list websites to find the registered website ID
                   const targetSite = await storage.getSiteById(site_id);
-                  const testUrl = targetSite?.domain ? `https://${targetSite.domain}` : "https://empathyhealthclinic.com";
+                  const targetDomain = targetSite?.domain || "empathyhealthclinic.com";
                   
-                  const runRes = await fetch(runUrl, {
-                    method: "POST",
+                  const listUrl = `${baseUrl}/api/v1/websites`;
+                  debug.requestedUrls.push(listUrl);
+                  
+                  const listRes = await fetch(listUrl, {
+                    method: "GET",
                     headers,
-                    body: JSON.stringify({
-                      site_domain: targetSite?.domain || "empathyhealthclinic.com",
-                      page_urls: [testUrl],
-                      request_id: runId,
-                    }),
-                    signal: AbortSignal.timeout(30000),
+                    signal: AbortSignal.timeout(15000),
                   });
                   
-                  const runBody = await runRes.text().catch(() => "");
+                  const listBody = await listRes.text().catch(() => "");
                   debug.responses.push({ 
-                    url: runUrl, 
-                    status: runRes.status,
-                    ok: runRes.ok,
-                    bodySnippet: runBody.slice(0, 500),
+                    url: listUrl, 
+                    status: listRes.status,
+                    ok: listRes.ok,
+                    bodySnippet: listBody.slice(0, 500),
                   });
                   
-                  if (runRes.ok) {
+                  let cwvData: any = null;
+                  
+                  if (listRes.ok) {
                     try {
-                      const runData = JSON.parse(runBody);
-                      const data = runData.data || runData;
+                      const listData = JSON.parse(listBody);
+                      const websites = listData.data?.websites || listData.websites || [];
+                      const matchedSite = websites.find((w: any) => 
+                        w.domain === targetDomain || w.domain?.includes(targetDomain.replace('https://', '').replace('http://', ''))
+                      );
+                      
+                      if (matchedSite?.id) {
+                        // Get summary for this website
+                        const summaryUrl = `${baseUrl}/api/v1/websites/${matchedSite.id}/summary`;
+                        debug.requestedUrls.push(summaryUrl);
+                        
+                        const summaryRes = await fetch(summaryUrl, {
+                          method: "GET",
+                          headers,
+                          signal: AbortSignal.timeout(15000),
+                        });
+                        
+                        const summaryBody = await summaryRes.text().catch(() => "");
+                        debug.responses.push({ 
+                          url: summaryUrl, 
+                          status: summaryRes.status,
+                          ok: summaryRes.ok,
+                          bodySnippet: summaryBody.slice(0, 500),
+                        });
+                        
+                        if (summaryRes.ok) {
+                          const summaryData = JSON.parse(summaryBody);
+                          cwvData = summaryData.data || summaryData;
+                        }
+                      }
+                    } catch (e) {
+                      debug.listParseError = (e as Error).message;
+                    }
+                  }
+                  
+                  if (cwvData) {
+                    try {
+                      const data = cwvData;
                       
                       // Helper to extract metric value from various nested structures
                       const extractMetric = (obj: any, ...paths: string[]): number | null => {
@@ -5799,9 +5833,9 @@ When answering:
                   } else {
                     checkResult = {
                       status: "partial",
-                      summary: `Worker connected but /run returned ${runRes.status}`,
+                      summary: `Worker connected but no website data found for ${targetDomain}`,
                       metrics: { worker_configured: true, worker_reachable: true },
-                      details: { baseUrl, debug, actualOutputs: [], pendingOutputs: expectedOutputs },
+                      details: { baseUrl, debug, actualOutputs: [], pendingOutputs: expectedOutputs, note: "Website may need to be registered in the Core Web Vitals worker first" },
                     };
                   }
                 }
