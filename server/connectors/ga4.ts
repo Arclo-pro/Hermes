@@ -79,6 +79,9 @@ export class GA4Connector {
               { name: 'activeUsers' },
               { name: 'eventCount' },
               { name: 'conversions' },
+              { name: 'bounceRate' },
+              { name: 'averageSessionDuration' },
+              { name: 'screenPageViewsPerSession' },
             ],
           },
         });
@@ -90,6 +93,9 @@ export class GA4Connector {
           users: parseInt(row.metricValues?.[1]?.value || '0'),
           events: parseInt(row.metricValues?.[2]?.value || '0'),
           conversions: parseInt(row.metricValues?.[3]?.value || '0'),
+          bounceRate: parseFloat(row.metricValues?.[4]?.value || '0') * 100 || null, // Convert to percentage
+          avgSessionDuration: parseFloat(row.metricValues?.[5]?.value || '0') || null,
+          pagesPerSession: parseFloat(row.metricValues?.[6]?.value || '0') || null,
           channel: row.dimensionValues?.[1]?.value || null,
           landingPage: row.dimensionValues?.[2]?.value || null,
           device: row.dimensionValues?.[3]?.value || null,

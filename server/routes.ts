@@ -2648,10 +2648,15 @@ When answering:
       const formatDate = (d: Date) => d.toISOString().split("T")[0].replace(/-/g, "");
       const targetSiteId = (siteId as string) || 'default';
       
-      const [gscData, ga4Data] = await Promise.all([
+      const [gscData, ga4Data, workerResults] = await Promise.all([
         storage.getGSCDataByDateRange(formatDate(thirtyDaysAgo), formatDate(now), targetSiteId),
         storage.getGA4DataByDateRange(formatDate(thirtyDaysAgo), formatDate(now), targetSiteId),
+        storage.getLatestSeoWorkerResults(targetSiteId),
       ]);
+      
+      // Extract Core Web Vitals from worker results
+      const cwvResult = workerResults.find(r => r.workerKey === 'core_web_vitals');
+      const cwvMetrics = cwvResult?.metricsJson as Record<string, any> | null;
       
       // Calculate actual metrics - use null for missing data instead of 0
       const totalClicks = gscData.reduce((sum, d) => sum + d.clicks, 0);
@@ -2666,6 +2671,27 @@ When answering:
       const totalConversions = ga4Data.reduce((sum, d) => sum + d.conversions, 0);
       const conversionRate = totalSessions > 0 ? (totalConversions / totalSessions) * 100 : null;
       
+      // Calculate bounce rate from GA4 data (weighted average)
+      const bounceRateData = ga4Data.filter(d => d.bounceRate !== null && d.sessions > 0);
+      const avgBounceRate = bounceRateData.length > 0
+        ? bounceRateData.reduce((sum, d) => sum + ((d.bounceRate || 0) * d.sessions), 0) / 
+          bounceRateData.reduce((sum, d) => sum + d.sessions, 0)
+        : null;
+      
+      // Calculate session duration (weighted average)
+      const durationData = ga4Data.filter(d => d.avgSessionDuration !== null && d.sessions > 0);
+      const avgSessionDuration = durationData.length > 0
+        ? durationData.reduce((sum, d) => sum + ((d.avgSessionDuration || 0) * d.sessions), 0) /
+          durationData.reduce((sum, d) => sum + d.sessions, 0)
+        : null;
+      
+      // Calculate pages per session (weighted average)
+      const ppsData = ga4Data.filter(d => d.pagesPerSession !== null && d.sessions > 0);
+      const avgPagesPerSession = ppsData.length > 0
+        ? ppsData.reduce((sum, d) => sum + ((d.pagesPerSession || 0) * d.sessions), 0) /
+          ppsData.reduce((sum, d) => sum + d.sessions, 0)
+        : null;
+      
       // Scale to monthly if date range differs (for sessions/clicks/impressions benchmarks)
       const daysInRange = Math.max(1, Math.ceil((now.getTime() - thirtyDaysAgo.getTime()) / (1000 * 60 * 60 * 24)));
       const scaleFactor = 30 / daysInRange;
@@ -2678,13 +2704,17 @@ When answering:
         organic_ctr: avgCtr,
         avg_position: avgPosition,
         conversion_rate: conversionRate,
-        bounce_rate: null,
-        session_duration: null,
-        pages_per_session: null,
+        bounce_rate: avgBounceRate,
+        session_duration: avgSessionDuration,
+        pages_per_session: avgPagesPerSession,
+        // Core Web Vitals from worker results
+        lcp: cwvMetrics?.lcp ?? null,
+        cls: cwvMetrics?.cls ?? null,
+        inp: cwvMetrics?.inp ?? null,
       };
       
       // Metrics where lower is better
-      const lowerIsBetter = ['avg_position', 'bounce_rate'];
+      const lowerIsBetter = ['avg_position', 'bounce_rate', 'lcp', 'cls', 'inp'];
       
       // Map benchmarks to comparison format with deltas
       const comparison = benchmarks.map(b => {

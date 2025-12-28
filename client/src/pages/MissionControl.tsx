@@ -257,39 +257,72 @@ function MetricCard({ metric, highlighted = false }: { metric: MetricCardData; h
 }
 
 function MetricCardsRow() {
+  const { activeSite } = useSiteContext();
+  const siteId = activeSite?.id || 'default';
+  
+  const { data: benchmarkData } = useQuery({
+    queryKey: ['benchmark-comparison', 'psychiatry', siteId],
+    queryFn: async () => {
+      const res = await fetch(`/api/benchmarks/compare?industry=psychiatry&siteId=${siteId}`);
+      if (!res.ok) return null;
+      return res.json();
+    },
+  });
+  
+  const getMetricFromBenchmarks = (metric: string) => {
+    return benchmarkData?.comparison?.find((c: any) => c.metric === metric);
+  };
+  
+  const bounceData = getMetricFromBenchmarks('bounce_rate');
+  const conversionData = getMetricFromBenchmarks('conversion_rate');
+  const sessionsData = getMetricFromBenchmarks('sessions');
+  
+  const formatValue = (value: number | null, unit: string) => {
+    if (value === null) return '—';
+    if (unit === 'percent') return `${value.toFixed(1)}%`;
+    if (unit === 'count_monthly') return value.toLocaleString();
+    return value.toString();
+  };
+  
+  const getVerdict = (status: string): 'good' | 'watch' | 'bad' => {
+    if (status === 'good') return 'good';
+    if (status === 'watch') return 'watch';
+    return 'bad';
+  };
+  
   const metrics: MetricCardData[] = [
     {
       id: 'conversion-rate',
       label: 'Conversion Rate',
-      value: '3.2%',
-      delta: '-0.5%',
-      deltaPct: -0.5,
-      verdict: 'watch',
-      sparkline: [3.8, 3.6, 3.4, 3.5, 3.3, 3.1, 3.2],
-      nextAction: { text: 'Review Pulse', link: '/agents/ga4' },
-      timeRange: 'Last 7 days',
+      value: conversionData ? formatValue(conversionData.actualValue, 'percent') : '—',
+      delta: conversionData?.deltaPct ? `${conversionData.deltaPct > 0 ? '+' : ''}${conversionData.deltaPct.toFixed(1)}%` : '—',
+      deltaPct: conversionData?.deltaPct || 0,
+      verdict: conversionData ? getVerdict(conversionData.status) : 'neutral',
+      sparkline: [3.8, 3.6, 3.4, 3.5, 3.3, 3.1, conversionData?.actualValue || 3.2],
+      nextAction: { text: 'Review Pulse', link: '/agents/google_data_connector' },
+      timeRange: 'Last 30 days',
     },
     {
       id: 'bounce-rate',
       label: 'Bounce Rate',
-      value: '42%',
-      delta: '+3%',
-      deltaPct: 3,
-      verdict: 'bad',
-      sparkline: [38, 39, 40, 41, 43, 44, 42],
-      nextAction: { text: 'Review Speedster', link: '/agents/performance' },
-      timeRange: 'Last 7 days',
+      value: bounceData ? formatValue(bounceData.actualValue, 'percent') : '—',
+      delta: bounceData?.deltaPct ? `${bounceData.deltaPct > 0 ? '+' : ''}${bounceData.deltaPct.toFixed(1)}%` : '—',
+      deltaPct: bounceData?.deltaPct || 0,
+      verdict: bounceData ? getVerdict(bounceData.status) : 'neutral',
+      sparkline: [38, 39, 40, 41, 43, 44, bounceData?.actualValue || 42],
+      nextAction: { text: 'Review Speedster', link: '/agents/core_web_vitals' },
+      timeRange: 'Last 30 days',
     },
     {
-      id: 'leads',
-      label: 'Leads / Form Submits',
-      value: '127',
-      delta: '+12%',
-      deltaPct: 12,
-      verdict: 'good',
-      sparkline: [95, 102, 98, 110, 115, 120, 127],
-      nextAction: { text: 'Review Draper', link: '/agents/ads' },
-      timeRange: 'Last 7 days',
+      id: 'sessions',
+      label: 'Monthly Sessions',
+      value: sessionsData ? formatValue(sessionsData.actualValue, 'count_monthly') : '—',
+      delta: sessionsData?.deltaPct ? `${sessionsData.deltaPct > 0 ? '+' : ''}${sessionsData.deltaPct.toFixed(0)}%` : '—',
+      deltaPct: sessionsData?.deltaPct || 0,
+      verdict: sessionsData ? getVerdict(sessionsData.status) : 'neutral',
+      sparkline: [80000, 85000, 88000, 90000, 92000, 94000, sessionsData?.actualValue || 96000],
+      nextAction: { text: 'Review Popular', link: '/agents/google_data_connector' },
+      timeRange: 'Last 30 days',
     },
   ];
 
