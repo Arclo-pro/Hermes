@@ -5637,6 +5637,9 @@ When answering:
             const debug: any = { 
               secretFound: vitalsConfig.rawValueType !== "null", 
               secretName: vitalsConfig.secretName,
+              apiKeyPresent: !!vitalsConfig.api_key,
+              apiKeyFingerprint: vitalsConfig.api_key_fingerprint,
+              apiKeyLength: vitalsConfig.api_key?.length || 0,
               requestedUrls: [], 
               responses: [] 
             };
@@ -5657,7 +5660,7 @@ When answering:
               };
               if (vitalsConfig.api_key) {
                 headers["Authorization"] = `Bearer ${vitalsConfig.api_key}`;
-                headers["X-API-Key"] = vitalsConfig.api_key;
+                headers["x-api-key"] = vitalsConfig.api_key;
               }
               
               // First check health - try /api/health first, fallback to /health
