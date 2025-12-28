@@ -1634,10 +1634,10 @@ export default function Integrations() {
                               </td>
                               <td className="p-3 text-center">
                                 <div className="flex flex-col items-center gap-1">
-                                  <Badge className={cn("text-[10px] px-1.5 py-0", isServiceTesting ? RUN_STATE_COLORS['testing'] : (RUN_STATE_COLORS[service.runState] || 'bg-gray-100'))}>
+                                  <Badge className={cn("text-[10px] px-1.5 py-0", isServiceTesting ? RUN_STATE_COLORS['testing'] : (RUN_STATE_COLORS[service.runState] || 'bg-muted'))}>
                                     {isServiceTesting ? 'testing...' : service.runState.replace('_', ' ')}
                                   </Badge>
-                                  <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", CONFIG_STATE_BADGES[service.configState]?.color || 'bg-gray-100')}>
+                                  <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", CONFIG_STATE_BADGES[service.configState]?.color || 'bg-muted')}>
                                     {CONFIG_STATE_BADGES[service.configState]?.label || service.configState}
                                   </Badge>
                                 </div>
@@ -1984,7 +1984,7 @@ export default function Integrations() {
               
               <div className="space-y-6 mt-4">
                 {selectedIntegration.descriptionMd && (
-                  <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg border">
+                  <div className="p-4 bg-muted rounded-lg border">
                     <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1">
                       <Info className="w-3 h-3" />
                       What this service is
@@ -2273,10 +2273,10 @@ export default function Integrations() {
                     <Badge 
                       variant="outline"
                       className={cn(
-                        selectedRun.status === 'success' ? 'bg-green-100 text-green-700' :
-                        selectedRun.status === 'running' ? 'bg-blue-100 text-blue-700' :
-                        selectedRun.status === 'partial' ? 'bg-yellow-100 text-yellow-700' :
-                        'bg-red-100 text-red-700'
+                        selectedRun.status === 'success' ? 'bg-semantic-success-soft text-semantic-success' :
+                        selectedRun.status === 'running' ? 'bg-semantic-info-soft text-semantic-info' :
+                        selectedRun.status === 'partial' ? 'bg-semantic-warning-soft text-semantic-warning' :
+                        'bg-semantic-danger-soft text-semantic-danger'
                       )}
                     >
                       {selectedRun.status}
@@ -2315,8 +2315,8 @@ export default function Integrations() {
                 {/* Error Message */}
                 {selectedRun.errorMessage && (
                   <div className="space-y-1">
-                    <p className="text-xs text-red-500 font-medium">Error</p>
-                    <pre className="text-xs bg-red-50 dark:bg-red-900/20 p-2 rounded text-red-700 dark:text-red-300 overflow-x-auto whitespace-pre-wrap">
+                    <p className="text-xs text-semantic-danger font-medium">Error</p>
+                    <pre className="text-xs bg-semantic-danger-soft p-2 rounded text-semantic-danger overflow-x-auto whitespace-pre-wrap">
                       {selectedRun.errorMessage}
                     </pre>
                   </div>
@@ -2387,28 +2387,28 @@ export default function Integrations() {
                       <p className="text-sm font-medium">Expected vs Actual Signals</p>
                       <div className="grid grid-cols-3 gap-2 text-xs">
                         <div className="space-y-1">
-                          <p className="text-green-600 font-medium">Matched ({matched.length})</p>
+                          <p className="text-semantic-success font-medium">Matched ({matched.length})</p>
                           {matched.map(s => (
                             <div key={s} className="flex items-center gap-1">
-                              <CheckCircle className="w-3 h-3 text-green-500" />
+                              <CheckCircle className="w-3 h-3 text-semantic-success" />
                               <span>{s}</span>
                             </div>
                           ))}
                         </div>
                         <div className="space-y-1">
-                          <p className="text-red-600 font-medium">Missing ({missing.length})</p>
+                          <p className="text-semantic-danger font-medium">Missing ({missing.length})</p>
                           {missing.map(s => (
                             <div key={s} className="flex items-center gap-1">
-                              <XCircle className="w-3 h-3 text-red-500" />
+                              <XCircle className="w-3 h-3 text-semantic-danger" />
                               <span>{s}</span>
                             </div>
                           ))}
                         </div>
                         <div className="space-y-1">
-                          <p className="text-blue-600 font-medium">Extra ({extra.length})</p>
+                          <p className="text-semantic-info font-medium">Extra ({extra.length})</p>
                           {extra.map(s => (
                             <div key={s} className="flex items-center gap-1">
-                              <Activity className="w-3 h-3 text-blue-500" />
+                              <Activity className="w-3 h-3 text-semantic-info" />
                               <span>{s}</span>
                             </div>
                           ))}
@@ -2452,7 +2452,7 @@ export default function Integrations() {
               
               <div className="space-y-6 mt-4">
                 {/* A) What this service does */}
-                <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg border">
+                <div className="p-4 bg-muted rounded-lg border">
                   <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1">
                     <Info className="w-3 h-3" />
                     What this service does
@@ -2467,7 +2467,7 @@ export default function Integrations() {
                     <div className="space-y-1">
                       {selectedCatalogService.inputs.map(slug => (
                         <div key={slug} className="text-sm flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-semantic-info" />
                           {getSlugLabel(slug)}
                         </div>
                       ))}
@@ -2478,7 +2478,7 @@ export default function Integrations() {
                     <div className="space-y-1">
                       {selectedCatalogService.outputs.map(slug => (
                         <div key={slug} className="text-sm flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-semantic-success" />
                           {getSlugLabel(slug)}
                         </div>
                       ))}
@@ -2908,16 +2908,16 @@ export default function Integrations() {
                   <p className="text-2xl font-bold">{qaResults.totalTests}</p>
                   <p className="text-xs text-muted-foreground">Total Tests</p>
                 </div>
-                <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg text-center">
-                  <p className="text-2xl font-bold text-green-600">{qaResults.passed}</p>
+                <div className="p-3 bg-semantic-success-soft rounded-lg text-center">
+                  <p className="text-2xl font-bold text-semantic-success">{qaResults.passed}</p>
                   <p className="text-xs text-muted-foreground">Passed</p>
                 </div>
-                <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg text-center">
-                  <p className="text-2xl font-bold text-red-600">{qaResults.failed}</p>
+                <div className="p-3 bg-semantic-danger-soft rounded-lg text-center">
+                  <p className="text-2xl font-bold text-semantic-danger">{qaResults.failed}</p>
                   <p className="text-xs text-muted-foreground">Failed</p>
                 </div>
-                <div className="p-3 bg-gray-50 dark:bg-gray-900/20 rounded-lg text-center">
-                  <p className="text-2xl font-bold text-gray-600">{qaResults.skipped}</p>
+                <div className="p-3 bg-muted rounded-lg text-center">
+                  <p className="text-2xl font-bold text-muted-foreground">{qaResults.skipped}</p>
                   <p className="text-xs text-muted-foreground">Skipped</p>
                 </div>
               </div>
@@ -2927,11 +2927,11 @@ export default function Integrations() {
                   <div key={idx} className="p-3 flex items-center gap-3">
                     <div className="flex-shrink-0">
                       {item.status === "pass" ? (
-                        <CheckCircle className="w-5 h-5 text-green-500" />
+                        <CheckCircle className="w-5 h-5 text-semantic-success" />
                       ) : item.status === "fail" ? (
-                        <XCircle className="w-5 h-5 text-red-500" />
+                        <XCircle className="w-5 h-5 text-semantic-danger" />
                       ) : (
-                        <Clock className="w-5 h-5 text-gray-400" />
+                        <Clock className="w-5 h-5 text-muted-foreground" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">

@@ -47,28 +47,28 @@ interface FullRankingsResponse {
 function getTrendIcon(trend: string) {
   switch (trend) {
     case 'up':
-      return <TrendingUp className="h-4 w-4 text-green-500" />;
+      return <TrendingUp className="h-4 w-4 text-semantic-success" />;
     case 'down':
-      return <TrendingDown className="h-4 w-4 text-red-500" />;
+      return <TrendingDown className="h-4 w-4 text-semantic-danger" />;
     case 'stable':
-      return <Minus className="h-4 w-4 text-gray-400" />;
+      return <Minus className="h-4 w-4 text-muted-foreground" />;
     default:
-      return <Minus className="h-4 w-4 text-gray-300" />;
+      return <Minus className="h-4 w-4 text-muted-foreground" />;
   }
 }
 
 function getPositionBadge(position: number | null) {
   if (position === null) {
-    return <Badge variant="outline" className="text-gray-400">Not Ranking</Badge>;
+    return <Badge variant="outline" className="text-muted-foreground">Not Ranking</Badge>;
   }
   if (position <= 3) {
-    return <Badge className="bg-green-500">{position}</Badge>;
+    return <Badge className="bg-semantic-success">{position}</Badge>;
   }
   if (position <= 10) {
-    return <Badge className="bg-blue-500">{position}</Badge>;
+    return <Badge className="bg-semantic-info">{position}</Badge>;
   }
   if (position <= 20) {
-    return <Badge className="bg-yellow-500 text-black">{position}</Badge>;
+    return <Badge className="bg-semantic-warning text-black">{position}</Badge>;
   }
   return <Badge variant="outline">{position}</Badge>;
 }
@@ -159,7 +159,7 @@ export default function KeywordRankings() {
           </Card>
           <Card>
             <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-green-600" data-testid="stat-in-top10">
+              <div className="text-2xl font-bold text-semantic-success" data-testid="stat-in-top10">
                 {data?.summary.inTop10 ?? '-'}
               </div>
               <div className="text-sm text-muted-foreground">In Top 10</div>
@@ -167,7 +167,7 @@ export default function KeywordRankings() {
           </Card>
           <Card>
             <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-blue-600" data-testid="stat-in-top20">
+              <div className="text-2xl font-bold text-semantic-info" data-testid="stat-in-top20">
                 {data?.summary.inTop20 ?? '-'}
               </div>
               <div className="text-sm text-muted-foreground">In Top 20</div>
@@ -183,7 +183,7 @@ export default function KeywordRankings() {
           </Card>
           <Card>
             <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-green-600 flex items-center gap-1" data-testid="stat-improving">
+              <div className="text-2xl font-bold text-semantic-success flex items-center gap-1" data-testid="stat-improving">
                 <ArrowUp className="h-4 w-4" />
                 {data?.summary.improving ?? '-'}
               </div>
@@ -192,7 +192,7 @@ export default function KeywordRankings() {
           </Card>
           <Card>
             <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-red-600 flex items-center gap-1" data-testid="stat-declining">
+              <div className="text-2xl font-bold text-semantic-danger flex items-center gap-1" data-testid="stat-declining">
                 <ArrowDown className="h-4 w-4" />
                 {data?.summary.declining ?? '-'}
               </div>

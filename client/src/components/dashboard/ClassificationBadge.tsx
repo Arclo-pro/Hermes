@@ -13,38 +13,38 @@ const classificationConfig: Record<string, {
     label: 'Visibility Loss',
     description: 'Impressions are down - pages may not be appearing in search results',
     icon: Eye,
-    color: 'bg-red-500',
+    color: 'bg-semantic-danger',
   },
   CTR_LOSS: {
     label: 'CTR Loss',
     description: 'Impressions stable but clicks down - snippets may need optimization',
     icon: TrendingDown,
-    color: 'bg-orange-500',
+    color: 'bg-semantic-warning',
   },
   PAGE_CLUSTER_REGRESSION: {
     label: 'Cluster Regression',
     description: 'Traffic loss concentrated in a specific section of the site',
     icon: Layers,
-    color: 'bg-yellow-500',
+    color: 'bg-gold',
   },
   TRACKING_OR_ATTRIBUTION_GAP: {
     label: 'Tracking Gap',
     description: 'GA4 sessions down but search traffic stable - likely a tracking issue',
     icon: AlertTriangle,
-    color: 'bg-purple-500',
+    color: 'bg-purple-accent',
   },
   INCONCLUSIVE: {
     label: 'Inconclusive',
     description: 'No significant issues detected or insufficient data',
     icon: HelpCircle,
-    color: 'bg-slate-400',
+    color: 'bg-muted-foreground',
   },
 };
 
 const confidenceColors: Record<string, string> = {
-  high: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-  medium: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-  low: 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200',
+  high: 'bg-semantic-success-soft text-semantic-success',
+  medium: 'bg-semantic-warning-soft text-semantic-warning',
+  low: 'bg-muted text-muted-foreground',
 };
 
 export function ClassificationBadge() {
@@ -65,12 +65,12 @@ export function ClassificationBadge() {
     return (
       <Card className="border-dashed">
         <CardContent className="p-4 flex items-center gap-4">
-          <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center animate-pulse">
-            <Activity className="w-5 h-5 text-slate-400" />
+          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center animate-pulse">
+            <Activity className="w-5 h-5 text-muted-foreground" />
           </div>
           <div className="flex-1">
-            <div className="h-4 bg-slate-100 dark:bg-slate-800 rounded w-32 animate-pulse"></div>
-            <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded w-48 mt-2 animate-pulse"></div>
+            <div className="h-4 bg-muted rounded w-32 animate-pulse"></div>
+            <div className="h-3 bg-muted rounded w-48 mt-2 animate-pulse"></div>
           </div>
         </CardContent>
       </Card>
@@ -81,8 +81,8 @@ export function ClassificationBadge() {
     return (
       <Card className="border-dashed">
         <CardContent className="p-4 flex items-center gap-4">
-          <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-            <Activity className="w-5 h-5 text-slate-400" />
+          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+            <Activity className="w-5 h-5 text-muted-foreground" />
           </div>
           <div>
             <p className="text-sm font-medium text-muted-foreground">No diagnostics run yet</p>

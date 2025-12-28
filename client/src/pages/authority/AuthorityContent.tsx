@@ -292,9 +292,9 @@ function CompetitorsTable({
 
   if (error) {
     return (
-      <Card className="border-red-200 bg-red-50/50">
+      <Card className="border-semantic-danger-border bg-semantic-danger-soft">
         <CardContent className="p-6 text-center">
-          <p className="text-red-600">Failed to load competitor data. Please try again.</p>
+          <p className="text-semantic-danger">Failed to load competitor data. Please try again.</p>
         </CardContent>
       </Card>
     );
@@ -399,8 +399,8 @@ function CompetitorsTable({
                   <TableCell>{formatNumber(competitor.monthlyOrganicTraffic)}</TableCell>
                   <TableCell>
                     <span className={cn(
-                      competitor.averagePosition <= 10 && "text-green-600",
-                      competitor.averagePosition > 20 && "text-red-600"
+                      competitor.averagePosition <= 10 && "text-semantic-success",
+                      competitor.averagePosition > 20 && "text-semantic-danger"
                     )}>
                       {competitor.averagePosition}
                     </span>
@@ -447,9 +447,9 @@ function BenchmarkCard({ benchmark }: { benchmark: IndustryBenchmark }) {
             variant="outline" 
             className={cn(
               "text-xs",
-              status === 'above' && "bg-green-50 text-green-700 border-green-200",
-              status === 'below' && "bg-red-50 text-red-700 border-red-200",
-              status === 'average' && "bg-yellow-50 text-yellow-700 border-yellow-200"
+              status === 'above' && "bg-semantic-success-soft text-semantic-success border-semantic-success-border",
+              status === 'below' && "bg-semantic-danger-soft text-semantic-danger border-semantic-danger-border",
+              status === 'average' && "bg-semantic-warning-soft text-semantic-warning border-semantic-warning-border"
             )}
           >
             {status === 'above' && <TrendingUp className="w-3 h-3 mr-1" />}
@@ -515,15 +515,15 @@ function OverallScoreCard({ benchmarks }: { benchmarks: IndustryBenchmark[] }) {
           </div>
           <div className="flex-1 grid grid-cols-3 gap-4 text-center">
             <div>
-              <div className="text-xl font-semibold text-green-600">{aboveCount}</div>
+              <div className="text-xl font-semibold text-semantic-success">{aboveCount}</div>
               <div className="text-xs text-muted-foreground">Above Avg</div>
             </div>
             <div>
-              <div className="text-xl font-semibold text-yellow-600">{benchmarks.length - aboveCount - belowCount}</div>
+              <div className="text-xl font-semibold text-semantic-warning">{benchmarks.length - aboveCount - belowCount}</div>
               <div className="text-xs text-muted-foreground">On Par</div>
             </div>
             <div>
-              <div className="text-xl font-semibold text-red-600">{belowCount}</div>
+              <div className="text-xl font-semibold text-semantic-danger">{belowCount}</div>
               <div className="text-xs text-muted-foreground">Below Avg</div>
             </div>
           </div>
@@ -697,7 +697,7 @@ export default function AuthorityContent() {
                 return (
                   <div 
                     key={benchmark.metric}
-                    className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-100 dark:border-red-800"
+                    className="flex items-center justify-between p-3 bg-semantic-danger-soft rounded-lg border border-semantic-danger-border"
                   >
                     <div>
                       <p className="font-medium text-sm">{benchmark.label}</p>

@@ -85,7 +85,7 @@ function ProgressRing({ percent, size = 80, strokeWidth = 8 }: { percent: number
     <div className="relative" style={{ width: size, height: size }}>
       <svg className="transform -rotate-90" width={size} height={size}>
         <circle
-          className="text-slate-700"
+          className="text-muted"
           strokeWidth={strokeWidth}
           stroke="currentColor"
           fill="transparent"
@@ -94,7 +94,7 @@ function ProgressRing({ percent, size = 80, strokeWidth = 8 }: { percent: number
           cy={size / 2}
         />
         <circle
-          className="text-amber-400 transition-all duration-500"
+          className="text-gold transition-all duration-500"
           strokeWidth={strokeWidth}
           strokeDasharray={circumference}
           strokeDashoffset={offset}
@@ -115,17 +115,17 @@ function ProgressRing({ percent, size = 80, strokeWidth = 8 }: { percent: number
 
 function MaturityBadge({ percent }: { percent: number }) {
   let tier = "Bronze";
-  let color = "bg-amber-700 text-amber-100";
+  let color = "bg-gold/70 text-foreground";
   
   if (percent >= 80) {
     tier = "Best-in-Class";
-    color = "bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-900";
+    color = "bg-gradient-to-r from-gold to-semantic-warning text-background";
   } else if (percent >= 60) {
     tier = "Gold";
-    color = "bg-amber-500 text-slate-900";
+    color = "bg-gold text-background";
   } else if (percent >= 40) {
     tier = "Silver";
-    color = "bg-slate-400 text-slate-900";
+    color = "bg-muted text-foreground";
   }
   
   return (
@@ -177,7 +177,7 @@ function StatusCard({
     <Card className="bg-card border-border" data-testid="status-card">
       <CardHeader className="pb-3">
         <CardTitle className="text-lg text-card-foreground flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-amber-400" />
+          <Sparkles className="w-5 h-5 text-gold" />
           Mission Status
         </CardTitle>
       </CardHeader>
@@ -191,31 +191,31 @@ function StatusCard({
               <MaturityBadge percent={percent} />
             </div>
             <p className="text-lg font-semibold text-foreground">{percent}% Operational</p>
-            <p className="text-sm text-slate-400">{enabledCount} / {totalRoles} roles staffed</p>
+            <p className="text-sm text-muted-foreground">{enabledCount} / {totalRoles} roles staffed</p>
           </div>
         </div>
         
         {/* Context Line */}
-        <p className="text-sm text-slate-400 border-l-2 border-slate-600 pl-3">
+        <p className="text-sm text-muted-foreground border-l-2 border-border pl-3">
           {getContextLine(percent)}
         </p>
         
         {/* Baseline AI Readiness - always on */}
-        <div className="flex items-center gap-2 text-xs text-slate-500">
-          <BrainCircuit className="w-3.5 h-3.5 text-violet-400/60" />
-          <span>AI Readiness: <span className="text-violet-400/80">Basic</span></span>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <BrainCircuit className="w-3.5 h-3.5 text-primary/60" />
+          <span>AI Readiness: <span className="text-primary/80">Basic</span></span>
         </div>
         
         {/* Next Best Upgrade */}
         {nextUpgrade && missingAgents.length > 0 && (
-          <div className="pt-3 border-t border-slate-700/50">
-            <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">Next Best Upgrade</p>
-            <div className="p-3 rounded-lg bg-slate-800/60 border border-slate-700">
-              <p className="text-sm font-medium text-amber-300 mb-1 flex items-center gap-1.5">
+          <div className="pt-3 border-t border-border">
+            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Next Best Upgrade</p>
+            <div className="p-3 rounded-lg bg-muted border border-border">
+              <p className="text-sm font-medium text-gold mb-1 flex items-center gap-1.5">
                 <nextUpgrade.icon className="w-4 h-4" />
                 {nextUpgrade.title}
               </p>
-              <p className="text-xs text-slate-400 mb-3">
+              <p className="text-xs text-muted-foreground mb-3">
                 {nextUpgrade.valueProp}
               </p>
               <div className="flex flex-wrap gap-1.5 mb-3">
@@ -224,7 +224,7 @@ function StatusCard({
                   return (
                     <span 
                       key={id}
-                      className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-700/80 text-xs text-slate-300"
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-muted text-xs text-muted-foreground"
                     >
                       {crew.avatar && (
                         <img src={crew.avatar} alt="" className="w-4 h-4 object-contain opacity-60" />
@@ -236,7 +236,7 @@ function StatusCard({
               </div>
               <Button 
                 size="sm"
-                className="w-full bg-amber-500 hover:bg-amber-600 text-slate-900 font-medium"
+                className="w-full bg-gold hover:bg-gold/90 text-background font-medium"
                 onClick={() => onAddRequiredCrew(missingAgents)}
                 data-testid="btn-add-required-crew"
               >
@@ -249,10 +249,10 @@ function StatusCard({
         
         {/* All bonuses unlocked */}
         {!nextUpgrade && (
-          <div className="pt-3 border-t border-slate-700/50">
-            <div className="p-3 rounded-lg bg-green-900/30 border border-green-700/50 text-center">
-              <CheckCircle className="w-6 h-6 text-green-400 mx-auto mb-1" />
-              <p className="text-sm font-medium text-green-300">All set bonuses unlocked!</p>
+          <div className="pt-3 border-t border-border">
+            <div className="p-3 rounded-lg bg-semantic-success-soft border border-semantic-success-border text-center">
+              <CheckCircle className="w-6 h-6 text-semantic-success mx-auto mb-1" />
+              <p className="text-sm font-medium text-semantic-success">All set bonuses unlocked!</p>
             </div>
           </div>
         )}
@@ -291,12 +291,12 @@ function CrewModal({
   const crew = getCrewMember(agentId);
   const bonusContributions = getSetBonusContributions(agentId);
   const statusLabel = isEnabled ? "Active" : isSelected ? "Selected" : "Available";
-  const statusColor = isEnabled ? "bg-green-600 text-white" : isSelected ? "bg-sky-600 text-white" : "bg-slate-600 text-slate-200";
+  const statusColor = isEnabled ? "bg-semantic-success text-white" : isSelected ? "bg-semantic-info text-white" : "bg-muted text-muted-foreground";
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-popover border-border max-w-[560px] max-h-[85vh] overflow-y-auto">
-        <DialogHeader className="pb-4 border-b border-slate-700">
+        <DialogHeader className="pb-4 border-b border-border">
           <div className="flex items-center gap-4">
             {crew.avatar ? (
               <img src={crew.avatar} alt={crew.nickname} className="w-20 h-20 object-contain" />
@@ -317,11 +317,11 @@ function CrewModal({
                   {statusLabel}
                 </Badge>
               </div>
-              <DialogDescription className="text-slate-400 text-base">
+              <DialogDescription className="text-muted-foreground text-base">
                 {crew.role}
               </DialogDescription>
               {crew.pricePerMonth && (
-                <p className="text-amber-400 font-semibold text-sm mt-1">
+                <p className="text-gold font-semibold text-sm mt-1">
                   ${crew.pricePerMonth}/month
                 </p>
               )}
@@ -333,12 +333,12 @@ function CrewModal({
           {/* What this does */}
           {crew.tooltipInfo && (
             <div>
-              <p className="text-xs text-slate-400 uppercase tracking-wide mb-2 font-medium">What this does</p>
-              <p className="text-sm text-slate-300 mb-3">{crew.tooltipInfo.whatItDoes}</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2 font-medium">What this does</p>
+              <p className="text-sm text-foreground/80 mb-3">{crew.tooltipInfo.whatItDoes}</p>
               <ul className="space-y-2">
                 {crew.tooltipInfo.outputs.map((output, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
-                    <Check className="w-4 h-4 text-green-400 mt-0.5 shrink-0" />
+                  <li key={i} className="flex items-start gap-2 text-sm text-foreground/80">
+                    <Check className="w-4 h-4 text-semantic-success mt-0.5 shrink-0" />
                     {output}
                   </li>
                 ))}
@@ -348,14 +348,14 @@ function CrewModal({
           
           {/* Unlocks section */}
           <div>
-            <p className="text-xs text-slate-400 uppercase tracking-wide mb-2 font-medium">Unlocks</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2 font-medium">Unlocks</p>
             
             {crew.capabilities && crew.capabilities.length > 0 && (
               <div className="mb-3">
-                <p className="text-xs text-slate-500 mb-1.5">Capabilities:</p>
+                <p className="text-xs text-muted-foreground mb-1.5">Capabilities:</p>
                 <div className="flex flex-wrap gap-1.5">
                   {crew.capabilities.map((cap, i) => (
-                    <Badge key={i} variant="outline" className="border-slate-600 text-slate-300 text-xs">
+                    <Badge key={i} variant="outline" className="border-border text-foreground/80 text-xs">
                       {cap}
                     </Badge>
                   ))}
@@ -365,10 +365,10 @@ function CrewModal({
             
             {bonusContributions.length > 0 && (
               <div>
-                <p className="text-xs text-slate-500 mb-1.5">Contributes to set bonuses:</p>
+                <p className="text-xs text-muted-foreground mb-1.5">Contributes to set bonuses:</p>
                 <div className="flex flex-wrap gap-1.5">
                   {bonusContributions.map((bonus, i) => (
-                    <Badge key={i} className="bg-amber-500/20 text-amber-300 border-0 text-xs">
+                    <Badge key={i} className="bg-gold-soft text-gold border-0 text-xs">
                       <Zap className="w-3 h-3 mr-1" />
                       {bonus}
                     </Badge>
@@ -381,12 +381,12 @@ function CrewModal({
           {/* Requirements section */}
           {crew.dependencies && crew.dependencies.filter(d => d !== "orchestrator").length > 0 && (
             <div>
-              <p className="text-xs text-slate-400 uppercase tracking-wide mb-2 font-medium">Requirements</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2 font-medium">Requirements</p>
               <div className="flex flex-wrap gap-1.5">
                 {crew.dependencies.filter(d => d !== "orchestrator").map((dep, i) => {
                   const depCrew = getCrewMember(dep);
                   return (
-                    <Badge key={i} variant="outline" className="border-slate-600 text-slate-300 text-xs">
+                    <Badge key={i} variant="outline" className="border-border text-foreground/80 text-xs">
                       {depCrew.nickname}
                     </Badge>
                   );
@@ -396,10 +396,10 @@ function CrewModal({
           )}
         </div>
         
-        <DialogFooter className="pt-4 border-t border-slate-700 flex-row gap-3 sm:justify-between">
+        <DialogFooter className="pt-4 border-t border-border flex-row gap-3 sm:justify-between">
           <Button 
             variant="outline" 
-            className="flex-1 border-slate-600 text-slate-300 hover:bg-slate-800"
+            className="flex-1 border-border text-foreground/80 hover:bg-muted"
             onClick={() => onOpenChange(false)}
             data-testid="button-cancel"
           >
@@ -408,7 +408,7 @@ function CrewModal({
           
           {isEnabled ? (
             <Button 
-              className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold"
+              className="flex-1 bg-semantic-danger hover:bg-semantic-danger/90 text-white font-semibold"
               onClick={onDisable}
               data-testid="button-disable"
             >
@@ -421,8 +421,8 @@ function CrewModal({
                 className={cn(
                   "flex-1",
                   isSelected 
-                    ? "border-slate-500 text-slate-400 hover:bg-slate-800" 
-                    : "border-sky-500 text-sky-400 hover:bg-sky-950"
+                    ? "border-border text-muted-foreground hover:bg-muted" 
+                    : "border-semantic-info-border text-semantic-info hover:bg-semantic-info-soft"
                 )}
                 onClick={onSelect}
                 data-testid="button-select-preview"
@@ -430,7 +430,7 @@ function CrewModal({
                 {isSelected ? "Deselect" : "Select"}
               </Button>
               <Button 
-                className="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold"
+                className="flex-1 bg-gold hover:bg-gold/90 text-background font-semibold"
                 onClick={onEnable}
                 data-testid="button-enable"
               >
@@ -458,16 +458,16 @@ function CapabilityCard({
   return (
     <div className={cn(
       "p-4 rounded-xl border transition-all",
-      status === "active" ? "bg-slate-800/80 border-amber-500/50" :
-      status === "partial" ? "bg-slate-800/50 border-slate-600" :
+      status === "active" ? "bg-muted border-gold-border" :
+      status === "partial" ? "bg-muted/50 border-border" :
       "bg-muted border-border opacity-60"
     )}>
       <div className="flex items-center gap-3 mb-3">
         <div className={cn(
           "w-8 h-8 rounded-lg flex items-center justify-center",
-          status === "active" ? "bg-amber-500/20 text-amber-400" :
-          status === "partial" ? "bg-slate-700 text-slate-400" :
-          "bg-slate-800 text-slate-500"
+          status === "active" ? "bg-gold-soft text-gold" :
+          status === "partial" ? "bg-muted text-muted-foreground" :
+          "bg-muted text-muted-foreground"
         )}>
           <Icon className="w-4 h-4" />
         </div>
@@ -475,9 +475,9 @@ function CapabilityCard({
           <h4 className="font-semibold text-foreground text-sm">{group.title}</h4>
           <Badge variant="outline" className={cn(
             "text-[10px] mt-1",
-            status === "active" ? "border-green-500 text-green-400" :
-            status === "partial" ? "border-amber-500 text-amber-400" :
-            "border-slate-600 text-slate-500"
+            status === "active" ? "border-semantic-success-border text-semantic-success" :
+            status === "partial" ? "border-gold-border text-gold" :
+            "border-border text-muted-foreground"
           )}>
             {status === "active" ? "Active" : status === "partial" ? "Partial" : "Locked"}
           </Badge>
@@ -485,12 +485,12 @@ function CapabilityCard({
       </div>
       <ul className="space-y-1.5">
         {group.capabilities.map((cap, i) => (
-          <li key={i} className="flex items-center gap-2 text-xs text-slate-400">
+          <li key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
             <Check className={cn(
               "w-3 h-3",
-              status === "active" ? "text-green-400" :
-              status === "partial" ? "text-amber-400" :
-              "text-slate-600"
+              status === "active" ? "text-semantic-success" :
+              status === "partial" ? "text-gold" :
+              "text-muted-foreground"
             )} />
             {cap}
           </li>
@@ -544,7 +544,7 @@ function SetBonusCard({
         bonus.comingSoon ? "bg-muted/50 border-border opacity-60" :
         isActive ? "bg-gradient-to-br from-progress-soft to-card border-progress/50" :
         "bg-card border-border",
-        canClick && "cursor-pointer hover:border-amber-500/50 hover:bg-slate-800/50"
+        canClick && "cursor-pointer hover:border-gold-border hover:bg-muted"
       )}
       onClick={handleClick}
       data-testid={`card-crew-collab-${bonus.title.toLowerCase().replace(/\s+/g, '-')}`}
@@ -552,27 +552,27 @@ function SetBonusCard({
       <div className="flex items-start gap-2.5 mb-2">
         <div className={cn(
           "w-9 h-9 rounded-lg flex items-center justify-center shrink-0",
-          bonus.comingSoon ? "bg-slate-800 text-slate-600" :
-          isActive ? "bg-amber-500/20 text-amber-400" :
-          "bg-slate-800 text-slate-500"
+          bonus.comingSoon ? "bg-muted text-muted-foreground" :
+          isActive ? "bg-gold-soft text-gold" :
+          "bg-muted text-muted-foreground"
         )}>
           {bonus.comingSoon ? <Lock className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
         </div>
         <div className="flex-1 min-w-0">
           <h4 className="font-semibold text-foreground text-sm leading-tight">{bonus.title}</h4>
-          <p className="text-[11px] text-slate-400 leading-relaxed mt-0.5">{bonus.valueProp}</p>
+          <p className="text-[11px] text-muted-foreground leading-relaxed mt-0.5">{bonus.valueProp}</p>
         </div>
       </div>
       
       {(isActive || bonus.comingSoon) && (
         <div className="flex items-center gap-2 mb-2">
           {isActive && (
-            <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-[10px]">
+            <Badge className="bg-gold-soft text-gold border-gold-border text-[10px]">
               <Check className="w-3 h-3 mr-1" /> Active
             </Badge>
           )}
           {bonus.comingSoon && (
-            <Badge variant="outline" className="text-[10px] border-slate-600 text-slate-500">
+            <Badge variant="outline" className="text-[10px] border-border text-muted-foreground">
               Coming Soon
             </Badge>
           )}
@@ -585,16 +585,16 @@ function SetBonusCard({
             <div className="flex items-center justify-between mb-1.5">
               <span className={cn(
                 "text-xs font-medium",
-                isPreview ? "text-sky-400" : "text-slate-400"
+                isPreview ? "text-semantic-info" : "text-muted-foreground"
               )}>
                 Progress: {progressDisplay} systems online
               </span>
             </div>
-            <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
               <div 
                 className={cn(
                   "h-full rounded-full transition-all",
-                  isPreview ? "bg-sky-500" : "bg-amber-500"
+                  isPreview ? "bg-semantic-info" : "bg-gold"
                 )}
                 style={{ width: `${(previewCount / bonus.requirements.length) * 100}%` }}
               />
@@ -602,8 +602,8 @@ function SetBonusCard({
           </div>
           
           {nextCrew && (
-            <div className="bg-slate-800/50 rounded-lg p-3 mb-3">
-              <p className="text-xs text-slate-400 mb-2">Next to unlock:</p>
+            <div className="bg-muted rounded-lg p-3 mb-3">
+              <p className="text-xs text-muted-foreground mb-2">Next to unlock:</p>
               <div className="flex items-center gap-2">
                 {nextCrew.avatar && nextCrew.avatar.includes('/') ? (
                   <img src={nextCrew.avatar} alt={nextCrew.nickname} className="w-8 h-8 object-contain" />
@@ -612,7 +612,7 @@ function SetBonusCard({
                 )}
                 <div>
                   <p className="text-sm font-medium text-foreground">{nextCrew.nickname}</p>
-                  <p className="text-xs text-slate-500">{nextCrew.signalType}</p>
+                  <p className="text-xs text-muted-foreground">{nextCrew.signalType}</p>
                 </div>
               </div>
             </div>
@@ -646,7 +646,7 @@ function SetBonusCard({
       )}
       
       {isActive && (
-        <div className="flex items-center gap-2 text-xs text-amber-400">
+        <div className="flex items-center gap-2 text-xs text-gold">
           <Check className="w-4 h-4" />
           <span>All {bonus.requirements.length} crew members active</span>
         </div>

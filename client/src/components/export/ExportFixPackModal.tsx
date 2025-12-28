@@ -127,7 +127,7 @@ export function ExportFixPackModal({ open, onOpenChange }: ExportFixPackModalPro
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="fix-pack" id="fix-pack" data-testid="radio-fix-pack" />
                   <Label htmlFor="fix-pack" className="flex items-center gap-2 cursor-pointer">
-                    <Sparkles className="w-4 h-4 text-amber-500" />
+                    <Sparkles className="w-4 h-4 text-gold" />
                     Replit Fix Pack
                     <Badge className="bg-primary/10 text-primary text-xs">Recommended</Badge>
                   </Label>
@@ -157,7 +157,7 @@ export function ExportFixPackModal({ open, onOpenChange }: ExportFixPackModalPro
 
             <div className="bg-muted/50 rounded-lg p-4 space-y-4">
               <div className="flex items-center gap-2 text-sm font-medium">
-                <Shield className="w-4 h-4 text-green-600" />
+                <Shield className="w-4 h-4 text-semantic-success" />
                 Safety Settings
               </div>
 
@@ -220,7 +220,7 @@ export function ExportFixPackModal({ open, onOpenChange }: ExportFixPackModalPro
         ) : (
           <div className="space-y-4 py-4">
             <div className="flex items-center justify-between">
-              <Badge className="bg-green-100 text-green-700">Generated Successfully</Badge>
+              <Badge className="bg-semantic-success-soft text-semantic-success">Generated Successfully</Badge>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={handleCopy} data-testid="button-copy">
                   {copied ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}

@@ -110,7 +110,7 @@ export default function Settings() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'connected':
-        return <Badge variant="default" className="bg-green-500"><CheckCircle className="w-3 h-3 mr-1" /> Connected</Badge>;
+        return <Badge variant="default" className="bg-semantic-success"><CheckCircle className="w-3 h-3 mr-1" /> Connected</Badge>;
       case 'error':
         return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" /> Error</Badge>;
       case 'pending':
@@ -161,7 +161,7 @@ export default function Settings() {
               {vaultLoading ? (
                 <Badge variant="secondary">Checking...</Badge>
               ) : vaultStatus?.health?.bitwarden?.connected ? (
-                <Badge variant="default" className="bg-green-500">
+                <Badge variant="default" className="bg-semantic-success">
                   <CheckCircle className="w-3 h-3 mr-1" /> Connected
                 </Badge>
               ) : (
@@ -181,7 +181,7 @@ export default function Settings() {
                 <span className="font-medium">Environment Variables</span>
               </div>
               {vaultStatus?.health?.env?.connected ? (
-                <Badge variant="default" className="bg-green-500">
+                <Badge variant="default" className="bg-semantic-success">
                   <CheckCircle className="w-3 h-3 mr-1" /> Active
                 </Badge>
               ) : (
@@ -203,7 +203,7 @@ export default function Settings() {
             <div className="flex items-center gap-4">
               {authStatus?.authenticated ? (
                 <>
-                  <Badge variant="default" className="bg-green-500">
+                  <Badge variant="default" className="bg-semantic-success">
                     <CheckCircle className="w-3 h-3 mr-1" /> Connected
                   </Badge>
                   <span className="text-sm text-muted-foreground">
@@ -289,7 +289,7 @@ export default function Settings() {
                 {value.lastError ? (
                   <Badge variant="destructive">Error</Badge>
                 ) : value.recordCount > 0 ? (
-                  <Badge variant="default" className="bg-green-500">Active</Badge>
+                  <Badge variant="default" className="bg-semantic-success">Active</Badge>
                 ) : (
                   <Badge variant="secondary">No Data</Badge>
                 )}

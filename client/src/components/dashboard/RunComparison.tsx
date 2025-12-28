@@ -87,9 +87,9 @@ export function RunComparison() {
   const getChangeIcon = (change: string) => {
     switch (change) {
       case 'improved':
-        return <ArrowUp className="w-3 h-3 text-green-500" />;
+        return <ArrowUp className="w-3 h-3 text-semantic-success" />;
       case 'worsened':
-        return <ArrowDown className="w-3 h-3 text-red-500" />;
+        return <ArrowDown className="w-3 h-3 text-semantic-danger" />;
       default:
         return <Minus className="w-3 h-3 text-muted-foreground" />;
     }
@@ -105,7 +105,7 @@ export function RunComparison() {
       </CardHeader>
       <CardContent className="space-y-3">
         {data.classificationChanged && (
-          <div className="flex items-center gap-2 p-2 bg-amber-50 dark:bg-amber-950 rounded-md text-xs" data-testid="classification-change">
+          <div className="flex items-center gap-2 p-2 bg-gold-soft rounded-md text-xs" data-testid="classification-change">
             <Badge variant="outline" className="text-xs">{data.previous?.classification}</Badge>
             <span className="text-muted-foreground">→</span>
             <Badge variant="outline" className="text-xs font-medium">{data.current?.classification}</Badge>
@@ -128,8 +128,8 @@ export function RunComparison() {
                 <div className="flex items-center gap-1">
                   {getChangeIcon(change.change)}
                   <span className={
-                    change.change === 'improved' ? 'text-green-500' :
-                    change.change === 'worsened' ? 'text-red-500' : 'text-muted-foreground'
+                    change.change === 'improved' ? 'text-semantic-success' :
+                    change.change === 'worsened' ? 'text-semantic-danger' : 'text-muted-foreground'
                   }>
                     {change.current.toFixed(1)}%
                   </span>

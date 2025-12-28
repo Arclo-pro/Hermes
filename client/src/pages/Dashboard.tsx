@@ -364,10 +364,10 @@ export default function Dashboard() {
 
   const getOverallStatus = () => {
     const statuses = [trafficInsight.status, technicalInsight.status, keywordInsight.status];
-    if (statuses.includes('critical')) return { text: 'Issues Detected', color: 'text-red-600', bg: 'bg-red-50' };
-    if (statuses.includes('attention')) return { text: 'Needs Attention', color: 'text-yellow-600', bg: 'bg-yellow-50' };
-    if (statuses.every(s => s === 'inconclusive')) return { text: 'Setup Required', color: 'text-gray-600', bg: 'bg-gray-50' };
-    return { text: 'Healthy', color: 'text-green-600', bg: 'bg-green-50' };
+    if (statuses.includes('critical')) return { text: 'Issues Detected', color: 'text-semantic-danger', bg: 'bg-semantic-danger-soft' };
+    if (statuses.includes('attention')) return { text: 'Needs Attention', color: 'text-semantic-warning', bg: 'bg-semantic-warning-soft' };
+    if (statuses.every(s => s === 'inconclusive')) return { text: 'Setup Required', color: 'text-muted-foreground', bg: 'bg-muted' };
+    return { text: 'Healthy', color: 'text-semantic-success', bg: 'bg-semantic-success-soft' };
   };
 
   const overallStatus = getOverallStatus();
@@ -462,7 +462,7 @@ export default function Dashboard() {
           <div className="grid lg:grid-cols-3 gap-4">
             <PillarCard
               title="Website Traffic"
-              icon={<Activity className="w-5 h-5 text-blue-600" />}
+              icon={<Activity className="w-5 h-5 text-semantic-info" />}
               status={trafficInsight.status}
               direction={trafficInsight.direction}
               statusHeadline={trafficInsight.headline}
@@ -473,7 +473,7 @@ export default function Dashboard() {
             />
             <PillarCard
               title="Technical SEO"
-              icon={<Shield className="w-5 h-5 text-green-600" />}
+              icon={<Shield className="w-5 h-5 text-semantic-success" />}
               status={technicalInsight.status}
               direction={technicalInsight.direction}
               statusHeadline={technicalInsight.headline}
@@ -484,7 +484,7 @@ export default function Dashboard() {
             />
             <PillarCard
               title="Keyword Ranking"
-              icon={<Search className="w-5 h-5 text-purple-600" />}
+              icon={<Search className="w-5 h-5 text-primary" />}
               status={keywordInsight.status}
               direction={keywordInsight.direction}
               statusHeadline={keywordInsight.headline}

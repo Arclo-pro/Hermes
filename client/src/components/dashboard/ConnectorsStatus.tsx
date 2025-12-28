@@ -38,9 +38,9 @@ export function ConnectorsStatus({ authenticated }: ConnectorsStatusProps) {
             <div className="flex items-start justify-between mb-2">
               <span className="text-sm font-medium text-muted-foreground">{connector.name}</span>
               {isHealthy ? (
-                <CheckCircle2 className="w-4 h-4 text-green-500" />
+                <CheckCircle2 className="w-4 h-4 text-semantic-success" />
               ) : (
-                <AlertTriangle className="w-4 h-4 text-orange-500" />
+                <AlertTriangle className="w-4 h-4 text-semantic-warning" />
               )}
             </div>
             <div className="mt-auto">

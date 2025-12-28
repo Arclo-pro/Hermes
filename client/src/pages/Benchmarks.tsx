@@ -90,9 +90,9 @@ function getPerformanceStatus(metric: BenchmarkMetric): "good" | "average" | "po
 function BenchmarkCard({ metric }: { metric: BenchmarkMetric }) {
   const status = getPerformanceStatus(metric);
   const statusColors = {
-    good: { bg: "bg-green-50", border: "border-green-200", badge: "bg-green-100 text-green-700" },
-    average: { bg: "bg-amber-50", border: "border-amber-200", badge: "bg-amber-100 text-amber-700" },
-    poor: { bg: "bg-red-50", border: "border-red-200", badge: "bg-red-100 text-red-700" },
+    good: { bg: "bg-semantic-success-soft", border: "border-semantic-success", badge: "bg-semantic-success-soft text-semantic-success" },
+    average: { bg: "bg-semantic-warning-soft", border: "border-semantic-warning", badge: "bg-semantic-warning-soft text-semantic-warning" },
+    poor: { bg: "bg-semantic-danger-soft", border: "border-semantic-danger", badge: "bg-semantic-danger-soft text-semantic-danger" },
   };
   const colors = statusColors[status];
 
@@ -107,7 +107,7 @@ function BenchmarkCard({ metric }: { metric: BenchmarkMetric }) {
       <CardContent className="p-5">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <p className="text-sm font-medium text-slate-700">{metric.label}</p>
+            <p className="text-sm font-medium text-foreground">{metric.label}</p>
             <Badge className={cn("text-xs mt-1", colors.badge)}>
               {status === "good" ? "Above Average" : status === "average" ? "On Par" : "Below Average"}
             </Badge>
@@ -139,7 +139,7 @@ function BenchmarkCard({ metric }: { metric: BenchmarkMetric }) {
         </div>
 
         <div className="mt-4 pt-3 border-t flex items-center justify-between">
-          <span className={cn("text-sm flex items-center gap-1", vsIndustry > 0 ? "text-green-600" : "text-red-500")}>
+          <span className={cn("text-sm flex items-center gap-1", vsIndustry > 0 ? "text-semantic-success" : "text-semantic-danger")}>
             <TrendIcon className="w-4 h-4" />
             {Math.abs(vsIndustry).toFixed(0)}% vs industry
           </span>
@@ -168,7 +168,7 @@ export default function Benchmarks() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Info className="w-5 h-5 text-blue-500" />
+              <Info className="w-5 h-5 text-semantic-info" />
               About These Benchmarks
             </CardTitle>
           </CardHeader>

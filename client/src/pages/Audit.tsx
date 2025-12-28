@@ -21,11 +21,11 @@ interface AuditLogEntry {
 
 function ActionBadge({ action }: { action: string }) {
   const colors: Record<string, string> = {
-    create: "bg-green-100 text-green-700",
-    update: "bg-blue-100 text-blue-700",
-    delete: "bg-red-100 text-red-700",
-    run: "bg-purple-100 text-purple-700",
-    error: "bg-red-100 text-red-700",
+    create: "bg-semantic-success-soft text-semantic-success",
+    update: "bg-semantic-info-soft text-semantic-info",
+    delete: "bg-semantic-danger-soft text-semantic-danger",
+    run: "bg-purple-soft text-purple-accent",
+    error: "bg-semantic-danger-soft text-semantic-danger",
   };
   const actionType = action.toLowerCase().includes("create")
     ? "create"

@@ -22,10 +22,10 @@ interface Run {
 
 function RunStatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    completed: "bg-green-100 text-green-700",
-    running: "bg-blue-100 text-blue-700",
-    failed: "bg-red-100 text-red-700",
-    pending: "bg-amber-100 text-amber-700",
+    completed: "bg-semantic-success-soft text-semantic-success",
+    running: "bg-semantic-info-soft text-semantic-info",
+    failed: "bg-semantic-danger-soft text-semantic-danger",
+    pending: "bg-semantic-warning-soft text-semantic-warning",
   };
   return (
     <Badge className={cn("text-xs", styles[status] || styles.pending)}>

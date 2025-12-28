@@ -37,10 +37,10 @@ interface RunDetail {
 
 function RunStatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    completed: "bg-green-100 text-green-700",
-    running: "bg-blue-100 text-blue-700",
-    failed: "bg-red-100 text-red-700",
-    pending: "bg-amber-100 text-amber-700",
+    completed: "bg-semantic-success-soft text-semantic-success",
+    running: "bg-semantic-info-soft text-semantic-info",
+    failed: "bg-semantic-danger-soft text-semantic-danger",
+    pending: "bg-semantic-warning-soft text-semantic-warning",
   };
   return (
     <Badge className={cn("text-xs", styles[status] || styles.pending)}>
@@ -130,8 +130,8 @@ export default function RunDetail() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
-                  <AlertTriangle className="w-5 h-5 text-amber-600" />
+                <div className="w-10 h-10 rounded-full bg-semantic-warning-soft flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 text-semantic-warning" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{run.anomaliesDetected}</p>
@@ -143,8 +143,8 @@ export default function RunDetail() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-blue-600" />
+                <div className="w-10 h-10 rounded-full bg-semantic-info-soft flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-semantic-info" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{run.ticketCount}</p>
@@ -156,8 +156,8 @@ export default function RunDetail() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-green-600" />
+                <div className="w-10 h-10 rounded-full bg-semantic-success-soft flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-semantic-success" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">

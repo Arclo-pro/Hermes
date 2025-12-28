@@ -36,18 +36,18 @@ interface KbaseResponse {
 }
 
 const severityColors: Record<string, string> = {
-  critical: "bg-red-100 text-red-800 border-red-200",
-  high: "bg-orange-100 text-orange-800 border-orange-200",
-  medium: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  low: "bg-blue-100 text-blue-800 border-blue-200",
-  info: "bg-gray-100 text-gray-800 border-gray-200",
+  critical: "bg-semantic-danger-soft text-semantic-danger border-semantic-danger",
+  high: "bg-semantic-warning-soft text-semantic-warning border-semantic-warning",
+  medium: "bg-semantic-warning-soft text-semantic-warning border-semantic-warning",
+  low: "bg-semantic-info-soft text-semantic-info border-semantic-info",
+  info: "bg-muted text-muted-foreground border-border",
 };
 
 const statusColors: Record<string, string> = {
-  open: "bg-blue-100 text-blue-800",
-  accepted: "bg-green-100 text-green-800",
-  fixed: "bg-emerald-100 text-emerald-800",
-  ignored: "bg-gray-100 text-gray-600",
+  open: "bg-semantic-info-soft text-semantic-info",
+  accepted: "bg-semantic-success-soft text-semantic-success",
+  fixed: "bg-semantic-success-soft text-semantic-success",
+  ignored: "bg-muted text-muted-foreground",
 };
 
 export function KbaseInsightsSection() {
@@ -165,8 +165,8 @@ export function KbaseInsightsSection() {
           </div>
         ) : isError ? (
           <div className="text-center py-8">
-            <Lightbulb className="w-10 h-10 text-red-500/40 mx-auto mb-3" />
-            <p className="text-red-600">
+            <Lightbulb className="w-10 h-10 text-semantic-danger/40 mx-auto mb-3" />
+            <p className="text-semantic-danger">
               Failed to load insights: {error?.message || "Unknown error"}
             </p>
             <Button variant="outline" size="sm" onClick={() => refetch()} className="mt-2">
@@ -235,7 +235,7 @@ export function KbaseInsightsSection() {
                           title="Accept"
                           data-testid={`button-accept-${finding.findingId}`}
                         >
-                          <Check className="w-4 h-4 text-green-600" />
+                          <Check className="w-4 h-4 text-semantic-success" />
                         </Button>
                         <Button
                           variant="ghost"
@@ -244,7 +244,7 @@ export function KbaseInsightsSection() {
                           title="Ignore"
                           data-testid={`button-ignore-${finding.findingId}`}
                         >
-                          <X className="w-4 h-4 text-gray-500" />
+                          <X className="w-4 h-4 text-muted-foreground" />
                         </Button>
                       </>
                     )}
@@ -256,7 +256,7 @@ export function KbaseInsightsSection() {
                         title="Mark as Fixed"
                         data-testid={`button-fix-${finding.findingId}`}
                       >
-                        <Check className="w-4 h-4 text-emerald-600" />
+                        <Check className="w-4 h-4 text-semantic-success" />
                       </Button>
                     )}
                   </div>

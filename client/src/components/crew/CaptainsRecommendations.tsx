@@ -67,9 +67,9 @@ function formatRelativeTime(dateString: string): string {
 
 function ImpactBadge({ impact }: { impact: "High" | "Medium" | "Low" }) {
   const colors = {
-    High: "bg-red-100 text-red-700",
-    Medium: "bg-yellow-100 text-yellow-700",
-    Low: "bg-green-100 text-green-700",
+    High: "bg-semantic-danger-soft text-semantic-danger",
+    Medium: "bg-semantic-warning-soft text-semantic-warning",
+    Low: "bg-semantic-success-soft text-semantic-success",
   };
   return <Badge className={cn("text-xs", colors[impact])}>{impact}</Badge>;
 }
@@ -85,9 +85,9 @@ function EffortBadge({ effort }: { effort: "S" | "M" | "L" }) {
 
 function ConfidenceBadge({ confidence }: { confidence: "High" | "Medium" | "Low" }) {
   const colors = {
-    High: "bg-green-100 text-green-700",
-    Medium: "bg-yellow-100 text-yellow-700",
-    Low: "bg-red-100 text-red-700",
+    High: "bg-semantic-success-soft text-semantic-success",
+    Medium: "bg-semantic-warning-soft text-semantic-warning",
+    Low: "bg-semantic-danger-soft text-semantic-danger",
   };
   return (
     <Badge className={cn("text-xs", colors[confidence])}>
@@ -98,11 +98,11 @@ function ConfidenceBadge({ confidence }: { confidence: "High" | "Medium" | "Low"
 
 function PriorityCard({ priority }: { priority: CaptainPriority }) {
   const priorityStyles = {
-    1: { bg: "bg-red-50", border: "border-red-200" },
-    2: { bg: "bg-amber-50", border: "border-amber-200" }, 
-    3: { bg: "bg-blue-50", border: "border-blue-200" },
+    1: { bg: "bg-semantic-danger-soft", border: "border-semantic-danger-border" },
+    2: { bg: "bg-gold-soft", border: "border-gold" }, 
+    3: { bg: "bg-semantic-info-soft", border: "border-semantic-info-border" },
   };
-  const styles = priorityStyles[priority.rank as 1 | 2 | 3] || { bg: "bg-slate-50", border: "border-slate-200" };
+  const styles = priorityStyles[priority.rank as 1 | 2 | 3] || { bg: "bg-muted", border: "border-border" };
   return (
     <div 
       className={cn(
@@ -159,7 +159,7 @@ function BlockerItem({ blocker }: { blocker: CaptainBlocker }) {
   const crew = getCrewMember(blocker.id);
   return (
     <div className="flex items-start gap-3 text-sm">
-      <AlertCircle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+      <AlertCircle className="w-4 h-4 text-gold flex-shrink-0 mt-0.5" />
       <div>
         <span className="font-medium" style={{ color: crew.color }}>{blocker.title}</span>
         <span className="text-muted-foreground"> — {blocker.fix}</span>
@@ -176,8 +176,8 @@ export function CaptainsRecommendations({ data }: CaptainsRecommendationsProps) 
   const priorities = ensureThreePriorities(data.priorities);
 
   return (
-    <Card className="border border-slate-200 shadow-md bg-slate-50/80 overflow-hidden" data-testid="captains-recommendations">
-      <CardHeader className="pb-4 bg-gradient-to-r from-primary/10 to-primary/5 border-b border-slate-200">
+    <Card className="border border-border shadow-md bg-card overflow-hidden" data-testid="captains-recommendations">
+      <CardHeader className="pb-4 bg-gradient-to-r from-primary/10 to-primary/5 border-b border-border">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center shadow-sm">
@@ -195,7 +195,7 @@ export function CaptainsRecommendations({ data }: CaptainsRecommendationsProps) 
           </div>
           <div className="flex items-center gap-2">
             <ConfidenceBadge confidence={data.confidence} />
-            <Badge variant="outline" className="text-xs bg-white">
+            <Badge variant="outline" className="text-xs bg-card">
               {data.coverage.active}/{data.coverage.total} agents
             </Badge>
           </div>
@@ -203,7 +203,7 @@ export function CaptainsRecommendations({ data }: CaptainsRecommendationsProps) 
       </CardHeader>
       <CardContent className="space-y-6 pt-5">
         <div>
-          <div className="flex items-center gap-2 mb-4 pb-2 border-b border-slate-200">
+          <div className="flex items-center gap-2 mb-4 pb-2 border-b border-border">
             <TrendingUp className="w-4 h-4 text-primary" />
             <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Priority Actions</h3>
           </div>
@@ -216,11 +216,11 @@ export function CaptainsRecommendations({ data }: CaptainsRecommendationsProps) 
 
         {data.blockers.length > 0 && (
           <div>
-            <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-200">
-              <AlertCircle className="w-4 h-4 text-amber-500" />
+            <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border">
+              <AlertCircle className="w-4 h-4 text-gold" />
               <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Blockers</h3>
             </div>
-            <div className="space-y-2 p-4 rounded-lg bg-amber-50 border-2 border-amber-200 shadow-sm">
+            <div className="space-y-2 p-4 rounded-lg bg-gold-soft border-2 border-gold shadow-sm">
               {data.blockers.map((blocker) => (
                 <BlockerItem key={blocker.id} blocker={blocker} />
               ))}
@@ -228,7 +228,7 @@ export function CaptainsRecommendations({ data }: CaptainsRecommendationsProps) 
           </div>
         )}
 
-        <p className="text-xs text-muted-foreground italic flex items-center gap-1 pt-3 border-t border-slate-200">
+        <p className="text-xs text-muted-foreground italic flex items-center gap-1 pt-3 border-t border-border">
           <Lightbulb className="w-3 h-3" />
           Recommendations improve as more agents contribute data.
         </p>

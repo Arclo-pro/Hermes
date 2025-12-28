@@ -70,22 +70,22 @@ interface ProposalAction {
 }
 
 const riskColors: Record<string, string> = {
-  low: "bg-green-100 text-green-800 border-green-200",
-  medium: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  high: "bg-orange-100 text-orange-800 border-orange-200",
-  critical: "bg-red-100 text-red-800 border-red-200",
+  low: "bg-semantic-success-soft text-semantic-success border-semantic-success-border",
+  medium: "bg-semantic-warning-soft text-semantic-warning border-semantic-warning-border",
+  high: "bg-gold-soft text-gold border-gold",
+  critical: "bg-semantic-danger-soft text-semantic-danger border-semantic-danger-border",
 };
 
 const statusColors: Record<string, string> = {
-  open: "bg-blue-100 text-blue-800",
-  in_review: "bg-purple-100 text-purple-800",
-  accepted: "bg-green-100 text-green-800",
-  applying: "bg-yellow-100 text-yellow-800",
-  applied: "bg-green-200 text-green-900",
-  failed: "bg-red-100 text-red-800",
-  rejected: "bg-gray-100 text-gray-800",
-  snoozed: "bg-gray-100 text-gray-600",
-  superseded: "bg-gray-100 text-gray-500",
+  open: "bg-semantic-info-soft text-semantic-info",
+  in_review: "bg-purple-soft text-purple-accent",
+  accepted: "bg-semantic-success-soft text-semantic-success",
+  applying: "bg-semantic-warning-soft text-semantic-warning",
+  applied: "bg-semantic-success-soft text-semantic-success",
+  failed: "bg-semantic-danger-soft text-semantic-danger",
+  rejected: "bg-muted text-muted-foreground",
+  snoozed: "bg-muted text-muted-foreground",
+  superseded: "bg-muted text-muted-foreground",
 };
 
 const typeLabels: Record<string, string> = {
@@ -104,13 +104,13 @@ const typeLabels: Record<string, string> = {
 const RiskIcon = ({ risk }: { risk: string }) => {
   switch (risk) {
     case 'critical':
-      return <AlertCircle className="h-4 w-4 text-red-600" />;
+      return <AlertCircle className="h-4 w-4 text-semantic-danger" />;
     case 'high':
-      return <AlertTriangle className="h-4 w-4 text-orange-600" />;
+      return <AlertTriangle className="h-4 w-4 text-gold" />;
     case 'medium':
-      return <AlertTriangle className="h-4 w-4 text-yellow-600" />;
+      return <AlertTriangle className="h-4 w-4 text-semantic-warning" />;
     default:
-      return <Info className="h-4 w-4 text-green-600" />;
+      return <Info className="h-4 w-4 text-semantic-success" />;
   }
 };
 
@@ -390,7 +390,7 @@ export default function SuggestedChanges() {
         ) : proposals.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
-              <CheckCircle2 className="h-12 w-12 mx-auto text-green-500 mb-4" />
+              <CheckCircle2 className="h-12 w-12 mx-auto text-semantic-success mb-4" />
               <h3 className="text-lg font-medium">No proposals to review</h3>
               <p className="text-muted-foreground mt-2">
                 All caught up! Run diagnostics to generate new missions.
@@ -483,19 +483,19 @@ export default function SuggestedChanges() {
                         </Button>
                       )}
                       {proposal.status === 'applying' && (
-                        <Badge className="bg-yellow-100 text-yellow-800">
+                        <Badge className="bg-semantic-warning-soft text-semantic-warning">
                           <Loader2 className="h-3 w-3 animate-spin mr-1" />
                           Applying...
                         </Badge>
                       )}
                       {proposal.status === 'applied' && (
-                        <Badge className="bg-green-100 text-green-800">
+                        <Badge className="bg-semantic-success-soft text-semantic-success">
                           <CheckCircle2 className="h-3 w-3 mr-1" />
                           Applied
                         </Badge>
                       )}
                       {proposal.status === 'failed' && (
-                        <Badge className="bg-red-100 text-red-800">
+                        <Badge className="bg-semantic-danger-soft text-semantic-danger">
                           <XCircle className="h-3 w-3 mr-1" />
                           Failed
                         </Badge>
@@ -520,8 +520,8 @@ export default function SuggestedChanges() {
             ) : kbaseError ? (
               <Card>
                 <CardContent className="py-12 text-center">
-                  <AlertCircle className="h-12 w-12 mx-auto text-red-500/40 mb-4" />
-                  <h3 className="text-lg font-medium text-red-600">Failed to load insights</h3>
+                  <AlertCircle className="h-12 w-12 mx-auto text-semantic-danger/40 mb-4" />
+                  <h3 className="text-lg font-medium text-semantic-danger">Failed to load insights</h3>
                   <p className="text-muted-foreground mt-2">
                     Unable to fetch Knowledge Base data. Please try again.
                   </p>
@@ -551,15 +551,15 @@ export default function SuggestedChanges() {
                     <CardContent className="py-4">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex items-start gap-3 flex-1">
-                          <BookOpen className="h-5 w-5 text-indigo-600 mt-0.5" />
+                          <BookOpen className="h-5 w-5 text-semantic-info mt-0.5" />
                           <div className="flex-1 min-w-0">
                             <h3 className="font-medium">{finding.title}</h3>
                             <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground flex-wrap">
                               <Badge className={
-                                finding.severity === 'critical' ? "bg-red-100 text-red-800" :
-                                finding.severity === 'high' ? "bg-orange-100 text-orange-800" :
-                                finding.severity === 'medium' ? "bg-yellow-100 text-yellow-800" :
-                                "bg-blue-100 text-blue-800"
+                                finding.severity === 'critical' ? "bg-semantic-danger-soft text-semantic-danger" :
+                                finding.severity === 'high' ? "bg-gold-soft text-gold" :
+                                finding.severity === 'medium' ? "bg-semantic-warning-soft text-semantic-warning" :
+                                "bg-semantic-info-soft text-semantic-info"
                               }>
                                 {finding.severity}
                               </Badge>
@@ -602,7 +602,7 @@ export default function SuggestedChanges() {
                             disabled={updateFindingStatusMutation.isPending}
                             data-testid={`button-accept-kbase-${finding.findingId}`}
                           >
-                            <Check className="h-4 w-4 text-green-600" />
+                            <Check className="h-4 w-4 text-semantic-success" />
                           </Button>
                           <Button 
                             size="sm" 
@@ -614,7 +614,7 @@ export default function SuggestedChanges() {
                             disabled={updateFindingStatusMutation.isPending}
                             data-testid={`button-ignore-kbase-${finding.findingId}`}
                           >
-                            <X className="h-4 w-4 text-gray-500" />
+                            <X className="h-4 w-4 text-muted-foreground" />
                           </Button>
                         </div>
                       </div>
@@ -820,7 +820,7 @@ export default function SuggestedChanges() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-orange-500" />
+              <AlertTriangle className="h-5 w-5 text-gold" />
               Confirm High-Risk Action
             </DialogTitle>
             <DialogDescription>

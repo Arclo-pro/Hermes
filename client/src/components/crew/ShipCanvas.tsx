@@ -50,19 +50,19 @@ function Compartment({
         "rounded-2xl cursor-pointer",
         "bg-gradient-to-b backdrop-blur-sm",
         state === "enabled" && [
-          "from-slate-600/90 to-slate-700/95",
-          "border-2 border-amber-400/80",
-          "shadow-[0_0_20px_rgba(251,191,36,0.4),inset_0_1px_0_rgba(255,255,255,0.1)]",
+          "from-surface-2 to-surface-3",
+          "border-2 border-gold",
+          "shadow-gold",
         ],
         state === "selected" && [
-          "from-slate-600/70 to-slate-700/80",
-          "border-2 border-sky-400/70",
-          "shadow-[0_0_12px_rgba(56,189,248,0.3)]",
+          "from-surface-1 to-surface-2",
+          "border-2 border-semantic-info-border",
+          "shadow-[0_0_12px_var(--color-semantic-info-soft)]",
         ],
         state === "empty" && [
-          "from-slate-700/50 to-slate-800/60",
-          "border border-slate-500/40",
-          "hover:border-slate-400/60 hover:from-slate-600/60",
+          "from-surface-1 to-muted",
+          "border border-border",
+          "hover:border-muted-foreground hover:from-surface-2",
         ]
       )}
       style={{ gridArea }}
@@ -83,9 +83,9 @@ function Compartment({
           <div
             className={cn(
               "w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold",
-              state === "enabled" ? "bg-amber-500/40 text-amber-200" :
-              state === "selected" ? "bg-sky-500/40 text-sky-200" :
-              "bg-slate-600/50 text-slate-400"
+              state === "enabled" ? "bg-gold-soft text-gold" :
+              state === "selected" ? "bg-semantic-info-soft text-semantic-info" :
+              "bg-muted text-muted-foreground"
             )}
           >
             {crew.nickname.charAt(0)}
@@ -96,24 +96,24 @@ function Compartment({
       <span
         className={cn(
           "text-[11px] sm:text-xs font-semibold text-center leading-tight",
-          state === "enabled" ? "text-amber-100" :
-          state === "selected" ? "text-sky-100" :
-          "text-slate-300"
+          state === "enabled" ? "text-gold" :
+          state === "selected" ? "text-semantic-info" :
+          "text-muted-foreground"
         )}
       >
         {crew.nickname}
       </span>
-      <span className="text-[9px] sm:text-[10px] text-slate-400 text-center leading-tight">
+      <span className="text-[9px] sm:text-[10px] text-muted-foreground text-center leading-tight">
         {crew.role}
       </span>
 
       {state === "enabled" && (
-        <Badge className="absolute -top-2 -right-2 bg-amber-500 text-amber-950 text-[9px] px-2 py-0.5 border-0 font-semibold shadow-lg">
+        <Badge className="absolute -top-2 -right-2 bg-gold text-background text-[9px] px-2 py-0.5 border-0 font-semibold shadow-lg">
           Active
         </Badge>
       )}
       {state === "selected" && (
-        <Badge className="absolute -top-2 -right-2 bg-sky-500 text-sky-950 text-[9px] px-2 py-0.5 border-0 font-semibold shadow-lg">
+        <Badge className="absolute -top-2 -right-2 bg-semantic-info text-background text-[9px] px-2 py-0.5 border-0 font-semibold shadow-lg">
           Selected
         </Badge>
       )}

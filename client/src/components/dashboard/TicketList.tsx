@@ -88,7 +88,7 @@ export function TicketList() {
                   <TableCell>
                     <Badge 
                       variant={ticket.priority === 'High' ? 'destructive' : 'outline'}
-                      className={ticket.priority === 'Medium' ? 'bg-orange-100 text-orange-700 border-orange-200 hover:bg-orange-100' : ''}
+                      className={ticket.priority === 'Medium' ? 'bg-semantic-warning-soft text-semantic-warning border-semantic-warning-border hover:bg-semantic-warning-soft' : ''}
                     >
                       {ticket.priority}
                     </Badge>

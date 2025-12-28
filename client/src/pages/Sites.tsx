@@ -57,11 +57,11 @@ export default function Sites() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
-        return <Badge className="bg-green-500/10 text-green-600 border-green-500/20"><CheckCircle className="w-3 h-3 mr-1" />Active</Badge>;
+        return <Badge className="bg-semantic-success-soft text-semantic-success border-semantic-success-border"><CheckCircle className="w-3 h-3 mr-1" />Active</Badge>;
       case 'paused':
-        return <Badge className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20"><Clock className="w-3 h-3 mr-1" />Paused</Badge>;
+        return <Badge className="bg-semantic-warning-soft text-semantic-warning border-semantic-warning-border"><Clock className="w-3 h-3 mr-1" />Paused</Badge>;
       case 'onboarding':
-        return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20"><Activity className="w-3 h-3 mr-1" />Onboarding</Badge>;
+        return <Badge className="bg-semantic-info-soft text-semantic-info border-semantic-info-border"><Activity className="w-3 h-3 mr-1" />Onboarding</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -69,10 +69,10 @@ export default function Sites() {
 
   const getHealthColor = (score: number | null) => {
     if (score === null) return "bg-muted-foreground";
-    if (score >= 80) return "bg-green-500";
-    if (score >= 60) return "bg-yellow-500";
-    if (score >= 40) return "bg-orange-500";
-    return "bg-red-500";
+    if (score >= 80) return "bg-semantic-success";
+    if (score >= 60) return "bg-semantic-warning";
+    if (score >= 40) return "bg-gold";
+    return "bg-semantic-danger";
   };
 
   const formatDate = (date: string | null) => {
@@ -118,8 +118,8 @@ export default function Sites() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-lg bg-green-500/10 flex items-center justify-center">
-                  <CheckCircle className="w-6 h-6 text-green-600" />
+                <div className="w-12 h-12 rounded-lg bg-semantic-success-soft flex items-center justify-center">
+                  <CheckCircle className="w-6 h-6 text-semantic-success" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold" data-testid="text-active-sites">{sites?.filter(s => s.status === 'active').length || 0}</p>
@@ -131,8 +131,8 @@ export default function Sites() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-lg bg-orange-500/10 flex items-center justify-center">
-                  <AlertTriangle className="w-6 h-6 text-orange-600" />
+                <div className="w-12 h-12 rounded-lg bg-gold-soft flex items-center justify-center">
+                  <AlertTriangle className="w-6 h-6 text-gold" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold" data-testid="text-needs-attention">{sites?.filter(s => s.healthScore !== null && s.healthScore < 60).length || 0}</p>

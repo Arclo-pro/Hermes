@@ -134,17 +134,17 @@ export default function SERPContent() {
 
   const getPositionColor = (pos: number | null) => {
     if (!pos) return 'text-muted-foreground';
-    if (pos <= 3) return 'text-green-600 font-bold';
-    if (pos <= 10) return 'text-green-500';
-    if (pos <= 20) return 'text-yellow-500';
-    if (pos <= 50) return 'text-orange-500';
-    return 'text-red-500';
+    if (pos <= 3) return 'text-semantic-success font-bold';
+    if (pos <= 10) return 'text-semantic-success';
+    if (pos <= 20) return 'text-semantic-warning';
+    if (pos <= 50) return 'text-gold';
+    return 'text-semantic-danger';
   };
 
   const getChangeIcon = (change: number | null) => {
     if (!change) return <Minus className="h-4 w-4 text-muted-foreground" />;
-    if (change > 0) return <TrendingUp className="h-4 w-4 text-green-500" />;
-    return <TrendingDown className="h-4 w-4 text-red-500" />;
+    if (change > 0) return <TrendingUp className="h-4 w-4 text-semantic-success" />;
+    return <TrendingDown className="h-4 w-4 text-semantic-danger" />;
   };
 
   if (isLoading) {
@@ -203,9 +203,9 @@ export default function SERPContent() {
       </div>
 
       {!overview?.configured && (
-        <Card className="border-yellow-500/50 bg-yellow-500/5">
+        <Card className="border-semantic-warning-border bg-semantic-warning-soft">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-yellow-600">
+            <CardTitle className="flex items-center gap-2 text-semantic-warning">
               <AlertTriangle className="h-5 w-5" />
               SERP API Not Configured
             </CardTitle>
@@ -233,10 +233,10 @@ export default function SERPContent() {
         <Card data-testid="card-top-10">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Top 10 Positions</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-500" />
+            <TrendingUp className="h-4 w-4 text-semantic-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.inTop10}</div>
+            <div className="text-2xl font-bold text-semantic-success">{stats.inTop10}</div>
             <Progress value={totalTracked > 0 ? (stats.inTop10 / totalTracked) * 100 : 0} className="mt-2" />
           </CardContent>
         </Card>
@@ -260,19 +260,19 @@ export default function SERPContent() {
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Recent Changes</CardTitle>
             <div className="flex gap-1">
-              <ArrowUp className="h-4 w-4 text-green-500" />
-              <ArrowDown className="h-4 w-4 text-red-500" />
+              <ArrowUp className="h-4 w-4 text-semantic-success" />
+              <ArrowDown className="h-4 w-4 text-semantic-danger" />
             </div>
           </CardHeader>
           <CardContent>
             <div className="flex gap-4">
               <div>
-                <span className="text-2xl font-bold text-green-600">{stats.winners}</span>
-                <p className="text-xs text-green-600">improved</p>
+                <span className="text-2xl font-bold text-semantic-success">{stats.winners}</span>
+                <p className="text-xs text-semantic-success">improved</p>
               </div>
               <div>
-                <span className="text-2xl font-bold text-red-600">{stats.losers}</span>
-                <p className="text-xs text-red-600">declined</p>
+                <span className="text-2xl font-bold text-semantic-danger">{stats.losers}</span>
+                <p className="text-xs text-semantic-danger">declined</p>
               </div>
             </div>
           </CardContent>
@@ -309,7 +309,7 @@ export default function SERPContent() {
                       <div className="flex items-center gap-1">
                         {getChangeIcon(r.change)}
                         {r.change !== null && r.change !== 0 && (
-                          <span className={r.change > 0 ? 'text-green-500 text-sm' : 'text-red-500 text-sm'}>
+                          <span className={r.change > 0 ? 'text-semantic-success text-sm' : 'text-semantic-danger text-sm'}>
                             {r.change > 0 ? '+' : ''}{r.change}
                           </span>
                         )}
@@ -348,7 +348,7 @@ export default function SERPContent() {
                     </div>
                     <Badge 
                       variant={r.change && r.change > 0 ? "default" : "destructive"}
-                      className={r.change && r.change > 0 ? "bg-green-500" : ""}
+                      className={r.change && r.change > 0 ? "bg-semantic-success" : ""}
                     >
                       {r.change && r.change > 0 ? '+' : ''}{r.change} positions
                     </Badge>
@@ -397,7 +397,7 @@ export default function SERPContent() {
                         <div className="flex items-center justify-center gap-1">
                           {getChangeIcon(r.change)}
                           {r.change !== null && r.change !== 0 && (
-                            <span className={r.change > 0 ? 'text-green-500' : 'text-red-500'}>
+                            <span className={r.change > 0 ? 'text-semantic-success' : 'text-semantic-danger'}>
                               {r.change > 0 ? '+' : ''}{r.change}
                             </span>
                           )}

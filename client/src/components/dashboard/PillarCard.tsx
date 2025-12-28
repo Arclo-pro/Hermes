@@ -32,33 +32,33 @@ const statusConfig = {
   good: {
     label: 'Good',
     icon: CheckCircle,
-    className: 'bg-green-500/10 text-green-700 border-green-500/20',
-    barColor: 'bg-green-500',
+    className: 'bg-semantic-success-soft text-semantic-success border-semantic-success-border',
+    barColor: 'bg-semantic-success',
   },
   attention: {
     label: 'Needs Attention',
     icon: AlertTriangle,
-    className: 'bg-yellow-500/10 text-yellow-700 border-yellow-500/20',
-    barColor: 'bg-yellow-500',
+    className: 'bg-gold-soft text-gold border-gold',
+    barColor: 'bg-gold',
   },
   critical: {
     label: 'Critical',
     icon: XCircle,
-    className: 'bg-red-500/10 text-red-700 border-red-500/20',
-    barColor: 'bg-red-500',
+    className: 'bg-semantic-danger-soft text-semantic-danger border-semantic-danger-border',
+    barColor: 'bg-semantic-danger',
   },
   inconclusive: {
     label: 'Inconclusive',
     icon: HelpCircle,
-    className: 'bg-gray-500/10 text-gray-600 border-gray-500/20',
-    barColor: 'bg-gray-400',
+    className: 'bg-muted text-muted-foreground border-border',
+    barColor: 'bg-muted-foreground',
   },
 };
 
 const DirectionIcon = ({ direction }: { direction?: TrendDirection }) => {
-  if (direction === 'up') return <ArrowUp className="w-4 h-4 text-green-600" />;
-  if (direction === 'down') return <ArrowDown className="w-4 h-4 text-red-600" />;
-  return <ArrowRight className="w-4 h-4 text-gray-500" />;
+  if (direction === 'up') return <ArrowUp className="w-4 h-4 text-semantic-success" />;
+  if (direction === 'down') return <ArrowDown className="w-4 h-4 text-semantic-danger" />;
+  return <ArrowRight className="w-4 h-4 text-muted-foreground" />;
 };
 
 export function PillarCard({ 
@@ -107,16 +107,16 @@ export function PillarCard({
               <div className="flex items-baseline gap-1.5">
                 <span className={cn(
                   "text-lg font-bold",
-                  kpi.interpretation === 'good' && "text-green-600",
-                  kpi.interpretation === 'critical' && "text-red-600",
-                  kpi.interpretation === 'warning' && "text-yellow-600",
+                  kpi.interpretation === 'good' && "text-semantic-success",
+                  kpi.interpretation === 'critical' && "text-semantic-danger",
+                  kpi.interpretation === 'warning' && "text-semantic-warning",
                 )}>
                   {kpi.value}
                 </span>
                 {kpi.delta && (
                   <span className={cn(
                     "text-xs",
-                    kpi.delta.startsWith('-') ? "text-red-600" : kpi.delta.startsWith('+') ? "text-green-600" : "text-muted-foreground"
+                    kpi.delta.startsWith('-') ? "text-semantic-danger" : kpi.delta.startsWith('+') ? "text-semantic-success" : "text-muted-foreground"
                   )}>
                     {kpi.delta}
                   </span>

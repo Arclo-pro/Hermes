@@ -28,11 +28,11 @@ interface FindingsSummary {
 }
 
 const severityColors: Record<string, string> = {
-  critical: "bg-red-100 text-red-800",
-  high: "bg-orange-100 text-orange-800",
-  medium: "bg-yellow-100 text-yellow-800",
-  low: "bg-blue-100 text-blue-800",
-  info: "bg-gray-100 text-gray-800",
+  critical: "bg-semantic-danger-soft text-semantic-danger",
+  high: "bg-semantic-warning-soft text-semantic-warning",
+  medium: "bg-semantic-warning-soft text-semantic-warning",
+  low: "bg-semantic-info-soft text-semantic-info",
+  info: "bg-muted text-muted-foreground",
 };
 
 export function KnowledgeBaseCard() {
@@ -114,8 +114,8 @@ export function KnowledgeBaseCard() {
           </div>
         ) : isError ? (
           <div className="text-center py-6">
-            <AlertCircle className="w-10 h-10 text-red-500/40 mx-auto mb-3" />
-            <p className="text-red-600 text-sm">
+            <AlertCircle className="w-10 h-10 text-semantic-danger/40 mx-auto mb-3" />
+            <p className="text-semantic-danger text-sm">
               Failed to load insights
             </p>
             <Button variant="outline" size="sm" onClick={() => refetch()} className="mt-2">

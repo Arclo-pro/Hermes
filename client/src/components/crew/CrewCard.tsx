@@ -13,11 +13,11 @@ interface CrewCardProps {
 }
 
 const STATUS_CONFIG = {
-  healthy: { label: "Healthy", color: "bg-green-100 text-green-700", icon: CheckCircle },
-  degraded: { label: "Degraded", color: "bg-yellow-100 text-yellow-700", icon: AlertTriangle },
-  down: { label: "Down", color: "bg-red-100 text-red-700", icon: XCircle },
-  disabled: { label: "Disabled", color: "bg-gray-100 text-gray-500", icon: Clock },
-  unknown: { label: "Unknown", color: "bg-gray-100 text-gray-500", icon: Clock },
+  healthy: { label: "Healthy", color: "bg-semantic-success-soft text-semantic-success", icon: CheckCircle },
+  degraded: { label: "Degraded", color: "bg-semantic-warning-soft text-semantic-warning", icon: AlertTriangle },
+  down: { label: "Down", color: "bg-semantic-danger-soft text-semantic-danger", icon: XCircle },
+  disabled: { label: "Disabled", color: "bg-muted text-muted-foreground", icon: Clock },
+  unknown: { label: "Unknown", color: "bg-muted text-muted-foreground", icon: Clock },
 };
 
 export function CrewCard({ serviceId, status = "unknown", lastCheckIn, className, onClick }: CrewCardProps) {

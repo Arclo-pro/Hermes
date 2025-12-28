@@ -19,15 +19,15 @@ interface AlertsResponse {
 const severityConfig: Record<string, { icon: React.ComponentType<{ className?: string }>; className: string }> = {
   critical: {
     icon: AlertTriangle,
-    className: "border-red-500 bg-red-50 dark:bg-red-950",
+    className: "border-semantic-danger-border bg-semantic-danger-soft",
   },
   high: {
     icon: Bug,
-    className: "border-orange-500 bg-orange-50 dark:bg-orange-950",
+    className: "border-semantic-warning-border bg-semantic-warning-soft",
   },
   medium: {
     icon: Target,
-    className: "border-yellow-500 bg-yellow-50 dark:bg-yellow-950",
+    className: "border-semantic-warning-border bg-semantic-warning-soft",
   },
 };
 

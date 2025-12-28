@@ -19,7 +19,7 @@ export default function GenericAgentContent({ agentId }: GenericAgentContentProp
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-green-600" />
+              <CheckCircle2 className="w-5 h-5 text-semantic-success" />
               Recent Findings
             </CardTitle>
             <CardDescription>
@@ -54,7 +54,7 @@ export default function GenericAgentContent({ agentId }: GenericAgentContentProp
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <Clock className="w-5 h-5 text-blue-600" />
+              <Clock className="w-5 h-5 text-semantic-info" />
               Next Steps
             </CardTitle>
             <CardDescription>
@@ -124,7 +124,7 @@ export default function GenericAgentContent({ agentId }: GenericAgentContentProp
                   <div key={i} className="flex items-center gap-3 text-sm">
                     <Badge 
                       variant="outline" 
-                      className={endpoint.method === 'GET' ? 'bg-green-50 text-green-700' : 'bg-blue-50 text-blue-700'}
+                      className={endpoint.method === 'GET' ? 'bg-semantic-success-soft text-semantic-success' : 'bg-semantic-info-soft text-semantic-info'}
                     >
                       {endpoint.method}
                     </Badge>

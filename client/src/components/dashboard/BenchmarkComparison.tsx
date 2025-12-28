@@ -70,12 +70,12 @@ const metricLabels: Record<string, string> = {
 };
 
 const percentileColors: Record<string, { bg: string; text: string; label: string }> = {
-  excellent: { bg: "bg-green-100", text: "text-green-700", label: "Excellent (Top 10%)" },
-  above_average: { bg: "bg-emerald-100", text: "text-emerald-700", label: "Above Average" },
-  average: { bg: "bg-yellow-100", text: "text-yellow-700", label: "Average" },
-  below_average: { bg: "bg-orange-100", text: "text-orange-700", label: "Below Average" },
-  poor: { bg: "bg-red-100", text: "text-red-700", label: "Needs Improvement" },
-  unknown: { bg: "bg-gray-100", text: "text-gray-700", label: "No Data" },
+  excellent: { bg: "bg-semantic-success-soft", text: "text-semantic-success", label: "Excellent (Top 10%)" },
+  above_average: { bg: "bg-semantic-success-soft", text: "text-semantic-success", label: "Above Average" },
+  average: { bg: "bg-semantic-warning-soft", text: "text-semantic-warning", label: "Average" },
+  below_average: { bg: "bg-gold-soft", text: "text-gold", label: "Below Average" },
+  poor: { bg: "bg-semantic-danger-soft", text: "text-semantic-danger", label: "Needs Improvement" },
+  unknown: { bg: "bg-muted", text: "text-muted-foreground", label: "No Data" },
 };
 
 function formatMetricValue(value: number | null, metric: string, unit: string | null): string {
@@ -120,10 +120,10 @@ function PercentileBar({ value, benchmarks, metric, unit }: {
   
   return (
     <div className="relative mt-2 mb-1">
-      <div className="h-2 bg-gradient-to-r from-red-200 via-yellow-200 to-green-200 rounded-full" 
+      <div className="h-2 bg-gradient-to-r from-semantic-danger-soft via-semantic-warning-soft to-semantic-success-soft rounded-full" 
            style={{ transform: isLowerBetter ? 'scaleX(-1)' : 'none' }} />
       <div 
-        className="absolute top-1/2 w-3 h-3 bg-blue-600 border-2 border-white rounded-full shadow-md transform -translate-y-1/2 -translate-x-1/2"
+        className="absolute top-1/2 w-3 h-3 bg-semantic-info border-2 border-white rounded-full shadow-md transform -translate-y-1/2 -translate-x-1/2"
         style={{ left: `${getPosition(value)}%` }}
       />
       <div className="flex justify-between text-xs text-muted-foreground mt-1">
@@ -142,12 +142,12 @@ function MetricCard({ data }: { data: BenchmarkMetric }) {
     if (data.actualValue === null) return <Minus className="w-4 h-4" />;
     
     if (data.percentile === 'excellent' || data.percentile === 'above_average') {
-      return <TrendingUp className="w-4 h-4 text-emerald-400" />;
+      return <TrendingUp className="w-4 h-4 text-semantic-success" />;
     }
     if (data.percentile === 'poor' || data.percentile === 'below_average') {
-      return <TrendingDown className="w-4 h-4 text-red-400" />;
+      return <TrendingDown className="w-4 h-4 text-semantic-danger" />;
     }
-    return <Minus className="w-4 h-4 text-amber-400" />;
+    return <Minus className="w-4 h-4 text-semantic-warning" />;
   };
   
   return (
@@ -243,7 +243,7 @@ export function BenchmarkComparison() {
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-indigo-600" />
+              <BarChart3 className="w-5 h-5 text-semantic-info" />
               Compare to Industry Benchmarks
             </CardTitle>
             <CardDescription>

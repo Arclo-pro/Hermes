@@ -109,13 +109,13 @@ export function SummaryStats({ stats }: StatsProps) {
           <div className="mt-4 space-y-2">
              <div className="flex items-center justify-between text-xs">
                 <span>Site Checks</span>
-                <span className={stats?.healthScore >= 80 ? "text-green-600 font-medium" : "text-orange-500 font-medium"}>
+                <span className={stats?.healthScore >= 80 ? "text-semantic-success font-medium" : "text-semantic-warning font-medium"}>
                   {stats?.healthScore >= 80 ? 'Pass' : 'Needs Attention'}
                 </span>
              </div>
              <div className="w-full bg-muted rounded-full h-1.5">
                 <div 
-                  className={stats?.healthScore >= 80 ? "bg-green-500 h-1.5 rounded-full" : "bg-orange-400 h-1.5 rounded-full"}
+                  className={stats?.healthScore >= 80 ? "bg-semantic-success h-1.5 rounded-full" : "bg-semantic-warning h-1.5 rounded-full"}
                   style={{ width: `${stats?.healthScore || 0}%` }}
                 ></div>
              </div>

@@ -160,9 +160,9 @@ function parseReport(markdown: string) {
 }
 
 function StatusIcon({ status }: { status: 'healthy' | 'warning' | 'error' }) {
-  if (status === 'healthy') return <CheckCircle className="w-5 h-5 text-green-500" />;
-  if (status === 'warning') return <AlertTriangle className="w-5 h-5 text-yellow-500" />;
-  return <XCircle className="w-5 h-5 text-red-500" />;
+  if (status === 'healthy') return <CheckCircle className="w-5 h-5 text-semantic-success" />;
+  if (status === 'warning') return <AlertTriangle className="w-5 h-5 text-semantic-warning" />;
+  return <XCircle className="w-5 h-5 text-semantic-danger" />;
 }
 
 function getSeverity(zScore: number): 'severe' | 'moderate' | 'mild' {
@@ -262,10 +262,10 @@ function DropActionResults({ actionRun }: { actionRun: ActionRun }) {
   if (!output) return null;
 
   return (
-    <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg space-y-3">
+    <div className="mt-4 p-4 bg-semantic-success-soft border border-semantic-success-border rounded-lg space-y-3">
       <div className="flex items-center gap-2">
-        <CheckCircle className="w-4 h-4 text-green-600" />
-        <span className="font-medium text-sm text-green-700 dark:text-green-400">Analysis Complete</span>
+        <CheckCircle className="w-4 h-4 text-semantic-success" />
+        <span className="font-medium text-sm text-semantic-success">Analysis Complete</span>
         <Badge variant="outline" className="text-xs">{actionRun.status}</Badge>
       </div>
       
@@ -281,7 +281,7 @@ function DropActionResults({ actionRun }: { actionRun: ActionRun }) {
           </CollapsibleTrigger>
           <CollapsibleContent className="mt-2 space-y-2">
             {output.findings.map((finding, i) => (
-              <div key={i} className="p-3 bg-white dark:bg-gray-800 rounded border text-sm">
+              <div key={i} className="p-3 bg-card rounded border text-sm">
                 <div className="flex items-center gap-2 mb-1">
                   <Badge variant="secondary" className="text-xs">{finding.type}</Badge>
                 </div>
@@ -304,7 +304,7 @@ function DropActionResults({ actionRun }: { actionRun: ActionRun }) {
       )}
 
       {output.nextSteps && output.nextSteps.length > 0 && (
-        <div className="pt-2 border-t border-green-200 dark:border-green-800">
+        <div className="pt-2 border-t border-semantic-success-border">
           <p className="text-xs font-medium text-muted-foreground mb-1">Recommended Next Steps:</p>
           <ul className="space-y-1">
             {output.nextSteps.map((step, i) => (
@@ -470,7 +470,7 @@ export default function Analysis() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <Activity className="w-5 h-5 text-green-600" />
+                  <Activity className="w-5 h-5 text-semantic-success" />
                   Health Check
                 </CardTitle>
                 <CardDescription>System status at time of analysis</CardDescription>
@@ -485,9 +485,9 @@ export default function Analysis() {
                           <StatusIcon status={check.status} />
                           <span className={cn(
                             "text-sm font-medium",
-                            check.status === 'healthy' && "text-green-600",
-                            check.status === 'warning' && "text-yellow-600",
-                            check.status === 'error' && "text-red-600",
+                            check.status === 'healthy' && "text-semantic-success",
+                            check.status === 'warning' && "text-semantic-warning",
+                            check.status === 'error' && "text-semantic-danger",
                           )}>
                             {check.status === 'healthy' ? 'Healthy' : check.status === 'warning' ? 'Warning' : 'Error'}
                           </span>
@@ -504,7 +504,7 @@ export default function Analysis() {
             {/* Detected Drops - Enhanced Cards */}
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <TrendingDown className="w-5 h-5 text-red-600" />
+                <TrendingDown className="w-5 h-5 text-semantic-danger" />
                 <h2 className="text-lg font-semibold">Detected Drops</h2>
                 {parsed && parsed.totalDrops > 0 && (
                   <Badge variant="destructive">{parsed.totalDrops} anomalies</Badge>
@@ -521,9 +521,9 @@ export default function Analysis() {
                     return (
                       <Card key={i} className={cn(
                         "border-l-4",
-                        severity === 'severe' && "border-l-red-500",
-                        severity === 'moderate' && "border-l-yellow-500",
-                        severity === 'mild' && "border-l-blue-500",
+                        severity === 'severe' && "border-l-semantic-danger",
+                        severity === 'moderate' && "border-l-semantic-warning",
+                        severity === 'mild' && "border-l-semantic-info",
                       )}>
                         <CardContent className="pt-6 space-y-4">
                           {/* Header Row */}
@@ -534,9 +534,9 @@ export default function Analysis() {
                             </div>
                             <div className="flex items-center gap-2">
                               <Badge className={cn(
-                                severity === 'severe' && "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-                                severity === 'moderate' && "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
-                                severity === 'mild' && "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+                                severity === 'severe' && "bg-semantic-danger-soft text-semantic-danger",
+                                severity === 'moderate' && "bg-semantic-warning-soft text-semantic-warning",
+                                severity === 'mild' && "bg-semantic-info-soft text-semantic-info",
                               )}>
                                 {severity === 'severe' ? 'Severe' : severity === 'moderate' ? 'Moderate' : 'Mild'}
                               </Badge>
@@ -546,10 +546,10 @@ export default function Analysis() {
                           
                           {/* Impact Row - Most Prominent */}
                           <div className="flex items-center gap-3">
-                            <TrendingDown className="w-6 h-6 text-red-500" />
+                            <TrendingDown className="w-6 h-6 text-semantic-danger" />
                             <span className={cn(
                               "text-3xl font-bold",
-                              severity === 'severe' ? "text-red-600" : severity === 'moderate' ? "text-yellow-600" : "text-blue-600"
+                              severity === 'severe' ? "text-semantic-danger" : severity === 'moderate' ? "text-semantic-warning" : "text-semantic-info"
                             )}>
                               {drop.dropPercent}
                             </span>
@@ -596,7 +596,7 @@ export default function Analysis() {
                           {/* Suggested Actions */}
                           <div className="p-4 bg-muted/30 rounded-lg">
                             <div className="flex items-center gap-2 mb-3">
-                              <Lightbulb className="w-4 h-4 text-yellow-500" />
+                              <Lightbulb className="w-4 h-4 text-gold" />
                               <span className="font-medium text-sm">Suggested Action</span>
                             </div>
                             <div className="flex items-center gap-2 mb-2">
@@ -648,7 +648,7 @@ export default function Analysis() {
               ) : (
                 <Card>
                   <CardContent className="py-8">
-                    <div className="flex items-center gap-2 justify-center text-green-600">
+                    <div className="flex items-center gap-2 justify-center text-semantic-success">
                       <CheckCircle className="w-6 h-6" />
                       <span className="font-medium">No significant drops detected</span>
                     </div>
@@ -673,9 +673,9 @@ export default function Analysis() {
                       <div key={i} className="flex items-start gap-3 p-4 bg-muted/50 rounded-lg">
                         <div className={cn(
                           "w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0",
-                          cause.confidence === 'high' && "bg-red-500",
-                          cause.confidence === 'medium' && "bg-yellow-500",
-                          cause.confidence === 'low' && "bg-gray-400",
+                          cause.confidence === 'high' && "bg-semantic-danger",
+                          cause.confidence === 'medium' && "bg-semantic-warning",
+                          cause.confidence === 'low' && "bg-muted-foreground",
                         )}>
                           {i + 1}
                         </div>
@@ -684,9 +684,9 @@ export default function Analysis() {
                             <span className="font-medium">{cause.title}</span>
                             <Badge className={cn(
                               "text-xs",
-                              cause.confidence === 'high' && "bg-red-100 text-red-700",
-                              cause.confidence === 'medium' && "bg-yellow-100 text-yellow-700",
-                              cause.confidence === 'low' && "bg-gray-100 text-gray-700",
+                              cause.confidence === 'high' && "bg-semantic-danger-soft text-semantic-danger",
+                              cause.confidence === 'medium' && "bg-semantic-warning-soft text-semantic-warning",
+                              cause.confidence === 'low' && "bg-muted text-muted-foreground",
                             )}>
                               {cause.confidence} confidence
                             </Badge>

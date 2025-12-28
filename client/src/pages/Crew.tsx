@@ -69,13 +69,13 @@ export default function CrewPage() {
           </div>
           <div className="flex items-center gap-2">
             <span className="text-muted-foreground">Avg Score:</span>
-            <Badge className={avgScore >= 70 ? "bg-green-100 text-green-700" : avgScore >= 40 ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700"}>
+            <Badge className={avgScore >= 70 ? "bg-semantic-success-soft text-semantic-success" : avgScore >= 40 ? "bg-semantic-warning-soft text-semantic-warning" : "bg-semantic-danger-soft text-semantic-danger"}>
               {avgScore}
             </Badge>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-muted-foreground">Needs Attention:</span>
-            <Badge className="bg-amber-100 text-amber-700">{needsAttention}</Badge>
+            <Badge className="bg-gold-soft text-gold">{needsAttention}</Badge>
           </div>
         </div>
 

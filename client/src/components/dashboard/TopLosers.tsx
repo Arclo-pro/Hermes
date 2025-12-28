@@ -87,7 +87,7 @@ export function TopLosers() {
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
-            <TrendingDown className="w-5 h-5 text-red-500" />
+            <TrendingDown className="w-5 h-5 text-semantic-danger" />
             Top Losers
           </CardTitle>
           {data.incidentDate && (
@@ -133,7 +133,7 @@ export function TopLosers() {
                       <TableCell>
                         <Badge variant="secondary" className="text-xs">{page.cluster}</Badge>
                       </TableCell>
-                      <TableCell className="text-right text-red-500 font-medium">
+                      <TableCell className="text-right text-semantic-danger font-medium">
                         -{page.clickLoss}
                       </TableCell>
                     </TableRow>
@@ -160,7 +160,7 @@ export function TopLosers() {
                       <TableCell className="font-mono text-xs truncate max-w-[300px]" title={query.query}>
                         {query.query}
                       </TableCell>
-                      <TableCell className="text-right text-red-500 font-medium">
+                      <TableCell className="text-right text-semantic-danger font-medium">
                         -{query.clickLoss}
                       </TableCell>
                     </TableRow>

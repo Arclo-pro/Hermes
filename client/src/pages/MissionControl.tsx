@@ -105,9 +105,9 @@ function ImpactBadge({ impact }: { impact: "High" | "Medium" | "Low" }) {
 function EffortBadge({ effort }: { effort: "S" | "M" | "L" }) {
   const labels = { S: "Quick", M: "Medium", L: "Long" };
   const colors = {
-    S: "bg-sky-500/15 text-sky-400 border-0",
-    M: "bg-slate-500/15 text-slate-300 border-0",
-    L: "bg-indigo-500/15 text-indigo-400 border-0",
+    S: "bg-semantic-info-soft text-semantic-info border-0",
+    M: "bg-muted text-muted-foreground border-0",
+    L: "bg-primary-soft text-primary border-0",
   };
   return (
     <Badge className={cn("text-xs", colors[effort])}>
@@ -510,7 +510,7 @@ function ActionQueueCard({ actions }: { actions: Array<{ id: number; title: stri
                 <Button size="sm" className="text-xs bg-card/80 hover:bg-muted border-0 ring-1 ring-border text-foreground rounded-xl focus-visible:ring-2 focus-visible:ring-primary">
                   Review
                 </Button>
-                <Button size="sm" className="text-xs text-white rounded-xl border-0 shadow-[0_0_20px_-3px_rgba(168,85,247,0.5)] hover:shadow-[0_0_25px_-3px_rgba(168,85,247,0.6)] hover:-translate-y-0.5 active:translate-y-0 transition-all bg-gradient-to-r from-purple-600 via-fuchsia-500 to-violet-400 focus-visible:ring-2 focus-visible:ring-white/50">
+                <Button size="sm" className="text-xs text-white rounded-xl border-0 shadow-purple hover:-translate-y-0.5 active:translate-y-0 transition-all bg-purple-accent hover:bg-purple-accent/90 focus-visible:ring-2 focus-visible:ring-white/50">
                   Approve
                 </Button>
                 <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-foreground opacity-70 hover:opacity-100 border-0 focus-visible:ring-1 focus-visible:ring-border">
@@ -740,7 +740,7 @@ export default function MissionControl() {
               size="sm" 
               onClick={() => runDiagnostics.mutate()}
               disabled={runDiagnostics.isPending}
-              className="text-white rounded-xl shadow-[0_0_20px_-3px_rgba(168,85,247,0.5)] hover:shadow-[0_0_25px_-3px_rgba(168,85,247,0.6)] hover:-translate-y-0.5 active:translate-y-0 transition-all bg-gradient-to-r from-purple-600 via-fuchsia-500 to-violet-400"
+              className="text-white rounded-xl shadow-purple hover:-translate-y-0.5 active:translate-y-0 transition-all bg-purple-accent hover:bg-purple-accent/90"
             >
               {runDiagnostics.isPending ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
