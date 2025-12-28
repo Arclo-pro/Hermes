@@ -5688,45 +5688,78 @@ When answering:
                     details: { baseUrl, debug, actualOutputs: [], missingOutputs: expectedOutputs },
                   };
                 } else {
-                  // Worker is reachable - call POST /api/run with domain to get vitals
+                  // Worker is reachable - use v1 API to list websites and get summary
                   const targetSite = await storage.getSiteById(site_id);
                   const targetDomain = targetSite?.domain || "empathyhealthclinic.com";
                   
-                  const runUrl = `${baseUrl}/api/run`;
-                  debug.requestedUrls.push(runUrl);
+                  // Step 1: List websites to find the matching site
+                  const websitesUrl = `${baseUrl}/api/v1/websites`;
+                  debug.requestedUrls.push(websitesUrl);
                   
-                  const runRes = await fetch(runUrl, {
-                    method: "POST",
-                    headers: {
-                      ...headers,
-                      "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                      domain: targetDomain,
-                      site: targetDomain,
-                      url: `https://${targetDomain}`,
-                      urls: [`https://${targetDomain}`],
-                    }),
-                    signal: AbortSignal.timeout(30000),
+                  const websitesRes = await fetch(websitesUrl, {
+                    method: "GET",
+                    headers,
+                    signal: AbortSignal.timeout(15000),
                   });
                   
-                  const runBody = await runRes.text().catch(() => "");
+                  const websitesBody = await websitesRes.text().catch(() => "");
                   debug.responses.push({ 
-                    url: runUrl, 
-                    status: runRes.status,
-                    ok: runRes.ok,
-                    bodySnippet: runBody.slice(0, 500),
+                    url: websitesUrl, 
+                    status: websitesRes.status,
+                    ok: websitesRes.ok,
+                    bodySnippet: websitesBody.slice(0, 500),
                   });
                   
                   let cwvData: any = null;
+                  let websiteId: string | null = null;
                   
-                  if (runRes.ok) {
+                  if (websitesRes.ok) {
                     try {
-                      const runData = JSON.parse(runBody);
-                      cwvData = runData.data || runData;
+                      const websitesData = JSON.parse(websitesBody);
+                      const websites = websitesData.data?.websites || websitesData.websites || websitesData.data || [];
+                      
+                      // Find matching website by domain
+                      const matchedSite = Array.isArray(websites) ? websites.find((w: any) => 
+                        w.domain === targetDomain || 
+                        w.domain?.includes(targetDomain.replace('https://', '').replace('http://', '')) ||
+                        w.url?.includes(targetDomain)
+                      ) : null;
+                      
+                      if (matchedSite?.id) {
+                        websiteId = matchedSite.id;
+                        debug.matchedWebsiteId = websiteId;
+                        
+                        // Step 2: Get summary for this website
+                        const summaryUrl = `${baseUrl}/api/v1/websites/${websiteId}/summary`;
+                        debug.requestedUrls.push(summaryUrl);
+                        
+                        const summaryRes = await fetch(summaryUrl, {
+                          method: "GET",
+                          headers,
+                          signal: AbortSignal.timeout(15000),
+                        });
+                        
+                        const summaryBody = await summaryRes.text().catch(() => "");
+                        debug.responses.push({ 
+                          url: summaryUrl, 
+                          status: summaryRes.status,
+                          ok: summaryRes.ok,
+                          bodySnippet: summaryBody.slice(0, 500),
+                        });
+                        
+                        if (summaryRes.ok) {
+                          const summaryData = JSON.parse(summaryBody);
+                          cwvData = summaryData.data || summaryData;
+                        }
+                      } else {
+                        debug.noMatchingWebsite = `No website found matching domain: ${targetDomain}`;
+                        debug.availableWebsites = Array.isArray(websites) ? websites.map((w: any) => w.domain || w.url) : [];
+                      }
                     } catch (e) {
                       debug.parseError = (e as Error).message;
                     }
+                  } else {
+                    debug.websitesApiError = `HTTP ${websitesRes.status}`;
                   }
                   
                   if (cwvData) {
@@ -5811,10 +5844,18 @@ When answering:
                       };
                     }
                   } else {
+                    // Determine failure reason
+                    let summary = "Worker connected but no CWV data found";
+                    if (debug.websitesApiError) {
+                      summary = `Websites API failed: ${debug.websitesApiError}`;
+                    } else if (debug.noMatchingWebsite) {
+                      summary = `Website not registered in CWV worker`;
+                    }
+                    
                     checkResult = {
                       status: "partial",
-                      summary: runRes.ok ? `Worker returned but no metrics in response` : `Worker POST /api/run returned HTTP ${runRes.status}`,
-                      metrics: { worker_configured: true, worker_reachable: true, run_status: runRes.status },
+                      summary,
+                      metrics: { worker_configured: true, worker_reachable: true, websiteId },
                       details: { baseUrl, debug, actualOutputs: [], pendingOutputs: expectedOutputs },
                     };
                   }

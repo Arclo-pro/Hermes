@@ -142,8 +142,8 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
   {
     serviceSlug: "core_web_vitals",  // Matches catalog
     displayName: "Core Web Vitals Monitor",
-    bitwardenSecret: "SEO_CORE_WEB_VITALS",  // Preferred: JSON: { base_url, api_key }
-    aliasSecrets: ["SEO_Core_Web_Vitals", "seo_core_web_vitals", "Core_Web_Vitals", "CWV_Monitor"],
+    bitwardenSecret: "SEO_Vital_Monitor",  // Preferred: JSON: { base_url, api_key }
+    aliasSecrets: ["SEO_CORE_WEB_VITALS", "SEO_Core_Web_Vitals", "seo_core_web_vitals", "Core_Web_Vitals", "CWV_Monitor"],
     type: "worker",
     requiresBaseUrl: true,
     category: "analysis",
