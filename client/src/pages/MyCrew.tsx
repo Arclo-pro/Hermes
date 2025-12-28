@@ -500,13 +500,15 @@ function SetBonusCard({
   enabledAgents,
   selectedAgents = [],
   onRequirementClick,
-  onSelectAgent
+  onSelectAgent,
+  onAddAllMissing
 }: { 
   bonus: typeof SET_BONUSES[0];
   enabledAgents: string[];
   selectedAgents?: string[];
   onRequirementClick: (agentId: string) => void;
   onSelectAgent: (agentId: string) => void;
+  onAddAllMissing: (agentIds: string[]) => void;
 }) {
   const enabledCount = bonus.requirements.filter(r => enabledAgents.includes(r)).length;
   const previewCount = bonus.requirements.filter(r => enabledAgents.includes(r) || selectedAgents.includes(r)).length;
@@ -522,13 +524,26 @@ function SetBonusCard({
     : `${enabledCount} / ${bonus.requirements.length}`;
   const isPreview = previewCount > enabledCount;
   
+  const canClick = !bonus.comingSoon && !isActive && missingAgents.length > 0;
+  
+  const handleClick = () => {
+    if (canClick) {
+      onAddAllMissing(missingAgents);
+    }
+  };
+  
   return (
-    <div className={cn(
-      "p-3 rounded-xl border transition-all relative overflow-hidden",
-      bonus.comingSoon ? "bg-slate-900/30 border-slate-800 opacity-60" :
-      isActive ? "bg-gradient-to-br from-amber-900/30 to-slate-900 border-amber-500/50" :
-      "bg-slate-900/50 border-slate-700"
-    )}>
+    <div 
+      className={cn(
+        "p-3 rounded-xl border transition-all relative overflow-hidden",
+        bonus.comingSoon ? "bg-slate-900/30 border-slate-800 opacity-60" :
+        isActive ? "bg-gradient-to-br from-amber-900/30 to-slate-900 border-amber-500/50" :
+        "bg-slate-900/50 border-slate-700",
+        canClick && "cursor-pointer hover:border-amber-500/50 hover:bg-slate-800/50"
+      )}
+      onClick={handleClick}
+      data-testid={`card-crew-collab-${bonus.title.toLowerCase().replace(/\s+/g, '-')}`}
+    >
       <div className="flex items-start gap-2.5 mb-2">
         <div className={cn(
           "w-9 h-9 rounded-lg flex items-center justify-center shrink-0",
@@ -750,6 +765,9 @@ export default function MyCrew() {
                       selectedAgents={selectedAgents}
                       onRequirementClick={handleSlotClick}
                       onSelectAgent={handleSelectAgent}
+                      onAddAllMissing={(agentIds) => {
+                        agentIds.forEach(id => handleSelectAgent(id));
+                      }}
                     />
                   ))}
                 </CardContent>
