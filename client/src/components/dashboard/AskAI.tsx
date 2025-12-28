@@ -91,6 +91,7 @@ export function AskAI({ mode = "diagnostic", siteId }: AskAIProps) {
               onClick={handleSubmit}
               disabled={!question.trim() || askMutation.isPending}
               size="sm"
+              variant="secondary"
               className="gap-2"
               data-testid="button-ask-ai"
             >

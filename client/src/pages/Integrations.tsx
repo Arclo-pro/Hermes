@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { 
   CheckCircle, 
   XCircle, 
@@ -428,6 +429,7 @@ interface Site {
 
 export default function Integrations() {
   const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
   const { showCrewNames, setShowCrewNames } = useCrewNamesToggle();
   const [testingId, setTestingId] = useState<string | null>(null);
   const [smokeTestingId, setSmokeTestingId] = useState<string | null>(null);
@@ -1147,7 +1149,8 @@ export default function Integrations() {
               <Button
                 onClick={() => runQaMutation.mutate(qaMode)}
                 disabled={runningQa}
-                className="rounded-l-none rounded-r-xl text-white shadow-[0_0_20px_-3px_rgba(168,85,247,0.5)] hover:shadow-[0_0_25px_-3px_rgba(168,85,247,0.6)] hover:-translate-y-0.5 active:translate-y-0 transition-all bg-gradient-to-r from-purple-600 via-fuchsia-500 to-violet-400"
+                variant="purple"
+                className="rounded-l-none rounded-r-xl"
                 data-testid="button-run-qa"
               >
                 {runningQa ? (
@@ -1232,7 +1235,8 @@ export default function Integrations() {
                   <Button
                     onClick={() => selectedSiteId && runDiagnosisMutation.mutate(selectedSiteId)}
                     disabled={!selectedSiteId || runningDiagnosis}
-                    className="text-white rounded-xl shadow-[0_0_20px_-3px_rgba(168,85,247,0.5)] hover:shadow-[0_0_25px_-3px_rgba(168,85,247,0.6)] hover:-translate-y-0.5 active:translate-y-0 transition-all bg-gradient-to-r from-purple-600 via-fuchsia-500 to-violet-400"
+                    variant="purple"
+                    className="rounded-xl"
                     data-testid="button-run-diagnosis"
                   >
                     {runningDiagnosis ? (
@@ -1429,7 +1433,7 @@ export default function Integrations() {
                               <span className="text-xs text-muted-foreground">{action.reason}</span>
                             </div>
                             <Button 
-                              variant="outline" 
+                              variant="gold" 
                               size="sm" 
                               className="h-6 text-xs"
                               onClick={() => {
@@ -1480,9 +1484,10 @@ export default function Integrations() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     onClick={() => testConnectionsMutation.mutate()}
                     disabled={testingConnections || runningSmokeTests}
+                    className="rounded-lg"
                     data-testid="button-test-connections"
                   >
                     {testingConnections ? (
@@ -1493,8 +1498,10 @@ export default function Integrations() {
                     Test Connections
                   </Button>
                   <Button
+                    variant="purple"
                     onClick={() => runSmokeTestsMutation.mutate()}
                     disabled={testingConnections || runningSmokeTests}
+                    className="rounded-lg"
                     data-testid="button-run-smoke-tests"
                   >
                     {runningSmokeTests ? (
@@ -2459,6 +2466,66 @@ export default function Integrations() {
                   </p>
                   <p className="text-sm">{selectedCatalogService.description}</p>
                 </div>
+
+                {/* A.5) Why this is blocked - shown only for blocked services */}
+                {selectedCatalogService.configState === 'blocked' && (
+                  <div className="p-4 bg-gold-soft border border-gold rounded-lg" data-testid="blocked-reason-panel">
+                    <p className="text-xs text-gold uppercase tracking-wide mb-3 flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" />
+                      Why this is blocked
+                    </p>
+                    <div className="space-y-3">
+                      {/* Show blocking reason from service data */}
+                      {(selectedCatalogService as any).blockingReason && (
+                        <p className="text-sm text-foreground">
+                          {(selectedCatalogService as any).blockingReason}
+                        </p>
+                      )}
+                      
+                      {/* Requirements checklist */}
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium text-muted-foreground">Requirements:</p>
+                        <ul className="space-y-1.5 text-sm">
+                          {selectedCatalogService.inputs.map(input => (
+                            <li key={input} className="flex items-center gap-2">
+                              <span className="w-4 h-4 rounded-full bg-muted flex items-center justify-center">
+                                <HelpCircle className="w-3 h-3 text-muted-foreground" />
+                              </span>
+                              <span>{getSlugLabel(input)}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      
+                      {/* Actions */}
+                      <div className="flex items-center gap-2 pt-2 border-t border-gold/30">
+                        <Button 
+                          variant="gold" 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedCatalogService(null);
+                            navigate('/settings');
+                          }}
+                        >
+                          <Settings className="w-3 h-3 mr-1" />
+                          Open Settings
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            const inputs = selectedCatalogService.inputs.map(i => getSlugLabel(i)).join(', ');
+                            navigator.clipboard.writeText(inputs);
+                            toast.success('Required inputs copied to clipboard');
+                          }}
+                        >
+                          <Copy className="w-3 h-3 mr-1" />
+                          Copy Required Keys
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* B) What it expects to do */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
