@@ -62,8 +62,13 @@ function ImpactBadge({ impact }: { impact: "High" | "Medium" | "Low" }) {
 
 function EffortBadge({ effort }: { effort: "S" | "M" | "L" }) {
   const labels = { S: "Quick", M: "Medium", L: "Long" };
+  const colors = {
+    S: "bg-sky-500/15 text-sky-400 border-0",
+    M: "bg-slate-500/15 text-slate-300 border-0",
+    L: "bg-indigo-500/15 text-indigo-400 border-0",
+  };
   return (
-    <Badge variant="outline" className="text-xs">
+    <Badge className={cn("text-xs", colors[effort])}>
       {labels[effort]}
     </Badge>
   );
