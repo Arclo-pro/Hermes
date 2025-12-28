@@ -1583,18 +1583,18 @@ export default function Integrations() {
                         // Operational View - Use siteSummary.services for per-site computed states
                         (siteSummary?.services || []).map((service) => {
                           const RUN_STATE_COLORS: Record<string, string> = {
-                            success: 'bg-green-100 text-green-700',
-                            failed: 'bg-red-100 text-red-700',
-                            partial: 'bg-yellow-100 text-yellow-700',
-                            stale: 'bg-orange-100 text-orange-700',
-                            never_ran: 'bg-gray-100 text-gray-600',
-                            testing: 'bg-blue-100 text-blue-700',
+                            success: 'bg-semantic-success-soft text-semantic-success',
+                            failed: 'bg-semantic-danger-soft text-semantic-danger',
+                            partial: 'bg-semantic-warning-soft text-semantic-warning',
+                            stale: 'bg-gold-soft text-gold',
+                            never_ran: 'bg-muted text-muted-foreground',
+                            testing: 'bg-semantic-info-soft text-semantic-info',
                           };
                           const isServiceTesting = testingAll || testingConnections || runningSmokeTests || testingId === service.slug;
                           const CONFIG_STATE_BADGES: Record<string, { label: string; color: string }> = {
-                            ready: { label: 'Ready', color: 'bg-green-100 text-green-700' },
-                            blocked: { label: 'Blocked', color: 'bg-orange-100 text-orange-700' },
-                            needs_config: { label: 'Needs Config', color: 'bg-gray-100 text-gray-600' },
+                            ready: { label: 'Ready', color: 'bg-semantic-success-soft text-semantic-success' },
+                            blocked: { label: 'Blocked', color: 'bg-gold-soft text-gold' },
+                            needs_config: { label: 'Needs Config', color: 'bg-muted text-muted-foreground' },
                           };
                           return (
                             <tr 
@@ -1608,12 +1608,12 @@ export default function Integrations() {
                                   {showCrewNames ? (
                                     <CrewBadge serviceId={service.slug} size="sm" />
                                   ) : (
-                                    isServiceTesting ? <Loader2 className="w-4 h-4 text-blue-500 animate-spin" /> :
-                                    service.runState === 'success' ? <CheckCircle className="w-4 h-4 text-green-500" /> :
-                                    service.runState === 'failed' ? <XCircle className="w-4 h-4 text-red-500" /> :
-                                    service.runState === 'partial' ? <AlertTriangle className="w-4 h-4 text-yellow-500" /> :
-                                    service.runState === 'stale' ? <AlertTriangle className="w-4 h-4 text-orange-500" /> :
-                                    <Clock className="w-4 h-4 text-gray-400" />
+                                    isServiceTesting ? <Loader2 className="w-4 h-4 text-semantic-info animate-spin" /> :
+                                    service.runState === 'success' ? <CheckCircle className="w-4 h-4 text-semantic-success" /> :
+                                    service.runState === 'failed' ? <XCircle className="w-4 h-4 text-semantic-danger" /> :
+                                    service.runState === 'partial' ? <AlertTriangle className="w-4 h-4 text-semantic-warning" /> :
+                                    service.runState === 'stale' ? <AlertTriangle className="w-4 h-4 text-gold" /> :
+                                    <Clock className="w-4 h-4 text-muted-foreground" />
                                   )}
                                   <div>
                                     {showCrewNames ? (
@@ -1657,8 +1657,8 @@ export default function Integrations() {
                               <td className="p-3">
                                 {service.lastRun?.errorDetail ? (
                                   <div className="flex items-start gap-1">
-                                    <XCircle className="w-3 h-3 text-red-500 mt-0.5 flex-shrink-0" />
-                                    <span className="text-xs text-red-600 line-clamp-2" title={service.lastRun.errorDetail}>
+                                    <XCircle className="w-3 h-3 text-semantic-danger mt-0.5 flex-shrink-0" />
+                                    <span className="text-xs text-semantic-danger line-clamp-2" title={service.lastRun.errorDetail}>
                                       {service.lastRun.errorDetail}
                                     </span>
                                   </div>
@@ -1686,7 +1686,7 @@ export default function Integrations() {
                                   <TooltipProvider>
                                     <Tooltip>
                                       <TooltipTrigger asChild>
-                                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-red-300 text-red-600 cursor-help">
+                                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-semantic-danger-border text-semantic-danger cursor-help">
                                           {service.missingOutputs.length} missing
                                         </Badge>
                                       </TooltipTrigger>
@@ -1700,7 +1700,7 @@ export default function Integrations() {
                                     </Tooltip>
                                   </TooltipProvider>
                                 ) : service.lastRun ? (
-                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-green-300 text-green-600">
+                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-semantic-success-border text-semantic-success">
                                     All outputs
                                   </Badge>
                                 ) : (
@@ -2039,14 +2039,14 @@ export default function Integrations() {
                             key={signal}
                             className={cn(
                               "flex items-center gap-2 p-2 rounded border text-sm",
-                              isReceived && !isStale && "bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800",
-                              isReceived && isStale && "bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800",
-                              !isReceived && "bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800",
+                              isReceived && !isStale && "bg-semantic-success-soft border-semantic-success-border",
+                              isReceived && isStale && "bg-semantic-warning-soft border-semantic-warning-border",
+                              !isReceived && "bg-semantic-danger-soft border-semantic-danger-border",
                             )}
                           >
-                            {isReceived && !isStale && <CheckCircle className="w-4 h-4 text-green-600" />}
-                            {isReceived && isStale && <AlertTriangle className="w-4 h-4 text-yellow-600" />}
-                            {!isReceived && <XCircle className="w-4 h-4 text-red-600" />}
+                            {isReceived && !isStale && <CheckCircle className="w-4 h-4 text-semantic-success" />}
+                            {isReceived && isStale && <AlertTriangle className="w-4 h-4 text-semantic-warning" />}
+                            {!isReceived && <XCircle className="w-4 h-4 text-semantic-danger" />}
                             <span>{signal}</span>
                           </div>
                         );
@@ -2056,9 +2056,9 @@ export default function Integrations() {
                 )}
 
                 {selectedIntegration.lastError && (
-                  <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                    <p className="text-sm font-medium text-red-700 dark:text-red-400 mb-1">Last Error</p>
-                    <p className="text-sm text-red-600 dark:text-red-300">
+                  <div className="p-4 bg-semantic-danger-soft border border-semantic-danger-border rounded-lg">
+                    <p className="text-sm font-medium text-semantic-danger mb-1">Last Error</p>
+                    <p className="text-sm text-semantic-danger">
                       {selectedIntegration.lastError}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
@@ -2080,9 +2080,9 @@ export default function Integrations() {
                           className="flex items-center justify-between p-3 bg-muted rounded-lg text-sm"
                         >
                           <div className="flex items-center gap-2">
-                            {check.status === "pass" && <CheckCircle className="w-4 h-4 text-green-500" />}
-                            {check.status === "warning" && <AlertTriangle className="w-4 h-4 text-yellow-500" />}
-                            {check.status === "fail" && <XCircle className="w-4 h-4 text-red-500" />}
+                            {check.status === "pass" && <CheckCircle className="w-4 h-4 text-semantic-success" />}
+                            {check.status === "warning" && <AlertTriangle className="w-4 h-4 text-semantic-warning" />}
+                            {check.status === "fail" && <XCircle className="w-4 h-4 text-semantic-danger" />}
                             <span className="capitalize">{check.checkType}</span>
                           </div>
                           <div className="flex items-center gap-4 text-muted-foreground">
@@ -2511,10 +2511,10 @@ export default function Integrations() {
                           variant="outline"
                           className={cn(
                             "mt-1",
-                            selectedCatalogService.lastRun.status === 'success' ? 'bg-green-100 text-green-700' :
-                            selectedCatalogService.lastRun.status === 'running' ? 'bg-blue-100 text-blue-700' :
-                            selectedCatalogService.lastRun.status === 'partial' ? 'bg-yellow-100 text-yellow-700' :
-                            'bg-red-100 text-red-700'
+                            selectedCatalogService.lastRun.status === 'success' ? 'bg-semantic-success-soft text-semantic-success' :
+                            selectedCatalogService.lastRun.status === 'running' ? 'bg-semantic-info-soft text-semantic-info' :
+                            selectedCatalogService.lastRun.status === 'partial' ? 'bg-semantic-warning-soft text-semantic-warning' :
+                            'bg-semantic-danger-soft text-semantic-danger'
                           )}
                         >
                           {selectedCatalogService.lastRun.status}
@@ -2538,12 +2538,12 @@ export default function Integrations() {
                       </div>
                     </div>
                     {selectedCatalogService.lastRun.errorDetail && (
-                      <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                        <p className="text-xs text-red-600 dark:text-red-400 font-medium flex items-center gap-1">
+                      <div className="mt-3 p-3 bg-semantic-danger-soft border border-semantic-danger-border rounded-lg">
+                        <p className="text-xs text-semantic-danger font-medium flex items-center gap-1">
                           <XCircle className="w-3 h-3" />
                           Error
                         </p>
-                        <p className="text-sm mt-1 text-red-700 dark:text-red-300">{selectedCatalogService.lastRun.errorDetail}</p>
+                        <p className="text-sm mt-1 text-semantic-danger">{selectedCatalogService.lastRun.errorDetail}</p>
                       </div>
                     )}
                     {selectedCatalogService.lastRun.summary && !selectedCatalogService.lastRun.errorDetail && (
@@ -2554,7 +2554,7 @@ export default function Integrations() {
                     )}
                   </div>
                 ) : (
-                  <div className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-900/50">
+                  <div className="p-4 border rounded-lg bg-muted">
                     <p className="text-sm text-muted-foreground flex items-center gap-2">
                       <Clock className="w-4 h-4" />
                       This service has never run
@@ -2570,11 +2570,11 @@ export default function Integrations() {
                     </p>
                     <div className="grid grid-cols-3 gap-4">
                       <div className="space-y-2">
-                        <p className="text-xs font-medium text-green-600">Received</p>
+                        <p className="text-xs font-medium text-semantic-success">Received</p>
                         {(selectedCatalogService.lastRun.actualOutputs?.length ?? 0) > 0 ? (
                           <div className="space-y-1">
                             {selectedCatalogService.lastRun.actualOutputs?.map(slug => (
-                              <div key={slug} className="text-sm flex items-center gap-1 text-green-700">
+                              <div key={slug} className="text-sm flex items-center gap-1 text-semantic-success">
                                 <CheckCircle className="w-3 h-3" />
                                 {getSlugLabel(slug)}
                               </div>
@@ -2585,11 +2585,11 @@ export default function Integrations() {
                         )}
                       </div>
                       <div className="space-y-2">
-                        <p className="text-xs font-medium text-yellow-600">Pending Validation</p>
+                        <p className="text-xs font-medium text-semantic-warning">Pending Validation</p>
                         {(selectedCatalogService.lastRun.pendingOutputs?.length ?? 0) > 0 ? (
                           <div className="space-y-1">
                             {selectedCatalogService.lastRun.pendingOutputs?.map(slug => (
-                              <div key={slug} className="text-sm flex items-center gap-1 text-yellow-700">
+                              <div key={slug} className="text-sm flex items-center gap-1 text-semantic-warning">
                                 <Clock className="w-3 h-3" />
                                 {getSlugLabel(slug)}
                               </div>
@@ -2600,7 +2600,7 @@ export default function Integrations() {
                         )}
                       </div>
                       <div className="space-y-2">
-                        <p className="text-xs font-medium text-red-600">Missing</p>
+                        <p className="text-xs font-medium text-semantic-danger">Missing</p>
                         {(() => {
                           // Check both lastRun.missingOutputs and top-level missingOutputs (from SiteSummaryService)
                           const missingFromLastRun = selectedCatalogService.lastRun?.missingOutputs || [];
@@ -2611,7 +2611,7 @@ export default function Integrations() {
                             return (
                               <div className="space-y-1">
                                 {allMissing.map(slug => (
-                                  <div key={slug} className="text-sm flex items-center gap-1 text-red-700">
+                                  <div key={slug} className="text-sm flex items-center gap-1 text-semantic-danger">
                                     <XCircle className="w-3 h-3" />
                                     {getSlugLabel(slug)}
                                   </div>
@@ -2621,7 +2621,7 @@ export default function Integrations() {
                           } else if (selectedCatalogService.lastRun?.pendingOutputs?.length === 0 && selectedCatalogService.lastRun?.actualOutputs?.length === 0) {
                             return <p className="text-xs text-muted-foreground">Run to validate outputs</p>;
                           } else {
-                            return <p className="text-xs text-green-600">None missing</p>;
+                            return <p className="text-xs text-semantic-success">None missing</p>;
                           }
                         })()}
                       </div>
@@ -2645,24 +2645,24 @@ export default function Integrations() {
 
                 {/* E) What went wrong */}
                 {selectedCatalogService.lastRun?.errorCode && (
-                  <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                    <p className="text-xs text-red-600 uppercase tracking-wide mb-2 flex items-center gap-1">
+                  <div className="p-4 bg-semantic-danger-soft border border-semantic-danger-border rounded-lg">
+                    <p className="text-xs text-semantic-danger uppercase tracking-wide mb-2 flex items-center gap-1">
                       <AlertTriangle className="w-3 h-3" />
                       What went wrong
                     </p>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="bg-red-100 text-red-700">
+                        <Badge variant="outline" className="bg-semantic-danger-soft text-semantic-danger">
                           {getSlugLabel(selectedCatalogService.lastRun.errorCode)}
                         </Badge>
                       </div>
                       {selectedCatalogService.lastRun.errorDetail && (
-                        <p className="text-sm text-red-700 dark:text-red-300">
+                        <p className="text-sm text-semantic-danger">
                           {selectedCatalogService.lastRun.errorDetail}
                         </p>
                       )}
                     </div>
-                    <div className="mt-3 pt-3 border-t border-red-200 dark:border-red-800">
+                    <div className="mt-3 pt-3 border-t border-semantic-danger-border">
                       <p className="text-xs text-muted-foreground mb-1">Common failures for this service:</p>
                       <div className="flex flex-wrap gap-1">
                         {selectedCatalogService.commonFailures.map(slug => (
@@ -2672,8 +2672,8 @@ export default function Integrations() {
                             className={cn(
                               "text-xs",
                               slug === selectedCatalogService.lastRun?.errorCode 
-                                ? "bg-red-100 text-red-700" 
-                                : "bg-gray-100 text-gray-600"
+                                ? "bg-semantic-danger-soft text-semantic-danger" 
+                                : "bg-muted text-muted-foreground"
                             )}
                           >
                             {getSlugLabel(slug)}
@@ -2686,7 +2686,7 @@ export default function Integrations() {
 
                 {/* F) Diagnostics Pipeline */}
                 {serviceDiagnostics?.diagnostic && (
-                  <div className="p-4 border rounded-lg bg-slate-50 dark:bg-slate-900/50" data-testid="diagnostics-panel">
+                  <div className="p-4 border rounded-lg bg-muted" data-testid="diagnostics-panel">
                     <div className="flex items-center justify-between mb-4">
                       <p className="text-xs text-muted-foreground uppercase tracking-wide flex items-center gap-1">
                         <Activity className="w-3 h-3" />
@@ -2697,9 +2697,9 @@ export default function Integrations() {
                           variant="outline"
                           className={cn(
                             "text-xs",
-                            serviceDiagnostics.diagnostic.overallStatus === 'pass' ? 'bg-green-100 text-green-700' :
-                            serviceDiagnostics.diagnostic.overallStatus === 'partial' ? 'bg-yellow-100 text-yellow-700' :
-                            'bg-red-100 text-red-700'
+                            serviceDiagnostics.diagnostic.overallStatus === 'pass' ? 'bg-semantic-success-soft text-semantic-success' :
+                            serviceDiagnostics.diagnostic.overallStatus === 'partial' ? 'bg-semantic-warning-soft text-semantic-warning' :
+                            'bg-semantic-danger-soft text-semantic-danger'
                           )}
                         >
                           {serviceDiagnostics.diagnostic.overallStatus.toUpperCase()}
@@ -2749,19 +2749,19 @@ export default function Integrations() {
                               <div 
                                 className={cn(
                                   "absolute left-[11px] top-[20px] w-0.5 h-[calc(100%-8px)]",
-                                  stage.status === 'pass' ? 'bg-green-300' :
-                                  stage.status === 'fail' ? 'bg-red-300' :
-                                  stage.status === 'skipped' ? 'bg-gray-300' :
-                                  'bg-gray-200'
+                                  stage.status === 'pass' ? 'bg-semantic-success' :
+                                  stage.status === 'fail' ? 'bg-semantic-danger' :
+                                  stage.status === 'skipped' ? 'bg-muted-foreground/30' :
+                                  'bg-muted-foreground/20'
                                 )}
                               />
                             )}
                             <div className={cn(
                               "w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 z-10",
-                              stage.status === 'pass' ? 'bg-green-100 text-green-600' :
-                              stage.status === 'fail' ? 'bg-red-100 text-red-600' :
-                              stage.status === 'skipped' ? 'bg-gray-100 text-gray-500' :
-                              'bg-gray-100 text-gray-400'
+                              stage.status === 'pass' ? 'bg-semantic-success-soft text-semantic-success' :
+                              stage.status === 'fail' ? 'bg-semantic-danger-soft text-semantic-danger' :
+                              stage.status === 'skipped' ? 'bg-muted text-muted-foreground' :
+                              'bg-muted text-muted-foreground'
                             )}>
                               {stage.status === 'pass' && <CheckCircle className="w-4 h-4" />}
                               {stage.status === 'fail' && <XCircle className="w-4 h-4" />}
@@ -2777,8 +2777,8 @@ export default function Integrations() {
                               </div>
                               <p className={cn(
                                 "text-xs mt-0.5",
-                                stage.status === 'fail' ? 'text-red-600' :
-                                stage.status === 'skipped' ? 'text-gray-500' :
+                                stage.status === 'fail' ? 'text-semantic-danger' :
+                                stage.status === 'skipped' ? 'text-muted-foreground' :
                                 'text-muted-foreground'
                               )}>
                                 {stage.message}
@@ -2786,10 +2786,10 @@ export default function Integrations() {
                               
                               {/* Failure Classification */}
                               {stage.status === 'fail' && (stage as any).failureBucket && (
-                                <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+                                <div className="mt-2 p-2 bg-semantic-danger-soft border border-semantic-danger-border rounded-md">
                                   <div className="flex items-center gap-2 mb-1">
-                                    <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
-                                    <span className="text-xs font-medium text-red-700 dark:text-red-400">
+                                    <AlertTriangle className="w-3.5 h-3.5 text-semantic-danger" />
+                                    <span className="text-xs font-medium text-semantic-danger">
                                       {(() => {
                                         const bucketLabels: Record<string, string> = {
                                           wrong_endpoint_404: '404 - Wrong Endpoint',
@@ -2805,7 +2805,7 @@ export default function Integrations() {
                                     </span>
                                   </div>
                                   {(stage as any).suggestedFix && (
-                                    <p className="text-xs text-red-600 dark:text-red-300 ml-5">
+                                    <p className="text-xs text-semantic-danger ml-5">
                                       <strong>Fix:</strong> {(stage as any).suggestedFix}
                                     </p>
                                   )}
@@ -2814,10 +2814,10 @@ export default function Integrations() {
                               
                               {stage.details && Object.keys(stage.details).length > 0 && (
                                 <details className="mt-1">
-                                  <summary className="text-xs text-blue-600 cursor-pointer hover:underline">
+                                  <summary className="text-xs text-semantic-info cursor-pointer hover:underline">
                                     Debug details
                                   </summary>
-                                  <pre className="mt-1 p-2 bg-slate-100 dark:bg-slate-800 rounded text-xs overflow-x-auto">
+                                  <pre className="mt-1 p-2 bg-muted rounded text-xs overflow-x-auto">
                                     {JSON.stringify(stage.details, null, 2)}
                                   </pre>
                                 </details>
