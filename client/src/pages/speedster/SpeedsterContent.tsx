@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,11 @@ import {
   Gauge,
   Lightbulb,
   BarChart3,
-  Trophy
+  Trophy,
+  GitPullRequest,
+  Loader2,
+  Shield,
+  FileCode
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSiteContext } from "@/hooks/useSiteContext";
@@ -31,6 +36,22 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 interface VitalMetric {
   key: string;
@@ -172,6 +193,47 @@ export default function SpeedsterContent() {
   const { activeSite } = useSiteContext();
   const siteId = activeSite?.id || 'site_empathy_health_clinic';
   
+  const [showFixModal, setShowFixModal] = useState(false);
+  const [maxChanges, setMaxChanges] = useState("10");
+  const [fixResult, setFixResult] = useState<{
+    prUrl?: string;
+    branchName?: string;
+    filesChanged?: number;
+    summary?: string;
+    status?: 'success' | 'error';
+    error?: string;
+  } | null>(null);
+  
+  const fixMutation = useMutation({
+    mutationFn: async (data: { siteId: string; maxChanges: number; issues: any }) => {
+      const res = await fetch('/api/fix/core-web-vitals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to create fix PR');
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setFixResult({
+        prUrl: data.prUrl,
+        branchName: data.branchName,
+        filesChanged: data.filesChanged,
+        summary: data.summary,
+        status: 'success',
+      });
+    },
+    onError: (error: Error) => {
+      setFixResult({
+        status: 'error',
+        error: error.message,
+      });
+    },
+  });
+  
   const { data: speedsterData, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['speedster-summary', siteId],
     queryFn: async () => {
@@ -296,28 +358,16 @@ export default function SpeedsterContent() {
                 </CardDescription>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <Badge variant="outline" className={cn("text-sm", statusColors[overallStatus])}>
-                {overallStatus === 'good' && <CheckCircle className="w-4 h-4 mr-1" />}
-                {overallStatus === 'needs-improvement' && <AlertTriangle className="w-4 h-4 mr-1" />}
-                {overallStatus === 'poor' && <XCircle className="w-4 h-4 mr-1" />}
-                {overallStatus === 'unknown' && <Info className="w-4 h-4 mr-1" />}
-                {overallStatus === 'good' ? 'All Passing' : overallStatus === 'unknown' ? 'No Data' : 'Needs Attention'}
-              </Badge>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => refetch()}
-                disabled={isRefetching}
-                data-testid="button-refresh-vitals"
-              >
-                <RefreshCw className={cn("w-4 h-4 mr-2", isRefetching && "animate-spin")} />
-                Refresh
-              </Button>
-            </div>
+            <Badge variant="outline" className={cn("text-sm", statusColors[overallStatus])}>
+              {overallStatus === 'good' && <CheckCircle className="w-4 h-4 mr-1" />}
+              {overallStatus === 'needs-improvement' && <AlertTriangle className="w-4 h-4 mr-1" />}
+              {overallStatus === 'poor' && <XCircle className="w-4 h-4 mr-1" />}
+              {overallStatus === 'unknown' && <Info className="w-4 h-4 mr-1" />}
+              {overallStatus === 'good' ? 'All Passing' : overallStatus === 'unknown' ? 'No Data' : 'Needs Attention'}
+            </Badge>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-1">
               <Clock className="w-4 h-4" />
@@ -335,6 +385,33 @@ export default function SpeedsterContent() {
                 <span>{speedsterData.sampleCount} URLs tested</span>
               </div>
             )}
+          </div>
+          
+          <div className="flex items-center gap-3 pt-2 border-t">
+            <Button 
+              onClick={() => {
+                setFixResult(null);
+                setShowFixModal(true);
+              }}
+              className="bg-green-600 hover:bg-green-700"
+              data-testid="button-create-fix-pr"
+            >
+              <GitPullRequest className="w-4 h-4 mr-2" />
+              Create Fix PR
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => refetch()}
+              disabled={isRefetching}
+              data-testid="button-run-vitals-scan"
+            >
+              <RefreshCw className={cn("w-4 h-4 mr-2", isRefetching && "animate-spin")} />
+              Run Vitals Scan
+            </Button>
+            <Button variant="outline" data-testid="button-export-fix-pack">
+              <ExternalLink className="w-4 h-4 mr-2" />
+              Export Fix Pack
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -591,24 +668,170 @@ export default function SpeedsterContent() {
         </Card>
       )}
       
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Actions</CardTitle>
-          <CardDescription>What you can do to improve performance</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-3 md:grid-cols-2">
-            <Button variant="outline" className="justify-start" data-testid="button-run-vitals-scan">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Run Vitals Scan
-            </Button>
-            <Button variant="outline" className="justify-start" data-testid="button-export-fix-pack">
-              <ExternalLink className="w-4 h-4 mr-2" />
-              Export Fix Pack
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <Dialog open={showFixModal} onOpenChange={setShowFixModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <GitPullRequest className="w-5 h-5 text-green-600" />
+              Create Fix PR
+            </DialogTitle>
+            <DialogDescription>
+              Automatically analyze issues and create a GitHub pull request with recommended fixes.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {fixMutation.isPending ? (
+            <div className="py-8 space-y-4">
+              <div className="flex flex-col items-center gap-3">
+                <Loader2 className="w-8 h-8 animate-spin text-green-600" />
+                <div className="text-center">
+                  <p className="font-medium">
+                    {fixMutation.variables ? 'Creating PR...' : 'Analyzing issues...'}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    This may take a moment
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : fixResult?.status === 'success' ? (
+            <div className="py-4 space-y-4">
+              <div className="flex items-center gap-3 p-4 rounded-lg bg-green-500/10 border border-green-500/30">
+                <CheckCircle className="w-6 h-6 text-green-600" />
+                <div>
+                  <p className="font-medium text-green-600">Pull Request Created</p>
+                  <p className="text-sm text-muted-foreground">
+                    {fixResult.filesChanged} files changed
+                  </p>
+                </div>
+              </div>
+              
+              {fixResult.summary && (
+                <div className="p-3 rounded-lg bg-muted">
+                  <p className="text-sm">{fixResult.summary}</p>
+                </div>
+              )}
+              
+              {fixResult.branchName && (
+                <p className="text-sm text-muted-foreground">
+                  Branch: <code className="px-1 py-0.5 bg-muted rounded">{fixResult.branchName}</code>
+                </p>
+              )}
+              
+              <Button 
+                className="w-full"
+                onClick={() => fixResult.prUrl && window.open(fixResult.prUrl, '_blank')}
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Open Pull Request
+              </Button>
+            </div>
+          ) : fixResult?.status === 'error' ? (
+            <div className="py-4 space-y-4">
+              <div className="flex items-center gap-3 p-4 rounded-lg bg-red-500/10 border border-red-500/30">
+                <XCircle className="w-6 h-6 text-red-600" />
+                <div>
+                  <p className="font-medium text-red-600">Failed to Create PR</p>
+                  <p className="text-sm text-muted-foreground">{fixResult.error}</p>
+                </div>
+              </div>
+              
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => setFixResult(null)}
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Try Again
+              </Button>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="max-changes">Maximum changes per cycle</Label>
+                  <Select value={maxChanges} onValueChange={setMaxChanges}>
+                    <SelectTrigger id="max-changes">
+                      <SelectValue placeholder="Select max changes" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5 changes (Conservative)</SelectItem>
+                      <SelectItem value="10">10 changes (Recommended)</SelectItem>
+                      <SelectItem value="20">20 changes (Aggressive)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Smaller changes reduce ranking volatility and are easier to review.
+                  </p>
+                </div>
+                
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-muted">
+                  <Shield className="w-4 h-4 text-muted-foreground mt-0.5" />
+                  <div className="text-sm text-muted-foreground">
+                    <p className="font-medium text-foreground">Safety Mode</p>
+                    <p>PR will be created for review only - no auto-merge.</p>
+                  </div>
+                </div>
+                
+                <div className="p-3 rounded-lg border space-y-2">
+                  <p className="text-sm font-medium">Current Issues Detected:</p>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    {metrics['vitals.lcp'] && metrics['vitals.lcp'] > 2.5 && (
+                      <li className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-red-500" />
+                        LCP: {metrics['vitals.lcp'].toFixed(2)}s (target: ≤2.5s)
+                      </li>
+                    )}
+                    {metrics['vitals.cls'] && metrics['vitals.cls'] > 0.1 && (
+                      <li className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-yellow-500" />
+                        CLS: {metrics['vitals.cls'].toFixed(3)} (target: ≤0.1)
+                      </li>
+                    )}
+                    {metrics['vitals.inp'] && metrics['vitals.inp'] > 200 && (
+                      <li className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-yellow-500" />
+                        INP: {Math.round(metrics['vitals.inp'])}ms (target: ≤200ms)
+                      </li>
+                    )}
+                    {performanceScore !== null && performanceScore < 90 && (
+                      <li className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-yellow-500" />
+                        Performance Score: {performanceScore} (target: ≥90)
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              </div>
+              
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowFixModal(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={() => {
+                    fixMutation.mutate({
+                      siteId,
+                      maxChanges: parseInt(maxChanges),
+                      issues: {
+                        lcp: metrics['vitals.lcp'],
+                        cls: metrics['vitals.cls'],
+                        inp: metrics['vitals.inp'],
+                        performanceScore: performanceScore,
+                        opportunities: speedsterData?.opportunities || [],
+                      },
+                    });
+                  }}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <GitPullRequest className="w-4 h-4 mr-2" />
+                  Create Fix PR
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

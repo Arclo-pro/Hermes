@@ -9579,6 +9579,177 @@ When answering:
     }
   });
   
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FIX AUTOMATION ENDPOINTS
+  // Orchestrates Knowledge Base → Change Worker → GitHub PR workflow
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  app.post("/api/fix/core-web-vitals", async (req, res) => {
+    try {
+      const { siteId, maxChanges = 10, issues } = req.body;
+      
+      if (!siteId) {
+        return res.status(400).json({ ok: false, error: "siteId is required" });
+      }
+      
+      logger.info("Fix", `Starting CWV fix workflow for site ${siteId}`, { maxChanges, issues });
+      
+      // Step A: Gather evidence from current metrics
+      const site = await storage.getSiteById(siteId);
+      if (!site) {
+        return res.status(404).json({ ok: false, error: "Site not found" });
+      }
+      
+      // Get latest worker results for context
+      const cwvResult = await storage.getLatestWorkerResultByType(siteId, 'core_web_vitals');
+      const rawData = cwvResult?.resultData as any || {};
+      
+      const evidence = {
+        lcp: issues?.lcp || rawData?.lcp_s || null,
+        cls: issues?.cls || rawData?.cls || null,
+        inp: issues?.inp || rawData?.inp_ms || null,
+        performanceScore: issues?.performanceScore || rawData?.performance_score || null,
+        opportunities: issues?.opportunities || rawData?.opportunities || [],
+        topAffectedUrls: rawData?.slowestPages || [],
+        thresholds: {
+          lcp: { good: 2.5, needsImprovement: 4.0, unit: 's' },
+          cls: { good: 0.1, needsImprovement: 0.25, unit: '' },
+          inp: { good: 200, needsImprovement: 500, unit: 'ms' },
+          performanceScore: { good: 90, needsImprovement: 50, unit: '' },
+        },
+      };
+      
+      // Step B: Check if Knowledge Base service is configured
+      const kbaseConfig = await getServiceSecrets('seo_kbase');
+      const changeWorkerConfig = await getServiceSecrets('seo_change_executor');
+      
+      const missingIntegrations: string[] = [];
+      if (!kbaseConfig?.base_url || !kbaseConfig?.api_key) {
+        missingIntegrations.push('Knowledge Base (SEO_KBASE)');
+      }
+      if (!changeWorkerConfig?.base_url || !changeWorkerConfig?.api_key) {
+        missingIntegrations.push('Change Executor (SEO_CHANGE_EXECUTOR)');
+      }
+      
+      if (missingIntegrations.length > 0) {
+        return res.status(400).json({
+          ok: false,
+          error: "Required integrations not configured",
+          blockedBy: missingIntegrations,
+          hint: "Configure these services in Bitwarden Secrets Manager with base_url and api_key",
+        });
+      }
+      
+      // Step B: Generate fix plan using Knowledge Base
+      logger.info("Fix", "Calling Knowledge Base for fix recommendations");
+      
+      let fixPlan;
+      try {
+        const kbaseResponse = await fetch(`${kbaseConfig.base_url}/recommend/cwv-fix`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': kbaseConfig.api_key,
+            'Authorization': `Bearer ${kbaseConfig.api_key}`,
+          },
+          body: JSON.stringify({
+            siteId,
+            domain: site.domain,
+            evidence,
+            constraints: {
+              maxChanges,
+              safeMode: true,
+              prioritize: ['lcp', 'cls', 'inp'],
+            },
+          }),
+        });
+        
+        if (!kbaseResponse.ok) {
+          const errText = await kbaseResponse.text();
+          throw new Error(`Knowledge Base error: ${kbaseResponse.status} - ${errText}`);
+        }
+        
+        fixPlan = await kbaseResponse.json();
+      } catch (kbError: any) {
+        logger.error("Fix", "Knowledge Base call failed", { error: kbError.message });
+        return res.status(502).json({
+          ok: false,
+          error: "Failed to get fix recommendations from Knowledge Base",
+          details: kbError.message,
+        });
+      }
+      
+      // Step C: Execute fix plan via Change Worker (GitHub PR)
+      logger.info("Fix", "Calling Change Worker to create PR", { 
+        editsCount: fixPlan?.edits?.length || 0 
+      });
+      
+      let prResult;
+      try {
+        const changeResponse = await fetch(`${changeWorkerConfig.base_url}/run`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': changeWorkerConfig.api_key,
+            'Authorization': `Bearer ${changeWorkerConfig.api_key}`,
+          },
+          body: JSON.stringify({
+            siteId,
+            repoUrl: site.repositoryUrl || null,
+            branchPrefix: 'fix/cwv',
+            title: `[Speedster] Core Web Vitals fixes - ${new Date().toISOString().split('T')[0]}`,
+            description: fixPlan?.summary || 'Automated CWV performance improvements',
+            edits: fixPlan?.edits || [],
+            safeMode: true,
+            maxChanges,
+          }),
+        });
+        
+        if (!changeResponse.ok) {
+          const errText = await changeResponse.text();
+          throw new Error(`Change Worker error: ${changeResponse.status} - ${errText}`);
+        }
+        
+        prResult = await changeResponse.json();
+      } catch (cwError: any) {
+        logger.error("Fix", "Change Worker call failed", { error: cwError.message });
+        return res.status(502).json({
+          ok: false,
+          error: "Failed to create PR via Change Worker",
+          details: cwError.message,
+        });
+      }
+      
+      // Step D: Persist result to audit log
+      await storage.saveAuditLog({
+        siteId,
+        action: 'fix_pr_created',
+        details: {
+          crewId: 'speedster',
+          prUrl: prResult?.prUrl,
+          branchName: prResult?.branchName,
+          filesChanged: prResult?.filesChanged?.length || 0,
+          summary: fixPlan?.summary,
+        },
+      });
+      
+      logger.info("Fix", "CWV fix PR created successfully", { prUrl: prResult?.prUrl });
+      
+      res.json({
+        ok: true,
+        prUrl: prResult?.prUrl,
+        branchName: prResult?.branchName,
+        filesChanged: prResult?.filesChanged?.length || 0,
+        summary: fixPlan?.summary,
+        recommendations: fixPlan?.checklist || [],
+      });
+      
+    } catch (error: any) {
+      logger.error("Fix", "Fix workflow failed", { error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+  
   // Get crew state for a site
   app.get("/api/crew/state", async (req, res) => {
     try {
