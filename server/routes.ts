@@ -3667,6 +3667,20 @@ When answering:
       const requestId = (req.headers["x-request-id"] as string) || randomUUID();
       logger.info("Competitive", "Fetching overview", { siteId });
       
+      // Look up site to get domain
+      let targetDomain = "empathyhealthclinic.com"; // default
+      if (siteId !== "default") {
+        const site = await storage.getSiteById(siteId);
+        if (site?.baseUrl) {
+          try {
+            const url = new URL(site.baseUrl);
+            targetDomain = url.hostname;
+          } catch {
+            targetDomain = site.baseUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
+          }
+        }
+      }
+      
       // Check if worker is configured
       const { resolveWorkerConfig } = await import("./workerConfigResolver");
       const compConfig = await resolveWorkerConfig("competitive_snapshot");
@@ -3696,15 +3710,19 @@ When answering:
             logger.info("Competitive", "Worker capabilities fetched", { capabilities: capData });
           }
           
-          // Call the worker's overview or run endpoint
+          // Call the worker's run endpoint with required target.domain
           const overviewRes = await fetch(`${baseUrl}/run`, {
             method: "POST",
             headers,
             body: JSON.stringify({ 
-              siteId,
-              action: "overview",
+              target: {
+                domain: targetDomain,
+              },
+              options: {
+                max_competitors: 5,
+              },
             }),
-            signal: AbortSignal.timeout(30000),
+            signal: AbortSignal.timeout(60000),
           });
           
           if (overviewRes.ok) {
