@@ -150,28 +150,35 @@ interface MetricCardData {
 }
 
 function AreaSparkline({ data, color, fillColor }: { data: number[]; color: string; fillColor: string }) {
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const W = 300;
   const H = 64;
-  const pad = 10;
+  const yPad = 8;
   
   const rawMin = Math.min(...data);
   const rawMax = Math.max(...data);
   const range = rawMax - rawMin;
-  const yPad = range === 0 ? 1 : range * 0.15;
-  const yMin = rawMin - yPad;
-  const yMax = rawMax + yPad;
+  const yRange = range === 0 ? 1 : range * 0.15;
+  const yMin = rawMin - yRange;
+  const yMax = rawMax + yRange;
   
   const points = data.map((val, i) => {
-    const x = pad + (i / (data.length - 1)) * (W - pad * 2);
-    const y = H - pad - ((val - yMin) / (yMax - yMin)) * (H - pad * 2);
+    const x = (i / (data.length - 1)) * W;
+    const y = yPad + ((yMax - val) / (yMax - yMin)) * (H - yPad * 2);
     return { x, y, val };
   });
   
   const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
-  const areaPath = `${linePath} L ${points[points.length - 1].x.toFixed(1)} ${H - pad} L ${points[0].x.toFixed(1)} ${H - pad} Z`;
+  const areaPath = `${linePath} L ${W} ${H} L 0 ${H} Z`;
+  
+  const formatValue = (val: number) => {
+    if (val >= 1000) return `${(val / 1000).toFixed(1)}k`;
+    if (Number.isInteger(val)) return val.toString();
+    return val.toFixed(1);
+  };
   
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="64" preserveAspectRatio="xMidYMid meet">
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="64" preserveAspectRatio="none" className="cursor-crosshair">
       <defs>
         <linearGradient id={`gradient-${color.replace('#', '')}`} x1="0%" y1="0%" x2="0%" y2="100%">
           <stop offset="0%" stopColor={fillColor} stopOpacity="0.4" />
@@ -191,15 +198,50 @@ function AreaSparkline({ data, color, fillColor }: { data: number[]; color: stri
         strokeLinejoin="round"
       />
       {points.map((p, i) => (
-        <circle
-          key={i}
-          cx={p.x}
-          cy={p.y}
-          r="4"
-          fill="hsl(var(--card))"
-          stroke={color}
-          strokeWidth="2"
-        />
+        <g key={i}>
+          <circle
+            cx={p.x}
+            cy={p.y}
+            r={hoveredIndex === i ? 6 : 4}
+            fill={hoveredIndex === i ? color : "hsl(var(--card))"}
+            stroke={color}
+            strokeWidth="2"
+            style={{ transition: 'r 0.15s ease, fill 0.15s ease' }}
+          />
+          <circle
+            cx={p.x}
+            cy={p.y}
+            r="12"
+            fill="transparent"
+            onMouseEnter={() => setHoveredIndex(i)}
+            onMouseLeave={() => setHoveredIndex(null)}
+            style={{ cursor: 'pointer' }}
+          />
+          {hoveredIndex === i && (
+            <>
+              <rect
+                x={p.x - 20}
+                y={p.y - 26}
+                width="40"
+                height="18"
+                rx="4"
+                fill="hsl(var(--popover))"
+                stroke="hsl(var(--border))"
+                strokeWidth="1"
+              />
+              <text
+                x={p.x}
+                y={p.y - 13}
+                textAnchor="middle"
+                fontSize="11"
+                fontWeight="600"
+                fill="hsl(var(--foreground))"
+              >
+                {formatValue(p.val)}
+              </text>
+            </>
+          )}
+        </g>
       ))}
     </svg>
   );
