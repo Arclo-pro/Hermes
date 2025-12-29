@@ -212,36 +212,62 @@ function CompetitorRow({
   competitor: Competitor; 
   onRemove?: (id: string) => void;
 }) {
-  const typeLabels = {
+  const typeLabels: Record<string, { label: string; color: string }> = {
     direct: { label: "Direct", color: "bg-semantic-danger-soft text-semantic-danger" },
     indirect: { label: "Indirect", color: "bg-semantic-warning-soft text-semantic-warning" },
     "serp-only": { label: "SERP-only", color: "bg-muted text-muted-foreground" },
   };
 
-  const typeConfig = typeLabels[competitor.type];
+  const displayName = competitor.name || competitor.domain || "Unknown";
+  const initials = displayName.slice(0, 2).toUpperCase();
+  const typeConfig = typeLabels[competitor.type] || typeLabels["serp-only"];
+  const competitorId = competitor.id || competitor.domain || String(competitor.position);
 
   return (
-    <div className="flex items-center gap-4 p-3 rounded-xl bg-card/40 border border-border hover:border-primary/30 transition-colors" data-testid={`competitor-row-${competitor.id}`}>
+    <div className="flex items-center gap-4 p-3 rounded-xl bg-card/40 border border-border hover:border-primary/30 transition-colors" data-testid={`competitor-row-${competitorId}`}>
       <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-sm font-bold shrink-0">
-        {competitor.name.slice(0, 2).toUpperCase()}
+        {initials}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <h4 className="font-semibold text-foreground truncate">{competitor.name}</h4>
-          <Badge variant="secondary" className={cn("text-xs shrink-0", typeConfig.color)}>
-            {typeConfig.label}
-          </Badge>
+          <h4 className="font-semibold text-foreground truncate">{displayName}</h4>
+          {competitor.type && (
+            <Badge variant="secondary" className={cn("text-xs shrink-0", typeConfig.color)}>
+              {typeConfig.label}
+            </Badge>
+          )}
+          {(competitor as any).difficulty && (
+            <Badge variant="outline" className="text-xs shrink-0">
+              {(competitor as any).difficulty}
+            </Badge>
+          )}
         </div>
         <p className="text-xs text-muted-foreground">{competitor.domain}</p>
       </div>
-      <div className="text-center px-3 hidden sm:block">
-        <p className="text-xs text-muted-foreground">Overlap</p>
-        <p className="font-bold text-foreground">{competitor.marketOverlap}%</p>
-      </div>
-      <div className="text-center px-3 hidden sm:block">
-        <p className="text-xs text-muted-foreground">Keywords</p>
-        <p className="font-bold text-foreground">{competitor.keywords}</p>
-      </div>
+      {competitor.marketOverlap !== undefined && (
+        <div className="text-center px-3 hidden sm:block">
+          <p className="text-xs text-muted-foreground">Overlap</p>
+          <p className="font-bold text-foreground">{competitor.marketOverlap}%</p>
+        </div>
+      )}
+      {(competitor as any).opportunity_score !== undefined && (
+        <div className="text-center px-3 hidden sm:block">
+          <p className="text-xs text-muted-foreground">Opportunity</p>
+          <p className="font-bold text-semantic-success">{(competitor as any).opportunity_score}</p>
+        </div>
+      )}
+      {competitor.keywords !== undefined && (
+        <div className="text-center px-3 hidden sm:block">
+          <p className="text-xs text-muted-foreground">Keywords</p>
+          <p className="font-bold text-foreground">{competitor.keywords}</p>
+        </div>
+      )}
+      {(competitor as any).position !== undefined && (
+        <div className="text-center px-3 hidden sm:block">
+          <p className="text-xs text-muted-foreground">Rank</p>
+          <p className="font-bold text-foreground">#{(competitor as any).position}</p>
+        </div>
+      )}
       {competitor.deltaScore !== undefined && (
         <div className="text-center px-3">
           <p className="text-xs text-muted-foreground">Delta</p>
@@ -257,8 +283,8 @@ function CompetitorRow({
               variant="ghost" 
               size="icon" 
               className="h-8 w-8 text-muted-foreground hover:text-semantic-danger shrink-0"
-              onClick={() => onRemove?.(competitor.id)}
-              data-testid={`button-remove-competitor-${competitor.id}`}
+              onClick={() => onRemove?.(competitorId)}
+              data-testid={`button-remove-competitor-${competitorId}`}
             >
               <X className="w-4 h-4" />
             </Button>
