@@ -379,11 +379,11 @@ function AgentSummaryCard({ agent }: { agent: { serviceId: string; score: number
   
   return (
     <Card 
-      className="transition-all backdrop-blur-sm rounded-xl overflow-hidden"
+      className="transition-all backdrop-blur-sm rounded-xl overflow-hidden h-full flex flex-col"
       style={tintedGlassStyles}
       data-testid={`agent-summary-${agent.serviceId}`}
     >
-      <CardContent className="p-4">
+      <CardContent className="p-4 flex flex-col flex-1">
         <div className="flex items-start gap-3 mb-3">
           {crew.avatar ? (
             <img 
@@ -402,7 +402,7 @@ function AgentSummaryCard({ agent }: { agent: { serviceId: string; score: number
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1">
-                <h4 className="font-semibold text-sm" style={{ color: crew.color }}>{crew.nickname}</h4>
+                <h4 className="font-semibold text-base" style={{ color: crew.color }}>{crew.nickname}</h4>
                 {crew.tooltipInfo && (
                   <TooltipProvider>
                     <Tooltip>
@@ -467,6 +467,8 @@ function AgentSummaryCard({ agent }: { agent: { serviceId: string; score: number
         </div>
         <p className="text-xs text-muted-foreground mb-1">{agent.keyMetric}</p>
         
+        <div className="flex-1" />
+        
         <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
           <Badge 
             variant="outline" 
@@ -476,13 +478,13 @@ function AgentSummaryCard({ agent }: { agent: { serviceId: string; score: number
             {agent.status === 'good' ? 'Good' : agent.status === 'watch' ? 'Watch' : 'Alert'}
           </Badge>
           <Link href={`/agents/${agent.serviceId}`}>
-            <Button variant="ghost" size="sm" className="text-xs h-7 px-2 text-foreground hover:text-foreground/80">
+            <Button variant="ghost" size="sm" className="text-xs h-7 px-2 text-foreground hover:text-foreground/80 whitespace-nowrap">
               Review {crew.nickname} <ArrowRight className="w-3 h-3 ml-1" />
             </Button>
           </Link>
         </div>
         
-        <p className="text-xs text-muted-foreground mt-2 italic">{agent.whatChanged}</p>
+        <p className="text-xs text-muted-foreground mt-2 italic line-clamp-1">{agent.whatChanged}</p>
       </CardContent>
     </Card>
   );
