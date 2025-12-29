@@ -4200,12 +4200,12 @@ Return as JSON array. Only return the JSON array, no other text.`;
         return res.status(500).json({ error: "Failed to generate keywords. Please try again." });
       }
       
-      // Map priority strings to numbers
+      // Map priority strings to 1-5 scale
       const priorityMap: Record<string, number> = {
-        'critical': 100,
-        'high': 80,
-        'medium': 60,
-        'low': 40,
+        'critical': 5,
+        'high': 4,
+        'medium': 3,
+        'low': 2,
       };
       
       // Import serpKeywords table for upsert
@@ -4278,6 +4278,171 @@ Return as JSON array. Only return the JSON array, no other text.`;
       
     } catch (error: any) {
       logger.error("Keywords", "Failed to generate keywords", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Add keywords with dedupe (manual add from UI)
+  app.post("/api/keywords", async (req, res) => {
+    try {
+      const { keywords } = req.body;
+      
+      if (!keywords || !Array.isArray(keywords) || keywords.length === 0) {
+        return res.status(400).json({ error: "Keywords array is required" });
+      }
+      
+      const { serpKeywords } = await import("@shared/schema");
+      
+      // Normalize keywords (trim, lowercase for dedupe)
+      const normalized = keywords
+        .map((k: string) => k.trim())
+        .filter((k: string) => k.length > 0);
+      
+      // Get existing keywords for dedupe
+      const existingKeywords = await storage.getSerpKeywords(false);
+      const existingSet = new Set(existingKeywords.map(k => k.keyword.toLowerCase()));
+      
+      // Filter out duplicates
+      const newKeywords = normalized.filter((k: string) => !existingSet.has(k.toLowerCase()));
+      const duplicateCount = normalized.length - newKeywords.length;
+      
+      // Insert new keywords
+      let addedCount = 0;
+      if (newKeywords.length > 0) {
+        const keywordsToInsert = newKeywords.map((k: string) => ({
+          keyword: k,
+          intent: 'transactional',
+          priority: 3,
+          active: true,
+        }));
+        
+        const inserted = await db.insert(serpKeywords)
+          .values(keywordsToInsert)
+          .onConflictDoNothing()
+          .returning();
+        
+        addedCount = inserted.length;
+      }
+      
+      logger.info("Keywords", `Added ${addedCount} keywords, ${duplicateCount} duplicates skipped`);
+      
+      res.json({
+        added: addedCount,
+        duplicates: duplicateCount,
+        total: existingKeywords.length + addedCount,
+        message: addedCount > 0 
+          ? `Added ${addedCount} keywords${duplicateCount > 0 ? ` (${duplicateCount} duplicates skipped)` : ''}`
+          : `No keywords added (${duplicateCount} were duplicates)`,
+      });
+      
+    } catch (error: any) {
+      logger.error("Keywords", "Failed to add keywords", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Score keyword priority using AI
+  app.post("/api/keywords/score-priority", async (req, res) => {
+    try {
+      const { domain, businessType, location } = req.body;
+      
+      const openai = new OpenAI({
+        apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+        baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+      });
+      
+      // Get all keywords that need priority scoring
+      const keywords = await storage.getSerpKeywords(true);
+      
+      if (keywords.length === 0) {
+        return res.json({ scored: 0, message: "No keywords to score" });
+      }
+      
+      // Prepare keyword list for AI
+      const keywordList = keywords.map(k => ({
+        id: k.id,
+        keyword: k.keyword,
+        volume: k.volume,
+        difficulty: k.difficulty,
+        currentPriority: k.priority,
+      }));
+      
+      const prompt = `Score the lead-generation priority for these keywords for a ${businessType || 'psychiatry clinic'} in ${location || 'Orlando, Florida'}.
+
+Keywords to score:
+${JSON.stringify(keywordList, null, 2)}
+
+For each keyword, return:
+- id: the keyword ID
+- priority: 1-5 scale where 5 = highest lead value
+- reason: 1 short sentence explaining the score
+- intent: one of: high-intent, informational, brand, insurance, urgent, medication, local
+
+Priority scoring rules:
+- 5 (Critical): Strong appointment/purchase intent, local + service keywords ("psychiatrist orlando", "same day psychiatrist", "telepsychiatry orlando")
+- 4 (High): Condition-specific with local intent ("adhd psychiatrist orlando", "anxiety psychiatrist orlando")
+- 3 (Medium): Insurance keywords, general service terms ("psychiatrist accepts cigna", "mental health clinic")
+- 2 (Low): Informational queries, broad terms ("what is adhd", "signs of depression")
+- 1 (Very Low): Branded competitors, generic queries
+
+Consider volume but don't over-prioritize if intent is weak.
+Return only a JSON array of objects with id, priority, reason, intent fields.`;
+
+      logger.info("Keywords", `Scoring priority for ${keywords.length} keywords`);
+      
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: "You are an SEO expert specializing in lead generation for healthcare businesses. Return valid JSON only." },
+          { role: "user", content: prompt }
+        ],
+        temperature: 0.3,
+        max_tokens: 8000,
+      });
+      
+      const responseText = completion.choices[0]?.message?.content || "[]";
+      
+      let scores;
+      try {
+        const cleanedResponse = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        scores = JSON.parse(cleanedResponse);
+      } catch (parseError) {
+        logger.error("Keywords", "Failed to parse priority scores", { response: responseText.substring(0, 500) });
+        return res.status(500).json({ error: "Failed to score priorities. Please try again." });
+      }
+      
+      if (!Array.isArray(scores)) {
+        return res.status(500).json({ error: "Invalid AI response format" });
+      }
+      
+      // Update keywords with scores
+      const { serpKeywords } = await import("@shared/schema");
+      let updatedCount = 0;
+      
+      for (const score of scores) {
+        if (score.id && score.priority) {
+          await db.update(serpKeywords)
+            .set({
+              priority: Math.min(5, Math.max(1, score.priority)),
+              priorityReason: score.reason || null,
+              intent: score.intent || null,
+              updatedAt: new Date(),
+            })
+            .where(sql`id = ${score.id}`);
+          updatedCount++;
+        }
+      }
+      
+      logger.info("Keywords", `Scored priority for ${updatedCount} keywords`);
+      
+      res.json({
+        scored: updatedCount,
+        total: keywords.length,
+        message: `Updated priority for ${updatedCount} keywords`,
+      });
+      
+    } catch (error: any) {
+      logger.error("Keywords", "Failed to score priorities", { error: error.message });
       res.status(500).json({ error: error.message });
     }
   });
@@ -4685,6 +4850,7 @@ Return as JSON array. Only return the JSON array, no other text.`;
           keyword: kw.keyword,
           intent: kw.intent,
           priority: kw.priority,
+          priorityReason: kw.priorityReason,
           targetUrl: kw.targetUrl,
           tags: kw.tags,
           currentPosition,
@@ -4694,7 +4860,8 @@ Return as JSON array. Only return the JSON array, no other text.`;
           avg30Day,
           avg90Day,
           trend,
-          volume: latestRanking?.volume ?? null,
+          volume: kw.volume ?? latestRanking?.volume ?? null,
+          difficulty: kw.difficulty ?? null,
         };
       });
       

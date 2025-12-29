@@ -3,11 +3,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
-import { Search, TrendingUp, TrendingDown, Minus, RefreshCw, Sparkles, ArrowUp, ArrowDown, Target, AlertTriangle, Crown, Trophy, Zap, Settings2 } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Search, TrendingUp, TrendingDown, Minus, RefreshCw, Sparkles, ArrowUp, ArrowDown, Target, AlertTriangle, Crown, Trophy, Zap, Plus, ChevronUp, ChevronDown, Star, Brain } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 
 interface RankingData {
   id: number;
@@ -66,6 +68,11 @@ export default function SERPContent() {
       avg30Day: number | null;
       targetUrl: string | null;
       currentUrl: string | null;
+      volume: number | null;
+      difficulty: number | null;
+      priority: number | null;
+      priorityReason: string | null;
+      intent: string | null;
     }>;
   }>({
     queryKey: ['serp-rankings-full'],
@@ -75,6 +82,14 @@ export default function SERPContent() {
       return res.json();
     },
   });
+  
+  // Sorting state
+  const [sortField, setSortField] = useState<'priority' | 'volume' | 'difficulty' | 'position'>('priority');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  
+  // Add keywords state
+  const [newKeywords, setNewKeywords] = useState('');
+  const [showBulkAdd, setShowBulkAdd] = useState(false);
 
   const runCheck = useMutation({
     mutationFn: async (limit: number) => {
@@ -138,6 +153,188 @@ export default function SERPContent() {
 
   const handleCheck = (mode: 'quick' | 'full') => {
     runCheck.mutate(mode === 'quick' ? 10 : 100);
+  };
+  
+  // Add keywords mutation
+  const addKeywords = useMutation({
+    mutationFn: async (keywords: string[]) => {
+      const res = await fetch('/api/keywords', { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ keywords }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to add keywords');
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Keywords Added",
+        description: data.message,
+      });
+      queryClient.invalidateQueries({ queryKey: ['serp-overview'] });
+      queryClient.invalidateQueries({ queryKey: ['serp-rankings-full'] });
+      setNewKeywords('');
+      setShowBulkAdd(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to Add Keywords",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Score priority mutation
+  const scorePriority = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/keywords/score-priority', { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ 
+          domain: setupDomain,
+          businessType: setupBusinessType,
+          location: setupLocation,
+        }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to score priorities');
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Priorities Updated",
+        description: data.message,
+      });
+      queryClient.invalidateQueries({ queryKey: ['serp-rankings-full'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to Score Priorities",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  const handleAddKeywords = () => {
+    const keywords = newKeywords
+      .split('\n')
+      .map(k => k.trim())
+      .filter(k => k.length > 0);
+    
+    if (keywords.length === 0) {
+      toast({
+        title: "No Keywords",
+        description: "Please enter at least one keyword.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    addKeywords.mutate(keywords);
+  };
+  
+  // Sorted keywords
+  const sortedKeywords = useMemo(() => {
+    if (!rankingsData?.keywords) return [];
+    
+    return [...rankingsData.keywords].sort((a, b) => {
+      let aVal: number | null = null;
+      let bVal: number | null = null;
+      
+      switch (sortField) {
+        case 'priority':
+          aVal = a.priority;
+          bVal = b.priority;
+          break;
+        case 'volume':
+          aVal = a.volume;
+          bVal = b.volume;
+          break;
+        case 'difficulty':
+          aVal = a.difficulty;
+          bVal = b.difficulty;
+          break;
+        case 'position':
+          aVal = a.currentPosition;
+          bVal = b.currentPosition;
+          break;
+      }
+      
+      // Handle nulls (put them at the end)
+      if (aVal === null && bVal === null) return 0;
+      if (aVal === null) return 1;
+      if (bVal === null) return -1;
+      
+      return sortDirection === 'desc' ? bVal - aVal : aVal - bVal;
+    });
+  }, [rankingsData?.keywords, sortField, sortDirection]);
+  
+  const toggleSort = (field: typeof sortField) => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === 'desc' ? 'asc' : 'desc');
+    } else {
+      setSortField(field);
+      setSortDirection('desc');
+    }
+  };
+  
+  const SortHeader = ({ field, children }: { field: typeof sortField; children: React.ReactNode }) => (
+    <th 
+      className="text-center py-2 font-medium cursor-pointer hover:bg-muted/50"
+      onClick={() => toggleSort(field)}
+    >
+      <div className="flex items-center justify-center gap-1">
+        {children}
+        {sortField === field && (
+          sortDirection === 'desc' ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />
+        )}
+      </div>
+    </th>
+  );
+  
+  const getPriorityBadge = (priority: number | null, reason?: string | null) => {
+    if (!priority) return <span className="text-muted-foreground">—</span>;
+    
+    const label = priority >= 5 ? 'Critical' : priority >= 4 ? 'High' : priority >= 3 ? 'Medium' : priority >= 2 ? 'Low' : 'Very Low';
+    const color = priority >= 5 ? 'bg-red-500' : priority >= 4 ? 'bg-orange-500' : priority >= 3 ? 'bg-yellow-500' : priority >= 2 ? 'bg-blue-500' : 'bg-gray-500';
+    
+    const badge = (
+      <Badge className={`${color} text-white text-xs`}>
+        {label}
+      </Badge>
+    );
+    
+    if (reason) {
+      return (
+        <Tooltip>
+          <TooltipTrigger>{badge}</TooltipTrigger>
+          <TooltipContent><p className="max-w-xs">{reason}</p></TooltipContent>
+        </Tooltip>
+      );
+    }
+    
+    return badge;
+  };
+  
+  const getDifficultyLabel = (difficulty: number | null) => {
+    if (difficulty === null) return <span className="text-muted-foreground">—</span>;
+    const label = difficulty <= 30 ? 'Easy' : difficulty <= 60 ? 'Medium' : 'Hard';
+    const color = difficulty <= 30 ? 'text-semantic-success' : difficulty <= 60 ? 'text-semantic-warning' : 'text-semantic-danger';
+    return <span className={color}>{difficulty} <span className="text-xs opacity-70">({label})</span></span>;
+  };
+  
+  const formatVolume = (volume: number | null) => {
+    if (volume === null) return <span className="text-muted-foreground">—</span>;
+    return volume.toLocaleString();
   };
 
   const handleGenerate = () => {
@@ -403,68 +600,152 @@ export default function SERPContent() {
         </Card>
       </div>
 
+      {/* Add Keywords Panel */}
+      {showBulkAdd && (
+        <Card data-testid="card-add-keywords">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5" />
+              Add Keywords
+            </CardTitle>
+            <CardDescription>
+              Add keywords manually (one per line)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Textarea
+              data-testid="textarea-add-keywords"
+              placeholder="Enter keywords (one per line)&#10;psychiatrist orlando&#10;adhd specialist florida&#10;telehealth mental health"
+              value={newKeywords}
+              onChange={(e) => setNewKeywords(e.target.value)}
+              rows={6}
+            />
+            <div className="flex gap-2">
+              <Button
+                data-testid="button-add-keywords"
+                onClick={handleAddKeywords}
+                disabled={addKeywords.isPending}
+              >
+                {addKeywords.isPending ? 'Adding...' : 'Add Keywords'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowBulkAdd(false)}
+                data-testid="button-cancel-add"
+              >
+                Cancel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card data-testid="card-all-rankings">
         <CardHeader>
-          <CardTitle>All Keywords ({rankingsData?.keywords?.length || 0})</CardTitle>
-          <CardDescription>
-            Complete keyword ranking data • Last check: {overview?.lastCheck || 'Never'}
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>All Keywords ({rankingsData?.keywords?.length || 0})</CardTitle>
+              <CardDescription>
+                Complete keyword ranking data • Last check: {overview?.lastCheck || 'Never'}
+              </CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowBulkAdd(true)}
+                data-testid="button-show-add-keywords"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add Keywords
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => scorePriority.mutate()}
+                disabled={scorePriority.isPending}
+                data-testid="button-score-priority"
+              >
+                <Brain className="h-4 w-4 mr-1" />
+                {scorePriority.isPending ? 'Scoring...' : 'Score Priority'}
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          {rankingsData?.keywords && rankingsData.keywords.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="sticky top-0 bg-background">
-                  <tr className="border-b">
-                    <th className="text-left py-2 font-medium">Keyword</th>
-                    <th className="text-center py-2 font-medium">Position</th>
-                    <th className="text-center py-2 font-medium">Trend</th>
-                    <th className="text-center py-2 font-medium">7d Avg</th>
-                    <th className="text-center py-2 font-medium">30d Avg</th>
-                    <th className="text-left py-2 font-medium">Ranking URL</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rankingsData.keywords.map((kw, idx) => (
-                    <tr key={kw.id || idx} className="border-b hover:bg-muted/50" data-testid={`row-keyword-${kw.id}`}>
-                      <td className="py-2 font-medium">
-                        {kw.keyword}
-                      </td>
-                      <td className={`py-2 text-center ${getPositionColor(kw.currentPosition)}`}>
-                        {kw.currentPosition ? (
-                          <span className="flex items-center justify-center gap-1">
-                            {kw.currentPosition === 1 && <Crown className="h-4 w-4 text-yellow-500" />}
-                            {kw.currentPosition >= 2 && kw.currentPosition <= 3 && <Trophy className="h-4 w-4 text-slate-400" />}
-                            {kw.currentPosition >= 4 && kw.currentPosition <= 10 && <Trophy className="h-4 w-4 text-amber-600" />}
-                            #{kw.currentPosition}
-                          </span>
-                        ) : '—'}
-                      </td>
-                      <td className="py-2 text-center">
-                        {kw.trend === 'up' && <TrendingUp className="h-4 w-4 text-semantic-success mx-auto" />}
-                        {kw.trend === 'down' && <TrendingDown className="h-4 w-4 text-semantic-danger mx-auto" />}
-                        {kw.trend === 'stable' && <Minus className="h-4 w-4 text-muted-foreground mx-auto" />}
-                        {kw.trend === 'new' && <Badge variant="outline" className="text-xs">New</Badge>}
-                      </td>
-                      <td className="py-2 text-center text-muted-foreground">
-                        {kw.avg7Day ? `#${kw.avg7Day.toFixed(1)}` : '—'}
-                      </td>
-                      <td className="py-2 text-center text-muted-foreground">
-                        {kw.avg30Day ? `#${kw.avg30Day.toFixed(1)}` : '—'}
-                      </td>
-                      <td className="py-2 text-muted-foreground truncate max-w-[250px]">
-                        {kw.currentUrl || kw.targetUrl || '—'}
-                      </td>
+          <TooltipProvider>
+            {sortedKeywords && sortedKeywords.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 bg-background">
+                    <tr className="border-b">
+                      <th className="text-center py-2 font-medium w-12">#</th>
+                      <th className="text-left py-2 font-medium">Keyword</th>
+                      <SortHeader field="priority">Priority</SortHeader>
+                      <SortHeader field="volume">Volume</SortHeader>
+                      <SortHeader field="difficulty">Difficulty</SortHeader>
+                      <SortHeader field="position">Position</SortHeader>
+                      <th className="text-center py-2 font-medium">Trend</th>
+                      <th className="text-center py-2 font-medium">7d Avg</th>
+                      <th className="text-left py-2 font-medium">Ranking URL</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p className="text-muted-foreground text-center py-8">
-              No keywords tracked. Seed keywords and run a SERP check to start tracking.
-            </p>
-          )}
+                  </thead>
+                  <tbody>
+                    {sortedKeywords.map((kw, idx) => (
+                      <tr key={kw.id || idx} className="border-b hover:bg-muted/50" data-testid={`row-keyword-${kw.id}`}>
+                        <td className="py-2 text-center text-muted-foreground">
+                          {idx + 1}
+                        </td>
+                        <td className="py-2 font-medium">
+                          {kw.keyword}
+                          {kw.intent && (
+                            <Badge variant="outline" className="ml-2 text-xs">
+                              {kw.intent}
+                            </Badge>
+                          )}
+                        </td>
+                        <td className="py-2 text-center">
+                          {getPriorityBadge(kw.priority, kw.priorityReason)}
+                        </td>
+                        <td className="py-2 text-center">
+                          {formatVolume(kw.volume)}
+                        </td>
+                        <td className="py-2 text-center">
+                          {getDifficultyLabel(kw.difficulty)}
+                        </td>
+                        <td className={`py-2 text-center ${getPositionColor(kw.currentPosition)}`}>
+                          {kw.currentPosition ? (
+                            <span className="flex items-center justify-center gap-1">
+                              {kw.currentPosition === 1 && <Crown className="h-4 w-4 text-yellow-500" />}
+                              {kw.currentPosition >= 2 && kw.currentPosition <= 3 && <Trophy className="h-4 w-4 text-slate-400" />}
+                              {kw.currentPosition >= 4 && kw.currentPosition <= 10 && <Trophy className="h-4 w-4 text-amber-600" />}
+                              #{kw.currentPosition}
+                            </span>
+                          ) : '—'}
+                        </td>
+                        <td className="py-2 text-center">
+                          {kw.trend === 'up' && <TrendingUp className="h-4 w-4 text-semantic-success mx-auto" />}
+                          {kw.trend === 'down' && <TrendingDown className="h-4 w-4 text-semantic-danger mx-auto" />}
+                          {kw.trend === 'stable' && <Minus className="h-4 w-4 text-muted-foreground mx-auto" />}
+                          {kw.trend === 'new' && <Badge variant="outline" className="text-xs">New</Badge>}
+                        </td>
+                        <td className="py-2 text-center text-muted-foreground">
+                          {kw.avg7Day ? `#${kw.avg7Day.toFixed(1)}` : '—'}
+                        </td>
+                        <td className="py-2 text-muted-foreground truncate max-w-[250px]">
+                          {kw.currentUrl || kw.targetUrl || '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-center py-8">
+                No keywords tracked. Seed keywords and run a SERP check to start tracking.
+              </p>
+            )}
+          </TooltipProvider>
         </CardContent>
       </Card>
     </div>

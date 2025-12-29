@@ -310,19 +310,23 @@ export type Hypothesis = typeof hypotheses.$inferSelect;
 export const serpKeywords = pgTable("serp_keywords", {
   id: serial("id").primaryKey(),
   keyword: text("keyword").notNull().unique(),
-  intent: text("intent"), // informational, transactional, navigational, or category
-  priority: integer("priority").default(50), // 1-100 (critical=100, high=80, medium=60, low=40)
+  intent: text("intent"), // informational, transactional, local, urgent, insurance, medication
+  priority: integer("priority").default(3), // 1-5 scale (5=highest lead value)
+  priorityReason: text("priority_reason"), // AI-generated explanation for priority
+  difficulty: integer("difficulty"), // 0-100 keyword difficulty score
   targetUrl: text("target_url"), // Expected landing page
   tags: text("tags").array(), // e.g., ["therapy", "local", "branded"]
   volume: integer("volume"), // Monthly search volume
   active: boolean("active").default(true),
   lastChecked: timestamp("last_checked"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const insertSerpKeywordSchema = createInsertSchema(serpKeywords).omit({
   id: true,
   createdAt: true,
+  updatedAt: true,
   lastChecked: true,
 });
 export type InsertSerpKeyword = z.infer<typeof insertSerpKeywordSchema>;
