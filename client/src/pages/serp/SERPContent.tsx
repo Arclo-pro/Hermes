@@ -42,9 +42,6 @@ interface SerpOverview {
 export default function SERPContent() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [isChecking, setIsChecking] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [showSetup, setShowSetup] = useState(false);
   const [setupDomain, setSetupDomain] = useState('empathyhealthclinic.com');
   const [setupBusinessType, setSetupBusinessType] = useState('psychiatry clinic');
   const [setupLocation, setSetupLocation] = useState('Orlando, Florida');
@@ -98,7 +95,6 @@ export default function SERPContent() {
       });
       queryClient.invalidateQueries({ queryKey: ['serp-overview'] });
       queryClient.invalidateQueries({ queryKey: ['serp-rankings-full'] });
-      setIsChecking(false);
     },
     onError: (error: Error) => {
       toast({
@@ -106,7 +102,6 @@ export default function SERPContent() {
         description: error.message,
         variant: "destructive",
       });
-      setIsChecking(false);
     },
   });
 
@@ -127,11 +122,10 @@ export default function SERPContent() {
     onSuccess: (data) => {
       toast({
         title: "Keywords Generated",
-        description: data.message || `Created ${data.added || data.saved} target keywords for tracking.`,
+        description: data.message || `Created ${data.added || 0} target keywords for tracking.`,
       });
       queryClient.invalidateQueries({ queryKey: ['serp-overview'] });
       queryClient.invalidateQueries({ queryKey: ['serp-rankings-full'] });
-      setIsGenerating(false);
     },
     onError: (error: Error) => {
       toast({
@@ -139,23 +133,44 @@ export default function SERPContent() {
         description: error.message,
         variant: "destructive",
       });
-      setIsGenerating(false);
     },
   });
 
   const handleCheck = (mode: 'quick' | 'full') => {
-    setIsChecking(true);
-    // Quick check = 10 keywords, Full check = 100 keywords
     runCheck.mutate(mode === 'quick' ? 10 : 100);
   };
 
   const handleGenerate = () => {
-    setIsGenerating(true);
-    generateKeywords.mutate({
-      domain: setupDomain,
-      businessType: setupBusinessType,
-      location: setupLocation,
-    });
+    const domain = setupDomain.trim();
+    const businessType = setupBusinessType.trim();
+    const location = setupLocation.trim();
+    
+    if (!domain) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter your domain.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!businessType) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter your business type.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!location) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter your location.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    generateKeywords.mutate({ domain, businessType, location });
   };
 
   const getPositionColor = (pos: number | null) => {
@@ -242,12 +257,12 @@ export default function SERPContent() {
             </div>
             <Button 
               onClick={handleGenerate}
-              disabled={isGenerating || !setupDomain}
+              disabled={generateKeywords.isPending || !setupDomain.trim()}
               className="w-full mt-4"
               size="lg"
               data-testid="button-generate-keywords"
             >
-              {isGenerating ? (
+              {generateKeywords.isPending ? (
                 <>
                   <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
                   Generating Keywords...
@@ -277,23 +292,23 @@ export default function SERPContent() {
         <div className="flex gap-2">
           <Button 
             onClick={() => handleCheck('quick')} 
-            disabled={isChecking || !overview?.configured}
+            disabled={runCheck.isPending || !overview?.configured}
             variant="outline"
             size="sm"
             data-testid="button-quick-check"
             title="Check keywords missing recent data (respects 7-day rule)"
           >
-            {isChecking ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Zap className="h-4 w-4 mr-2" />}
+            {runCheck.isPending ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Zap className="h-4 w-4 mr-2" />}
             Quick Check
           </Button>
           <Button 
             onClick={() => handleCheck('full')} 
-            disabled={isChecking || !overview?.configured}
+            disabled={runCheck.isPending || !overview?.configured}
             size="sm"
             data-testid="button-full-check"
             title="Refresh rankings for all keywords (respects 7-day rule)"
           >
-            {isChecking ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Target className="h-4 w-4 mr-2" />}
+            {runCheck.isPending ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Target className="h-4 w-4 mr-2" />}
             Full Check
           </Button>
         </div>
