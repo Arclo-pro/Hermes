@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, Minus, BarChart3, Info } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, BarChart3, Info, Lightbulb } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Progress } from "@/components/ui/progress";
 
@@ -139,6 +139,107 @@ function formatDateRange(dateStr: string): string {
   return `${year}-${month}-${day}`;
 }
 
+function getImprovementSuggestion(metric: string, status: string, actualValue: number | null, benchmarks: BenchmarkMetric['benchmarks']): string | null {
+  if (status === 'good' || status === 'unknown' || actualValue === null) return null;
+  
+  const suggestions: Record<string, { watch: string; needs_improvement: string }> = {
+    sessions: {
+      watch: "Boost content marketing and optimize for long-tail keywords to increase organic visibility",
+      needs_improvement: "Focus on content gaps, fix technical SEO issues, and build quality backlinks"
+    },
+    clicks: {
+      watch: "Improve meta titles and descriptions for better CTR in search results",
+      needs_improvement: "Rewrite meta tags with action words, add schema markup for rich snippets"
+    },
+    impressions: {
+      watch: "Expand keyword targeting and create more topic cluster content",
+      needs_improvement: "Audit keyword strategy, target low-competition queries, fix indexing issues"
+    },
+    organic_ctr: {
+      watch: "Test different meta descriptions with clear value propositions",
+      needs_improvement: "Add FAQ schema, power words in titles, and ensure titles match search intent"
+    },
+    avg_position: {
+      watch: "Strengthen internal linking and update content with fresh information",
+      needs_improvement: "Improve E-E-A-T signals, build topical authority, and earn quality backlinks"
+    },
+    bounce_rate: {
+      watch: "Improve page load speed and ensure content matches search intent",
+      needs_improvement: "Redesign above-the-fold content, add clear CTAs, improve mobile experience"
+    },
+    session_duration: {
+      watch: "Add engaging multimedia content and improve internal linking",
+      needs_improvement: "Create deeper content, add videos/infographics, improve navigation"
+    },
+    pages_per_session: {
+      watch: "Add related content widgets and improve navigation structure",
+      needs_improvement: "Implement better internal linking, add \"related articles\" sections"
+    },
+    conversion_rate: {
+      watch: "A/B test CTAs and simplify conversion paths",
+      needs_improvement: "Redesign landing pages, reduce form friction, add trust signals"
+    },
+    lcp: {
+      watch: "Optimize hero images and preload critical resources",
+      needs_improvement: "Compress images, enable CDN caching, defer non-critical JavaScript"
+    },
+    cls: {
+      watch: "Set explicit dimensions for images and ads",
+      needs_improvement: "Reserve space for dynamic content, avoid inserting elements above existing content"
+    },
+    inp: {
+      watch: "Split long tasks and optimize JavaScript execution",
+      needs_improvement: "Reduce third-party scripts, use web workers, optimize event handlers"
+    },
+    local_visibility: {
+      watch: "Optimize Google Business Profile and encourage customer reviews",
+      needs_improvement: "Build local citations, create location-specific pages, earn local backlinks"
+    },
+    review_rating: {
+      watch: "Follow up with satisfied customers for reviews",
+      needs_improvement: "Implement review management system, respond to all reviews professionally"
+    },
+    mobile_traffic: {
+      watch: "Ensure mobile-first design and fast mobile load times",
+      needs_improvement: "Audit mobile UX, fix mobile usability issues in Search Console"
+    },
+  };
+  
+  const metricSuggestions = suggestions[metric];
+  if (!metricSuggestions) return null;
+  
+  if (status === 'needs_improvement') {
+    return metricSuggestions.needs_improvement;
+  }
+  if (status === 'watch') {
+    return metricSuggestions.watch;
+  }
+  
+  return null;
+}
+
+function getNextLevelTarget(metric: string, actualValue: number | null, benchmarks: BenchmarkMetric['benchmarks'], status: string): string | null {
+  if (actualValue === null || status === 'good') return null;
+  
+  const isLowerBetter = ['avg_position', 'bounce_rate', 'lcp', 'cls', 'inp'].includes(metric);
+  
+  if (isLowerBetter) {
+    if (actualValue > benchmarks.p50) {
+      return `Target: ${benchmarks.p50.toFixed(1)} (industry median)`;
+    } else if (actualValue > benchmarks.p75) {
+      return `Target: ${benchmarks.p75.toFixed(1)} (top 25%)`;
+    }
+  } else {
+    if (actualValue < benchmarks.p50) {
+      return `Target: ${benchmarks.p50.toFixed(1)} (industry median)`;
+    } else if (actualValue < benchmarks.p75) {
+      return `Target: ${benchmarks.p75.toFixed(1)} (top 25%)`;
+    }
+  }
+  
+  return null;
+}
+
 function PercentileBar({ value, benchmarks, metric, unit }: { 
   value: number | null; 
   benchmarks: BenchmarkMetric['benchmarks'];
@@ -185,6 +286,9 @@ function PercentileBar({ value, benchmarks, metric, unit }: {
 function MetricCard({ data }: { data: BenchmarkMetric }) {
   const statusStyle = statusColors[data.status] || statusColors.unknown;
   const isLowerBetter = ['avg_position', 'bounce_rate'].includes(data.metric);
+  
+  const suggestion = getImprovementSuggestion(data.metric, data.status, data.actualValue, data.benchmarks);
+  const nextTarget = getNextLevelTarget(data.metric, data.actualValue, data.benchmarks, data.status);
   
   const getIcon = () => {
     if (data.actualValue === null) return <Minus className="w-4 h-4" />;
@@ -243,6 +347,20 @@ function MetricCard({ data }: { data: BenchmarkMetric }) {
         metric={data.metric}
         unit={data.unit}
       />
+      
+      {suggestion && (
+        <div className="mt-3 p-2.5 bg-semantic-info-soft/50 rounded-md border border-semantic-info-border/30">
+          <div className="flex items-start gap-2">
+            <Lightbulb className="w-4 h-4 text-semantic-info mt-0.5 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-foreground leading-relaxed">{suggestion}</p>
+              {nextTarget && (
+                <p className="text-xs text-semantic-info font-medium mt-1">{nextTarget}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       
       {data.source && (
         <p className="text-xs text-muted-foreground mt-2 italic">
