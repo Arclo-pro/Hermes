@@ -230,7 +230,7 @@ export default function SERPContent() {
         </Card>
       )}
 
-      <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-7">
         <Card data-testid="card-total-keywords">
           <CardContent className="pt-4">
             <div className="text-2xl font-bold">{overview?.totalKeywords || 0}</div>
@@ -238,19 +238,26 @@ export default function SERPContent() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 border-yellow-500/30" data-testid="card-number-one">
+        <Card data-testid="card-ranking">
+          <CardContent className="pt-4">
+            <div className="text-2xl font-bold text-semantic-info">{stats.ranking}</div>
+            <p className="text-xs text-muted-foreground">Total Ranking</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 border-yellow-500/30" data-testid="card-top-1">
           <CardContent className="pt-4">
             <div className="text-2xl font-bold text-yellow-500 flex items-center gap-1">
               <Crown className="h-5 w-5" />
               {stats.numberOne}
             </div>
-            <p className="text-xs text-muted-foreground">#1 Rankings</p>
+            <p className="text-xs text-muted-foreground">Top 1</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-500/30" data-testid="card-top-3">
+        <Card className="bg-gradient-to-br from-slate-400/10 to-slate-500/5 border-slate-400/30" data-testid="card-top-3">
           <CardContent className="pt-4">
-            <div className="text-2xl font-bold text-amber-500 flex items-center gap-1">
+            <div className="text-2xl font-bold text-slate-400 flex items-center gap-1">
               <Trophy className="h-4 w-4" />
               {stats.inTop3}
             </div>
@@ -258,9 +265,12 @@ export default function SERPContent() {
           </CardContent>
         </Card>
 
-        <Card data-testid="card-top-10">
+        <Card className="bg-gradient-to-br from-amber-600/10 to-amber-700/5 border-amber-600/30" data-testid="card-top-10">
           <CardContent className="pt-4">
-            <div className="text-2xl font-bold text-semantic-success">{stats.inTop10}</div>
+            <div className="text-2xl font-bold text-amber-600 flex items-center gap-1">
+              <Trophy className="h-4 w-4" />
+              {stats.inTop10}
+            </div>
             <p className="text-xs text-muted-foreground">Top 10</p>
           </CardContent>
         </Card>

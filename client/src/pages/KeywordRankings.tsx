@@ -174,38 +174,39 @@ export default function KeywordRankings() {
               <div className="text-sm text-muted-foreground">Total Keywords</div>
             </CardContent>
           </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <div className="text-2xl font-bold text-semantic-info" data-testid="stat-ranking">
+                {data?.summary.ranking ?? '-'}
+              </div>
+              <div className="text-sm text-muted-foreground">Total Ranking</div>
+            </CardContent>
+          </Card>
           <Card className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 border-yellow-500/30">
             <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-yellow-500 flex items-center gap-1" data-testid="stat-number-one">
+              <div className="text-2xl font-bold text-yellow-500 flex items-center gap-1" data-testid="stat-top-1">
                 <Crown className="h-5 w-5" />
                 {data?.summary.numberOne ?? '-'}
               </div>
-              <div className="text-sm text-muted-foreground">#1 Rankings</div>
+              <div className="text-sm text-muted-foreground">Top 1</div>
             </CardContent>
           </Card>
-          <Card className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-500/30">
+          <Card className="bg-gradient-to-br from-slate-400/10 to-slate-500/5 border-slate-400/30">
             <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-amber-500 flex items-center gap-1" data-testid="stat-in-top3">
+              <div className="text-2xl font-bold text-slate-400 flex items-center gap-1" data-testid="stat-top-3">
                 <Trophy className="h-4 w-4" />
                 {data?.summary.inTop3 ?? '-'}
               </div>
               <div className="text-sm text-muted-foreground">Top 3</div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-gradient-to-br from-amber-600/10 to-amber-700/5 border-amber-600/30">
             <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-semantic-success" data-testid="stat-in-top10">
+              <div className="text-2xl font-bold text-amber-600 flex items-center gap-1" data-testid="stat-top-10">
+                <Trophy className="h-4 w-4" />
                 {data?.summary.inTop10 ?? '-'}
               </div>
               <div className="text-sm text-muted-foreground">Top 10</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-semantic-info" data-testid="stat-in-top20">
-                {data?.summary.inTop20 ?? '-'}
-              </div>
-              <div className="text-sm text-muted-foreground">Top 20</div>
             </CardContent>
           </Card>
           <Card>
