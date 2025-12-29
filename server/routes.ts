@@ -4324,8 +4324,36 @@ When answering:
         return res.status(400).json({ error: "No keywords to check. Seed keywords first." });
       }
 
+      // Get all rankings to check last checked dates
+      const allRankings = await storage.getAllRankingsWithHistory(90);
+      const rankingsByKeyword = new Map<number, { date: string }>();
+      for (const r of allRankings) {
+        if (!rankingsByKeyword.has(r.keywordId) || r.date > rankingsByKeyword.get(r.keywordId)!.date) {
+          rankingsByKeyword.set(r.keywordId, { date: r.date });
+        }
+      }
+      
+      // Only check keywords not checked in the last 7 days
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
+      
+      const eligibleKeywords = keywords.filter(kw => {
+        const lastCheck = rankingsByKeyword.get(kw.id);
+        return !lastCheck || lastCheck.date < sevenDaysAgoStr;
+      });
+      
+      if (eligibleKeywords.length === 0) {
+        return res.json({ 
+          checked: 0, 
+          saved: 0, 
+          message: "All keywords were checked within the last 7 days. No new checks needed.",
+          stats: { ranking: 0, inTop10: 0, notFound: 0 }
+        });
+      }
+
       const limit = Math.min(parseInt(req.query.limit as string) || 10, 100);
-      const keywordsToCheck = keywords.slice(0, limit);
+      const keywordsToCheck = eligibleKeywords.slice(0, limit);
       
       logger.info("SERP", `Starting SERP check for ${keywordsToCheck.length} keywords`);
       
