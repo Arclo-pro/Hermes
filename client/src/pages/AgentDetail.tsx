@@ -13,6 +13,7 @@ import SERPContent from "./serp/SERPContent";
 import PulseContent from "./pulse/PulseContent";
 import SpeedsterContent from "./speedster/SpeedsterContent";
 import NatashaContent from "./natasha/NatashaContent";
+import SocratesContent from "./socrates/SocratesContent";
 import GenericAgentContent from "./agents/GenericAgentContent";
 
 function getScoreColor(score: number): string {
@@ -47,7 +48,7 @@ export default function AgentDetail() {
   }
 
   // Agents that use CrewDashboardShell and handle their own header
-  const agentsWithOwnHeader = ["competitive_snapshot", "backlink_authority", "serp_intel", "google_data_connector", "core_web_vitals"];
+  const agentsWithOwnHeader = ["competitive_snapshot", "backlink_authority", "serp_intel", "google_data_connector", "core_web_vitals", "seo_kbase"];
   const usesOwnHeader = agentsWithOwnHeader.includes(agentId);
 
   const renderAgentContent = () => {
@@ -62,6 +63,8 @@ export default function AgentDetail() {
         return <SpeedsterContent />;
       case "competitive_snapshot":
         return <NatashaContent />;
+      case "seo_kbase":
+        return <SocratesContent />;
       default:
         return <GenericAgentContent agentId={agentId} />;
     }

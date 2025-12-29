@@ -11308,6 +11308,107 @@ When answering:
   });
 
   /**
+   * GET /api/kb/overview
+   * Get Knowledge Base overview for CrewDashboardShell
+   */
+  app.get("/api/kb/overview", async (req, res) => {
+    try {
+      const siteId = (req.query.siteId as string) || "site_empathy_health_clinic";
+      const requestId = (req.headers["x-request-id"] as string) || randomUUID();
+
+      // Get findings from storage
+      const [kbaseFindings, totalKbaseCount, allFindings] = await Promise.all([
+        storage.getFindingsBySource(siteId, 'seo_kbase', 20),
+        storage.getFindingsCount(siteId, 'seo_kbase'),
+        storage.getLatestFindings(siteId, 50),
+      ]);
+
+      // Get last run info
+      const serviceRuns = await storage.getServiceRunsByService('seo_kbase', 1);
+      const lastRun = serviceRuns[0];
+
+      // Check KB service configuration
+      const { getServiceSecrets } = await import("./vault");
+      const kbaseConfig = await getServiceSecrets('seo_kbase');
+      const isConfigured = Boolean(kbaseConfig?.base_url && kbaseConfig?.api_key);
+
+      // Categorize findings by type
+      const insights = kbaseFindings.filter(f => f.category === 'insight' || f.category === 'learning');
+      const recommendations = kbaseFindings.filter(f => f.category === 'recommendation' || f.category === 'action');
+      const patterns = kbaseFindings.filter(f => f.category === 'pattern' || f.category === 'trend');
+
+      // Get findings from other agents to show cross-agent patterns
+      const agentSources = new Set(allFindings.map(f => f.sourceIntegration).filter(Boolean));
+      const agentActivity = Array.from(agentSources).map(source => {
+        const agentFindings = allFindings.filter(f => f.sourceIntegration === source);
+        return {
+          agentId: source,
+          findingsCount: agentFindings.length,
+          latestFinding: agentFindings[0]?.createdAt || null,
+        };
+      });
+
+      res.json({
+        ok: true,
+        configured: isConfigured,
+        isRealData: kbaseFindings.length > 0,
+        dataSource: kbaseFindings.length > 0 ? "database" : "placeholder",
+        lastRunAt: lastRun?.finishedAt || lastRun?.startedAt || null,
+        lastRunStatus: lastRun?.status || null,
+
+        // Summary stats
+        totalLearnings: totalKbaseCount,
+        insightsCount: insights.length,
+        recommendationsCount: recommendations.length,
+        patternsCount: patterns.length,
+
+        // Agent health
+        activeAgents: agentActivity.length,
+        agentActivity: agentActivity.slice(0, 10),
+
+        // Recent learnings
+        recentLearnings: kbaseFindings.slice(0, 10).map(f => ({
+          id: f.findingId,
+          title: f.title,
+          description: f.description,
+          category: f.category,
+          severity: f.severity,
+          sourceAgent: f.sourceIntegration,
+          createdAt: f.createdAt,
+          metadata: f.metadata,
+        })),
+
+        // Breakdown by category
+        insights: insights.slice(0, 5).map(f => ({
+          id: f.findingId,
+          title: f.title,
+          description: f.description,
+          sourceAgent: f.sourceIntegration,
+          createdAt: f.createdAt,
+        })),
+        recommendations: recommendations.slice(0, 5).map(f => ({
+          id: f.findingId,
+          title: f.title,
+          description: f.description,
+          sourceAgent: f.sourceIntegration,
+          priority: f.severity,
+          createdAt: f.createdAt,
+        })),
+        patterns: patterns.slice(0, 5).map(f => ({
+          id: f.findingId,
+          title: f.title,
+          description: f.description,
+          trend: f.metadata?.trend || 'stable',
+          createdAt: f.createdAt,
+        })),
+      });
+    } catch (error: any) {
+      logger.error("KB", "Failed to get KB overview", { error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
+  /**
    * GET /api/kb/status
    * Get Knowledge Base health and recent activity
    */
