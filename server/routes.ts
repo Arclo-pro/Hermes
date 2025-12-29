@@ -3664,6 +3664,7 @@ When answering:
   app.get("/api/competitive/overview", async (req, res) => {
     try {
       const siteId = (req.query.siteId as string) || "default";
+      const requestId = (req.headers["x-request-id"] as string) || randomUUID();
       logger.info("Competitive", "Fetching overview", { siteId });
       
       // Check if worker is configured
@@ -3671,28 +3672,131 @@ When answering:
       const compConfig = await resolveWorkerConfig("competitive_snapshot");
       const workerConfigured = compConfig.valid && !!compConfig.base_url;
       
+      // If worker is configured, call it to get real data
+      if (workerConfigured && compConfig.base_url) {
+        const baseUrl = compConfig.base_url.replace(/\/$/, '');
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+          "X-Request-Id": requestId,
+        };
+        if (compConfig.api_key) {
+          headers["Authorization"] = `Bearer ${compConfig.api_key}`;
+          headers["X-API-Key"] = compConfig.api_key;
+        }
+        
+        try {
+          // Try /capabilities first to see what the worker supports
+          const capRes = await fetch(`${baseUrl}/capabilities`, {
+            headers,
+            signal: AbortSignal.timeout(10000),
+          });
+          
+          if (capRes.ok) {
+            const capData = await capRes.json();
+            logger.info("Competitive", "Worker capabilities fetched", { capabilities: capData });
+          }
+          
+          // Call the worker's overview or run endpoint
+          const overviewRes = await fetch(`${baseUrl}/run`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ 
+              siteId,
+              action: "overview",
+            }),
+            signal: AbortSignal.timeout(30000),
+          });
+          
+          if (overviewRes.ok) {
+            const workerData = await overviewRes.json();
+            logger.info("Competitive", "Overview fetched from worker", { siteId });
+            
+            // Transform worker response to match expected format
+            const data = workerData.data || workerData;
+            return res.json({
+              configured: true,
+              isRealData: true,
+              dataSource: "worker",
+              lastRunAt: data.lastRunAt || new Date().toISOString(),
+              competitivePosition: data.competitivePosition || "parity",
+              positionExplanation: data.positionExplanation || "Competitive data from worker",
+              shareOfVoice: data.shareOfVoice || 0,
+              avgRank: data.avgRank || 0,
+              agentScore: data.agentScore || null,
+              competitors: data.competitors || [],
+              contentGaps: data.contentGaps || [],
+              authorityGaps: data.authorityGaps || [],
+              serpFeatureGaps: data.serpFeatureGaps || [],
+              rankingPages: data.rankingPages || [],
+              missions: data.missions || [],
+              alerts: data.alerts || [],
+              summary: data.summary || {
+                totalCompetitors: (data.competitors || []).length,
+                totalGaps: (data.contentGaps || []).length,
+                highPriorityGaps: 0,
+                avgVisibilityGap: 0,
+                keywordsTracked: 0,
+                keywordsWinning: 0,
+                keywordsLosing: 0,
+                referringDomains: 0,
+                competitorAvgDomains: 0,
+              },
+            });
+          } else {
+            const errorText = await overviewRes.text();
+            logger.warn("Competitive", "Worker returned error, falling back to mock", { 
+              status: overviewRes.status, 
+              error: errorText.substring(0, 200) 
+            });
+          }
+        } catch (workerErr: any) {
+          logger.warn("Competitive", "Worker call failed, falling back to mock", { error: workerErr.message });
+        }
+      }
+      
       // Return mock competitive intelligence data with metadata
       const overview = {
         configured: workerConfigured,
         isRealData: false,
         dataSource: workerConfigured ? "worker_fallback" : "mock",
         lastRunAt: new Date(Date.now() - 86400000).toISOString(),
+        competitivePosition: "behind" as const,
+        positionExplanation: "You trail top competitors in 12 high-value keywords and 3 content clusters.",
+        shareOfVoice: 18,
+        avgRank: 14.2,
+        agentScore: null,
         competitors: [
-          { id: "1", name: "Competitor A", domain: "competitora.com", visibility: 78, visibilityChange: 5, keywords: 234, topKeywords: ["mental health", "therapy", "counseling"], lastUpdated: new Date().toISOString() },
-          { id: "2", name: "Competitor B", domain: "competitorb.com", visibility: 65, visibilityChange: -3, keywords: 189, topKeywords: ["psychiatry", "medication", "treatment"], lastUpdated: new Date().toISOString() },
-          { id: "3", name: "Competitor C", domain: "competitorc.com", visibility: 52, visibilityChange: 2, keywords: 145, topKeywords: ["telehealth", "virtual care", "online therapy"], lastUpdated: new Date().toISOString() },
+          { id: "1", name: "Competitor A", domain: "competitora.com", type: "direct", visibility: 78, visibilityChange: 5, marketOverlap: 72, keywords: 234, topKeywords: ["mental health", "therapy", "counseling"], lastUpdated: new Date().toISOString(), deltaScore: -15 },
+          { id: "2", name: "Competitor B", domain: "competitorb.com", type: "direct", visibility: 65, visibilityChange: -3, marketOverlap: 58, keywords: 189, topKeywords: ["psychiatry", "medication", "treatment"], lastUpdated: new Date().toISOString(), deltaScore: -8 },
+          { id: "3", name: "Competitor C", domain: "competitorc.com", type: "indirect", visibility: 52, visibilityChange: 2, marketOverlap: 34, keywords: 145, topKeywords: ["telehealth", "virtual care", "online therapy"], lastUpdated: new Date().toISOString(), deltaScore: 5 },
         ],
         contentGaps: [
-          { id: "1", keyword: "online psychiatrist Florida", searchVolume: 2400, difficulty: 35, competitorsCovering: 3, opportunity: "high", suggestedAction: "Create dedicated landing page targeting this keyword" },
-          { id: "2", keyword: "telehealth therapy near me", searchVolume: 1800, difficulty: 42, competitorsCovering: 2, opportunity: "high", suggestedAction: "Add location-specific content for telehealth services" },
-          { id: "3", keyword: "anxiety treatment without medication", searchVolume: 1200, difficulty: 28, competitorsCovering: 2, opportunity: "medium", suggestedAction: "Write blog post about alternative anxiety treatments" },
-          { id: "4", keyword: "virtual mental health counseling", searchVolume: 890, difficulty: 38, competitorsCovering: 3, opportunity: "medium", suggestedAction: "Optimize existing service pages for this term" },
+          { id: "1", keyword: "online psychiatrist Florida", cluster: "Telehealth", searchVolume: 2400, difficulty: 35, competitorsCovering: 3, yourCoverage: "none", opportunity: "high", suggestedAction: "Create dedicated landing page targeting this keyword", actionType: "create" },
+          { id: "2", keyword: "telehealth therapy near me", cluster: "Telehealth", searchVolume: 1800, difficulty: 42, competitorsCovering: 2, yourCoverage: "thin", opportunity: "high", suggestedAction: "Add location-specific content for telehealth services", actionType: "expand" },
+          { id: "3", keyword: "anxiety treatment without medication", cluster: "Treatments", searchVolume: 1200, difficulty: 28, competitorsCovering: 2, yourCoverage: "outdated", opportunity: "medium", suggestedAction: "Write blog post about alternative anxiety treatments", actionType: "optimize" },
+        ],
+        authorityGaps: [
+          { id: "1", domain: "healthline.com", competitor: "Competitor A", authority: 92, linkType: "editorial", suggestedAction: "Pitch expert article on mental health trends" },
+          { id: "2", domain: "psychologytoday.com", competitor: "Competitor B", authority: 88, linkType: "directory", suggestedAction: "Claim provider listing" },
+        ],
+        serpFeatureGaps: [
+          { id: "1", keyword: "anxiety symptoms", feature: "featured_snippet", competitorOwning: "Competitor A", pageType: "Listicle", structuralHint: "Add numbered list of symptoms", suggestedAction: "Restructure content with clear symptom list" },
+          { id: "2", keyword: "depression help near me", feature: "local_pack", competitorOwning: "Competitor B", pageType: "GMB Listing", structuralHint: "Optimize Google Business Profile", suggestedAction: "Update GMB with services and photos" },
         ],
         rankingPages: [
-          { url: "/services/psychiatry", keyword: "psychiatrist Orlando", yourPosition: 8, competitorPosition: 3, competitor: "Competitor A", gap: -5 },
-          { url: "/services/therapy", keyword: "therapy near me", yourPosition: 12, competitorPosition: 5, competitor: "Competitor B", gap: -7 },
-          { url: "/blog/anxiety-tips", keyword: "anxiety treatment tips", yourPosition: 4, competitorPosition: 6, competitor: "Competitor A", gap: 2 },
-          { url: "/services/telehealth", keyword: "telehealth psychiatry", yourPosition: null, competitorPosition: 2, competitor: "Competitor C", gap: 0 },
+          { url: "/services/psychiatry", keyword: "psychiatrist Orlando", yourPosition: 8, competitorPosition: 3, competitor: "Competitor A", gap: -5, trafficImpact: 1200 },
+          { url: "/services/therapy", keyword: "therapy near me", yourPosition: 12, competitorPosition: 5, competitor: "Competitor B", gap: -7, trafficImpact: 2400 },
+          { url: "/blog/anxiety-tips", keyword: "anxiety treatment tips", yourPosition: 4, competitorPosition: 6, competitor: "Competitor A", gap: 2, trafficImpact: 890 },
+          { url: "/services/telehealth", keyword: "telehealth psychiatry", yourPosition: null, competitorPosition: 2, competitor: "Competitor C", gap: 0, trafficImpact: 1800 },
+        ],
+        missions: [
+          { id: "1", title: "Create telehealth landing page", description: "Target 'online psychiatrist Florida' with dedicated page", type: "content", expectedImpact: "high", difficulty: "medium", executingCrew: "Marcus" },
+          { id: "2", title: "Optimize anxiety content for featured snippet", description: "Restructure anxiety symptoms page with numbered list", type: "serp", expectedImpact: "medium", difficulty: "easy", executingCrew: "Scotty" },
+          { id: "3", title: "Pursue Healthline editorial link", description: "Pitch expert article on mental health trends", type: "authority", expectedImpact: "high", difficulty: "hard", executingCrew: "Link Team" },
+        ],
+        alerts: [
+          { id: "1", type: "rank_jump", message: "Competitor A jumped 5 positions for 'psychiatrist Orlando'", competitor: "Competitor A", severity: "warning", timestamp: new Date(Date.now() - 86400000).toISOString() },
+          { id: "2", type: "content_surge", message: "Competitor B published 3 new blog posts this week", competitor: "Competitor B", severity: "info", timestamp: new Date(Date.now() - 172800000).toISOString() },
         ],
         summary: {
           totalCompetitors: 5,
@@ -3702,6 +3806,8 @@ When answering:
           keywordsTracked: 48,
           keywordsWinning: 12,
           keywordsLosing: 18,
+          referringDomains: 45,
+          competitorAvgDomains: 78,
         },
       };
       
