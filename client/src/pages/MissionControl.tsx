@@ -340,7 +340,7 @@ function MetricCardsRow() {
       deltaPct: bounceData?.deltaPct || 0,
       verdict: bounceData ? getVerdict(bounceData.status) : 'neutral',
       sparkline: [38, 39, 40, 41, 43, 44, bounceData?.actualValue || 42],
-      nextAction: { text: 'Review Speedster', link: '/agents/core_web_vitals' },
+      nextAction: { text: 'Review Popular', link: '/agents/google_data_connector' },
       timeRange: 'Last 30 days',
     },
     {

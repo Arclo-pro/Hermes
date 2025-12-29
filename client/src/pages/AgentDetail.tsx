@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import AuthorityContent from "./authority/AuthorityContent";
 import SERPContent from "./serp/SERPContent";
 import PulseContent from "./pulse/PulseContent";
+import SpeedsterContent from "./speedster/SpeedsterContent";
 import GenericAgentContent from "./agents/GenericAgentContent";
 
 function getScoreColor(score: number): string {
@@ -52,6 +53,8 @@ export default function AgentDetail() {
         return <SERPContent />;
       case "google_data_connector":
         return <PulseContent />;
+      case "core_web_vitals":
+        return <SpeedsterContent />;
       default:
         return <GenericAgentContent agentId={agentId} />;
     }

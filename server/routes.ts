@@ -9437,6 +9437,52 @@ When answering:
 
   // ==================== CREW STATE API ====================
   
+  // Speedster (Core Web Vitals) summary endpoint
+  app.get("/api/crew/speedster/summary", async (req, res) => {
+    try {
+      const siteId = (req.query.siteId as string) || "site_empathy_health_clinic";
+      
+      // Get Core Web Vitals from worker results
+      const workerResults = await storage.getLatestSeoWorkerResults(siteId);
+      const cwvResult = workerResults.find(r => r.workerKey === 'core_web_vitals');
+      const metricsJson = cwvResult?.metricsJson as Record<string, any> | null;
+      
+      // Also check dashboard snapshot for fallback
+      const snapshot = await storage.getDashboardMetricSnapshot(siteId);
+      const snapshotMetrics = (snapshot?.metricsJson as Record<string, any>) || {};
+      
+      // Build metrics with fallback to snapshot
+      const metrics = {
+        lcp: metricsJson?.lcp ?? snapshotMetrics?.lcp ?? null,
+        cls: metricsJson?.cls ?? snapshotMetrics?.cls ?? null,
+        inp: metricsJson?.inp ?? snapshotMetrics?.inp ?? null,
+        score: metricsJson?.score ?? null,
+        lcpTrend: metricsJson?.lcpTrend ?? null,
+        clsTrend: metricsJson?.clsTrend ?? null,
+        inpTrend: metricsJson?.inpTrend ?? null,
+      };
+      
+      // Get additional data from raw results if available
+      const rawData = cwvResult?.rawData as Record<string, any> | null;
+      const topUrls = rawData?.slowestPages || rawData?.topUrls || [];
+      
+      res.json({
+        ok: true,
+        siteId,
+        capturedAt: cwvResult?.createdAt || snapshot?.capturedAt || null,
+        source: cwvResult ? 'Core Web Vitals Worker' : (snapshot ? 'Cached Snapshot' : 'No Data'),
+        sampleCount: rawData?.urlsChecked || rawData?.sampleCount || null,
+        metrics,
+        topUrls: topUrls.slice(0, 5),
+        workerRunId: cwvResult?.runId || null,
+        lastRefreshStatus: snapshot?.lastRefreshStatus,
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to get speedster summary", { error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+  
   // Get crew state for a site
   app.get("/api/crew/state", async (req, res) => {
     try {
