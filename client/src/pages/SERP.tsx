@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { Search, TrendingUp, TrendingDown, Minus, RefreshCw, Sparkles, ArrowUp, ArrowDown, Target, AlertTriangle } from "lucide-react";
+import { Search, TrendingUp, TrendingDown, Minus, RefreshCw, Sparkles, ArrowUp, ArrowDown, Target, AlertTriangle, Crown, Trophy } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
 interface RankingData {
@@ -26,6 +26,9 @@ interface SerpOverview {
   stats: {
     ranking: number;
     notRanking: number;
+    numberOne: number;
+    inTop3: number;
+    inTop5: number;
     inTop10: number;
     inTop20: number;
     avgPosition: number | null;
@@ -158,7 +161,7 @@ export default function SERP() {
     );
   }
 
-  const stats = overview?.stats || { ranking: 0, notRanking: 0, inTop10: 0, inTop20: 0, avgPosition: null, winners: 0, losers: 0 };
+  const stats = overview?.stats || { ranking: 0, notRanking: 0, numberOne: 0, inTop3: 0, inTop5: 0, inTop10: 0, inTop20: 0, avgPosition: null, winners: 0, losers: 0 };
   const totalTracked = stats.ranking + stats.notRanking;
   const rankingPercent = totalTracked > 0 ? Math.round((stats.ranking / totalTracked) * 100) : 0;
 
@@ -218,7 +221,7 @@ export default function SERP() {
           </Card>
         )}
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
           <Card data-testid="card-total-keywords">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Keywords</CardTitle>
@@ -232,9 +235,35 @@ export default function SERP() {
             </CardContent>
           </Card>
 
+          <Card className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 border-yellow-500/30" data-testid="card-top-1">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Top 1</CardTitle>
+              <Crown className="h-4 w-4 text-yellow-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-yellow-500">{stats.numberOne}</div>
+              <p className="text-xs text-muted-foreground">
+                #1 position keywords
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-slate-400/10 to-slate-500/5 border-slate-400/30" data-testid="card-top-2-5">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Top 2-5</CardTitle>
+              <Trophy className="h-4 w-4 text-slate-400" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-slate-400">{Math.max(0, stats.inTop5 - stats.numberOne)}</div>
+              <p className="text-xs text-muted-foreground">
+                Positions 2-5
+              </p>
+            </CardContent>
+          </Card>
+
           <Card data-testid="card-top-10">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Top 10 Positions</CardTitle>
+              <CardTitle className="text-sm font-medium">Top 10</CardTitle>
               <TrendingUp className="h-4 w-4 text-semantic-success" />
             </CardHeader>
             <CardContent>

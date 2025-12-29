@@ -4732,6 +4732,7 @@ Return only a JSON array of objects with id, priority, reason, intent fields.`;
       const lastCheck = rankings.length > 0 ? rankings[0].date : null;
       const numberOne = rankings.filter(r => r.position === 1).length;
       const inTop3 = rankings.filter(r => r.position && r.position <= 3).length;
+      const inTop5 = rankings.filter(r => r.position && r.position <= 5).length;
       const inTop10 = rankings.filter(r => r.position && r.position <= 10).length;
       const inTop20 = rankings.filter(r => r.position && r.position <= 20).length;
       const ranking = rankings.filter(r => r.position !== null).length;
@@ -4753,6 +4754,7 @@ Return only a JSON array of objects with id, priority, reason, intent fields.`;
           notRanking,
           numberOne,
           inTop3,
+          inTop5,
           inTop10,
           inTop20,
           avgPosition,
