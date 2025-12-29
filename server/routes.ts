@@ -3811,48 +3811,11 @@ When answering:
               });
             }
             
-            // No saved results - check worker health and return "not yet analyzed" state
-            const healthRes = await fetch(`${baseUrl}/health`, {
-              headers,
-              signal: AbortSignal.timeout(5000),
-            });
-            
-            if (healthRes.ok) {
-              logger.info("Competitive", "Worker available but no saved results", { siteId: actualSiteId });
-              
-              return res.json({
-                configured: true,
-                isRealData: false,
-                dataSource: "worker",
-                workerStatus: "available",
-                lastRunAt: null,
-                competitivePosition: "unknown",
-                positionExplanation: "Click 'Run Competitive Analysis' to gather data from this worker",
-                shareOfVoice: 0,
-                avgRank: 0,
-                agentScore: null,
-                competitors: [],
-                contentGaps: [],
-                authorityGaps: [],
-                serpFeatureGaps: [],
-                rankingPages: [],
-                missions: [],
-                alerts: [],
-                summary: {
-                  totalCompetitors: 0,
-                  totalGaps: 0,
-                  highPriorityGaps: 0,
-                  avgVisibilityGap: 0,
-                  keywordsTracked: targetKeywords.length,
-                  keywordsWinning: 0,
-                  keywordsLosing: 0,
-                  referringDomains: 0,
-                  competitorAvgDomains: 0,
-                },
-              });
-            }
+            // No saved results - fall through to mock data so dashboard shows example competitors
+            logger.info("Competitive", "Worker available but no saved results, using sample data", { siteId: actualSiteId });
+            // Fall through to mock data below
           } catch (dbOrHealthErr: any) {
-            logger.warn("Competitive", "Failed to get saved results or check health", { error: dbOrHealthErr.message });
+            logger.warn("Competitive", "Failed to get saved results", { error: dbOrHealthErr.message });
           }
         } catch (workerErr: any) {
           logger.warn("Competitive", "Worker call failed, falling back to mock", { error: workerErr.message });
