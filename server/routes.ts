@@ -3762,25 +3762,64 @@ When answering:
             },
           };
           
-          logger.info("Competitive", "Worker configured, returning configured status", { 
+          logger.info("Competitive", "Worker configured, checking for saved results", { 
             targetDomain, 
             hasSerp: !!serpApiKey,
           });
           
-          // For GET /overview, check if there's a recent report available
-          // Don't call /run here (that would queue a new job)
-          // Instead, check /health to see if worker is available
+          // Check if we have saved results in the database
+          const actualSiteId = site?.siteId || "default";
           try {
+            const savedResult = await storage.getLatestWorkerResultByKey(actualSiteId, "competitive_snapshot");
+            
+            if (savedResult && savedResult.payloadJson) {
+              const data = savedResult.payloadJson as any;
+              logger.info("Competitive", "Returning saved results from database", { 
+                siteId: actualSiteId,
+                runId: savedResult.runId,
+                createdAt: savedResult.createdAt,
+              });
+              
+              return res.json({
+                configured: true,
+                isRealData: true,
+                dataSource: "database",
+                lastRunAt: savedResult.finishedAt?.toISOString() || savedResult.createdAt?.toISOString(),
+                competitivePosition: data.competitivePosition || "parity",
+                positionExplanation: data.positionExplanation || savedResult.summaryText || "Data from previous analysis",
+                shareOfVoice: data.shareOfVoice || 0,
+                avgRank: data.avgRank || 0,
+                agentScore: data.agentScore || null,
+                competitors: data.competitors || [],
+                contentGaps: data.contentGaps || [],
+                authorityGaps: data.authorityGaps || [],
+                serpFeatureGaps: data.serpFeatureGaps || [],
+                rankingPages: data.rankingPages || [],
+                missions: data.missions || [],
+                alerts: data.alerts || [],
+                summary: data.summary || {
+                  totalCompetitors: data.competitors?.length || 0,
+                  totalGaps: (data.contentGaps?.length || 0) + (data.authorityGaps?.length || 0),
+                  highPriorityGaps: 0,
+                  avgVisibilityGap: 0,
+                  keywordsTracked: targetKeywords.length,
+                  keywordsWinning: 0,
+                  keywordsLosing: 0,
+                  referringDomains: 0,
+                  competitorAvgDomains: 0,
+                },
+              });
+            }
+            
+            // No saved results - check worker health and return "not yet analyzed" state
             const healthRes = await fetch(`${baseUrl}/health`, {
               headers,
               signal: AbortSignal.timeout(5000),
             });
             
             if (healthRes.ok) {
-              const healthData = await healthRes.json();
-              logger.info("Competitive", "Worker health check passed", { healthData });
+              logger.info("Competitive", "Worker available but no saved results", { siteId: actualSiteId });
               
-              // Return a "not yet analyzed" state - user needs to click Run Analysis
               return res.json({
                 configured: true,
                 isRealData: false,
@@ -3812,8 +3851,8 @@ When answering:
                 },
               });
             }
-          } catch (healthErr: any) {
-            logger.warn("Competitive", "Worker health check failed, falling back to mock", { error: healthErr.message });
+          } catch (dbOrHealthErr: any) {
+            logger.warn("Competitive", "Failed to get saved results or check health", { error: dbOrHealthErr.message });
           }
         } catch (workerErr: any) {
           logger.warn("Competitive", "Worker call failed, falling back to mock", { error: workerErr.message });
@@ -3988,12 +4027,38 @@ When answering:
                     logger.info("Competitive", "Report fetched", { reportId, status: reportData.status, attempt: attempts });
                     
                     if (reportData.status === "completed" || reportData.data) {
+                      const resultData = reportData.data || reportData;
+                      
+                      // Save results to database
+                      const actualSiteId = site?.siteId || siteId || "default";
+                      try {
+                        await storage.saveSeoWorkerResult({
+                          runId: `competitive_${requestId}`,
+                          siteId: actualSiteId,
+                          workerKey: "competitive_snapshot",
+                          status: "success",
+                          payloadJson: resultData,
+                          metricsJson: {
+                            totalCompetitors: resultData.competitors?.length || 0,
+                            totalGaps: (resultData.contentGaps?.length || 0) + (resultData.authorityGaps?.length || 0),
+                            shareOfVoice: resultData.shareOfVoice || 0,
+                          },
+                          summaryText: `Found ${resultData.competitors?.length || 0} competitors and ${resultData.contentGaps?.length || 0} content gaps`,
+                          durationMs: attempts * pollInterval,
+                          startedAt: new Date(),
+                          finishedAt: new Date(),
+                        });
+                        logger.info("Competitive", "Saved worker results to database", { siteId: actualSiteId, reportId });
+                      } catch (saveErr: any) {
+                        logger.warn("Competitive", "Failed to save results", { error: saveErr.message });
+                      }
+                      
                       return res.json({
                         ok: true,
                         service: "competitive_snapshot",
                         request_id: requestId,
                         report_id: reportId,
-                        data: reportData.data || reportData,
+                        data: resultData,
                       });
                     }
                     // Still processing, continue polling

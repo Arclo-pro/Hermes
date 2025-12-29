@@ -373,6 +373,7 @@ export interface IStorage {
   getSeoWorkerResultsByRunId(runId: string): Promise<SeoWorkerResult[]>;
   getSeoWorkerResultsBySite(siteId: string, limit?: number): Promise<SeoWorkerResult[]>;
   getLatestSeoWorkerResults(siteId: string): Promise<SeoWorkerResult[]>;
+  getLatestWorkerResultByKey(siteId: string, workerKey: string): Promise<SeoWorkerResult | undefined>;
   updateSeoWorkerResult(id: number, updates: Partial<InsertSeoWorkerResult>): Promise<SeoWorkerResult | undefined>;
   
   // SEO Metric Events (normalized metrics with canonical keys)
@@ -1833,6 +1834,20 @@ class DBStorage implements IStorage {
         eq(seoWorkerResults.runId, latestResult[0].runId)
       ))
       .orderBy(seoWorkerResults.workerKey);
+  }
+
+  async getLatestWorkerResultByKey(siteId: string, workerKey: string): Promise<SeoWorkerResult | undefined> {
+    const [result] = await db
+      .select()
+      .from(seoWorkerResults)
+      .where(and(
+        eq(seoWorkerResults.siteId, siteId),
+        eq(seoWorkerResults.workerKey, workerKey),
+        eq(seoWorkerResults.status, "success")
+      ))
+      .orderBy(desc(seoWorkerResults.createdAt))
+      .limit(1);
+    return result;
   }
 
   async updateSeoWorkerResult(id: number, updates: Partial<InsertSeoWorkerResult>): Promise<SeoWorkerResult | undefined> {
