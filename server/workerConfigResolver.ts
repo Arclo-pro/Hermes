@@ -249,6 +249,11 @@ export async function resolveWorkerConfig(
     try {
       parsed = JSON.parse(trimmedValue);
     } catch (e: any) {
+      // JSON parse failed - try fallback env vars
+      if (mapping.fallbackEnvVar || mapping.fallbackBaseUrlEnvVar) {
+        logger.warn("WorkerConfig", `Bitwarden secret JSON parse failed for ${serviceSlug}, trying fallback env vars`);
+        return resolveFromFallbackEnvVars(mapping);
+      }
       return {
         ...DEFAULT_CONFIG,
         secretName,
