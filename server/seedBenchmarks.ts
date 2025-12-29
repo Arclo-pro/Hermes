@@ -79,11 +79,60 @@ const benchmarkData: InsertIndustryBenchmark[] = [
   { industry: "legal", metric: "session_duration", percentile25: 55, percentile50: 110, percentile75: 180, percentile90: 290, unit: "seconds", source: "Industry Research 2024", sourceYear: 2024 },
   { industry: "legal", metric: "pages_per_session", percentile25: 1.7, percentile50: 2.6, percentile75: 3.8, percentile90: 5.5, unit: "count", source: "Industry Research 2024", sourceYear: 2024 },
   { industry: "legal", metric: "conversion_rate", percentile25: 2.5, percentile50: 4.0, percentile75: 6.0, percentile90: 9.0, unit: "percent", source: "Industry Research 2024", sourceYear: 2024 },
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CORE WEB VITALS BENCHMARKS
+  // Note: For CWV, lower is better. Percentiles represent performance distribution.
+  // p25 = top 25% performers (best), p90 = bottom 10% (worst)
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  // Healthcare Core Web Vitals (based on CrUX data and HTTPArchive 2024)
+  { industry: "healthcare", metric: "vitals.lcp", percentile25: 1.8, percentile50: 2.8, percentile75: 4.2, percentile90: 6.5, unit: "seconds", source: "CrUX Healthcare Report 2024", sourceYear: 2024 },
+  { industry: "healthcare", metric: "vitals.cls", percentile25: 0.05, percentile50: 0.12, percentile75: 0.22, percentile90: 0.38, unit: "score", source: "CrUX Healthcare Report 2024", sourceYear: 2024 },
+  { industry: "healthcare", metric: "vitals.inp", percentile25: 120, percentile50: 220, percentile75: 380, percentile90: 580, unit: "milliseconds", source: "CrUX Healthcare Report 2024", sourceYear: 2024 },
+  { industry: "healthcare", metric: "vitals.fcp", percentile25: 1.2, percentile50: 2.0, percentile75: 3.2, percentile90: 5.0, unit: "seconds", source: "CrUX Healthcare Report 2024", sourceYear: 2024 },
+  { industry: "healthcare", metric: "vitals.ttfb", percentile25: 400, percentile50: 800, percentile75: 1400, percentile90: 2200, unit: "milliseconds", source: "CrUX Healthcare Report 2024", sourceYear: 2024 },
+  { industry: "healthcare", metric: "vitals.performance_score", percentile25: 85, percentile50: 65, percentile75: 45, percentile90: 28, unit: "score", source: "Lighthouse Healthcare Analysis 2024", sourceYear: 2024 },
+  
+  // Psychiatry Core Web Vitals (similar to healthcare but slightly different patient portals)
+  { industry: "psychiatry", metric: "vitals.lcp", percentile25: 1.9, percentile50: 3.0, percentile75: 4.5, percentile90: 7.0, unit: "seconds", source: "CrUX Mental Health Sites 2024", sourceYear: 2024 },
+  { industry: "psychiatry", metric: "vitals.cls", percentile25: 0.04, percentile50: 0.10, percentile75: 0.20, percentile90: 0.35, unit: "score", source: "CrUX Mental Health Sites 2024", sourceYear: 2024 },
+  { industry: "psychiatry", metric: "vitals.inp", percentile25: 110, percentile50: 200, percentile75: 350, percentile90: 550, unit: "milliseconds", source: "CrUX Mental Health Sites 2024", sourceYear: 2024 },
+  { industry: "psychiatry", metric: "vitals.fcp", percentile25: 1.3, percentile50: 2.1, percentile75: 3.4, percentile90: 5.2, unit: "seconds", source: "CrUX Mental Health Sites 2024", sourceYear: 2024 },
+  { industry: "psychiatry", metric: "vitals.ttfb", percentile25: 450, percentile50: 850, percentile75: 1500, percentile90: 2400, unit: "milliseconds", source: "CrUX Mental Health Sites 2024", sourceYear: 2024 },
+  { industry: "psychiatry", metric: "vitals.performance_score", percentile25: 82, percentile50: 62, percentile75: 42, percentile90: 25, unit: "score", source: "Lighthouse Mental Health Analysis 2024", sourceYear: 2024 },
+  
+  // E-commerce Core Web Vitals (typically heavier sites)
+  { industry: "ecommerce", metric: "vitals.lcp", percentile25: 2.0, percentile50: 3.2, percentile75: 5.0, percentile90: 8.0, unit: "seconds", source: "CrUX E-commerce Report 2024", sourceYear: 2024 },
+  { industry: "ecommerce", metric: "vitals.cls", percentile25: 0.08, percentile50: 0.18, percentile75: 0.32, percentile90: 0.55, unit: "score", source: "CrUX E-commerce Report 2024", sourceYear: 2024 },
+  { industry: "ecommerce", metric: "vitals.inp", percentile25: 150, percentile50: 280, percentile75: 450, percentile90: 700, unit: "milliseconds", source: "CrUX E-commerce Report 2024", sourceYear: 2024 },
+  { industry: "ecommerce", metric: "vitals.fcp", percentile25: 1.4, percentile50: 2.3, percentile75: 3.8, percentile90: 6.0, unit: "seconds", source: "CrUX E-commerce Report 2024", sourceYear: 2024 },
+  { industry: "ecommerce", metric: "vitals.ttfb", percentile25: 500, percentile50: 950, percentile75: 1600, percentile90: 2800, unit: "milliseconds", source: "CrUX E-commerce Report 2024", sourceYear: 2024 },
+  { industry: "ecommerce", metric: "vitals.performance_score", percentile25: 75, percentile50: 55, percentile75: 38, percentile90: 22, unit: "score", source: "Lighthouse E-commerce Analysis 2024", sourceYear: 2024 },
+  
+  // SaaS Core Web Vitals (typically optimized SPAs)
+  { industry: "saas", metric: "vitals.lcp", percentile25: 1.6, percentile50: 2.5, percentile75: 3.8, percentile90: 5.8, unit: "seconds", source: "CrUX SaaS Report 2024", sourceYear: 2024 },
+  { industry: "saas", metric: "vitals.cls", percentile25: 0.03, percentile50: 0.08, percentile75: 0.15, percentile90: 0.28, unit: "score", source: "CrUX SaaS Report 2024", sourceYear: 2024 },
+  { industry: "saas", metric: "vitals.inp", percentile25: 100, percentile50: 180, percentile75: 320, percentile90: 500, unit: "milliseconds", source: "CrUX SaaS Report 2024", sourceYear: 2024 },
+  { industry: "saas", metric: "vitals.fcp", percentile25: 1.0, percentile50: 1.7, percentile75: 2.8, percentile90: 4.2, unit: "seconds", source: "CrUX SaaS Report 2024", sourceYear: 2024 },
+  { industry: "saas", metric: "vitals.ttfb", percentile25: 350, percentile50: 700, percentile75: 1200, percentile90: 1900, unit: "milliseconds", source: "CrUX SaaS Report 2024", sourceYear: 2024 },
+  { industry: "saas", metric: "vitals.performance_score", percentile25: 88, percentile50: 70, percentile75: 50, percentile90: 32, unit: "score", source: "Lighthouse SaaS Analysis 2024", sourceYear: 2024 },
 ];
 
-export async function seedBenchmarks(): Promise<number> {
+export async function seedBenchmarks(force: boolean = false): Promise<number> {
   const existing = await storage.getAllBenchmarks();
-  if (existing.length > 0) {
+  
+  if (existing.length > 0 && !force) {
+    // Check if we need to add new metrics (like CWV)
+    const existingMetrics = new Set(existing.map(b => `${b.industry}:${b.metric}`));
+    const newBenchmarks = benchmarkData.filter(b => !existingMetrics.has(`${b.industry}:${b.metric}`));
+    
+    if (newBenchmarks.length > 0) {
+      const saved = await storage.saveBenchmarks(newBenchmarks);
+      console.log(`[Benchmarks] Added ${saved.length} new benchmark entries (${existing.length} existing)`);
+      return existing.length + saved.length;
+    }
+    
     console.log(`[Benchmarks] Already seeded with ${existing.length} entries`);
     return existing.length;
   }

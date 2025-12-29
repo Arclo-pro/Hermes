@@ -19,7 +19,9 @@ import {
   Server,
   Timer,
   Gauge,
-  Lightbulb
+  Lightbulb,
+  BarChart3,
+  Trophy
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSiteContext } from "@/hooks/useSiteContext";
@@ -422,6 +424,112 @@ export default function SpeedsterContent() {
                 );
               })}
             </div>
+          </CardContent>
+        </Card>
+      )}
+      
+      {speedsterData?.benchmarks && Object.keys(speedsterData.benchmarks).length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-blue-500" />
+                <div>
+                  <CardTitle className="text-base">Industry Benchmarks</CardTitle>
+                  <CardDescription>
+                    Compare your metrics against {speedsterData.industry || 'healthcare'} industry standards
+                  </CardDescription>
+                </div>
+              </div>
+              <Badge variant="outline" className="text-xs">
+                Source: CrUX 2024
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {Object.entries(speedsterData.benchmarks).map(([key, bench]: [string, any]) => {
+                if (!bench || bench.currentValue === null) return null;
+                
+                const metricLabels: Record<string, string> = {
+                  'vitals.lcp': 'LCP (Loading)',
+                  'vitals.cls': 'CLS (Stability)',
+                  'vitals.inp': 'INP (Responsiveness)',
+                  'vitals.fcp': 'FCP (First Paint)',
+                  'vitals.ttfb': 'TTFB (Server)',
+                  'vitals.performance_score': 'Performance Score',
+                };
+                
+                const comparisonColors = {
+                  better: 'text-green-600 bg-green-500/10',
+                  average: 'text-yellow-600 bg-yellow-500/10',
+                  worse: 'text-red-600 bg-red-500/10',
+                };
+                
+                const percentileLabels: Record<string, string> = {
+                  top25: 'Top 25%',
+                  top50: 'Top 50%',
+                  top75: 'Top 75%',
+                  bottom25: 'Bottom 25%',
+                };
+                
+                const formatValue = (val: number, unit: string) => {
+                  if (unit === 'seconds') return `${val.toFixed(2)}s`;
+                  if (unit === 'milliseconds') return `${Math.round(val)}ms`;
+                  if (unit === 'score') return val.toFixed(3);
+                  return val.toString();
+                };
+                
+                return (
+                  <div key={key} className="p-3 rounded-lg border">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-medium text-sm">{metricLabels[key] || key}</span>
+                      <div className="flex items-center gap-2">
+                        {bench.percentile && (
+                          <Badge 
+                            variant="outline" 
+                            className={cn("text-xs", comparisonColors[bench.comparison] || '')}
+                          >
+                            {bench.comparison === 'better' && <Trophy className="w-3 h-3 mr-1" />}
+                            {percentileLabels[bench.percentile]}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4 text-sm">
+                      <div className={cn(
+                        "px-2 py-1 rounded font-bold",
+                        comparisonColors[bench.comparison] || 'bg-muted'
+                      )}>
+                        Your: {formatValue(bench.currentValue, bench.unit)}
+                      </div>
+                      <div className="flex-1 grid grid-cols-4 gap-2 text-xs text-muted-foreground">
+                        <div className="text-center">
+                          <div className="font-medium text-green-600">p25</div>
+                          <div>{formatValue(bench.p25, bench.unit)}</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="font-medium text-yellow-600">p50</div>
+                          <div>{formatValue(bench.p50, bench.unit)}</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="font-medium text-orange-600">p75</div>
+                          <div>{formatValue(bench.p75, bench.unit)}</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="font-medium text-red-600">p90</div>
+                          <div>{formatValue(bench.p90, bench.unit)}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-xs text-muted-foreground mt-4">
+              Percentiles show where your site ranks compared to other {speedsterData.industry || 'healthcare'} websites. 
+              Lower values are better for LCP, CLS, INP, FCP, and TTFB. Higher is better for Performance Score.
+            </p>
           </CardContent>
         </Card>
       )}

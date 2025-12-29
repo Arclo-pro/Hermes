@@ -9504,13 +9504,68 @@ When answering:
       
       const topUrls = rawData?.slowestPages || rawData?.topUrls || [];
       
+      // Fetch industry benchmarks for CWV metrics
+      const site = await storage.getSiteById(siteId);
+      const industry = site?.industry || 'healthcare';
+      const allBenchmarks = await storage.getBenchmarksByIndustry(industry);
+      
+      // Filter to just CWV benchmarks and build comparison
+      const cwvBenchmarks: Record<string, any> = {};
+      const cwvMetricKeys = ['vitals.lcp', 'vitals.cls', 'vitals.inp', 'vitals.fcp', 'vitals.ttfb', 'vitals.performance_score'];
+      
+      for (const key of cwvMetricKeys) {
+        const benchmark = allBenchmarks.find(b => b.metric === key);
+        if (benchmark) {
+          const currentValue = metrics[key as keyof typeof metrics];
+          let percentile: string | null = null;
+          let comparison: 'better' | 'average' | 'worse' | null = null;
+          
+          if (currentValue !== null && currentValue !== undefined) {
+            // For CWV metrics (except performance_score), lower is better
+            const lowerIsBetter = key !== 'vitals.performance_score';
+            
+            if (lowerIsBetter) {
+              if (currentValue <= benchmark.percentile25) percentile = 'top25';
+              else if (currentValue <= benchmark.percentile50) percentile = 'top50';
+              else if (currentValue <= benchmark.percentile75) percentile = 'top75';
+              else percentile = 'bottom25';
+              
+              comparison = currentValue <= benchmark.percentile50 ? 'better' : 
+                          currentValue <= benchmark.percentile75 ? 'average' : 'worse';
+            } else {
+              if (currentValue >= benchmark.percentile25) percentile = 'top25';
+              else if (currentValue >= benchmark.percentile50) percentile = 'top50';
+              else if (currentValue >= benchmark.percentile75) percentile = 'top75';
+              else percentile = 'bottom25';
+              
+              comparison = currentValue >= benchmark.percentile50 ? 'better' : 
+                          currentValue >= benchmark.percentile75 ? 'average' : 'worse';
+            }
+          }
+          
+          cwvBenchmarks[key] = {
+            p25: benchmark.percentile25,
+            p50: benchmark.percentile50,
+            p75: benchmark.percentile75,
+            p90: benchmark.percentile90,
+            unit: benchmark.unit,
+            source: benchmark.source,
+            currentValue,
+            percentile,
+            comparison,
+          };
+        }
+      }
+      
       res.json({
         ok: true,
         siteId,
+        industry,
         capturedAt: cwvResult?.createdAt || snapshot?.capturedAt || null,
         source: cwvResult ? 'Core Web Vitals Worker' : (snapshot ? 'Cached Snapshot' : 'No Data'),
         sampleCount: rawData?.urlsChecked || rawData?.sampleCount || null,
         metrics,
+        benchmarks: cwvBenchmarks,
         distributions,
         opportunities,
         topUrls: topUrls.slice(0, 5),
