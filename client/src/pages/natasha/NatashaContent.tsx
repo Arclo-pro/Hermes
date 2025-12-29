@@ -4,6 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 import { 
   Users, 
   TrendingUp, 
@@ -19,11 +21,22 @@ import {
   Globe,
   ArrowUp,
   ArrowDown,
+  ArrowRight,
   Minus,
   Eye,
   Zap,
   Loader2,
-  Info
+  Info,
+  Link2,
+  Layout,
+  X,
+  Plus,
+  Trophy,
+  Shield,
+  Swords,
+  Clock,
+  AlertCircle,
+  ChevronRight
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSiteContext } from "@/hooks/useSiteContext";
@@ -35,24 +48,53 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+// ═══════════════════════════════════════════════════════════════════════════
+// Types
+// ═══════════════════════════════════════════════════════════════════════════
+
 interface Competitor {
   id: string;
   name: string;
   domain: string;
+  type: "direct" | "indirect" | "serp-only";
   visibility: number;
   visibilityChange: number;
+  marketOverlap: number;
   keywords: number;
   topKeywords: string[];
   lastUpdated: string;
+  deltaScore?: number;
 }
 
 interface ContentGap {
   id: string;
   keyword: string;
+  cluster?: string;
   searchVolume: number;
   difficulty: number;
   competitorsCovering: number;
+  yourCoverage: "none" | "thin" | "outdated";
   opportunity: "high" | "medium" | "low";
+  suggestedAction: string;
+  actionType: "create" | "expand" | "optimize";
+}
+
+interface AuthorityGap {
+  id: string;
+  domain: string;
+  competitor: string;
+  authority: number;
+  linkType: "editorial" | "directory" | "guest-post";
+  suggestedAction: string;
+}
+
+interface SerpFeatureGap {
+  id: string;
+  keyword: string;
+  feature: "featured_snippet" | "people_also_ask" | "image_pack" | "local_pack" | "video";
+  competitorOwning: string;
+  pageType: string;
+  structuralHint: string;
   suggestedAction: string;
 }
 
@@ -63,14 +105,45 @@ interface RankingPage {
   competitorPosition: number;
   competitor: string;
   gap: number;
+  trafficImpact?: number;
+  intent?: "informational" | "commercial" | "transactional";
+}
+
+interface CompetitiveMission {
+  id: string;
+  title: string;
+  description: string;
+  type: "content" | "authority" | "serp" | "technical";
+  expectedImpact: "high" | "medium" | "low";
+  difficulty: "easy" | "medium" | "hard";
+  executingCrew: string;
+  keywords?: string[];
+}
+
+interface TrendAlert {
+  id: string;
+  type: "rank_jump" | "new_competitor" | "content_surge" | "link_velocity";
+  message: string;
+  competitor?: string;
+  severity: "info" | "warning" | "critical";
+  timestamp: string;
 }
 
 interface CompetitiveOverview {
   configured: boolean;
+  isRealData?: boolean;
   lastRunAt: string | null;
+  competitivePosition: "ahead" | "parity" | "behind";
+  positionExplanation: string;
+  shareOfVoice: number;
+  avgRank: number;
   competitors: Competitor[];
   contentGaps: ContentGap[];
+  authorityGaps: AuthorityGap[];
+  serpFeatureGaps: SerpFeatureGap[];
   rankingPages: RankingPage[];
+  missions: CompetitiveMission[];
+  alerts: TrendAlert[];
   summary: {
     totalCompetitors: number;
     totalGaps: number;
@@ -79,123 +152,301 @@ interface CompetitiveOverview {
     keywordsTracked: number;
     keywordsWinning: number;
     keywordsLosing: number;
+    referringDomains: number;
+    competitorAvgDomains: number;
   };
 }
 
-function MetricCard({ 
-  title, 
-  value, 
-  change, 
-  icon: Icon, 
-  description,
-  status = "neutral"
+// ═══════════════════════════════════════════════════════════════════════════
+// Competitive Status Strip (Summary)
+// ═══════════════════════════════════════════════════════════════════════════
+
+function CompetitiveStatusStrip({ 
+  position, 
+  explanation, 
+  onImprove 
 }: { 
-  title: string; 
-  value: string | number; 
-  change?: number; 
-  icon: React.ComponentType<{ className?: string }>; 
-  description?: string;
-  status?: "good" | "warning" | "danger" | "neutral";
+  position: "ahead" | "parity" | "behind"; 
+  explanation: string;
+  onImprove: () => void;
 }) {
-  const statusColors = {
-    good: "text-semantic-success",
-    warning: "text-semantic-warning", 
-    danger: "text-semantic-danger",
-    neutral: "text-foreground",
+  const statusConfig = {
+    ahead: {
+      label: "Ahead of competitors",
+      icon: Trophy,
+      bg: "bg-semantic-success-soft/50",
+      border: "border-semantic-success-border",
+      text: "text-semantic-success",
+      iconBg: "bg-semantic-success/20",
+    },
+    parity: {
+      label: "At parity",
+      icon: Swords,
+      bg: "bg-semantic-warning-soft/50",
+      border: "border-semantic-warning-border",
+      text: "text-semantic-warning",
+      iconBg: "bg-semantic-warning/20",
+    },
+    behind: {
+      label: "Behind competitors",
+      icon: Shield,
+      bg: "bg-semantic-danger-soft/50",
+      border: "border-semantic-danger-border",
+      text: "text-semantic-danger",
+      iconBg: "bg-semantic-danger/20",
+    },
   };
 
-  return (
-    <Card className="bg-card/60 backdrop-blur-sm border-border">
-      <CardContent className="pt-6">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">{title}</p>
-            <div className="flex items-baseline gap-2">
-              <span className={cn("text-2xl font-bold", statusColors[status])}>{value}</span>
-              {change !== undefined && change !== 0 && (
-                <span className={cn("text-sm flex items-center gap-0.5", change > 0 ? "text-semantic-success" : "text-semantic-danger")}>
-                  {change > 0 ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
-                  {Math.abs(change)}%
-                </span>
-              )}
-            </div>
-            {description && <p className="text-xs text-muted-foreground">{description}</p>}
-          </div>
-          <div className="p-2 rounded-lg bg-primary/10">
-            <Icon className="w-5 h-5 text-primary" />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
+  const config = statusConfig[position];
+  const Icon = config.icon;
 
-function CompetitorCard({ competitor }: { competitor: Competitor }) {
-  const visibilityStatus = competitor.visibilityChange >= 0 ? "danger" : "good";
-  
   return (
-    <Card className="bg-card/60 backdrop-blur-sm border-border hover:border-primary/30 transition-colors">
-      <CardContent className="pt-4">
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-sm font-bold">
-              {competitor.name.slice(0, 2).toUpperCase()}
+    <Card className={cn("backdrop-blur-sm border", config.bg, config.border)} data-testid="competitive-status-strip">
+      <CardContent className="py-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center", config.iconBg)}>
+              <Icon className={cn("w-6 h-6", config.text)} />
             </div>
             <div>
-              <h4 className="font-semibold text-foreground">{competitor.name}</h4>
-              <p className="text-xs text-muted-foreground">{competitor.domain}</p>
+              <div className="flex items-center gap-2">
+                <span className={cn("font-bold text-lg", config.text)}>{config.label}</span>
+              </div>
+              <p className="text-sm text-muted-foreground">{explanation}</p>
             </div>
           </div>
-          <Badge variant="outline" className={cn(
-            "text-xs",
-            visibilityStatus === "danger" ? "border-semantic-danger text-semantic-danger" : "border-semantic-success text-semantic-success"
-          )}>
-            {competitor.visibilityChange > 0 ? "+" : ""}{competitor.visibilityChange}%
-          </Badge>
-        </div>
-
-        <div className="space-y-3">
-          <div>
-            <div className="flex justify-between text-xs mb-1">
-              <span className="text-muted-foreground">Visibility Score</span>
-              <span className="font-medium">{competitor.visibility}</span>
-            </div>
-            <Progress value={competitor.visibility} className="h-1.5" />
-          </div>
-
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Keywords Ranking</span>
-            <span className="font-medium">{competitor.keywords}</span>
-          </div>
-
-          <div className="pt-2 border-t border-border">
-            <p className="text-xs text-muted-foreground mb-1">Top Keywords:</p>
-            <div className="flex flex-wrap gap-1">
-              {competitor.topKeywords.slice(0, 3).map((kw, i) => (
-                <Badge key={i} variant="secondary" className="text-xs">
-                  {kw}
-                </Badge>
-              ))}
-            </div>
-          </div>
+          <Button 
+            onClick={onImprove}
+            className="bg-purple-accent hover:bg-purple-accent/90 text-white shrink-0"
+            data-testid="button-improve-position"
+          >
+            Improve Competitive Position
+            <ArrowRight className="w-4 h-4 ml-2" />
+          </Button>
         </div>
       </CardContent>
     </Card>
   );
 }
 
-function ContentGapCard({ gap }: { gap: ContentGap }) {
+// ═══════════════════════════════════════════════════════════════════════════
+// Share of Voice Comparison
+// ═══════════════════════════════════════════════════════════════════════════
+
+function ShareOfVoiceBar({ 
+  name, 
+  value, 
+  isYou = false,
+  color
+}: { 
+  name: string; 
+  value: number; 
+  isYou?: boolean;
+  color?: string;
+}) {
+  return (
+    <div className="space-y-1">
+      <div className="flex justify-between text-sm">
+        <span className={cn("font-medium", isYou ? "text-purple-accent" : "text-foreground")}>
+          {name} {isYou && <Badge variant="outline" className="text-xs ml-1 border-purple-accent text-purple-accent">You</Badge>}
+        </span>
+        <span className={cn("font-bold", isYou ? "text-purple-accent" : "text-muted-foreground")}>{value}%</span>
+      </div>
+      <div className="h-3 bg-muted rounded-full overflow-hidden">
+        <div 
+          className={cn("h-full rounded-full transition-all", isYou ? "bg-purple-accent" : "bg-muted-foreground/40")}
+          style={{ width: `${value}%`, backgroundColor: isYou ? undefined : color }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Competitor Card (Enhanced)
+// ═══════════════════════════════════════════════════════════════════════════
+
+function CompetitorRow({ 
+  competitor, 
+  onRemove 
+}: { 
+  competitor: Competitor; 
+  onRemove?: (id: string) => void;
+}) {
+  const typeLabels = {
+    direct: { label: "Direct", color: "bg-semantic-danger-soft text-semantic-danger" },
+    indirect: { label: "Indirect", color: "bg-semantic-warning-soft text-semantic-warning" },
+    "serp-only": { label: "SERP-only", color: "bg-muted text-muted-foreground" },
+  };
+
+  const typeConfig = typeLabels[competitor.type];
+
+  return (
+    <div className="flex items-center gap-4 p-3 rounded-xl bg-card/40 border border-border hover:border-primary/30 transition-colors" data-testid={`competitor-row-${competitor.id}`}>
+      <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-sm font-bold shrink-0">
+        {competitor.name.slice(0, 2).toUpperCase()}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <h4 className="font-semibold text-foreground truncate">{competitor.name}</h4>
+          <Badge variant="secondary" className={cn("text-xs shrink-0", typeConfig.color)}>
+            {typeConfig.label}
+          </Badge>
+        </div>
+        <p className="text-xs text-muted-foreground">{competitor.domain}</p>
+      </div>
+      <div className="text-center px-3">
+        <p className="text-xs text-muted-foreground">Overlap</p>
+        <p className="font-bold text-foreground">{competitor.marketOverlap}%</p>
+      </div>
+      <div className="text-center px-3">
+        <p className="text-xs text-muted-foreground">Keywords</p>
+        <p className="font-bold text-foreground">{competitor.keywords}</p>
+      </div>
+      {competitor.deltaScore !== undefined && (
+        <div className="text-center px-3">
+          <p className="text-xs text-muted-foreground">Delta</p>
+          <p className={cn("font-bold", competitor.deltaScore > 0 ? "text-semantic-success" : "text-semantic-danger")}>
+            {competitor.deltaScore > 0 ? "+" : ""}{competitor.deltaScore}
+          </p>
+        </div>
+      )}
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8 text-muted-foreground hover:text-semantic-danger shrink-0"
+              onClick={() => onRemove?.(competitor.id)}
+              data-testid={`button-remove-competitor-${competitor.id}`}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Ignore this competitor</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Keyword Position Table
+// ═══════════════════════════════════════════════════════════════════════════
+
+function KeywordPositionTable({ 
+  rankings, 
+  filter,
+  sort
+}: { 
+  rankings: RankingPage[];
+  filter: string;
+  sort: string;
+}) {
+  const sortedRankings = [...rankings].sort((a, b) => {
+    if (sort === "gap") {
+      return a.gap - b.gap; // Largest negative delta first
+    }
+    return (b.trafficImpact || 0) - (a.trafficImpact || 0);
+  });
+
+  const filteredRankings = sortedRankings.filter(r => {
+    if (filter === "all") return true;
+    if (filter === "winning") return r.yourPosition !== null && r.yourPosition < r.competitorPosition;
+    if (filter === "losing") return r.yourPosition === null || r.yourPosition > r.competitorPosition;
+    return true;
+  });
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-border">
+            <th className="text-left py-2 px-3 text-muted-foreground font-medium">Keyword</th>
+            <th className="text-center py-2 px-3 text-muted-foreground font-medium">Your Rank</th>
+            <th className="text-center py-2 px-3 text-muted-foreground font-medium">Competitor</th>
+            <th className="text-center py-2 px-3 text-muted-foreground font-medium">Delta</th>
+            <th className="text-right py-2 px-3 text-muted-foreground font-medium">Traffic Impact</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filteredRankings.map((ranking, idx) => {
+            const isWinning = ranking.yourPosition !== null && ranking.yourPosition < ranking.competitorPosition;
+            const delta = ranking.yourPosition ? ranking.yourPosition - ranking.competitorPosition : ranking.competitorPosition;
+            
+            return (
+              <tr key={idx} className="border-b border-border/50 hover:bg-muted/30">
+                <td className="py-3 px-3">
+                  <div>
+                    <p className="font-medium text-foreground">{ranking.keyword}</p>
+                    <p className="text-xs text-muted-foreground truncate max-w-[200px]">{ranking.url}</p>
+                  </div>
+                </td>
+                <td className="text-center py-3 px-3">
+                  <span className={cn("font-bold", ranking.yourPosition ? "text-foreground" : "text-muted-foreground")}>
+                    {ranking.yourPosition || "—"}
+                  </span>
+                </td>
+                <td className="text-center py-3 px-3">
+                  <div>
+                    <span className="font-bold text-foreground">{ranking.competitorPosition}</span>
+                    <p className="text-xs text-muted-foreground">{ranking.competitor}</p>
+                  </div>
+                </td>
+                <td className="text-center py-3 px-3">
+                  <Badge variant="outline" className={cn(
+                    "font-bold",
+                    isWinning ? "border-semantic-success text-semantic-success" : "border-semantic-danger text-semantic-danger"
+                  )}>
+                    {delta > 0 ? `+${delta}` : delta}
+                  </Badge>
+                </td>
+                <td className="text-right py-3 px-3">
+                  <span className="text-muted-foreground">{ranking.trafficImpact ? `${ranking.trafficImpact.toLocaleString()}/mo` : "—"}</span>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Gap Cards
+// ═══════════════════════════════════════════════════════════════════════════
+
+function ContentGapCard({ gap, onAction }: { gap: ContentGap; onAction?: (action: string) => void }) {
   const opportunityColors = {
     high: "bg-semantic-success-soft text-semantic-success border-semantic-success-border",
     medium: "bg-semantic-warning-soft text-semantic-warning border-semantic-warning-border",
     low: "bg-muted text-muted-foreground border-border",
   };
 
+  const coverageLabels = {
+    none: { label: "No coverage", color: "text-semantic-danger" },
+    thin: { label: "Thin content", color: "text-semantic-warning" },
+    outdated: { label: "Outdated", color: "text-semantic-warning" },
+  };
+
+  const actionLabels = {
+    create: "Create content",
+    expand: "Expand existing",
+    optimize: "Optimize page",
+  };
+
   return (
-    <div className="p-4 rounded-xl bg-card/40 border border-border hover:border-primary/30 transition-colors">
+    <div className="p-4 rounded-xl bg-card/40 border border-border hover:border-primary/30 transition-colors" data-testid={`content-gap-${gap.id}`}>
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1 min-w-0">
-          <h4 className="font-medium text-foreground truncate">{gap.keyword}</h4>
+          <div className="flex items-center gap-2">
+            <h4 className="font-medium text-foreground">{gap.keyword}</h4>
+            {gap.cluster && (
+              <Badge variant="secondary" className="text-xs">{gap.cluster}</Badge>
+            )}
+          </div>
           <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
             <span className="flex items-center gap-1">
               <Search className="w-3 h-3" />
@@ -205,57 +456,180 @@ function ContentGapCard({ gap }: { gap: ContentGap }) {
               <BarChart3 className="w-3 h-3" />
               KD: {gap.difficulty}
             </span>
-            <span className="flex items-center gap-1">
-              <Users className="w-3 h-3" />
-              {gap.competitorsCovering} competitors
+            <span className={cn("flex items-center gap-1", coverageLabels[gap.yourCoverage].color)}>
+              {coverageLabels[gap.yourCoverage].label}
             </span>
           </div>
         </div>
-        <Badge variant="outline" className={cn("text-xs ml-2", opportunityColors[gap.opportunity])}>
+        <Badge variant="outline" className={cn("text-xs ml-2 shrink-0", opportunityColors[gap.opportunity])}>
           {gap.opportunity} priority
         </Badge>
       </div>
-      <p className="text-sm text-muted-foreground">{gap.suggestedAction}</p>
+      <div className="flex items-center justify-between mt-3">
+        <p className="text-sm text-muted-foreground flex-1">{gap.suggestedAction}</p>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="ml-3 shrink-0"
+          onClick={() => onAction?.(gap.actionType)}
+          data-testid={`button-gap-action-${gap.id}`}
+        >
+          {actionLabels[gap.actionType]}
+        </Button>
+      </div>
     </div>
   );
 }
 
-function RankingComparisonRow({ page }: { page: RankingPage }) {
-  const gap = page.yourPosition ? page.competitorPosition - page.yourPosition : -page.competitorPosition;
-  const isWinning = page.yourPosition !== null && page.yourPosition < page.competitorPosition;
+function AuthorityGapCard({ gap }: { gap: AuthorityGap }) {
+  return (
+    <div className="p-4 rounded-xl bg-card/40 border border-border hover:border-primary/30 transition-colors" data-testid={`authority-gap-${gap.id}`}>
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+            <Link2 className="w-5 h-5 text-muted-foreground" />
+          </div>
+          <div>
+            <h4 className="font-medium text-foreground">{gap.domain}</h4>
+            <p className="text-xs text-muted-foreground">DA: {gap.authority} • {gap.competitor} has this link</p>
+          </div>
+        </div>
+        <Badge variant="secondary" className="text-xs capitalize">{gap.linkType.replace("-", " ")}</Badge>
+      </div>
+      <div className="flex items-center justify-between mt-3">
+        <p className="text-sm text-muted-foreground">{gap.suggestedAction}</p>
+        <Button variant="outline" size="sm" className="shrink-0" data-testid={`button-authority-action-${gap.id}`}>
+          Pursue Link
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function SerpFeatureGapCard({ gap }: { gap: SerpFeatureGap }) {
+  const featureLabels = {
+    featured_snippet: { label: "Featured Snippet", icon: FileText },
+    people_also_ask: { label: "People Also Ask", icon: Search },
+    image_pack: { label: "Image Pack", icon: Layout },
+    local_pack: { label: "Local Pack", icon: Globe },
+    video: { label: "Video", icon: Eye },
+  };
+
+  const config = featureLabels[gap.feature];
+  const Icon = config.icon;
 
   return (
-    <div className="flex items-center justify-between py-3 border-b border-border last:border-0">
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-foreground truncate">{page.keyword}</p>
-        <p className="text-xs text-muted-foreground truncate">{page.url}</p>
+    <div className="p-4 rounded-xl bg-card/40 border border-border hover:border-primary/30 transition-colors" data-testid={`serp-gap-${gap.id}`}>
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-purple-accent/10 flex items-center justify-center">
+            <Icon className="w-5 h-5 text-purple-accent" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h4 className="font-medium text-foreground">{gap.keyword}</h4>
+              <Badge variant="secondary" className="text-xs">{config.label}</Badge>
+            </div>
+            <p className="text-xs text-muted-foreground">Owned by {gap.competitorOwning} • {gap.pageType}</p>
+          </div>
+        </div>
       </div>
-      <div className="flex items-center gap-4 text-sm">
-        <div className="text-center">
-          <p className="text-xs text-muted-foreground">You</p>
-          <p className={cn("font-medium", page.yourPosition ? "text-foreground" : "text-muted-foreground")}>
-            {page.yourPosition || "—"}
-          </p>
-        </div>
-        <div className="text-center">
-          <p className="text-xs text-muted-foreground">{page.competitor}</p>
-          <p className="font-medium text-foreground">{page.competitorPosition}</p>
-        </div>
-        <Badge variant="outline" className={cn(
-          "text-xs w-16 justify-center",
-          isWinning ? "border-semantic-success text-semantic-success" : "border-semantic-danger text-semantic-danger"
-        )}>
-          {isWinning ? "Winning" : `Gap: ${Math.abs(gap)}`}
-        </Badge>
+      <p className="text-sm text-muted-foreground mt-2">{gap.structuralHint}</p>
+      <div className="flex items-center justify-between mt-3">
+        <p className="text-sm text-purple-accent">{gap.suggestedAction}</p>
+        <Button variant="outline" size="sm" className="shrink-0" data-testid={`button-serp-action-${gap.id}`}>
+          Optimize
+        </Button>
       </div>
     </div>
   );
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Competitive Mission Card
+// ═══════════════════════════════════════════════════════════════════════════
+
+function MissionCard({ mission, index }: { mission: CompetitiveMission; index: number }) {
+  const impactColors = {
+    high: "bg-semantic-success-soft text-semantic-success",
+    medium: "bg-semantic-warning-soft text-semantic-warning",
+    low: "bg-muted text-muted-foreground",
+  };
+
+  const difficultyColors = {
+    easy: "text-semantic-success",
+    medium: "text-semantic-warning",
+    hard: "text-semantic-danger",
+  };
+
+  return (
+    <div className="flex items-start gap-4 p-4 rounded-xl bg-card/40 border border-border hover:border-primary/30 transition-colors" data-testid={`mission-${mission.id}`}>
+      <div className="w-8 h-8 rounded-full bg-gold/20 text-gold flex items-center justify-center text-sm font-bold shrink-0">
+        {index + 1}
+      </div>
+      <div className="flex-1 min-w-0">
+        <h4 className="font-semibold text-foreground">{mission.title}</h4>
+        <p className="text-sm text-muted-foreground mt-1">{mission.description}</p>
+        <div className="flex items-center gap-2 mt-2 flex-wrap">
+          <Badge className={cn("text-xs", impactColors[mission.expectedImpact])}>
+            {mission.expectedImpact} impact
+          </Badge>
+          <span className={cn("text-xs", difficultyColors[mission.difficulty])}>
+            {mission.difficulty} difficulty
+          </span>
+          <span className="text-xs text-muted-foreground">
+            Executed by: {mission.executingCrew}
+          </span>
+        </div>
+      </div>
+      <div className="flex gap-2 shrink-0">
+        <Button variant="outline" size="sm" data-testid={`button-create-mission-${mission.id}`}>
+          Create Mission
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Trend Alert
+// ═══════════════════════════════════════════════════════════════════════════
+
+function TrendAlertCard({ alert }: { alert: TrendAlert }) {
+  const severityConfig = {
+    info: { bg: "bg-muted", border: "border-border", icon: Info, iconColor: "text-muted-foreground" },
+    warning: { bg: "bg-semantic-warning-soft/30", border: "border-semantic-warning-border", icon: AlertTriangle, iconColor: "text-semantic-warning" },
+    critical: { bg: "bg-semantic-danger-soft/30", border: "border-semantic-danger-border", icon: AlertCircle, iconColor: "text-semantic-danger" },
+  };
+
+  const config = severityConfig[alert.severity];
+  const Icon = config.icon;
+
+  return (
+    <div className={cn("flex items-start gap-3 p-3 rounded-xl border", config.bg, config.border)} data-testid={`alert-${alert.id}`}>
+      <Icon className={cn("w-5 h-5 shrink-0 mt-0.5", config.iconColor)} />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm text-foreground">{alert.message}</p>
+        <p className="text-xs text-muted-foreground mt-1">
+          <Clock className="w-3 h-3 inline mr-1" />
+          {new Date(alert.timestamp).toLocaleDateString()}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Main Component
+// ═══════════════════════════════════════════════════════════════════════════
 
 export default function NatashaContent() {
   const { currentSite } = useSiteContext();
   const queryClient = useQueryClient();
   const [isRunning, setIsRunning] = useState(false);
+  const [keywordFilter, setKeywordFilter] = useState("all");
+  const [keywordSort, setKeywordSort] = useState("gap");
+  const [gapTab, setGapTab] = useState("content");
 
   const siteId = currentSite?.siteId || "default";
 
@@ -298,6 +672,14 @@ export default function NatashaContent() {
     runAnalysis.mutate();
   };
 
+  const handleRemoveCompetitor = (id: string) => {
+    toast.success("Competitor ignored");
+  };
+
+  const scrollToMissions = () => {
+    document.getElementById("competitive-missions")?.scrollIntoView({ behavior: "smooth" });
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -331,26 +713,51 @@ export default function NatashaContent() {
     );
   }
 
-  const data = overview || {
+  // Mock data for demonstration
+  const data: CompetitiveOverview = overview || {
     configured: false,
     isRealData: false,
-    lastRunAt: null,
+    lastRunAt: new Date(Date.now() - 86400000).toISOString(),
+    competitivePosition: "behind",
+    positionExplanation: "You trail top competitors in 12 high-value keywords and 3 content clusters.",
+    shareOfVoice: 18,
+    avgRank: 14.2,
     competitors: [
-      { id: "1", name: "Competitor A", domain: "competitora.com", visibility: 78, visibilityChange: 5, keywords: 234, topKeywords: ["mental health", "therapy", "counseling"], lastUpdated: "2024-12-28" },
-      { id: "2", name: "Competitor B", domain: "competitorb.com", visibility: 65, visibilityChange: -3, keywords: 189, topKeywords: ["psychiatry", "medication", "treatment"], lastUpdated: "2024-12-28" },
-      { id: "3", name: "Competitor C", domain: "competitorc.com", visibility: 52, visibilityChange: 2, keywords: 145, topKeywords: ["telehealth", "virtual care", "online therapy"], lastUpdated: "2024-12-28" },
+      { id: "1", name: "Competitor A", domain: "competitora.com", type: "direct", visibility: 78, visibilityChange: 5, marketOverlap: 85, keywords: 234, topKeywords: ["mental health", "therapy", "counseling"], lastUpdated: new Date().toISOString(), deltaScore: -18 },
+      { id: "2", name: "Competitor B", domain: "competitorb.com", type: "direct", visibility: 65, visibilityChange: -3, marketOverlap: 72, keywords: 189, topKeywords: ["psychiatry", "medication", "treatment"], lastUpdated: new Date().toISOString(), deltaScore: -12 },
+      { id: "3", name: "Competitor C", domain: "competitorc.com", type: "indirect", visibility: 52, visibilityChange: 2, marketOverlap: 45, keywords: 145, topKeywords: ["telehealth", "virtual care", "online therapy"], lastUpdated: new Date().toISOString(), deltaScore: -5 },
     ],
     contentGaps: [
-      { id: "1", keyword: "online psychiatrist Florida", searchVolume: 2400, difficulty: 35, competitorsCovering: 3, opportunity: "high", suggestedAction: "Create dedicated landing page targeting this keyword" },
-      { id: "2", keyword: "telehealth therapy near me", searchVolume: 1800, difficulty: 42, competitorsCovering: 2, opportunity: "high", suggestedAction: "Add location-specific content for telehealth services" },
-      { id: "3", keyword: "anxiety treatment without medication", searchVolume: 1200, difficulty: 28, competitorsCovering: 2, opportunity: "medium", suggestedAction: "Write blog post about alternative anxiety treatments" },
-      { id: "4", keyword: "virtual mental health counseling", searchVolume: 890, difficulty: 38, competitorsCovering: 3, opportunity: "medium", suggestedAction: "Optimize existing service pages for this term" },
+      { id: "1", keyword: "online psychiatrist Florida", cluster: "Telehealth", searchVolume: 2400, difficulty: 35, competitorsCovering: 3, yourCoverage: "none", opportunity: "high", suggestedAction: "Create dedicated landing page targeting this keyword", actionType: "create" },
+      { id: "2", keyword: "telehealth therapy near me", cluster: "Telehealth", searchVolume: 1800, difficulty: 42, competitorsCovering: 2, yourCoverage: "thin", opportunity: "high", suggestedAction: "Expand existing telehealth page with location-specific content", actionType: "expand" },
+      { id: "3", keyword: "anxiety treatment without medication", cluster: "Treatment Options", searchVolume: 1200, difficulty: 28, competitorsCovering: 2, yourCoverage: "outdated", opportunity: "medium", suggestedAction: "Update blog post with latest research and techniques", actionType: "optimize" },
+      { id: "4", keyword: "virtual mental health counseling", cluster: "Telehealth", searchVolume: 890, difficulty: 38, competitorsCovering: 3, yourCoverage: "none", opportunity: "medium", suggestedAction: "Add new service page for virtual counseling", actionType: "create" },
+    ],
+    authorityGaps: [
+      { id: "1", domain: "healthline.com", competitor: "Competitor A", authority: 92, linkType: "editorial", suggestedAction: "Pitch a guest article or expert quote for their mental health section" },
+      { id: "2", domain: "psychologytoday.com", competitor: "Competitor B", authority: 88, linkType: "directory", suggestedAction: "Create or claim your profile on Psychology Today" },
+      { id: "3", domain: "webmd.com", competitor: "Competitor A", authority: 95, linkType: "guest-post", suggestedAction: "Propose a collaborative piece on telehealth psychiatry" },
+    ],
+    serpFeatureGaps: [
+      { id: "1", keyword: "what is cognitive behavioral therapy", feature: "featured_snippet", competitorOwning: "Competitor B", pageType: "Blog article", structuralHint: "Uses definition format with bullet points", suggestedAction: "Restructure content with clear definition and steps" },
+      { id: "2", keyword: "anxiety symptoms", feature: "people_also_ask", competitorOwning: "Competitor A", pageType: "Resource page", structuralHint: "Has FAQ schema and clear Q&A sections", suggestedAction: "Add FAQ schema to symptoms page" },
+      { id: "3", keyword: "telehealth therapy", feature: "video", competitorOwning: "Competitor C", pageType: "YouTube video", structuralHint: "5-minute explainer video embedded on landing page", suggestedAction: "Create and embed a video explaining telehealth services" },
     ],
     rankingPages: [
-      { url: "/services/psychiatry", keyword: "psychiatrist Orlando", yourPosition: 8, competitorPosition: 3, competitor: "Competitor A", gap: -5 },
-      { url: "/services/therapy", keyword: "therapy near me", yourPosition: 12, competitorPosition: 5, competitor: "Competitor B", gap: -7 },
-      { url: "/blog/anxiety-tips", keyword: "anxiety treatment tips", yourPosition: 4, competitorPosition: 6, competitor: "Competitor A", gap: 2 },
-      { url: "/services/telehealth", keyword: "telehealth psychiatry", yourPosition: null, competitorPosition: 2, competitor: "Competitor C", gap: 0 },
+      { url: "/services/psychiatry", keyword: "psychiatrist Orlando", yourPosition: 8, competitorPosition: 3, competitor: "Competitor A", gap: -5, trafficImpact: 1200, intent: "commercial" },
+      { url: "/services/therapy", keyword: "therapy near me", yourPosition: 12, competitorPosition: 5, competitor: "Competitor B", gap: -7, trafficImpact: 3500, intent: "commercial" },
+      { url: "/blog/anxiety-tips", keyword: "anxiety treatment tips", yourPosition: 4, competitorPosition: 6, competitor: "Competitor A", gap: 2, trafficImpact: 890, intent: "informational" },
+      { url: "/services/telehealth", keyword: "telehealth psychiatry", yourPosition: null, competitorPosition: 2, competitor: "Competitor C", gap: 0, trafficImpact: 2100, intent: "transactional" },
+    ],
+    missions: [
+      { id: "1", title: "Close content gap on telehealth keywords", description: "Create comprehensive landing pages for 'online psychiatrist Florida' and related terms to capture high-intent traffic.", type: "content", expectedImpact: "high", difficulty: "medium", executingCrew: "Atlas", keywords: ["online psychiatrist Florida", "telehealth therapy near me"] },
+      { id: "2", title: "Target featured snippet for CBT definition", description: "Restructure CBT page with clear definition, steps, and FAQ schema to capture the featured snippet.", type: "serp", expectedImpact: "high", difficulty: "easy", executingCrew: "Scotty", keywords: ["what is cognitive behavioral therapy"] },
+      { id: "3", title: "Build authority through Psychology Today profile", description: "Claim and optimize Psychology Today listing to gain authoritative backlink and referral traffic.", type: "authority", expectedImpact: "medium", difficulty: "easy", executingCrew: "Link Builder" },
+    ],
+    alerts: [
+      { id: "1", type: "rank_jump", message: "Competitor A jumped ahead in 5 high-value keywords in the last 7 days", competitor: "Competitor A", severity: "warning", timestamp: new Date(Date.now() - 172800000).toISOString() },
+      { id: "2", type: "content_surge", message: "Competitor B published 8 new blog posts this month targeting your core keywords", competitor: "Competitor B", severity: "warning", timestamp: new Date(Date.now() - 604800000).toISOString() },
+      { id: "3", type: "new_competitor", message: "New competitor detected: betterhelp-local.com now ranks for 12 of your tracked keywords", severity: "info", timestamp: new Date(Date.now() - 1209600000).toISOString() },
     ],
     summary: {
       totalCompetitors: 5,
@@ -360,6 +767,8 @@ export default function NatashaContent() {
       keywordsTracked: 48,
       keywordsWinning: 12,
       keywordsLosing: 18,
+      referringDomains: 145,
+      competitorAvgDomains: 312,
     },
   };
 
@@ -368,18 +777,19 @@ export default function NatashaContent() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-foreground">Competitive Intelligence</h2>
           <p className="text-muted-foreground text-sm">
-            Track competitors, identify content gaps, and monitor ranking battles
+            Strategic insights on your competitive landscape
           </p>
         </div>
         <div className="flex gap-2">
           <Button 
             onClick={handleRunAnalysis}
             disabled={isRunning}
-            className="bg-purple-accent hover:bg-purple-accent/90 text-white"
+            variant="outline"
             data-testid="button-run-analysis"
           >
             {isRunning ? (
@@ -392,6 +802,7 @@ export default function NatashaContent() {
         </div>
       </div>
 
+      {/* Sample Data Warning */}
       {isUsingMockData && (
         <Card className="border-semantic-warning-border bg-semantic-warning-soft/30">
           <CardContent className="py-3">
@@ -404,148 +815,242 @@ export default function NatashaContent() {
         </Card>
       )}
 
+      {/* 1. Competitive Status Strip */}
+      <CompetitiveStatusStrip 
+        position={data.competitivePosition}
+        explanation={data.positionExplanation}
+        onImprove={scrollToMissions}
+      />
+
+      {/* Last Run Info */}
       {data.lastRunAt && (
         <p className="text-xs text-muted-foreground flex items-center gap-1">
-          <Info className="w-3 h-3" />
+          <Clock className="w-3 h-3" />
           Last analysis: {new Date(data.lastRunAt).toLocaleString()}
         </p>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <MetricCard
-          title="Competitors Tracked"
-          value={summary.totalCompetitors}
-          icon={Users}
-          description="Active competitor monitoring"
-        />
-        <MetricCard
-          title="Content Gaps Found"
-          value={summary.totalGaps}
-          icon={Target}
-          status={summary.highPriorityGaps > 5 ? "warning" : "neutral"}
-          description={`${summary.highPriorityGaps} high priority`}
-        />
-        <MetricCard
-          title="Keywords Winning"
-          value={summary.keywordsWinning}
-          change={8}
-          icon={TrendingUp}
-          status="good"
-          description={`of ${summary.keywordsTracked} tracked`}
-        />
-        <MetricCard
-          title="Keywords Losing"
-          value={summary.keywordsLosing}
-          change={-12}
-          icon={TrendingDown}
-          status="danger"
-          description="Need attention"
-        />
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="bg-card/60 backdrop-blur-sm border-border">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-lg">Competitor Overview</CardTitle>
-                <CardDescription>Top competitors by visibility score</CardDescription>
-              </div>
-              <Badge variant="secondary">{data.competitors.length} tracked</Badge>
+      {/* 2. Share of Voice Comparison */}
+      <Card className="bg-card/60 backdrop-blur-sm border-border">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg">Share of Voice</CardTitle>
+              <CardDescription>SERP visibility across tracked keywords</CardDescription>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {data.competitors.map((competitor) => (
-              <CompetitorCard key={competitor.id} competitor={competitor} />
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card/60 backdrop-blur-sm border-border">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-lg">Content Gaps</CardTitle>
-                <CardDescription>Keywords your competitors rank for that you don't</CardDescription>
-              </div>
-              <Badge variant="secondary" className="bg-semantic-warning-soft text-semantic-warning">
-                {summary.highPriorityGaps} high priority
-              </Badge>
+            <div className="text-right">
+              <p className="text-2xl font-bold text-purple-accent">{data.shareOfVoice}%</p>
+              <p className="text-xs text-muted-foreground">Avg. rank: {data.avgRank}</p>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {data.contentGaps.map((gap) => (
-              <ContentGapCard key={gap.id} gap={gap} />
-            ))}
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <ShareOfVoiceBar name="Your Site" value={data.shareOfVoice} isYou />
+          {data.competitors.slice(0, 3).map((comp, idx) => (
+            <ShareOfVoiceBar 
+              key={comp.id} 
+              name={comp.name} 
+              value={comp.visibility} 
+              color={["#ef4444", "#f97316", "#eab308"][idx]}
+            />
+          ))}
+        </CardContent>
+      </Card>
 
+      {/* 3. Competitor Landscape */}
       <Card className="bg-card/60 backdrop-blur-sm border-border">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-lg">Ranking Battles</CardTitle>
-              <CardDescription>Head-to-head keyword comparisons with competitors</CardDescription>
+              <CardTitle className="text-lg">Identified Competitors</CardTitle>
+              <CardDescription>Competitors discovered via shared keywords and SERP overlap</CardDescription>
             </div>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <Info className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="text-xs max-w-xs">
-                    Compare your ranking positions against competitors for shared keywords.
-                    Focus on closing gaps for high-value terms.
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Button variant="outline" size="sm" data-testid="button-add-competitor">
+              <Plus className="w-4 h-4 mr-1" />
+              Add Competitor
+            </Button>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="divide-y divide-border">
-            {data.rankingPages.map((page, idx) => (
-              <RankingComparisonRow key={idx} page={page} />
-            ))}
-          </div>
+        <CardContent className="space-y-3">
+          {data.competitors.map((competitor) => (
+            <CompetitorRow 
+              key={competitor.id} 
+              competitor={competitor} 
+              onRemove={handleRemoveCompetitor}
+            />
+          ))}
         </CardContent>
       </Card>
 
+      {/* 4. Ranking & Visibility Comparison */}
       <Card className="bg-card/60 backdrop-blur-sm border-border">
         <CardHeader>
-          <CardTitle className="text-lg">Recommended Actions</CardTitle>
-          <CardDescription>Priority actions based on competitive analysis</CardDescription>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <CardTitle className="text-lg">Keyword Position Comparison</CardTitle>
+              <CardDescription>Head-to-head ranking battles with competitors</CardDescription>
+            </div>
+            <div className="flex items-center gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Winning:</span>
+                <Badge className="bg-semantic-success-soft text-semantic-success">{summary.keywordsWinning}</Badge>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Losing:</span>
+                <Badge className="bg-semantic-danger-soft text-semantic-danger">{summary.keywordsLosing}</Badge>
+              </div>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {data.contentGaps
-              .filter(g => g.opportunity === "high")
-              .slice(0, 3)
-              .map((gap, idx) => (
-                <div 
-                  key={gap.id} 
-                  className="flex items-start gap-3 p-3 rounded-xl bg-muted/50 border border-border"
-                >
-                  <div className="w-6 h-6 rounded-full bg-gold/20 text-gold flex items-center justify-center text-sm font-bold">
-                    {idx + 1}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">{gap.suggestedAction}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Target keyword: <span className="font-medium">{gap.keyword}</span> ({gap.searchVolume.toLocaleString()} monthly searches)
-                    </p>
-                  </div>
-                  <Button variant="outline" size="sm" className="shrink-0">
-                    Start
-                  </Button>
-                </div>
-              ))}
+          <div className="flex items-center gap-2 mb-4">
+            <Button 
+              variant={keywordFilter === "all" ? "secondary" : "ghost"} 
+              size="sm"
+              onClick={() => setKeywordFilter("all")}
+            >
+              All
+            </Button>
+            <Button 
+              variant={keywordFilter === "losing" ? "secondary" : "ghost"} 
+              size="sm"
+              onClick={() => setKeywordFilter("losing")}
+            >
+              Losing
+            </Button>
+            <Button 
+              variant={keywordFilter === "winning" ? "secondary" : "ghost"} 
+              size="sm"
+              onClick={() => setKeywordFilter("winning")}
+            >
+              Winning
+            </Button>
+            <Separator orientation="vertical" className="h-6" />
+            <span className="text-xs text-muted-foreground">Sort:</span>
+            <Button 
+              variant={keywordSort === "gap" ? "secondary" : "ghost"} 
+              size="sm"
+              onClick={() => setKeywordSort("gap")}
+            >
+              Largest Gap
+            </Button>
+            <Button 
+              variant={keywordSort === "traffic" ? "secondary" : "ghost"} 
+              size="sm"
+              onClick={() => setKeywordSort("traffic")}
+            >
+              Traffic Impact
+            </Button>
           </div>
+          <KeywordPositionTable rankings={data.rankingPages} filter={keywordFilter} sort={keywordSort} />
         </CardContent>
       </Card>
+
+      {/* 5. Competitive Gap Analysis */}
+      <Card className="bg-card/60 backdrop-blur-sm border-border">
+        <CardHeader>
+          <CardTitle className="text-lg">Competitive Gap Analysis</CardTitle>
+          <CardDescription>Where competitors have advantages over you</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs value={gapTab} onValueChange={setGapTab}>
+            <TabsList className="mb-4">
+              <TabsTrigger value="content" className="flex items-center gap-1">
+                <FileText className="w-4 h-4" />
+                Content Gaps
+                <Badge variant="secondary" className="ml-1 text-xs">{data.contentGaps.length}</Badge>
+              </TabsTrigger>
+              <TabsTrigger value="authority" className="flex items-center gap-1">
+                <Link2 className="w-4 h-4" />
+                Authority Gaps
+                <Badge variant="secondary" className="ml-1 text-xs">{data.authorityGaps.length}</Badge>
+              </TabsTrigger>
+              <TabsTrigger value="serp" className="flex items-center gap-1">
+                <Layout className="w-4 h-4" />
+                SERP Features
+                <Badge variant="secondary" className="ml-1 text-xs">{data.serpFeatureGaps.length}</Badge>
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="content" className="space-y-3">
+              {data.contentGaps.map((gap) => (
+                <ContentGapCard key={gap.id} gap={gap} onAction={() => toast.success("Action initiated")} />
+              ))}
+            </TabsContent>
+
+            <TabsContent value="authority" className="space-y-3">
+              <div className="flex items-center gap-4 mb-4 p-3 rounded-lg bg-muted/50">
+                <div>
+                  <p className="text-sm font-medium">Your Referring Domains</p>
+                  <p className="text-2xl font-bold text-foreground">{summary.referringDomains}</p>
+                </div>
+                <div className="text-muted-foreground">vs</div>
+                <div>
+                  <p className="text-sm font-medium">Competitor Average</p>
+                  <p className="text-2xl font-bold text-semantic-danger">{summary.competitorAvgDomains}</p>
+                </div>
+                <div className="ml-auto">
+                  <Badge className="bg-semantic-danger-soft text-semantic-danger">
+                    {summary.competitorAvgDomains - summary.referringDomains} domain gap
+                  </Badge>
+                </div>
+              </div>
+              {data.authorityGaps.map((gap) => (
+                <AuthorityGapCard key={gap.id} gap={gap} />
+              ))}
+            </TabsContent>
+
+            <TabsContent value="serp" className="space-y-3">
+              {data.serpFeatureGaps.map((gap) => (
+                <SerpFeatureGapCard key={gap.id} gap={gap} />
+              ))}
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+
+      {/* 6. Recommended Competitive Missions */}
+      <Card id="competitive-missions" className="bg-card/60 backdrop-blur-sm border-border">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Target className="w-5 h-5 text-gold" />
+                Recommended Competitive Missions
+              </CardTitle>
+              <CardDescription>Prioritized actions to improve your competitive position</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {data.missions.map((mission, idx) => (
+            <MissionCard key={mission.id} mission={mission} index={idx} />
+          ))}
+        </CardContent>
+      </Card>
+
+      {/* 7. Competitive Trends & Alerts */}
+      {data.alerts.length > 0 && (
+        <Card className="bg-card/60 backdrop-blur-sm border-border">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5" />
+                  Competitive Movement & Alerts
+                </CardTitle>
+                <CardDescription>Recent changes in the competitive landscape</CardDescription>
+              </div>
+              <Badge variant="outline">{data.alerts.length} alerts</Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {data.alerts.map((alert) => (
+              <TrendAlertCard key={alert.id} alert={alert} />
+            ))}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
