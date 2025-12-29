@@ -119,7 +119,7 @@ export const crewConfigs = {
   seo_kbase: {
     crewKey: "seo_kbase",
     overviewEndpoint: "/api/kb/overview",
-    runEndpoint: "/api/kb/run",
+    runEndpoint: "/api/kbase/run",
     queryKey: "kbase-overview",
   },
   content_decay: {
