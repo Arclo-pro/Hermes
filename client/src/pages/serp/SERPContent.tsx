@@ -4,12 +4,21 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useMemo } from "react";
-import { Search, TrendingUp, TrendingDown, Minus, RefreshCw, Sparkles, ArrowUp, ArrowDown, Target, AlertTriangle, Crown, Trophy, Zap, Plus, ChevronUp, ChevronDown, Star, Brain } from "lucide-react";
+import { Search, TrendingUp, TrendingDown, Minus, RefreshCw, Sparkles, ArrowUp, ArrowDown, Target, AlertTriangle, Crown, Trophy, Zap, Plus, ChevronUp, ChevronDown, Star, Brain, DollarSign, Info, ShoppingCart, HelpCircle, Eye } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { getCrewMember } from "@/config/agents";
+import {
+  CrewDashboardShell,
+  type CrewIdentity,
+  type MissionStatusState,
+  type MissionItem,
+  type KpiDescriptor,
+  type InspectorTab,
+} from "@/components/crew-dashboard";
 
 interface RankingData {
   id: number;
@@ -394,22 +403,218 @@ export default function SERPContent() {
     );
   }
 
-  const stats = overview?.stats || { ranking: 0, notRanking: 0, numberOne: 0, inTop3: 0, inTop10: 0, inTop20: 0, avgPosition: null, winners: 0, losers: 0 };
+  const stats = overview?.stats || { ranking: 0, notRanking: 0, numberOne: 0, inTop3: 0, inTop5: 0, inTop10: 0, inTop20: 0, avgPosition: null, winners: 0, losers: 0 };
   const hasKeywords = (overview?.totalKeywords || 0) > 0;
+
+  const crewMember = getCrewMember("serp_intel");
+
+  const crew: CrewIdentity = {
+    crewId: "serp_intel",
+    crewName: crewMember.nickname,
+    subtitle: crewMember.role,
+    description: crewMember.blurb || "Tracks keyword rankings and SERP features over time.",
+    avatar: crewMember.avatar ? (
+      <img src={crewMember.avatar} alt={crewMember.nickname} className="w-7 h-7 object-contain" />
+    ) : (
+      <Search className="w-7 h-7 text-pink-500" />
+    ),
+    accentColor: crewMember.color,
+    capabilities: crewMember.capabilities || ["Rank Tracking", "SERP Snapshots", "Position Monitoring"],
+    monitors: ["Keyword Rankings", "Position Changes", "SERP Features"],
+  };
+
+  const missionStatus: MissionStatusState = useMemo(() => {
+    const totalKeywords = overview?.totalKeywords || 0;
+    const inTop10 = stats.inTop10 || 0;
+    const notRanking = stats.notRanking || 0;
+    const coveragePercent = totalKeywords > 0 ? (inTop10 / totalKeywords) * 100 : 0;
+
+    let tier: "looking_good" | "doing_okay" | "needs_attention" = "looking_good";
+    if (coveragePercent < 30 || notRanking > totalKeywords * 0.3) {
+      tier = "needs_attention";
+    } else if (coveragePercent < 60) {
+      tier = "doing_okay";
+    }
+
+    return {
+      tier,
+      blockers: notRanking,
+      priorities: totalKeywords - inTop10 - notRanking,
+      autoFixable: 0,
+    };
+  }, [overview, stats]);
+
+  const kpis: KpiDescriptor[] = useMemo(() => [
+    {
+      label: "Top 1",
+      value: `${stats.numberOne}`,
+      tooltip: "Keywords ranking #1",
+    },
+    {
+      label: "Top 3",
+      value: `${stats.inTop3}`,
+      tooltip: "Keywords ranking in top 3 positions",
+    },
+    {
+      label: "Top 10",
+      value: `${stats.inTop10}`,
+      tooltip: "Keywords ranking in top 10 positions",
+    },
+    {
+      label: "Avg Pos",
+      value: stats.avgPosition != null ? `#${stats.avgPosition}` : "—",
+      tooltip: "Average ranking position across all keywords",
+    },
+  ], [stats]);
+
+  const missions: MissionItem[] = useMemo(() => {
+    const items: MissionItem[] = [];
+    if (stats.notRanking > 0) {
+      items.push({
+        id: "recover-not-ranking",
+        title: `Recover ${stats.notRanking} non-ranking keywords`,
+        reason: "Keywords not appearing in top 100 results",
+        status: "pending",
+        impact: "high",
+      });
+    }
+    if (stats.losers > 0) {
+      items.push({
+        id: "address-position-drops",
+        title: `Address ${stats.losers} position drops`,
+        reason: "Keywords that recently lost rankings",
+        status: "pending",
+        impact: "high",
+      });
+    }
+    if (stats.inTop10 < (overview?.totalKeywords || 0) * 0.5) {
+      items.push({
+        id: "expand-top10-coverage",
+        title: "Expand Top 10 coverage",
+        reason: `Only ${stats.inTop10} of ${overview?.totalKeywords || 0} keywords in top 10`,
+        status: "pending",
+        impact: "medium",
+      });
+    }
+    return items;
+  }, [stats, overview]);
+
+  const inspectorTabs: InspectorTab[] = useMemo(() => [
+    {
+      id: "top-keywords",
+      label: "Top Keywords",
+      icon: <Crown className="w-4 h-4" />,
+      content: (
+        <div className="space-y-2">
+          {overview?.topKeywords?.slice(0, 10).map((kw, i) => (
+            <div key={i} className="flex items-center justify-between p-2 bg-muted/50 rounded-lg">
+              <span className="font-medium text-sm">{kw.keyword}</span>
+              <Badge className={kw.position === 1 ? "bg-yellow-500" : kw.position && kw.position <= 3 ? "bg-slate-400" : "bg-amber-600"}>
+                #{kw.position}
+              </Badge>
+            </div>
+          )) || <p className="text-muted-foreground text-sm">No keywords tracked yet</p>}
+        </div>
+      ),
+    },
+  ], [overview]);
+
+  const getIntentBadge = (intent: string | null, priority: number | null, volume: number | null) => {
+    if (!intent) {
+      if (priority && priority >= 4) {
+        return (
+          <Tooltip>
+            <TooltipTrigger>
+              <Badge className="bg-green-600 text-white text-xs gap-1">
+                <DollarSign className="h-3 w-3" />
+                High Value
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent><p>High priority keyword based on business value</p></TooltipContent>
+          </Tooltip>
+        );
+      }
+      return null;
+    }
+
+    const intentLower = intent.toLowerCase();
+    if (intentLower === 'commercial' || intentLower === 'transactional') {
+      return (
+        <Tooltip>
+          <TooltipTrigger>
+            <Badge className="bg-green-600 text-white text-xs gap-1">
+              <ShoppingCart className="h-3 w-3" />
+              Commercial
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent><p>High-intent keyword likely to convert</p></TooltipContent>
+        </Tooltip>
+      );
+    }
+    if (intentLower === 'navigational') {
+      return (
+        <Tooltip>
+          <TooltipTrigger>
+            <Badge className="bg-blue-500 text-white text-xs gap-1">
+              <Target className="h-3 w-3" />
+              Navigate
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent><p>User looking for a specific site/brand</p></TooltipContent>
+        </Tooltip>
+      );
+    }
+    if (intentLower === 'informational') {
+      return (
+        <Tooltip>
+          <TooltipTrigger>
+            <Badge variant="outline" className="text-xs gap-1">
+              <HelpCircle className="h-3 w-3" />
+              Info
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent><p>Research/informational keyword</p></TooltipContent>
+        </Tooltip>
+      );
+    }
+    return (
+      <Badge variant="outline" className="text-xs">{intent}</Badge>
+    );
+  };
 
   // Show setup state if no keywords exist
   if (!hasKeywords && !isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-xl font-bold">SERP Tracking</h2>
-            <p className="text-muted-foreground text-sm">
-              Track keyword rankings and position changes
-            </p>
-          </div>
-        </div>
+    const emptyMissionStatus: MissionStatusState = {
+      tier: "needs_attention",
+      blockers: 0,
+      priorities: 1,
+      autoFixable: 0,
+    };
 
+    const setupMissions: MissionItem[] = [{
+      id: "generate-keywords",
+      title: "Generate target keywords",
+      reason: "Set up keyword tracking to start monitoring rankings",
+      status: "pending",
+      impact: "high",
+    }];
+
+    return (
+      <CrewDashboardShell
+        crew={crew}
+        agentScore={null}
+        agentScoreTooltip="Generate keywords to start tracking"
+        missionStatus={emptyMissionStatus}
+        missions={setupMissions}
+        kpis={[
+          { label: "Keywords", value: "0", tooltip: "No keywords tracked yet" },
+          { label: "Top 10", value: "—", tooltip: "No rankings yet" },
+        ]}
+        inspectorTabs={[]}
+        onRefresh={() => {}}
+        onSettings={() => {}}
+        isRefreshing={generateKeywords.isPending}
+      >
         <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
           <CardHeader className="text-center pb-2">
             <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
@@ -473,12 +678,27 @@ export default function SERPContent() {
             </Button>
           </CardContent>
         </Card>
-      </div>
+      </CrewDashboardShell>
     );
   }
 
+  const agentScore = overview?.totalKeywords && overview.totalKeywords > 0
+    ? Math.round((stats.inTop10 / overview.totalKeywords) * 100)
+    : null;
+
   return (
-    <div className="space-y-6">
+    <CrewDashboardShell
+      crew={crew}
+      agentScore={agentScore}
+      agentScoreTooltip="Percentage of keywords ranking in top 10"
+      missionStatus={missionStatus}
+      missions={missions}
+      kpis={kpis}
+      inspectorTabs={inspectorTabs}
+      onRefresh={() => runCheck.mutate(50)}
+      onSettings={() => {}}
+      isRefreshing={runCheck.isPending}
+    >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold">SERP Tracking</h2>
@@ -668,12 +888,10 @@ export default function SERPContent() {
                           {idx + 1}
                         </td>
                         <td className="py-2 font-medium">
-                          {kw.keyword}
-                          {kw.intent && (
-                            <Badge variant="outline" className="ml-2 text-xs">
-                              {kw.intent}
-                            </Badge>
-                          )}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span>{kw.keyword}</span>
+                            {getIntentBadge(kw.intent, kw.priority, kw.volume)}
+                          </div>
                         </td>
                         <td className="py-2 text-center">
                           {getPriorityBadge(kw.priority, kw.priorityReason)}
@@ -719,6 +937,6 @@ export default function SERPContent() {
           </TooltipProvider>
         </CardContent>
       </Card>
-    </div>
+    </CrewDashboardShell>
   );
 }
