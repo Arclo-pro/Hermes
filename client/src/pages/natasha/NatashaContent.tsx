@@ -769,6 +769,7 @@ export default function NatashaContent() {
     description: "Monitors competitors, tracks ranking shifts, and identifies strategic gaps.",
     avatar: <Compass className="w-7 h-7 text-purple-accent" />,
     accentColor: "#a855f7",
+    capabilities: ["Competitor Analysis", "SERP Recon", "Gap Detection"],
     monitors: ["Competitor Rankings", "Share of Voice", "Content Gaps", "SERP Features"],
   };
 

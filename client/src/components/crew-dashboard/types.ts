@@ -62,6 +62,7 @@ export interface CrewIdentity {
   description: string;
   avatar: ReactNode;
   accentColor: string;
+  capabilities?: string[];
   monitors: string[];
 }
 

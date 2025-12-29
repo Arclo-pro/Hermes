@@ -133,70 +133,97 @@ export function CrewDashboardShell({
 
   return (
     <div className="space-y-5">
-      {/* Unified Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div
-            className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-            style={{ backgroundColor: `${crew.accentColor}20` }}
-          >
-            {crew.avatar}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-xl font-bold text-foreground">{crew.crewName}</h1>
-              <span className="text-muted-foreground">·</span>
-              <span className="text-muted-foreground">{crew.subtitle}</span>
-              {crew.monitors.length > 0 && (
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {crew.monitors.map((monitor) => (
-                    <Badge
-                      key={monitor}
-                      variant="secondary"
-                      className="text-xs"
-                      style={{
-                        backgroundColor: `${crew.accentColor}15`,
-                        color: crew.accentColor,
-                        borderColor: `${crew.accentColor}30`,
-                      }}
-                    >
-                      {monitor}
-                    </Badge>
-                  ))}
-                </div>
-              )}
+      {/* Unified Header - Single consolidated block */}
+      <div className="p-4 rounded-xl bg-card/40 border border-border">
+        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+          {/* Left cluster: Avatar + Title + Subtitle + Description */}
+          <div className="flex items-start gap-4 flex-1 min-w-0">
+            <div
+              className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+              style={{ backgroundColor: `${crew.accentColor}20` }}
+            >
+              {crew.avatar}
             </div>
-            <p className="text-sm text-muted-foreground mt-0.5">{crew.description}</p>
+            <div className="flex-1 min-w-0">
+              {/* Title row */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-xl font-bold text-foreground">{crew.crewName}</h1>
+                <Badge
+                  variant="outline"
+                  className="text-xs font-medium"
+                  style={{
+                    borderColor: `${crew.accentColor}40`,
+                    color: crew.accentColor,
+                  }}
+                >
+                  {crew.subtitle}
+                </Badge>
+              </div>
+              
+              {/* Description */}
+              <p className="text-sm text-muted-foreground mt-1">{crew.description}</p>
+              
+              {/* Pills row - capabilities and monitors combined */}
+              <div className="flex flex-wrap gap-1.5 mt-3">
+                {(crew.capabilities || []).map((cap) => (
+                  <Badge
+                    key={cap}
+                    variant="secondary"
+                    className="text-xs font-medium"
+                    style={{
+                      backgroundColor: `${crew.accentColor}15`,
+                      color: crew.accentColor,
+                      borderColor: `${crew.accentColor}30`,
+                    }}
+                  >
+                    {cap}
+                  </Badge>
+                ))}
+                {crew.monitors.length > 0 && (crew.capabilities?.length || 0) > 0 && (
+                  <span className="text-muted-foreground/50 px-1">|</span>
+                )}
+                {crew.monitors.map((monitor) => (
+                  <Badge
+                    key={monitor}
+                    variant="outline"
+                    className="text-xs text-muted-foreground"
+                  >
+                    {monitor}
+                  </Badge>
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-3 shrink-0">
-          <AgentScoreDisplay
-            score={agentScore}
-            tooltip={agentScoreTooltip}
-            isLoading={missionStatusState === "loading"}
-          />
+          {/* Right cluster: Agent Score + Refresh + Settings */}
+          <div className="flex items-center gap-3 shrink-0">
+            <AgentScoreDisplay
+              score={agentScore}
+              tooltip={agentScoreTooltip}
+              isLoading={missionStatusState === "loading"}
+            />
 
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={onRefresh}
-            disabled={isRefreshing}
-            data-testid="button-refresh"
-          >
-            <RefreshCw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
-          </Button>
-
-          {onSettings && (
             <Button
               variant="outline"
               size="icon"
-              onClick={onSettings}
-              data-testid="button-settings"
+              onClick={onRefresh}
+              disabled={isRefreshing}
+              data-testid="button-refresh"
             >
-              <Settings className="w-4 h-4" />
+              <RefreshCw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
             </Button>
-          )}
+
+            {onSettings && (
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={onSettings}
+                data-testid="button-settings"
+              >
+                <Settings className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
