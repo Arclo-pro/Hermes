@@ -361,10 +361,9 @@ export default function SERPContent() {
           </CardHeader>
           <CardContent>
             {rankingsData?.keywords && rankingsData.keywords.length > 0 ? (
-              <div className="space-y-3 max-h-[300px] overflow-y-auto">
+              <div className="space-y-3">
                 {rankingsData.keywords
                   .filter(kw => kw.currentPosition !== null && (kw.avg7Day || kw.avg30Day))
-                  .slice(0, 15)
                   .map((kw, idx) => {
                     const change7d = kw.avg7Day && kw.currentPosition ? Math.round((kw.avg7Day - kw.currentPosition) * 10) / 10 : null;
                     const change30d = kw.avg30Day && kw.currentPosition ? Math.round((kw.avg30Day - kw.currentPosition) * 10) / 10 : null;
@@ -416,7 +415,7 @@ export default function SERPContent() {
         </CardHeader>
         <CardContent>
           {rankingsData?.keywords && rankingsData.keywords.length > 0 ? (
-            <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
+            <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-background">
                   <tr className="border-b">

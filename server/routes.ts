@@ -4465,8 +4465,8 @@ When answering:
         rankings.sort((a, b) => b.date.localeCompare(a.date));
       }
       
-      // Calculate position averages for each keyword
-      const keywordData = keywords.slice(0, limit).map(kw => {
+      // Calculate position averages for each keyword (process all, limit later)
+      const keywordData = keywords.map(kw => {
         const rankings = rankingsByKeyword.get(kw.id) || [];
         
         // Get latest position (rankings are now sorted by date desc, so first = latest)
@@ -4518,32 +4518,41 @@ When answering:
         };
       });
       
-      // Sort by priority then current position
+      // Sort by: 1) has ranking data, 2) best position, 3) priority
       keywordData.sort((a, b) => {
-        if (a.priority !== b.priority) return (b.priority || 0) - (a.priority || 0);
-        if (a.currentPosition === null && b.currentPosition === null) return 0;
-        if (a.currentPosition === null) return 1;
-        if (b.currentPosition === null) return -1;
-        return a.currentPosition - b.currentPosition;
+        // Keywords with rankings come first
+        if (a.currentPosition !== null && b.currentPosition === null) return -1;
+        if (a.currentPosition === null && b.currentPosition !== null) return 1;
+        
+        // Both have rankings - sort by position (lower is better)
+        if (a.currentPosition !== null && b.currentPosition !== null) {
+          return a.currentPosition - b.currentPosition;
+        }
+        
+        // Neither has rankings - sort by priority
+        return (b.priority || 0) - (a.priority || 0);
       });
       
-      // Summary stats
-      const withPosition = keywordData.filter(k => k.currentPosition !== null);
+      // Limit to requested number
+      const limitedData = keywordData.slice(0, limit);
+      
+      // Summary stats (from limited data to match what we display)
+      const withPosition = limitedData.filter(k => k.currentPosition !== null);
       const numberOne = withPosition.filter(k => k.currentPosition === 1).length;
       const inTop3 = withPosition.filter(k => k.currentPosition! <= 3).length;
       const inTop10 = withPosition.filter(k => k.currentPosition! <= 10).length;
       const inTop20 = withPosition.filter(k => k.currentPosition! <= 20).length;
-      const improving = keywordData.filter(k => k.trend === 'up').length;
-      const declining = keywordData.filter(k => k.trend === 'down').length;
+      const improving = limitedData.filter(k => k.trend === 'up').length;
+      const declining = limitedData.filter(k => k.trend === 'down').length;
       
       res.json({
         domain,
         totalKeywords: keywords.length,
-        displayedKeywords: keywordData.length,
+        displayedKeywords: limitedData.length,
         lastUpdated: allRankings[0]?.date ?? null,
         summary: {
           ranking: withPosition.length,
-          notRanking: keywordData.length - withPosition.length,
+          notRanking: limitedData.length - withPosition.length,
           numberOne,
           inTop3,
           inTop10,
@@ -4554,7 +4563,7 @@ When answering:
             ? Math.round(withPosition.reduce((sum, k) => sum + k.currentPosition!, 0) / withPosition.length)
             : null,
         },
-        keywords: keywordData,
+        keywords: limitedData,
       });
     } catch (error: any) {
       logger.error("API", "Failed to fetch full keyword rankings", { error: error.message });
