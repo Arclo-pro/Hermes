@@ -43,6 +43,7 @@ import { KnowledgeBaseCard } from "@/components/dashboard/KnowledgeBaseCard";
 import { SocratesMemoryCard } from "@/components/dashboard/SocratesMemoryCard";
 import { ExportFixPackModal } from "@/components/export/ExportFixPackModal";
 import { MissionDetailsModal } from "@/components/dashboard/MissionDetailsModal";
+import { MissionStatusWidget } from "@/components/mission-control/MissionStatusWidget";
 
 const verdictColors = {
   good: { bg: "bg-semantic-success-soft", border: "border-semantic-success-border", text: "text-semantic-success", badge: "bg-semantic-success-soft text-semantic-success" },
@@ -809,7 +810,7 @@ function CaptainsRecommendationsSection({ priorities, blockers, confidence, cove
         {blockers.length > 0 && (
           <>
             <Separator className="my-4 bg-border" />
-            <div className="rounded-xl border border-semantic-warning-border bg-semantic-warning-soft/30 p-4">
+            <div className="rounded-xl border border-semantic-warning-border bg-semantic-warning-soft/30 p-4" data-testid="blockers-section">
               <h4 className="text-sm font-semibold text-semantic-warning flex items-center gap-2 mb-3 tracking-wide">
                 <AlertTriangle className="w-4 h-4" />
                 BLOCKERS
@@ -1005,6 +1006,18 @@ export default function MissionControl() {
             </Button>
           </div>
         </div>
+
+        <MissionStatusWidget
+          priorities={captainData.priorities || []}
+          blockers={captainData.blockers || []}
+          missingIntegrations={0}
+          siteId={currentSite?.siteId || "default"}
+          onGoToNextMission={handleReviewMission}
+          onScrollToBlockers={() => {
+            const blockersEl = document.querySelector('[data-testid="blockers-section"]');
+            blockersEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }}
+        />
 
         {showValidationPanel && validationResults && (
           <Card className="bg-card/80 backdrop-blur-sm border-border rounded-2xl" data-testid="validation-panel">
