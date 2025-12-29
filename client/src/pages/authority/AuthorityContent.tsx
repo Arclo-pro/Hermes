@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +21,8 @@ import {
   Info,
   Users,
   ArrowUpDown,
-  Crown
+  Crown,
+  Radio
 } from "lucide-react";
 import {
   Table,
@@ -33,12 +34,22 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { useSiteContext } from "@/hooks/useSiteContext";
+import { toast } from "sonner";
+import { getCrewMember } from "@/config/agents";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  CrewDashboardShell,
+  type CrewIdentity,
+  type MissionStatusState,
+  type MissionItem,
+  type KpiDescriptor,
+  type InspectorTab,
+} from "@/components/crew-dashboard";
 
 interface IndustryBenchmark {
   metric: string;
@@ -580,8 +591,111 @@ export default function AuthorityContent() {
     technical: <Zap className="w-4 h-4" />,
   };
 
+  const crewMember = getCrewMember("backlink_authority");
+
+  const crew: CrewIdentity = {
+    crewId: "backlink_authority",
+    crewName: crewMember.nickname,
+    subtitle: crewMember.role,
+    description: crewMember.blurb || "Tracks backlinks, domain authority, and link velocity.",
+    avatar: crewMember.avatar ? (
+      <img src={crewMember.avatar} alt={crewMember.nickname} className="w-7 h-7 object-contain" />
+    ) : (
+      <Radio className="w-7 h-7 text-amber-500" />
+    ),
+    accentColor: crewMember.color,
+    capabilities: crewMember.capabilities || ["Link Tracking", "Authority Metrics", "Competitor Comparison"],
+    monitors: ["Domain Authority", "Backlinks", "Referring Domains"],
+  };
+
+  const avgPercentile = benchmarks ? benchmarks.reduce((acc, b) => acc + getPercentileVsTop10(b), 0) / benchmarks.length : null;
+
+  const missionStatus: MissionStatusState = useMemo(() => {
+    const belowCount = benchmarks?.filter(b => getComparisonStatus(b) === 'below').length || 0;
+    const averageCount = benchmarks?.filter(b => getComparisonStatus(b) === 'average').length || 0;
+
+    let tier: "looking_good" | "doing_okay" | "needs_attention" = "looking_good";
+    if (belowCount > 2) {
+      tier = "needs_attention";
+    } else if (belowCount > 0 || averageCount > 3) {
+      tier = "doing_okay";
+    }
+
+    return {
+      tier,
+      blockers: belowCount,
+      priorities: averageCount,
+      autoFixable: 0,
+    };
+  }, [benchmarks]);
+
+  const kpis: KpiDescriptor[] = useMemo(() => [
+    {
+      label: "Authority",
+      value: benchmarks?.find(b => b.metric === 'domain_authority')?.yourValue.toString() || "—",
+      tooltip: "Your domain authority score",
+    },
+    {
+      label: "Backlinks",
+      value: benchmarks?.find(b => b.metric === 'backlinks')?.yourValue.toLocaleString() || "—",
+      tooltip: "Total backlinks pointing to your site",
+    },
+    {
+      label: "Ref. Domains",
+      value: benchmarks?.find(b => b.metric === 'referring_domains')?.yourValue.toLocaleString() || "—",
+      tooltip: "Unique domains linking to you",
+    },
+    {
+      label: "Percentile",
+      value: avgPercentile ? `${avgPercentile.toFixed(0)}th` : "—",
+      tooltip: "Your overall industry percentile",
+    },
+  ], [benchmarks, avgPercentile]);
+
+  const missions: MissionItem[] = useMemo(() => {
+    const items: MissionItem[] = [];
+    const belowBenchmarks = benchmarks?.filter(b => getComparisonStatus(b) === 'below') || [];
+    if (belowBenchmarks.length > 0) {
+      items.push({
+        id: "improve-below-avg",
+        title: `Improve ${belowBenchmarks.length} below-average metrics`,
+        description: `Focus on: ${belowBenchmarks.slice(0, 2).map(b => b.label).join(', ')}`,
+        priority: "high",
+        difficulty: "medium",
+        impact: "high",
+      });
+    }
+    return items;
+  }, [benchmarks]);
+
+  const inspectorTabs: InspectorTab[] = useMemo(() => [
+    {
+      id: "benchmarks",
+      label: "Benchmarks",
+      icon: <BarChart3 className="w-4 h-4" />,
+      content: (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {filteredBenchmarks.map((benchmark) => (
+            <BenchmarkCard key={benchmark.metric} benchmark={benchmark} />
+          ))}
+        </div>
+      ),
+    },
+  ], [filteredBenchmarks]);
+
   return (
-    <div className="space-y-6">
+    <CrewDashboardShell
+      crew={crew}
+      agentScore={avgPercentile ? Math.round(avgPercentile) : null}
+      agentScoreTooltip="Overall authority percentile vs industry"
+      missionStatus={missionStatus}
+      missions={missions}
+      kpis={kpis}
+      inspectorTabs={inspectorTabs}
+      onRefresh={() => refetch()}
+      onSettings={() => toast.info("Settings coming soon")}
+      isRefreshing={isLoading}
+    >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold">Web Authority Score</h2>
@@ -720,6 +834,6 @@ export default function AuthorityContent() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </CrewDashboardShell>
   );
 }

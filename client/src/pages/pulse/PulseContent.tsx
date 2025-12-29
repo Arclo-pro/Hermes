@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { KbaseInsightsSection } from "@/components/analysis/KbaseInsightsSection";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { 
   CheckCircle, 
   AlertTriangle, 
@@ -27,6 +27,7 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useSiteContext } from "@/hooks/useSiteContext";
+import { getCrewMember } from "@/config/agents";
 import {
   Tooltip,
   TooltipContent,
@@ -46,6 +47,14 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+  CrewDashboardShell,
+  type CrewIdentity,
+  type MissionStatusState,
+  type MissionItem,
+  type KpiDescriptor,
+  type InspectorTab,
+} from "@/components/crew-dashboard";
 
 interface HealthCheck {
   name: string;
@@ -394,8 +403,129 @@ export default function PulseContent() {
 
   const parsed = report?.markdownReport ? parseReport(report.markdownReport) : null;
 
+  const crewMember = getCrewMember("google_data_connector");
+
+  const crew: CrewIdentity = {
+    crewId: "google_data_connector",
+    crewName: crewMember.nickname,
+    subtitle: crewMember.role,
+    description: crewMember.blurb || "Fetches analytics and search console data from Google APIs.",
+    avatar: crewMember.avatar ? (
+      <img src={crewMember.avatar} alt={crewMember.nickname} className="w-7 h-7 object-contain" />
+    ) : (
+      <Activity className="w-7 h-7 text-teal-500" />
+    ),
+    accentColor: crewMember.color,
+    capabilities: crewMember.capabilities || ["GA4 Data", "GSC Data", "Traffic Metrics"],
+    monitors: ["Website Traffic", "Conversions", "User Behavior"],
+  };
+
+  const missionStatus: MissionStatusState = useMemo(() => {
+    const totalDrops = parsed?.totalDrops || 0;
+    const severeDrops = parsed?.drops?.filter(d => Math.abs(d.zScore) >= 3).length || 0;
+    const moderateDrops = parsed?.drops?.filter(d => Math.abs(d.zScore) >= 2 && Math.abs(d.zScore) < 3).length || 0;
+
+    let tier: "looking_good" | "doing_okay" | "needs_attention" = "looking_good";
+    if (severeDrops > 0) {
+      tier = "needs_attention";
+    } else if (moderateDrops > 0) {
+      tier = "doing_okay";
+    }
+
+    return {
+      tier,
+      blockers: severeDrops,
+      priorities: moderateDrops,
+      autoFixable: 0,
+    };
+  }, [parsed]);
+
+  const kpis: KpiDescriptor[] = useMemo(() => [
+    {
+      label: "Drops",
+      value: `${parsed?.totalDrops || 0}`,
+      tooltip: "Total traffic anomalies detected",
+    },
+    {
+      label: "Health Checks",
+      value: `${parsed?.healthChecks?.filter(h => h.status === 'healthy').length || 0}/${parsed?.healthChecks?.length || 0}`,
+      tooltip: "Healthy checks out of total",
+    },
+    {
+      label: "Root Causes",
+      value: `${parsed?.rootCauses?.length || 0}`,
+      tooltip: "Identified root cause hypotheses",
+    },
+  ], [parsed]);
+
+  const missions: MissionItem[] = useMemo(() => {
+    const items: MissionItem[] = [];
+    if (parsed && parsed.totalDrops > 0) {
+      items.push({
+        id: "investigate-drops",
+        title: `Investigate ${parsed.totalDrops} traffic anomalies`,
+        description: "Review detected drops and run diagnostics",
+        priority: "high",
+        difficulty: "medium",
+        impact: "high",
+      });
+    }
+    if (parsed?.healthChecks?.some(h => h.status !== 'healthy')) {
+      items.push({
+        id: "fix-health-issues",
+        title: "Fix health check failures",
+        description: `${parsed.healthChecks.filter(h => h.status !== 'healthy').length} health checks need attention`,
+        priority: "medium",
+        difficulty: "medium",
+        impact: "medium",
+      });
+    }
+    return items;
+  }, [parsed]);
+
+  const inspectorTabs: InspectorTab[] = useMemo(() => [
+    {
+      id: "health",
+      label: "Health Checks",
+      icon: <CheckCircle className="w-4 h-4" />,
+      content: parsed?.healthChecks && parsed.healthChecks.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {parsed.healthChecks.map((check, i) => (
+            <div key={i} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+              <span className="font-medium">{check.name}</span>
+              <div className="flex items-center gap-2">
+                <StatusIcon status={check.status} />
+                <span className={cn(
+                  "text-sm font-medium",
+                  check.status === 'healthy' && "text-semantic-success",
+                  check.status === 'warning' && "text-semantic-warning",
+                  check.status === 'error' && "text-semantic-danger",
+                )}>
+                  {check.status === 'healthy' ? 'Healthy' : check.status === 'warning' ? 'Warning' : 'Error'}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-muted-foreground text-sm">No health checks available</p>
+      ),
+    },
+  ], [parsed]);
+
   return (
-    <div className="space-y-6">
+    <CrewDashboardShell
+      crew={crew}
+      agentScore={parsed?.healthChecks ? Math.round((parsed.healthChecks.filter(h => h.status === 'healthy').length / parsed.healthChecks.length) * 100) : null}
+      agentScoreTooltip="Health score based on system checks"
+      missionStatus={missionStatus}
+      missions={missions}
+      kpis={kpis}
+      inspectorTabs={inspectorTabs}
+      onRefresh={() => rerunMutation.mutate()}
+      onSettings={() => toast.info("Settings coming soon")}
+      isRefreshing={rerunMutation.isPending}
+    >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           {report && (
@@ -713,6 +843,6 @@ export default function PulseContent() {
             </Card>
           </div>
         )}
-    </div>
+    </CrewDashboardShell>
   );
 }

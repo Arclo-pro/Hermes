@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +34,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSiteContext } from "@/hooks/useSiteContext";
+import { toast } from "sonner";
+import { getCrewMember } from "@/config/agents";
 import {
   Tooltip,
   TooltipContent,
@@ -56,6 +58,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import {
+  CrewDashboardShell,
+  type CrewIdentity,
+  type MissionStatusState,
+  type MissionItem,
+  type KpiDescriptor,
+  type InspectorTab,
+} from "@/components/crew-dashboard";
 
 interface VitalMetric {
   key: string;
@@ -455,6 +465,129 @@ export default function SpeedsterContent() {
     'poor': 'text-red-600',
     'unknown': 'text-muted-foreground',
   };
+
+  const crewMember = getCrewMember("core_web_vitals");
+
+  const crew: CrewIdentity = {
+    crewId: "core_web_vitals",
+    crewName: crewMember.nickname,
+    subtitle: crewMember.role,
+    description: crewMember.blurb || "Monitors Core Web Vitals and page speed metrics.",
+    avatar: crewMember.avatar ? (
+      <img src={crewMember.avatar} alt={crewMember.nickname} className="w-7 h-7 object-contain" />
+    ) : (
+      <Zap className="w-7 h-7 text-emerald-500" />
+    ),
+    accentColor: crewMember.color,
+    capabilities: crewMember.capabilities || ["LCP Tracking", "CLS Tracking", "INP Tracking"],
+    monitors: ["Core Web Vitals", "Page Speed", "Performance Score"],
+  };
+
+  const missionStatus: MissionStatusState = useMemo(() => {
+    const poorCount = vitals.filter(v => v.status === 'poor').length;
+    const needsWorkCount = vitals.filter(v => v.status === 'needs-improvement').length;
+    const autoFixable = fixPlan?.items?.length || 0;
+
+    let tier: "looking_good" | "doing_okay" | "needs_attention" = "looking_good";
+    if (poorCount > 0) {
+      tier = "needs_attention";
+    } else if (needsWorkCount > 0) {
+      tier = "doing_okay";
+    }
+
+    return {
+      tier,
+      blockers: poorCount,
+      priorities: needsWorkCount,
+      autoFixable,
+    };
+  }, [vitals, fixPlan]);
+
+  const kpis: KpiDescriptor[] = useMemo(() => [
+    {
+      label: "LCP",
+      value: metrics['vitals.lcp'] != null ? `${metrics['vitals.lcp'].toFixed(2)}s` : "—",
+      tooltip: "Largest Contentful Paint - should be ≤2.5s",
+      trend: metrics['vitals.lcp.trend'] ? { direction: metrics['vitals.lcp.trend'] < 0 ? 'up' as const : 'down' as const, delta: `${Math.abs(metrics['vitals.lcp.trend']).toFixed(1)}%` } : undefined,
+    },
+    {
+      label: "CLS",
+      value: metrics['vitals.cls'] != null ? metrics['vitals.cls'].toFixed(3) : "—",
+      tooltip: "Cumulative Layout Shift - should be ≤0.1",
+    },
+    {
+      label: "INP",
+      value: metrics['vitals.inp'] != null ? `${Math.round(metrics['vitals.inp'])}ms` : "—",
+      tooltip: "Interaction to Next Paint - should be ≤200ms",
+    },
+    {
+      label: "Score",
+      value: performanceScore != null ? `${performanceScore}` : "—",
+      tooltip: "Overall performance score out of 100",
+    },
+  ], [metrics, performanceScore]);
+
+  const missions: MissionItem[] = useMemo(() => {
+    const items: MissionItem[] = [];
+    if (vitals.some(v => v.status === 'poor')) {
+      items.push({
+        id: "fix-poor-vitals",
+        title: "Fix poor Core Web Vitals",
+        description: `${vitals.filter(v => v.status === 'poor').length} metric(s) are in the poor range`,
+        priority: "high",
+        difficulty: "medium",
+        impact: "high",
+      });
+    }
+    if (vitals.some(v => v.status === 'needs-improvement')) {
+      items.push({
+        id: "improve-vitals",
+        title: "Improve vitals needing work",
+        description: `${vitals.filter(v => v.status === 'needs-improvement').length} metric(s) need improvement`,
+        priority: "medium",
+        difficulty: "medium",
+        impact: "medium",
+      });
+    }
+    if (fixPlan?.items && fixPlan.items.length > 0) {
+      items.push({
+        id: "execute-fix-plan",
+        title: `Execute ${fixPlan.items.length} fix items`,
+        description: "Proposed fixes based on current vitals analysis",
+        priority: "high",
+        difficulty: "easy",
+        impact: "high",
+      });
+    }
+    return items;
+  }, [vitals, fixPlan]);
+
+  const inspectorTabs: InspectorTab[] = useMemo(() => [
+    {
+      id: "vitals",
+      label: "Core Vitals",
+      icon: <Activity className="w-4 h-4" />,
+      content: (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {coreVitals.map((vital) => (
+            <VitalCard key={vital.key} vital={vital} />
+          ))}
+        </div>
+      ),
+    },
+    {
+      id: "additional",
+      label: "Additional Metrics",
+      icon: <BarChart3 className="w-4 h-4" />,
+      content: (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {additionalMetrics.map((vital) => (
+            <VitalCard key={vital.key} vital={vital} />
+          ))}
+        </div>
+      ),
+    },
+  ], [coreVitals, additionalMetrics]);
   
   if (isLoading) {
     return (
@@ -465,7 +598,18 @@ export default function SpeedsterContent() {
   }
   
   return (
-    <div className="space-y-6">
+    <CrewDashboardShell
+      crew={crew}
+      agentScore={performanceScore}
+      agentScoreTooltip="Performance score from Core Web Vitals analysis"
+      missionStatus={missionStatus}
+      missions={missions}
+      kpis={kpis}
+      inspectorTabs={inspectorTabs}
+      onRefresh={() => refetch()}
+      onSettings={() => toast.info("Settings coming soon")}
+      isRefreshing={isRefetching}
+    >
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -1271,6 +1415,6 @@ export default function SpeedsterContent() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </CrewDashboardShell>
   );
 }
