@@ -3673,7 +3673,7 @@ When answering:
       let siteIntegrations: any = null;
       
       // Try to get site from registry first
-      const sites = await storage.getAllSites();
+      const sites = await storage.getSites();
       const site = sites.find(s => s.siteId === siteId || (siteId === "default" && s.status === "active"));
       
       if (site) {
