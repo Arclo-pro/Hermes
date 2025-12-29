@@ -3667,11 +3667,17 @@ When answering:
       const requestId = (req.headers["x-request-id"] as string) || randomUUID();
       logger.info("Competitive", "Fetching overview", { siteId });
       
-      // Look up site to get domain
+      // Look up site to get domain and context
       let targetDomain = "empathyhealthclinic.com"; // default
-      if (siteId !== "default") {
-        const site = await storage.getSiteById(siteId);
-        if (site?.baseUrl) {
+      let siteCategory = "clinic";
+      let siteIntegrations: any = null;
+      
+      // Try to get site from registry first
+      const sites = await storage.getAllSites();
+      const site = sites.find(s => s.siteId === siteId || (siteId === "default" && s.status === "active"));
+      
+      if (site) {
+        if (site.baseUrl) {
           try {
             const url = new URL(site.baseUrl);
             targetDomain = url.hostname;
@@ -3679,6 +3685,28 @@ When answering:
             targetDomain = site.baseUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
           }
         }
+        siteCategory = site.category || "clinic";
+        siteIntegrations = site.integrations;
+      }
+      
+      // Derive service topics from site category
+      const categoryTopics: Record<string, string[]> = {
+        clinic: ["healthcare", "medical services", "patient care"],
+        psychiatry: ["psychiatry", "mental health", "therapy", "counseling", "ADHD treatment", "anxiety treatment", "depression treatment"],
+        dental: ["dentist", "dental care", "oral health"],
+        legal: ["law firm", "attorney", "legal services"],
+        ecommerce: ["online shopping", "products", "retail"],
+        saas: ["software", "technology", "SaaS platform"],
+        healthcare: ["healthcare", "medical", "health services", "patient care"],
+      };
+      
+      // Check if this is a mental health / psychiatry clinic
+      const displayName = site?.displayName?.toLowerCase() || "";
+      let serviceTopics = categoryTopics[siteCategory] || categoryTopics.clinic;
+      
+      // If the site name suggests mental health, use psychiatry topics
+      if (displayName.includes("empathy") || displayName.includes("mental") || displayName.includes("psych") || displayName.includes("therapy")) {
+        serviceTopics = categoryTopics.psychiatry;
       }
       
       // Check if worker is configured
@@ -3710,13 +3738,21 @@ When answering:
             logger.info("Competitive", "Worker capabilities fetched", { capabilities: capData });
           }
           
-          // Call the worker's run endpoint with required target.domain
+          // Call the worker's run endpoint with target domain and service context
+          logger.info("Competitive", "Calling worker with context", { 
+            targetDomain, 
+            serviceTopics,
+            category: siteCategory 
+          });
+          
           const overviewRes = await fetch(`${baseUrl}/run`, {
             method: "POST",
             headers,
             body: JSON.stringify({ 
               target: {
                 domain: targetDomain,
+                serviceTopics: serviceTopics,
+                category: siteCategory,
               },
               options: {
                 max_competitors: 5,
