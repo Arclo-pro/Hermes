@@ -1597,6 +1597,36 @@ Format your response as JSON with these keys:
     }
   });
 
+  // Action Queue Approvals
+  app.post("/api/actions/approve", async (req, res) => {
+    const { siteId, actionKey, actionTitle } = req.body;
+    
+    if (!siteId || !actionKey || !actionTitle) {
+      return res.status(400).json({ ok: false, error: "Missing required fields: siteId, actionKey, actionTitle" });
+    }
+    
+    try {
+      const approval = await storage.approveAction(siteId, actionKey, actionTitle);
+      logger.info("API", `Action approved: ${actionTitle}`, { siteId, actionKey });
+      res.json({ ok: true, approval });
+    } catch (error: any) {
+      logger.error("API", "Failed to approve action", { error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+  
+  app.get("/api/actions/approved", async (req, res) => {
+    const siteId = (req.query.siteId as string) || "default";
+    
+    try {
+      const approvals = await storage.getApprovedActions(siteId);
+      res.json({ ok: true, approvals });
+    } catch (error: any) {
+      logger.error("API", "Failed to get approved actions", { error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
   app.get("/api/latest/kbase-insights", async (req, res) => {
     const siteId = (req.query.siteId as string) || "empathyhealthclinic.com";
     const limit = parseInt(req.query.limit as string) || 5;

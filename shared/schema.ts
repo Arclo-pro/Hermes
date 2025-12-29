@@ -1887,3 +1887,20 @@ export const fixPlanItemSchema = z.object({
   sources: z.array(z.string()), // ["speedster", "socrates"]
 });
 export type FixPlanItem = z.infer<typeof fixPlanItemSchema>;
+
+// Action Approvals - tracks approved actions from the Action Queue
+export const actionApprovals = pgTable("action_approvals", {
+  id: serial("id").primaryKey(),
+  siteId: text("site_id").notNull(),
+  actionKey: text("action_key").notNull(), // Unique key for the action (e.g., priority index + title hash)
+  actionTitle: text("action_title").notNull(),
+  approvedAt: timestamp("approved_at").defaultNow().notNull(),
+  approvedBy: text("approved_by").default("user"),
+});
+
+export const insertActionApprovalSchema = createInsertSchema(actionApprovals).omit({
+  id: true,
+  approvedAt: true,
+});
+export type InsertActionApproval = z.infer<typeof insertActionApprovalSchema>;
+export type ActionApproval = typeof actionApprovals.$inferSelect;

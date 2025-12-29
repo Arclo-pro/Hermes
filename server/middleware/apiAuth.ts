@@ -50,6 +50,7 @@ const DASHBOARD_POST_PATHS = [
   "/api/benchmarks",
   "/api/missions",
   "/api/fix-plan",
+  "/api/actions",
 ];
 
 // Paths that allow same-origin POST access (UI actions, protected by origin check)

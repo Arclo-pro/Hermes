@@ -11,39 +11,39 @@
 
   /* ========================================
      LAYER 1: STRUCTURAL COLORS
-     (backgrounds, borders, text - never change)
+     Lighter + bluer dark theme (cool neutrals)
      ======================================== */
   
-  /* Backgrounds */
-  --color-background: #0B1120;
-  --color-foreground: rgba(255,255,255,0.92);
+  /* Backgrounds - lifted from near-black, blue-tinted */
+  --color-background: #0F1629;
+  --color-foreground: rgba(248,250,252,0.94);
   
-  --color-card: rgba(255,255,255,0.04);
-  --color-card-foreground: rgba(255,255,255,0.92);
+  --color-card: rgba(148,163,184,0.06);
+  --color-card-foreground: rgba(248,250,252,0.94);
   
-  --color-popover: rgba(255,255,255,0.07);
-  --color-popover-foreground: rgba(255,255,255,0.92);
+  --color-popover: rgba(148,163,184,0.09);
+  --color-popover-foreground: rgba(248,250,252,0.94);
 
-  --color-secondary: rgba(255,255,255,0.07);
-  --color-secondary-foreground: rgba(255,255,255,0.92);
+  --color-secondary: rgba(148,163,184,0.09);
+  --color-secondary-foreground: rgba(248,250,252,0.94);
 
-  --color-muted: rgba(255,255,255,0.04);
-  --color-muted-foreground: rgba(255,255,255,0.48);
+  --color-muted: rgba(148,163,184,0.06);
+  --color-muted-foreground: rgba(203,213,225,0.60);
 
-  /* Borders */
-  --color-border: rgba(255,255,255,0.10);
-  --color-input: rgba(255,255,255,0.10);
+  /* Borders - slightly brighter with blue tint */
+  --color-border: rgba(148,163,184,0.14);
+  --color-input: rgba(148,163,184,0.14);
   
-  /* Surfaces - My Crew Glass System */
-  --color-surface-1: rgba(255,255,255,0.04);
-  --color-surface-2: rgba(255,255,255,0.07);
-  --color-surface-3: rgba(255,255,255,0.10);
+  /* Surfaces - Blue-gray glass system */
+  --color-surface-1: rgba(148,163,184,0.05);
+  --color-surface-2: rgba(148,163,184,0.08);
+  --color-surface-3: rgba(148,163,184,0.12);
   
-  /* Panel surfaces */
-  --color-surface-panel: rgba(15, 23, 42, 0.60);
-  --color-surface-card: rgba(255,255,255,0.04);
-  --color-surface-card-active: rgba(255,255,255,0.06);
-  --color-surface-card-disabled: rgba(255,255,255,0.02);
+  /* Panel surfaces - cooler tones */
+  --color-surface-panel: rgba(30, 41, 59, 0.65);
+  --color-surface-card: rgba(148,163,184,0.05);
+  --color-surface-card-active: rgba(148,163,184,0.08);
+  --color-surface-card-disabled: rgba(148,163,184,0.03);
   
   /* Gold highlight system */
   --color-gold: #F59E0B;
@@ -117,15 +117,15 @@
   --color-chart-5: #38BDF8;
 
   /* ========================================
-     SIDEBAR
+     SIDEBAR - slightly lifted, cooler
      ======================================== */
-  --color-sidebar: #080D18;
-  --color-sidebar-foreground: rgba(255,255,255,0.92);
+  --color-sidebar: #0C1222;
+  --color-sidebar-foreground: rgba(248,250,252,0.94);
   --color-sidebar-primary: #7C3AED;
-  --color-sidebar-primary-foreground: rgba(255,255,255,0.98);
-  --color-sidebar-accent: rgba(255,255,255,0.07);
-  --color-sidebar-accent-foreground: rgba(255,255,255,0.92);
-  --color-sidebar-border: rgba(255,255,255,0.10);
+  --color-sidebar-primary-foreground: rgba(248,250,252,0.98);
+  --color-sidebar-accent: rgba(148,163,184,0.09);
+  --color-sidebar-accent-foreground: rgba(248,250,252,0.94);
+  --color-sidebar-border: rgba(148,163,184,0.14);
   --color-sidebar-ring: #7C3AED;
 
   /* ========================================
@@ -143,11 +143,11 @@
   body {
     @apply font-sans antialiased text-foreground;
     background: 
-      radial-gradient(ellipse 140% 100% at 50% -20%, rgba(30, 64, 175, 0.25) 0%, transparent 60%),
-      radial-gradient(ellipse 100% 80% at 90% 10%, rgba(67, 56, 202, 0.20) 0%, transparent 50%),
-      radial-gradient(ellipse 90% 70% at 10% 90%, rgba(30, 58, 138, 0.18) 0%, transparent 50%),
-      radial-gradient(ellipse 80% 60% at 50% 100%, rgba(88, 28, 135, 0.12) 0%, transparent 45%),
-      linear-gradient(180deg, #0B1120 0%, #0F172A 40%, #0B1428 70%, #070A14 100%);
+      radial-gradient(ellipse 140% 100% at 50% -20%, rgba(59, 130, 246, 0.18) 0%, transparent 60%),
+      radial-gradient(ellipse 100% 80% at 90% 10%, rgba(99, 102, 241, 0.14) 0%, transparent 50%),
+      radial-gradient(ellipse 90% 70% at 10% 90%, rgba(59, 130, 246, 0.12) 0%, transparent 50%),
+      radial-gradient(ellipse 80% 60% at 50% 100%, rgba(124, 58, 237, 0.08) 0%, transparent 45%),
+      linear-gradient(180deg, #0F1629 0%, #131B2E 40%, #111827 70%, #0C1222 100%);
     background-attachment: fixed;
     min-height: 100vh;
   }
@@ -197,42 +197,62 @@
   .bg-surface-card { background-color: var(--color-surface-card); }
   .bg-surface-card-active { background-color: var(--color-surface-card-active); }
   
-  /* Glass panel - My Crew style */
+  /* Glass panel - glossy with subtle sheen */
   .glass-panel {
     background: var(--color-surface-panel);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(16px) saturate(1.2);
+    border: 1px solid rgba(148, 163, 184, 0.12);
     border-radius: 1rem;
+    box-shadow: 
+      0 4px 24px -4px rgba(0, 0, 0, 0.25),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    background-image: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.04) 0%,
+      transparent 40%
+    );
   }
   
-  /* Glass card - My Crew style */
+  /* Glass card - enhanced with specular highlight */
   .glass-card {
     background: var(--color-surface-card);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px) saturate(1.15);
+    border: 1px solid rgba(148, 163, 184, 0.10);
     border-radius: 0.75rem;
+    box-shadow: 
+      0 2px 12px -2px rgba(0, 0, 0, 0.20),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    background-image: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.03) 0%,
+      transparent 50%
+    );
   }
   
   .glass-card-active {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(148, 163, 184, 0.08);
+    border-color: rgba(148, 163, 184, 0.16);
   }
   
   .glass-card-gold {
     background: rgba(245, 158, 11, 0.08);
-    border-color: rgba(245, 158, 11, 0.35);
-    box-shadow: 0 0 20px -5px rgba(245, 158, 11, 0.20);
+    border-color: rgba(245, 158, 11, 0.30);
+    box-shadow: 
+      0 4px 20px -4px rgba(245, 158, 11, 0.15),
+      inset 0 1px 0 rgba(245, 158, 11, 0.10);
   }
   
   .glass-card-purple {
     background: rgba(168, 85, 247, 0.08);
-    border-color: rgba(168, 85, 247, 0.35);
-    box-shadow: 0 0 20px -5px rgba(168, 85, 247, 0.20);
+    border-color: rgba(168, 85, 247, 0.30);
+    box-shadow: 
+      0 4px 20px -4px rgba(168, 85, 247, 0.15),
+      inset 0 1px 0 rgba(168, 85, 247, 0.10);
   }
   
   .glass-card-disabled {
-    background: rgba(255, 255, 255, 0.02);
-    border-color: rgba(255, 255, 255, 0.05);
+    background: rgba(148, 163, 184, 0.03);
+    border-color: rgba(148, 163, 184, 0.08);
     border-style: dashed;
     opacity: 0.6;
   }

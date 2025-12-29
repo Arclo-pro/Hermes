@@ -48,6 +48,9 @@ import {
   dashboardMetricSnapshots,
   type DashboardMetricSnapshot,
   type InsertDashboardMetricSnapshot,
+  actionApprovals,
+  type ActionApproval,
+  type InsertActionApproval,
   type OAuthToken,
   type InsertOAuthToken,
   type GA4Daily,
@@ -2305,6 +2308,35 @@ class DBStorage implements IStorage {
       ))
       .orderBy(desc(fixPlans.generatedAt))
       .limit(limit);
+  }
+  
+  // Action Approvals
+  async approveAction(siteId: string, actionKey: string, actionTitle: string): Promise<ActionApproval> {
+    const [approval] = await db
+      .insert(actionApprovals)
+      .values({ siteId, actionKey, actionTitle })
+      .returning();
+    return approval;
+  }
+  
+  async getApprovedActions(siteId: string): Promise<ActionApproval[]> {
+    return db
+      .select()
+      .from(actionApprovals)
+      .where(eq(actionApprovals.siteId, siteId))
+      .orderBy(desc(actionApprovals.approvedAt));
+  }
+  
+  async isActionApproved(siteId: string, actionKey: string): Promise<boolean> {
+    const [approval] = await db
+      .select()
+      .from(actionApprovals)
+      .where(and(
+        eq(actionApprovals.siteId, siteId),
+        eq(actionApprovals.actionKey, actionKey)
+      ))
+      .limit(1);
+    return !!approval;
   }
 }
 
