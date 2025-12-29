@@ -9466,18 +9466,42 @@ When answering:
         lcpValue = metricsJson.lcp_ms / 1000;
       }
       
+      // FCP: convert from ms to seconds if needed
+      let fcpValue = getMetric('fcp', 'vitals.fcp');
+      if (fcpValue === null && metricsJson?.fcp_ms) {
+        fcpValue = metricsJson.fcp_ms / 1000;
+      }
+      
+      // Get raw data early for use in metrics and distributions
+      const rawData = cwvResult?.rawData as Record<string, any> | null;
+      
       const metrics = {
         'vitals.lcp': lcpValue,
         'vitals.cls': getMetric('cls', 'vitals.cls'),
         'vitals.inp': getMetric('inp', 'vitals.inp'),
+        'vitals.fcp': fcpValue,
+        'vitals.ttfb': getMetric('ttfb', 'vitals.ttfb'),
+        'vitals.tbt': getMetric('tbt', 'vitals.tbt') ?? getMetric('total_blocking_time', 'vitals.tbt'),
+        'vitals.speed_index': getMetric('speed_index', 'vitals.speed_index') ?? getMetric('speedIndex', 'vitals.speed_index'),
         'vitals.performance_score': getMetric('score', 'vitals.performance_score') ?? getMetric('performance_score', 'vitals.performance_score'),
         'vitals.lcp.trend': metricsJson?.lcpTrend ?? null,
         'vitals.cls.trend': metricsJson?.clsTrend ?? null,
         'vitals.inp.trend': metricsJson?.inpTrend ?? null,
       };
       
-      // Get additional data from raw results if available
-      const rawData = cwvResult?.rawData as Record<string, any> | null;
+      // Extract distribution data if available
+      const distributions = {
+        lcp: metricsJson?.lcp_distribution ?? rawData?.distributions?.lcp ?? null,
+        cls: metricsJson?.cls_distribution ?? rawData?.distributions?.cls ?? null,
+        inp: metricsJson?.inp_distribution ?? rawData?.distributions?.inp ?? null,
+      };
+      
+      // Extract Lighthouse audit opportunities
+      const audits = rawData?.audits || rawData?.lighthouse_audits || [];
+      const opportunities = (audits as any[])
+        .filter((a: any) => a.type === 'opportunity' && a.savings_ms > 100)
+        .slice(0, 5);
+      
       const topUrls = rawData?.slowestPages || rawData?.topUrls || [];
       
       res.json({
@@ -9487,6 +9511,8 @@ When answering:
         source: cwvResult ? 'Core Web Vitals Worker' : (snapshot ? 'Cached Snapshot' : 'No Data'),
         sampleCount: rawData?.urlsChecked || rawData?.sampleCount || null,
         metrics,
+        distributions,
+        opportunities,
         topUrls: topUrls.slice(0, 5),
         workerRunId: cwvResult?.runId || null,
         lastRefreshStatus: snapshot?.lastRefreshStatus,

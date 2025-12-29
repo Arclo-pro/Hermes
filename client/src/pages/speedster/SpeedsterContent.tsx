@@ -15,7 +15,11 @@ import {
   ExternalLink,
   Zap,
   Eye,
-  MousePointer
+  MousePointer,
+  Server,
+  Timer,
+  Gauge,
+  Lightbulb
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSiteContext } from "@/hooks/useSiteContext";
@@ -178,8 +182,8 @@ export default function SpeedsterContent() {
   
   const metrics = speedsterData?.metrics || {};
   
-  // Use canonical metric keys from registry
-  const vitals: VitalMetric[] = [
+  // Core Web Vitals (the 3 main metrics Google uses for ranking)
+  const coreVitals: VitalMetric[] = [
     {
       key: 'vitals.lcp',
       name: 'Largest Contentful Paint',
@@ -214,6 +218,45 @@ export default function SpeedsterContent() {
       icon: MousePointer,
     },
   ];
+  
+  // Additional performance metrics
+  const additionalMetrics: VitalMetric[] = [
+    {
+      key: 'vitals.fcp',
+      name: 'First Contentful Paint',
+      value: metrics['vitals.fcp'] ?? null,
+      unit: 's',
+      status: getVitalStatus(metrics['vitals.fcp'], { good: 1.8, needsImprovement: 3.0 }),
+      thresholds: { good: 1.8, needsImprovement: 3.0 },
+      description: 'Time until first text or image appears. Should be under 1.8 seconds.',
+      icon: Timer,
+    },
+    {
+      key: 'vitals.ttfb',
+      name: 'Time to First Byte',
+      value: metrics['vitals.ttfb'] ?? null,
+      unit: 'ms',
+      status: getVitalStatus(metrics['vitals.ttfb'], { good: 800, needsImprovement: 1800 }),
+      thresholds: { good: 800, needsImprovement: 1800 },
+      description: 'Server response time. Should be under 800ms for good user experience.',
+      icon: Server,
+    },
+    {
+      key: 'vitals.speed_index',
+      name: 'Speed Index',
+      value: metrics['vitals.speed_index'] ?? null,
+      unit: 'ms',
+      status: getVitalStatus(metrics['vitals.speed_index'], { good: 3400, needsImprovement: 5800 }),
+      thresholds: { good: 3400, needsImprovement: 5800 },
+      description: 'How quickly content is visually displayed. Lower is better.',
+      icon: Gauge,
+    },
+  ];
+  
+  const performanceScore = metrics['vitals.performance_score'];
+  
+  // Combine for overall status calculation
+  const vitals = coreVitals;
   
   const overallStatus = vitals.every(v => v.status === 'good') ? 'good' 
     : vitals.some(v => v.status === 'poor') ? 'poor' 
@@ -294,8 +337,43 @@ export default function SpeedsterContent() {
         </CardContent>
       </Card>
       
+      {performanceScore !== null && performanceScore !== undefined && (
+        <Card className={cn(
+          "border-l-4",
+          performanceScore >= 90 ? "border-l-green-500" : 
+          performanceScore >= 50 ? "border-l-yellow-500" : "border-l-red-500"
+        )}>
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className={cn(
+                  "w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold",
+                  performanceScore >= 90 ? "bg-green-500/10 text-green-600" : 
+                  performanceScore >= 50 ? "bg-yellow-500/10 text-yellow-600" : "bg-red-500/10 text-red-600"
+                )}>
+                  {Math.round(performanceScore)}
+                </div>
+                <div>
+                  <h3 className="font-semibold">Lighthouse Performance Score</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {performanceScore >= 90 ? "Excellent! Your site is fast." : 
+                     performanceScore >= 50 ? "Room for improvement. Some optimizations needed." : 
+                     "Poor performance. Major optimizations required."}
+                  </p>
+                </div>
+              </div>
+              <div className="text-right text-sm text-muted-foreground">
+                <div>0-49: Poor</div>
+                <div>50-89: Needs Work</div>
+                <div>90-100: Good</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
       <div className="grid gap-4 md:grid-cols-3">
-        {vitals.map((vital) => (
+        {coreVitals.map((vital) => (
           vital.value !== null ? (
             <VitalCard key={vital.key} vital={vital} />
           ) : (
@@ -307,6 +385,77 @@ export default function SpeedsterContent() {
           )
         ))}
       </div>
+      
+      {additionalMetrics.some(m => m.value !== null) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Additional Performance Metrics</CardTitle>
+            <CardDescription>More details about your page loading experience</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-3">
+              {additionalMetrics.map((metric) => {
+                if (metric.value === null) return null;
+                const Icon = metric.icon;
+                const statusConfig = {
+                  'good': { text: 'text-green-600', bg: 'bg-green-500/10' },
+                  'needs-improvement': { text: 'text-yellow-600', bg: 'bg-yellow-500/10' },
+                  'poor': { text: 'text-red-600', bg: 'bg-red-500/10' },
+                  'unknown': { text: 'text-muted-foreground', bg: 'bg-muted' },
+                };
+                const config = statusConfig[metric.status];
+                
+                return (
+                  <div key={metric.key} className="flex items-center gap-3 p-3 rounded-lg border">
+                    <div className={cn("p-2 rounded-lg", config.bg)}>
+                      <Icon className={cn("w-5 h-5", config.text)} />
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium">{metric.name}</div>
+                      <div className={cn("text-lg font-bold", config.text)}>
+                        {metric.unit === 's' ? `${metric.value.toFixed(2)}s` : 
+                         metric.unit === 'ms' ? `${Math.round(metric.value)}ms` : 
+                         metric.value}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
+      {speedsterData?.opportunities && speedsterData.opportunities.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Lightbulb className="w-5 h-5 text-amber-500" />
+              <CardTitle className="text-base">Optimization Opportunities</CardTitle>
+            </div>
+            <CardDescription>Suggestions to improve performance</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {speedsterData.opportunities.map((opp: any, i: number) => (
+                <div key={i} className="flex items-center justify-between p-3 rounded-lg border">
+                  <div>
+                    <div className="font-medium text-sm">{opp.title || opp.id}</div>
+                    {opp.description && (
+                      <div className="text-xs text-muted-foreground mt-1">{opp.description}</div>
+                    )}
+                  </div>
+                  {opp.savings_ms && (
+                    <Badge variant="secondary" className="text-green-600">
+                      Save {(opp.savings_ms / 1000).toFixed(1)}s
+                    </Badge>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
       
       {speedsterData?.topUrls && speedsterData.topUrls.length > 0 && (
         <Card>

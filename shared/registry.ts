@@ -34,6 +34,10 @@ export const METRIC_KEYS = {
   'vitals.lcp': { label: 'LCP (Loading)', unit: 'seconds', source: 'core_web_vitals' },
   'vitals.cls': { label: 'CLS (Stability)', unit: 'score', source: 'core_web_vitals' },
   'vitals.inp': { label: 'INP (Interactivity)', unit: 'milliseconds', source: 'core_web_vitals' },
+  'vitals.fcp': { label: 'FCP (First Paint)', unit: 'seconds', source: 'core_web_vitals' },
+  'vitals.ttfb': { label: 'TTFB (Server)', unit: 'milliseconds', source: 'core_web_vitals' },
+  'vitals.tbt': { label: 'TBT (Blocking)', unit: 'milliseconds', source: 'core_web_vitals' },
+  'vitals.speed_index': { label: 'Speed Index', unit: 'milliseconds', source: 'core_web_vitals' },
   'vitals.performance_score': { label: 'Performance Score', unit: 'score', source: 'core_web_vitals' },
 
   // SERP Tracking
