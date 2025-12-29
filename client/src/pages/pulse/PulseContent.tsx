@@ -464,9 +464,8 @@ export default function PulseContent() {
       items.push({
         id: "investigate-drops",
         title: `Investigate ${parsed.totalDrops} traffic anomalies`,
-        description: "Review detected drops and run diagnostics",
-        priority: "high",
-        difficulty: "medium",
+        reason: "Review detected drops and run diagnostics",
+        status: "pending",
         impact: "high",
       });
     }
@@ -474,9 +473,8 @@ export default function PulseContent() {
       items.push({
         id: "fix-health-issues",
         title: "Fix health check failures",
-        description: `${parsed.healthChecks.filter(h => h.status !== 'healthy').length} health checks need attention`,
-        priority: "medium",
-        difficulty: "medium",
+        reason: `${parsed.healthChecks.filter(h => h.status !== 'healthy').length} health checks need attention`,
+        status: "pending",
         impact: "medium",
       });
     }

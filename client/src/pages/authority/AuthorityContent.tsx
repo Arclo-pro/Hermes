@@ -659,9 +659,8 @@ export default function AuthorityContent() {
       items.push({
         id: "improve-below-avg",
         title: `Improve ${belowBenchmarks.length} below-average metrics`,
-        description: `Focus on: ${belowBenchmarks.slice(0, 2).map(b => b.label).join(', ')}`,
-        priority: "high",
-        difficulty: "medium",
+        reason: `Focus on: ${belowBenchmarks.slice(0, 2).map(b => b.label).join(', ')}`,
+        status: "pending",
         impact: "high",
       });
     }

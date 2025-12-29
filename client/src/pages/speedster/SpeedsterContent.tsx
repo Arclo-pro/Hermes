@@ -533,9 +533,8 @@ export default function SpeedsterContent() {
       items.push({
         id: "fix-poor-vitals",
         title: "Fix poor Core Web Vitals",
-        description: `${vitals.filter(v => v.status === 'poor').length} metric(s) are in the poor range`,
-        priority: "high",
-        difficulty: "medium",
+        reason: `${vitals.filter(v => v.status === 'poor').length} metric(s) are in the poor range`,
+        status: "pending",
         impact: "high",
       });
     }
@@ -543,9 +542,8 @@ export default function SpeedsterContent() {
       items.push({
         id: "improve-vitals",
         title: "Improve vitals needing work",
-        description: `${vitals.filter(v => v.status === 'needs-improvement').length} metric(s) need improvement`,
-        priority: "medium",
-        difficulty: "medium",
+        reason: `${vitals.filter(v => v.status === 'needs-improvement').length} metric(s) need improvement`,
+        status: "pending",
         impact: "medium",
       });
     }
@@ -553,9 +551,8 @@ export default function SpeedsterContent() {
       items.push({
         id: "execute-fix-plan",
         title: `Execute ${fixPlan.items.length} fix items`,
-        description: "Proposed fixes based on current vitals analysis",
-        priority: "high",
-        difficulty: "easy",
+        reason: "Proposed fixes based on current vitals analysis",
+        status: "pending",
         impact: "high",
       });
     }
