@@ -208,19 +208,18 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <CollapsibleTrigger asChild>
               <div 
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors cursor-pointer",
-                  location.startsWith("/agents/") || location === "/crew"
+                  "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors cursor-pointer pl-6",
+                  location.startsWith("/agents/")
                     ? "bg-primary/10 text-primary" 
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
-                data-testid="link-nav-my-crew"
+                data-testid="link-nav-crew-expand"
               >
-                <Users className="w-4 h-4" />
-                <span className="flex-1">My Crew</span>
                 <ChevronRight className={cn("w-4 h-4 transition-transform", crewExpanded && "rotate-90")} />
+                <span className="flex-1">Crew Members</span>
               </div>
             </CollapsibleTrigger>
-            <CollapsibleContent className="pl-4 mt-1 space-y-0.5">
+            <CollapsibleContent className="pl-6 mt-1 space-y-0.5">
               {crewMembers.map((member) => {
                 const isActive = location === `/agents/${member.service_id}`;
                 return (
@@ -249,22 +248,23 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   </Link>
                 );
               })}
-              <Link href="/crew">
-                <div 
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors cursor-pointer",
-                    location === "/crew"
-                      ? "bg-primary/10 text-primary" 
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  )}
-                  data-testid="link-nav-view-all-crew"
-                >
-                  <Users className="w-4 h-4" />
-                  <span>View All</span>
-                </div>
-              </Link>
             </CollapsibleContent>
           </Collapsible>
+          
+          <Link href="/crew">
+            <div 
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors cursor-pointer",
+                location === "/crew"
+                  ? "bg-primary/10 text-primary" 
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              )}
+              data-testid="link-nav-my-crew"
+            >
+              <Users className="w-4 h-4" />
+              My Crew
+            </div>
+          </Link>
           
           {navItems.slice(1).map((item) => {
             const Icon = item.icon;
