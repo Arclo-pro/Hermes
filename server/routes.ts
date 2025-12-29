@@ -4447,6 +4447,112 @@ Return only a JSON array of objects with id, priority, reason, intent fields.`;
     }
   });
   
+  // AI-powered keyword prompt interface
+  app.post("/api/keywords/prompt", async (req, res) => {
+    try {
+      const { prompt } = req.body;
+      
+      if (!prompt || typeof prompt !== 'string') {
+        return res.status(400).json({ error: "Prompt is required" });
+      }
+      
+      const openai = new OpenAI({
+        apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+        baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+      });
+      
+      // Get current keywords for context
+      const keywords = await storage.getSerpKeywords(true);
+      const keywordList = keywords.map(k => k.keyword).join(', ');
+      
+      const systemPrompt = `You are a helpful SEO keyword assistant for a psychiatry clinic in Orlando, Florida. 
+The user is tracking these keywords: ${keywordList || 'No keywords yet'}.
+
+You can help the user:
+1. Answer questions about their keyword strategy
+2. Suggest new keywords to add
+3. Identify which keywords to remove or deprioritize
+4. Provide SEO advice
+
+If the user asks to ADD keywords, respond with a JSON block in this format:
+{"action": "add", "keywords": ["keyword1", "keyword2"]}
+
+If the user asks to REMOVE keywords, respond with a JSON block:
+{"action": "remove", "keywords": ["keyword1", "keyword2"]}
+
+If no action is needed, just provide a helpful text response.
+
+Keep responses concise and actionable.`;
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: prompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 1000,
+      });
+      
+      const responseText = completion.choices[0]?.message?.content || "I couldn't process that request.";
+      
+      let keywordsAdded = 0;
+      let keywordsRemoved = 0;
+      let message = '';
+      
+      // Try to parse any JSON action from the response
+      const jsonMatch = responseText.match(/\{[\s\S]*?"action"[\s\S]*?\}/);
+      if (jsonMatch) {
+        try {
+          const action = JSON.parse(jsonMatch[0]);
+          const { serpKeywords } = await import("@shared/schema");
+          
+          if (action.action === 'add' && Array.isArray(action.keywords)) {
+            const existingSet = new Set(keywords.map(k => k.keyword.toLowerCase()));
+            const newKeywords = action.keywords.filter((k: string) => !existingSet.has(k.toLowerCase()));
+            
+            if (newKeywords.length > 0) {
+              const keywordsToInsert = newKeywords.map((k: string) => ({
+                keyword: k.trim(),
+                intent: 'transactional',
+                priority: 3,
+                active: true,
+              }));
+              
+              await db.insert(serpKeywords).values(keywordsToInsert).onConflictDoNothing();
+              keywordsAdded = newKeywords.length;
+              message = `Added ${keywordsAdded} new keywords`;
+            }
+          } else if (action.action === 'remove' && Array.isArray(action.keywords)) {
+            for (const keyword of action.keywords) {
+              await db.update(serpKeywords)
+                .set({ active: false })
+                .where(sql`LOWER(keyword) = LOWER(${keyword})`);
+              keywordsRemoved++;
+            }
+            message = `Removed ${keywordsRemoved} keywords`;
+          }
+        } catch (parseError) {
+          // JSON parsing failed, just return the text response
+        }
+      }
+      
+      // Clean response text (remove JSON if present)
+      const cleanResponse = responseText.replace(/\{[\s\S]*?"action"[\s\S]*?\}/, '').trim();
+      
+      res.json({
+        response: cleanResponse || message || responseText,
+        keywordsAdded,
+        keywordsRemoved,
+        message: message || 'Response generated',
+      });
+      
+    } catch (error: any) {
+      logger.error("Keywords", "Failed to process prompt", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
   app.get("/api/serp/keywords", async (req, res) => {
     try {
       const activeOnly = req.query.active !== 'false';

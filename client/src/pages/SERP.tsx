@@ -5,8 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { Search, TrendingUp, TrendingDown, Minus, RefreshCw, Sparkles, ArrowUp, ArrowDown, Target, AlertTriangle, Crown, Trophy } from "lucide-react";
+import { Search, TrendingUp, TrendingDown, Minus, RefreshCw, Sparkles, ArrowUp, ArrowDown, Target, AlertTriangle, Crown, Trophy, Send, MessageSquare } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
 
 interface RankingData {
   id: number;
@@ -44,6 +45,9 @@ export default function SERP() {
   const queryClient = useQueryClient();
   const [isChecking, setIsChecking] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
+  const [keywordPrompt, setKeywordPrompt] = useState('');
+  const [promptResponse, setPromptResponse] = useState<string | null>(null);
+  const [isPrompting, setIsPrompting] = useState(false);
 
   const { data: overview, isLoading } = useQuery<SerpOverview>({
     queryKey: ['serp-overview'],
@@ -134,6 +138,48 @@ export default function SERP() {
   const handleSeed = () => {
     setIsSeeding(true);
     seedKeywords.mutate();
+  };
+
+  const handleKeywordPrompt = async () => {
+    if (!keywordPrompt.trim()) return;
+    
+    setIsPrompting(true);
+    setPromptResponse(null);
+    
+    try {
+      const res = await fetch('/api/keywords/prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ prompt: keywordPrompt }),
+      });
+      
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to process prompt');
+      }
+      
+      const data = await res.json();
+      setPromptResponse(data.response);
+      
+      if (data.keywordsAdded > 0 || data.keywordsRemoved > 0) {
+        queryClient.invalidateQueries({ queryKey: ['serp-overview'] });
+        toast({
+          title: "Keywords Updated",
+          description: data.message,
+        });
+      }
+      
+      setKeywordPrompt('');
+    } catch (error: any) {
+      toast({
+        title: "Prompt Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsPrompting(false);
+    }
   };
 
   const getPositionColor = (pos: number | null) => {
@@ -273,6 +319,54 @@ export default function SERP() {
           </Card>
 
         </div>
+
+        {/* Keyword Prompt Interface */}
+        <Card data-testid="card-keyword-prompt">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <MessageSquare className="h-5 w-5" />
+              Keyword Assistant
+            </CardTitle>
+            <CardDescription>
+              Ask questions about your keywords or request changes
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex gap-2">
+              <Textarea
+                data-testid="textarea-keyword-prompt"
+                placeholder="Try: 'Add keywords for telehealth services' or 'What keywords should I focus on for better rankings?'"
+                value={keywordPrompt}
+                onChange={(e) => setKeywordPrompt(e.target.value)}
+                rows={2}
+                className="resize-none"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleKeywordPrompt();
+                  }
+                }}
+              />
+              <Button
+                onClick={handleKeywordPrompt}
+                disabled={isPrompting || !keywordPrompt.trim()}
+                className="shrink-0"
+                data-testid="button-send-prompt"
+              >
+                {isPrompting ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+            {promptResponse && (
+              <div className="p-3 bg-muted/50 rounded-lg text-sm" data-testid="prompt-response">
+                {promptResponse}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         <div className="grid gap-6 md:grid-cols-2">
           <Card data-testid="card-top-rankings">
