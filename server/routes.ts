@@ -3780,31 +3780,83 @@ When answering:
                 createdAt: savedResult.createdAt,
               });
               
+              // Extract share_of_voice from worker response (new format)
+              const sovData = data.share_of_voice || data.shareOfVoice || {};
+              const shareOfVoiceValue = typeof sovData === 'object' 
+                ? (sovData.target_sov ?? 0) 
+                : (typeof sovData === 'number' ? sovData : 0);
+              
+              // Map content_gaps from worker format to frontend format
+              const rawContentGaps = data.content_gaps || data.contentGaps || [];
+              const contentGaps = rawContentGaps.map((g: any, idx: number) => ({
+                id: g.id || `gap-${idx}`,
+                keyword: g.keyword || g.target || "",
+                cluster: g.cluster,
+                searchVolume: g.search_volume || g.searchVolume || 0,
+                difficulty: typeof g.difficulty === 'string' ? (g.difficulty === 'Hard' ? 80 : g.difficulty === 'Medium' ? 50 : 30) : (g.difficulty || 50),
+                competitorsCovering: g.competitors_covering || g.competitorsCovering || 1,
+                yourCoverage: g.your_coverage || g.yourCoverage || "none",
+                opportunity: g.opportunity_score >= 80 ? "high" : g.opportunity_score >= 50 ? "medium" : "low",
+                suggestedAction: g.action || g.suggestedAction || "Create content",
+                actionType: g.action_type || g.actionType || "create",
+                competitorDomain: g.competitor_domain,
+                competitorPosition: g.competitor_position,
+                opportunityScore: g.opportunity_score,
+              }));
+              
+              // Map missions from worker format to frontend format  
+              const rawMissions = data.missions || [];
+              const missions = rawMissions.map((m: any, idx: number) => ({
+                id: m.id || `mission-${idx}`,
+                title: m.action || m.title || "Optimize",
+                description: m.rationale || m.description || "",
+                type: m.action?.toLowerCase().includes('content') ? 'content' 
+                     : m.action?.toLowerCase().includes('backlink') ? 'authority'
+                     : m.action?.toLowerCase().includes('technical') ? 'technical' : 'content',
+                expectedImpact: m.priority === 'High' ? 'high' : m.priority === 'Medium' ? 'medium' : 'low',
+                difficulty: m.priority === 'High' ? 'medium' : 'easy',
+                executingCrew: m.executing_crew || m.executingCrew || "Natasha",
+                keywords: m.keywords || (m.target ? [m.target] : []),
+                target: m.target,
+                priority: m.priority,
+              }));
+              
+              // Calculate competitive position based on share of voice
+              let competitivePosition: "ahead" | "parity" | "behind" = "parity";
+              if (sovData && typeof sovData === 'object') {
+                if (sovData.target_sov > sovData.top_competitor_sov) {
+                  competitivePosition = "ahead";
+                } else if (sovData.target_sov < sovData.top_competitor_sov * 0.5) {
+                  competitivePosition = "behind";
+                }
+              }
+              
               return res.json({
                 configured: true,
                 isRealData: true,
                 dataSource: "database",
                 lastRunAt: savedResult.finishedAt?.toISOString() || savedResult.createdAt?.toISOString(),
-                competitivePosition: data.competitivePosition || "parity",
+                competitivePosition: data.competitivePosition || competitivePosition,
                 positionExplanation: data.positionExplanation || savedResult.summaryText || "Data from previous analysis",
-                shareOfVoice: data.shareOfVoice || 0,
+                shareOfVoice: shareOfVoiceValue,
+                shareOfVoiceDetails: typeof sovData === 'object' ? sovData : null,
                 avgRank: data.avgRank || 0,
                 agentScore: data.agentScore || null,
                 competitors: data.competitors || [],
-                contentGaps: data.contentGaps || [],
+                contentGaps,
                 authorityGaps: data.authorityGaps || [],
                 serpFeatureGaps: data.serpFeatureGaps || [],
                 rankingPages: data.rankingPages || [],
-                missions: data.missions || [],
+                missions,
                 alerts: data.alerts || [],
                 summary: data.summary || {
                   totalCompetitors: data.competitors?.length || 0,
-                  totalGaps: (data.contentGaps?.length || 0) + (data.authorityGaps?.length || 0),
-                  highPriorityGaps: 0,
+                  totalGaps: contentGaps.length + (data.authorityGaps?.length || 0),
+                  highPriorityGaps: contentGaps.filter((g: any) => g.opportunity === 'high').length,
                   avgVisibilityGap: 0,
-                  keywordsTracked: targetKeywords.length,
-                  keywordsWinning: 0,
-                  keywordsLosing: 0,
+                  keywordsTracked: typeof sovData === 'object' ? (sovData.keywords_tracked || targetKeywords.length) : targetKeywords.length,
+                  keywordsWinning: typeof sovData === 'object' ? (sovData.keywords_ranking || 0) : 0,
+                  keywordsLosing: typeof sovData === 'object' ? ((sovData.keywords_tracked || 0) - (sovData.keywords_ranking || 0)) : 0,
                   referringDomains: 0,
                   competitorAvgDomains: 0,
                 },

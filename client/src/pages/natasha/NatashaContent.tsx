@@ -131,6 +131,16 @@ interface CompetitiveMission {
   difficulty: "easy" | "medium" | "hard";
   executingCrew: string;
   keywords?: string[];
+  target?: string;
+  priority?: string;
+}
+
+interface ShareOfVoiceDetails {
+  target_sov: number;
+  top_competitor_sov: number;
+  market_visibility: string;
+  keywords_tracked: number;
+  keywords_ranking: number;
 }
 
 interface TrendAlert {
@@ -150,6 +160,7 @@ interface CompetitiveOverview {
   competitivePosition: "ahead" | "parity" | "behind";
   positionExplanation: string;
   shareOfVoice: number;
+  shareOfVoiceDetails?: ShareOfVoiceDetails | null;
   avgRank: number;
   agentScore?: number;
   competitors: Competitor[];
