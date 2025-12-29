@@ -352,58 +352,6 @@ export default function SERPContent() {
           </CardContent>
         </Card>
 
-        <Card data-testid="card-recent-changes">
-          <CardHeader>
-            <CardTitle>Position Progress</CardTitle>
-            <CardDescription>
-              7-day and 30-day position changes
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {rankingsData?.keywords && rankingsData.keywords.length > 0 ? (
-              <div className="space-y-3">
-                {rankingsData.keywords
-                  .filter(kw => kw.currentPosition !== null && (kw.avg7Day || kw.avg30Day))
-                  .map((kw, idx) => {
-                    const change7d = kw.avg7Day && kw.currentPosition ? Math.round((kw.avg7Day - kw.currentPosition) * 10) / 10 : null;
-                    const change30d = kw.avg30Day && kw.currentPosition ? Math.round((kw.avg30Day - kw.currentPosition) * 10) / 10 : null;
-                    return (
-                      <div key={kw.id || idx} className="flex items-center justify-between py-2 border-b last:border-0">
-                        <div className="flex-1">
-                          <p className="font-medium text-sm">{kw.keyword}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Current: #{kw.currentPosition}
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          <div className="text-center px-2">
-                            <p className="text-xs text-muted-foreground">7d</p>
-                            {change7d !== null ? (
-                              <span className={`text-sm font-medium ${change7d > 0 ? 'text-semantic-success' : change7d < 0 ? 'text-semantic-danger' : 'text-muted-foreground'}`}>
-                                {change7d > 0 ? '+' : ''}{change7d}
-                              </span>
-                            ) : <span className="text-sm text-muted-foreground">—</span>}
-                          </div>
-                          <div className="text-center px-2">
-                            <p className="text-xs text-muted-foreground">30d</p>
-                            {change30d !== null ? (
-                              <span className={`text-sm font-medium ${change30d > 0 ? 'text-semantic-success' : change30d < 0 ? 'text-semantic-danger' : 'text-muted-foreground'}`}>
-                                {change30d > 0 ? '+' : ''}{change30d}
-                              </span>
-                            ) : <span className="text-sm text-muted-foreground">—</span>}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
-            ) : (
-              <p className="text-muted-foreground text-center py-8">
-                No position data yet. Run multiple checks to track progress.
-              </p>
-            )}
-          </CardContent>
-        </Card>
       </div>
 
       <Card data-testid="card-all-rankings">
