@@ -76,7 +76,6 @@ export interface CrewDashboardShellProps {
   onRefresh?: () => void;
   onSettings?: () => void;
   onFixEverything?: () => void;
-  onGoToNextMission?: (mission: MissionItem) => void;
   isRefreshing?: boolean;
   children?: ReactNode;
 }

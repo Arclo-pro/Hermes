@@ -17,7 +17,6 @@ import {
   AlertCircle,
   Loader2,
   ArrowRight,
-  Rocket,
   ExternalLink,
   Wrench,
   RefreshCw,
@@ -30,7 +29,6 @@ interface CrewMissionStatusWidgetProps {
   crewName?: string;
   state?: WidgetState;
   onFixEverything?: () => void;
-  onGoToNextMission?: () => void;
   onRetry?: () => void;
   isFixing?: boolean;
   lastPrUrl?: string | null;
@@ -108,7 +106,6 @@ export function CrewMissionStatusWidget({
   crewName,
   state = "ready",
   onFixEverything,
-  onGoToNextMission,
   onRetry,
   isFixing = false,
   lastPrUrl,
@@ -125,8 +122,6 @@ export function CrewMissionStatusWidget({
 
   const config = statusConfig[status.tier];
   const StatusIcon = config.icon;
-
-  const hasActions = status.priorityCount > 0 || status.blockerCount > 0;
 
   return (
     <>
@@ -192,17 +187,6 @@ export function CrewMissionStatusWidget({
                 </Button>
               )}
 
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-purple-accent/40 text-purple-accent hover:bg-purple-accent/10 rounded-xl"
-                onClick={onGoToNextMission}
-                disabled={!hasActions}
-                data-testid="button-go-to-next"
-              >
-                <Rocket className="w-4 h-4 mr-1.5" />
-                Go to Next Mission
-              </Button>
             </div>
           </div>
 

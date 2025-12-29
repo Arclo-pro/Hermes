@@ -119,7 +119,6 @@ export function CrewDashboardShell({
   onRefresh,
   onSettings,
   onFixEverything,
-  onGoToNextMission,
   isRefreshing = false,
   children,
 }: CrewDashboardShellProps) {
@@ -206,7 +205,6 @@ export function CrewDashboardShell({
         crewName={crew.crewName}
         state={missionStatusState}
         onFixEverything={onFixEverything}
-        onGoToNextMission={() => onGoToNextMission?.(missions[0])}
         onRetry={onRefresh}
       />
 

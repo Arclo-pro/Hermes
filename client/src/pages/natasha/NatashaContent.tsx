@@ -848,7 +848,6 @@ export default function NatashaContent() {
       onRefresh={handleRefresh}
       onSettings={() => toast.info("Settings coming soon")}
       onFixEverything={() => toast.info("Fix everything coming soon")}
-      onGoToNextMission={(m) => toast.info(`Starting: ${m.title}`)}
       isRefreshing={isRunning}
     />
   );
