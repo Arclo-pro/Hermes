@@ -189,37 +189,37 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
 
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          <Link href="/dashboard">
-            <div 
-              className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors cursor-pointer",
-                location === "/dashboard" || location === "/mission-control"
-                  ? "bg-primary/10 text-primary" 
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              )}
-              data-testid="link-nav-mission-control"
-            >
-              <LayoutDashboard className="w-4 h-4" />
-              Mission Control
-            </div>
-          </Link>
-          
           <Collapsible open={crewExpanded} onOpenChange={setCrewExpanded}>
-            <CollapsibleTrigger asChild>
-              <div 
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors cursor-pointer pl-6",
-                  location.startsWith("/agents/")
-                    ? "bg-primary/10 text-primary" 
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                )}
-                data-testid="link-nav-crew-expand"
-              >
-                <ChevronRight className={cn("w-4 h-4 transition-transform", crewExpanded && "rotate-90")} />
-                <span className="flex-1">Crew Members</span>
-              </div>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="pl-6 mt-1 space-y-0.5">
+            <div className="flex items-center">
+              <Link href="/dashboard" className="flex-1">
+                <div 
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-l-md text-sm font-medium transition-colors cursor-pointer",
+                    location === "/dashboard" || location === "/mission-control"
+                      ? "bg-primary/10 text-primary" 
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  )}
+                  data-testid="link-nav-mission-control"
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  Mission Control
+                </div>
+              </Link>
+              <CollapsibleTrigger asChild>
+                <button
+                  className={cn(
+                    "px-2 py-2.5 rounded-r-md transition-colors",
+                    location.startsWith("/agents/") || crewExpanded
+                      ? "bg-primary/10 text-primary" 
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  )}
+                  data-testid="button-expand-crew"
+                >
+                  <ChevronRight className={cn("w-4 h-4 transition-transform", crewExpanded && "rotate-90")} />
+                </button>
+              </CollapsibleTrigger>
+            </div>
+            <CollapsibleContent className="pl-4 mt-1 space-y-0.5">
               {crewMembers.map((member) => {
                 const isActive = location === `/agents/${member.service_id}`;
                 return (
