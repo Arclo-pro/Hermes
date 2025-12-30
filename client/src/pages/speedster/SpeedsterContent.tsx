@@ -55,6 +55,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { BenchmarkPositionBar } from "@/components/BenchmarkPositionBar";
 import {
   CrewDashboardShell,
   type HeaderAction,
@@ -767,14 +768,19 @@ export default function SpeedsterContent() {
                   return val.toString();
                 };
                 
+                const isHigherBetter = key === 'vitals.performance_score';
+                
                 return (
-                  <div key={key} className="p-3 rounded-lg border">
-                    <div className="flex items-center justify-between mb-2">
-                      <div>
+                  <div key={key} className="p-4 rounded-lg border">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-3">
                         <span className="font-medium text-sm">{metricLabels[key] || key}</span>
-                        {bench.source && (
-                          <span className="text-xs text-muted-foreground ml-2">({bench.source})</span>
-                        )}
+                        <div className={cn(
+                          "px-2 py-0.5 rounded text-xs font-bold",
+                          comparisonColors[bench.comparison] || 'bg-muted'
+                        )}>
+                          Your: {formatValue(bench.currentValue, bench.unit)}
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
                         {bench.percentile && (
@@ -788,31 +794,48 @@ export default function SpeedsterContent() {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-4 text-sm">
-                      <div className={cn(
-                        "px-2 py-1 rounded font-bold",
-                        comparisonColors[bench.comparison] || 'bg-muted'
-                      )}>
-                        Your: {formatValue(bench.currentValue, bench.unit)}
-                      </div>
-                      <div className="flex-1 grid grid-cols-4 gap-2 text-xs text-muted-foreground">
-                        <div className="text-center">
-                          <div className="font-medium text-green-600">p25</div>
-                          <div>{formatValue(bench.p25, bench.unit)}</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="font-medium text-yellow-600">p50</div>
-                          <div>{formatValue(bench.p50, bench.unit)}</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="font-medium text-orange-600">p75</div>
-                          <div>{formatValue(bench.p75, bench.unit)}</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="font-medium text-red-600">p90</div>
-                          <div>{formatValue(bench.p90, bench.unit)}</div>
-                        </div>
-                      </div>
+                    
+                    <BenchmarkPositionBar
+                      value={bench.currentValue}
+                      p25={bench.p25}
+                      p50={bench.p50}
+                      p75={bench.p75}
+                      p90={bench.p90}
+                      direction={isHigherBetter ? "higher-is-better" : "lower-is-better"}
+                    />
+                    
+                    <div className="grid grid-cols-4 gap-2 text-xs text-muted-foreground mt-1">
+                      {isHigherBetter ? (
+                        <>
+                          <div className="text-center">
+                            <div>{formatValue(bench.p90, bench.unit)}</div>
+                          </div>
+                          <div className="text-center">
+                            <div>{formatValue(bench.p75, bench.unit)}</div>
+                          </div>
+                          <div className="text-center">
+                            <div>{formatValue(bench.p50, bench.unit)}</div>
+                          </div>
+                          <div className="text-center">
+                            <div>{formatValue(bench.p25, bench.unit)}</div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="text-center">
+                            <div>{formatValue(bench.p25, bench.unit)}</div>
+                          </div>
+                          <div className="text-center">
+                            <div>{formatValue(bench.p50, bench.unit)}</div>
+                          </div>
+                          <div className="text-center">
+                            <div>{formatValue(bench.p75, bench.unit)}</div>
+                          </div>
+                          <div className="text-center">
+                            <div>{formatValue(bench.p90, bench.unit)}</div>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 );
