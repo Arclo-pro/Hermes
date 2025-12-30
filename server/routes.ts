@@ -10517,10 +10517,19 @@ When answering:
     try {
       const siteId = (req.query.siteId as string) || "site_empathy_health_clinic";
       
-      // Get Core Web Vitals from worker results
-      const workerResults = await storage.getLatestSeoWorkerResults(siteId);
-      const cwvResult = workerResults.find(r => r.workerKey === 'core_web_vitals');
+      // Get Core Web Vitals from worker results - use getLatestWorkerResultByKey
+      // to get the latest core_web_vitals result regardless of run
+      // (getLatestSeoWorkerResults gets latest RUN which may not include CWV)
+      const cwvResult = await storage.getLatestWorkerResultByKey(siteId, 'core_web_vitals');
       const metricsJson = cwvResult?.metricsJson as Record<string, any> | null;
+      
+      logger.info("Speedster", `Loading CWV data for ${siteId}`, { 
+        hasCwvResult: !!cwvResult, 
+        metricsKeys: metricsJson ? Object.keys(metricsJson) : [],
+        lcp: metricsJson?.lcp,
+        cls: metricsJson?.cls,
+        inp: metricsJson?.inp,
+      });
       
       // Also check dashboard snapshot for fallback (uses canonical keys)
       const snapshot = await storage.getDashboardMetricSnapshot(siteId);
