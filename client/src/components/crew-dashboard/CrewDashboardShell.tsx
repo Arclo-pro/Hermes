@@ -110,7 +110,7 @@ function InspectorTabContent({
   return <>{content}</>;
 }
 
-function MissionPrompt({
+function InlinePrompt({
   config,
   accentColor,
 }: {
@@ -127,47 +127,46 @@ function MissionPrompt({
   };
 
   return (
-    <Card className="bg-card/60 backdrop-blur-sm border-border mt-3">
-      <CardContent className="pt-4 pb-4">
-        <div className="flex items-center gap-2 mb-3">
-          <MessageSquare className="w-4 h-4" style={{ color: accentColor }} />
-          <span className="text-sm font-medium">{config.label}</span>
-        </div>
-        <div className="flex gap-2">
-          <Input
-            placeholder={config.placeholder}
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                handleSubmit();
-              }
-            }}
-            disabled={config.isLoading}
-            className="flex-1"
-            data-testid="input-mission-prompt"
-          />
-          <Button
-            type="button"
-            size="icon"
-            onClick={(e) => {
+    <div className="flex items-center gap-3 pt-4 mt-4 border-t border-border/50">
+      <div className="flex items-center gap-1.5 shrink-0">
+        <MessageSquare className="w-4 h-4" style={{ color: accentColor }} />
+        <span className="text-sm font-medium text-muted-foreground">{config.label}</span>
+      </div>
+      <div className="flex gap-2 flex-1">
+        <Input
+          placeholder={config.placeholder}
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
               e.preventDefault();
               handleSubmit();
-            }}
-            disabled={!question.trim() || config.isLoading}
-            style={{ backgroundColor: question.trim() ? accentColor : undefined }}
-            data-testid="button-submit-mission-prompt"
-          >
-            {config.isLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Send className="w-4 h-4" />
-            )}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+            }
+          }}
+          disabled={config.isLoading}
+          className="flex-1 h-9"
+          data-testid="input-mission-prompt"
+        />
+        <Button
+          type="button"
+          size="sm"
+          onClick={(e) => {
+            e.preventDefault();
+            handleSubmit();
+          }}
+          disabled={!question.trim() || config.isLoading}
+          style={{ backgroundColor: question.trim() ? accentColor : undefined }}
+          className="h-9 px-3"
+          data-testid="button-submit-mission-prompt"
+        >
+          {config.isLoading ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Send className="w-4 h-4" />
+          )}
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -323,12 +322,12 @@ export function CrewDashboardShell({
             )}
           </div>
         </div>
+        
+        {/* Inline Prompt - embedded in header container */}
+        {missionPrompt && (
+          <InlinePrompt config={missionPrompt} accentColor={crew.accentColor} />
+        )}
       </div>
-
-      {/* Mission Prompt - directly under header, before Mission Status */}
-      {missionPrompt && (
-        <MissionPrompt config={missionPrompt} accentColor={crew.accentColor} />
-      )}
 
       {/* Mission Status Widget */}
       <CrewMissionStatusWidget

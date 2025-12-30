@@ -1,5 +1,3 @@
-import { cn } from "@/lib/utils";
-
 interface BenchmarkPositionBarProps {
   value: number;
   p25: number;
@@ -25,29 +23,6 @@ export function BenchmarkPositionBar({
 
   const clampedValue = Math.max(min, Math.min(max, value));
   const position = ((clampedValue - min) / range) * 100;
-
-  const getMarkerColor = () => {
-    if (direction === "lower-is-better") {
-      if (value <= p25) return "bg-green-500 ring-green-500/30";
-      if (value <= p50) return "bg-green-500 ring-green-500/30";
-      if (value <= p75) return "bg-yellow-500 ring-yellow-500/30";
-      return "bg-red-500 ring-red-500/30";
-    } else {
-      if (value >= p25) return "bg-green-500 ring-green-500/30";
-      if (value >= p50) return "bg-green-500 ring-green-500/30";
-      if (value >= p75) return "bg-yellow-500 ring-yellow-500/30";
-      return "bg-red-500 ring-red-500/30";
-    }
-  };
-
-  const p25Pos = direction === "lower-is-better" ? 0 : 100;
-  const p50Pos = direction === "lower-is-better" 
-    ? ((p50 - p25) / range) * 100 
-    : ((p25 - p50) / (p25 - p90)) * 100;
-  const p75Pos = direction === "lower-is-better" 
-    ? ((p75 - p25) / range) * 100 
-    : ((p25 - p75) / (p25 - p90)) * 100;
-  const p90Pos = direction === "lower-is-better" ? 100 : 0;
 
   return (
     <div className="relative mt-2 mb-1">
@@ -86,10 +61,7 @@ export function BenchmarkPositionBar({
       </div>
       
       <div 
-        className={cn(
-          "absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full ring-2 ring-offset-1 ring-offset-background shadow-md transition-all",
-          getMarkerColor()
-        )}
+        className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white border-2 border-foreground shadow-md"
         style={{ 
           left: `${position}%`,
           transform: `translate(-50%, -50%)`,
@@ -100,7 +72,7 @@ export function BenchmarkPositionBar({
         {direction === "lower-is-better" ? (
           <>
             <span className="text-green-600 font-medium">p25</span>
-            <span className="text-yellow-600 font-medium" style={{ marginLeft: `${p50Pos - 10}%` }}>p50</span>
+            <span className="text-yellow-600 font-medium">p50</span>
             <span className="text-orange-600 font-medium">p75</span>
             <span className="text-red-600 font-medium">p90</span>
           </>
