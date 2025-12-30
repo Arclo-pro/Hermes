@@ -52,7 +52,13 @@ function Router() {
       <Route path="/help" component={Help} />
       <Route path="/benchmarks" component={Benchmarks} />
       <Route path="/speedster" component={Speedster} />
+      <Route path="/crew/speedster">
+        <Redirect to="/speedster" />
+      </Route>
       <Route path="/socrates" component={Socrates} />
+      <Route path="/crew/socrates">
+        <Redirect to="/socrates" />
+      </Route>
       <Route path="/dev/palette" component={CrewPalette} />
       <Route path="/dev/lineage" component={DevLineage} />
       <Route path="/settings" component={Settings} />
