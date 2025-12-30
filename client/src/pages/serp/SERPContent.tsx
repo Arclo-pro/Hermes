@@ -91,6 +91,49 @@ export default function SERPContent() {
       return res.json();
     },
   });
+
+  const { data: missionsData, isLoading: missionsLoading } = useQuery<{
+    missions: Array<{
+      id: number;
+      actionType: string;
+      title: string;
+      description: string | null;
+      targetKeywords: string[];
+      targetUrl: string | null;
+      impactScore: number;
+      effortScore: number;
+      reason: string | null;
+      status: string;
+    }>;
+    totalPending: number;
+  }>({
+    queryKey: ['serp-missions'],
+    queryFn: async () => {
+      const res = await fetch('/api/serp/missions');
+      if (!res.ok) throw new Error('Failed to fetch missions');
+      return res.json();
+    },
+    enabled: (overview?.totalKeywords || 0) > 0,
+  });
+
+  const { data: fixStatus } = useQuery<{
+    queued: number;
+    inProgress: number;
+    completed: number;
+    failed: number;
+    total: number;
+  }>({
+    queryKey: ['serp-fix-status'],
+    queryFn: async () => {
+      const res = await fetch('/api/serp/missions/status');
+      if (!res.ok) throw new Error('Failed to fetch status');
+      return res.json();
+    },
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      return (data?.queued || 0) > 0 || (data?.inProgress || 0) > 0 ? 2000 : false;
+    },
+  });
   
   // Sorting state
   const [sortField, setSortField] = useState<'priority' | 'volume' | 'difficulty' | 'position'>('priority');
@@ -164,6 +207,52 @@ export default function SERPContent() {
   const handleCheck = (mode: 'quick' | 'full') => {
     runCheck.mutate(mode === 'quick' ? 10 : 100);
   };
+
+  const fixEverything = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/serp/missions/fix-everything', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to start Fix Everything');
+      return res.json();
+    },
+    onSuccess: async (data) => {
+      toast({
+        title: "Fix Everything Started",
+        description: `Executing ${data.queued} improvement actions...`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['serp-missions'] });
+      queryClient.invalidateQueries({ queryKey: ['serp-fix-status'] });
+      
+      let remaining = data.queued;
+      while (remaining > 0) {
+        try {
+          const res = await fetch('/api/serp/missions/execute-next', { method: 'POST' });
+          const result = await res.json();
+          remaining = result.remaining;
+          queryClient.invalidateQueries({ queryKey: ['serp-fix-status'] });
+        } catch {
+          break;
+        }
+      }
+      
+      toast({
+        title: "Fix Everything Complete",
+        description: `All improvement actions have been executed.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['serp-missions'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Fix Everything Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const isFixingEverything = fixEverything.isPending || (fixStatus?.queued || 0) > 0 || (fixStatus?.inProgress || 0) > 0;
   
   // Add keywords mutation
   const addKeywords = useMutation({
@@ -439,11 +528,11 @@ export default function SERPContent() {
       tier,
       summaryLine,
       nextStep,
-      priorityCount: totalKeywords - inTop10 - notRanking,
+      priorityCount: missionsData?.totalPending || (totalKeywords - inTop10 - notRanking),
       blockerCount: notRanking,
-      autoFixableCount: 0,
+      autoFixableCount: missionsData?.totalPending || 0,
     };
-  }, [overview, stats]);
+  }, [overview, stats, missionsData]);
 
   const kpis: KpiDescriptor[] = useMemo(() => [
     {
@@ -468,48 +557,58 @@ export default function SERPContent() {
     },
   ], [stats]);
 
+  const getImpactLabel = (score: number): "high" | "medium" | "low" => {
+    if (score >= 70) return "high";
+    if (score >= 40) return "medium";
+    return "low";
+  };
+
+  const getEffortLabel = (score: number): "S" | "M" | "L" => {
+    if (score <= 30) return "S";
+    if (score <= 60) return "M";
+    return "L";
+  };
+
   const missions: MissionItem[] = useMemo(() => {
-    const items: MissionItem[] = [];
-    if (stats.notRanking > 0) {
-      items.push({
-        id: "recover-not-ranking",
-        title: `Recover ${stats.notRanking} non-ranking keywords`,
-        reason: "Keywords not appearing in top 100 results",
-        status: "pending",
-        impact: "high",
-      });
+    if (isFixingEverything && fixStatus) {
+      return [{
+        id: "fixing-everything",
+        title: `Executing ${fixStatus.completed + fixStatus.queued + fixStatus.inProgress} improvements`,
+        reason: `${fixStatus.completed} completed, ${fixStatus.queued + fixStatus.inProgress} remaining`,
+        status: "in_progress" as const,
+        impact: "high" as const,
+      }];
     }
-    if (stats.losers > 0) {
-      items.push({
-        id: "address-position-drops",
-        title: `Address ${stats.losers} position drops`,
-        reason: "Keywords that recently lost rankings",
-        status: "pending",
-        impact: "high",
-      });
+
+    if (missionsData?.missions && missionsData.missions.length > 0) {
+      return missionsData.missions.slice(0, 5).map(m => ({
+        id: `mission-${m.id}`,
+        title: m.title,
+        reason: m.reason || m.targetKeywords?.slice(0, 3).join(", ") || undefined,
+        status: "pending" as const,
+        impact: getImpactLabel(m.impactScore),
+        effort: getEffortLabel(m.effortScore),
+      }));
     }
-    if (stats.inTop10 < (overview?.totalKeywords || 0) * 0.5) {
-      items.push({
-        id: "expand-top10-coverage",
-        title: "Expand Top 10 coverage",
-        reason: `Only ${stats.inTop10} of ${overview?.totalKeywords || 0} keywords in top 10`,
-        status: "pending",
-        impact: "medium",
-      });
+
+    if ((overview?.totalKeywords || 0) === 0) {
+      return [{
+        id: "setup-keywords",
+        title: "Set up keyword tracking",
+        reason: "Generate target keywords to start monitoring",
+        status: "pending" as const,
+        impact: "high" as const,
+      }];
     }
-    
-    // Always show a monitoring status
-    if (items.length === 0) {
-      items.push({
-        id: "monitor-rankings",
-        title: `Tracking ${overview?.totalKeywords || 0} keywords`,
-        reason: `${stats.inTop10} in top 10, ${stats.numberOne} at #1 position`,
-        status: "done",
-        impact: "low",
-      });
-    }
-    return items;
-  }, [stats, overview]);
+
+    return [{
+      id: "monitor-rankings",
+      title: `Tracking ${overview?.totalKeywords || 0} keywords`,
+      reason: `${stats.inTop10} in top 10, ${stats.numberOne} at #1 position`,
+      status: "done" as const,
+      impact: "low" as const,
+    }];
+  }, [stats, overview, missionsData, isFixingEverything, fixStatus]);
 
   const inspectorTabs: InspectorTab[] = useMemo(() => [
     {
@@ -718,9 +817,13 @@ export default function SERPContent() {
       missions={missions}
       kpis={[]}
       inspectorTabs={[]}
-      onRefresh={() => runCheck.mutate(50)}
+      onRefresh={() => {
+        runCheck.mutate(50);
+        queryClient.invalidateQueries({ queryKey: ['serp-missions'] });
+      }}
       onSettings={() => {}}
-      isRefreshing={runCheck.isPending}
+      onFixEverything={() => fixEverything.mutate()}
+      isRefreshing={runCheck.isPending || isFixingEverything}
     >
       {/* Prompt Input for Lookout */}
       <Card className="border-primary/20 mb-4">
