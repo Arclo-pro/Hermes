@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useMemo, useEffect } from "react";
 import { Search, TrendingUp, TrendingDown, Minus, RefreshCw, Sparkles, ArrowUp, ArrowDown, Target, AlertTriangle, Crown, Trophy, Zap, Plus, ChevronUp, ChevronDown, Star, Brain, DollarSign, Info, ShoppingCart, HelpCircle, Eye } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +19,8 @@ import {
   type MissionItem,
   type KpiDescriptor,
   type InspectorTab,
+  type MissionPromptConfig,
+  type HeaderAction,
 } from "@/components/crew-dashboard";
 
 interface RankingData {
@@ -56,6 +59,28 @@ export default function SERPContent() {
   const [setupDomain, setSetupDomain] = useState('empathyhealthclinic.com');
   const [setupBusinessType, setSetupBusinessType] = useState('psychiatry clinic');
   const [setupLocation, setSetupLocation] = useState('Orlando, Florida');
+  const [isAskingSerp, setIsAskingSerp] = useState(false);
+
+  const handleAskSerp = async (question: string) => {
+    setIsAskingSerp(true);
+    try {
+      const res = await fetch('/api/crew/serp/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question }),
+      });
+      const data = await res.json();
+      if (data.ok && data.answer) {
+        toast({ title: "SERP says", description: data.answer, duration: 10000 });
+      } else {
+        toast({ title: "Error", description: data.error || 'Failed to get answer from SERP', variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: 'Failed to ask SERP', variant: "destructive" });
+    } finally {
+      setIsAskingSerp(false);
+    }
+  };
 
   const { data: overview, isLoading } = useQuery<SerpOverview>({
     queryKey: ['serp-overview'],
@@ -722,6 +747,24 @@ export default function SERPContent() {
       impact: "high",
     }];
 
+    const setupMissionPrompt: MissionPromptConfig = {
+      label: "Ask Lookout",
+      placeholder: "e.g., What keywords should I track for my business?",
+      onSubmit: handleAskSerp,
+      isLoading: isAskingSerp,
+    };
+
+    const setupHeaderActions: HeaderAction[] = [
+      {
+        id: "generate-keywords",
+        icon: <Sparkles className={cn("w-4 h-4", generateKeywords.isPending && "animate-pulse")} />,
+        tooltip: "Generate Keywords",
+        onClick: handleGenerate,
+        disabled: generateKeywords.isPending || !setupDomain.trim(),
+        loading: generateKeywords.isPending,
+      },
+    ];
+
     return (
       <CrewDashboardShell
         crew={crew}
@@ -734,6 +777,8 @@ export default function SERPContent() {
           { id: "top-10", label: "Top 10", value: "—", tooltip: "No rankings yet" },
         ]}
         inspectorTabs={[]}
+        missionPrompt={setupMissionPrompt}
+        headerActions={setupHeaderActions}
         onRefresh={() => {}}
         onSettings={() => {}}
         isRefreshing={generateKeywords.isPending}
@@ -809,6 +854,33 @@ export default function SERPContent() {
     ? Math.round((stats.inTop10 / overview.totalKeywords) * 100)
     : null;
 
+  const missionPrompt: MissionPromptConfig = {
+    label: "Ask Lookout",
+    placeholder: "e.g., What keywords are improving? Which need attention?",
+    onSubmit: handleAskSerp,
+    isLoading: isAskingSerp,
+  };
+
+  const headerActions: HeaderAction[] = [
+    {
+      id: "check-rankings",
+      icon: <RefreshCw className={cn("w-4 h-4", runCheck.isPending && "animate-spin")} />,
+      tooltip: "Check Rankings",
+      onClick: () => runCheck.mutate(50),
+      disabled: runCheck.isPending || isFixingEverything,
+      loading: runCheck.isPending,
+    },
+    {
+      id: "fix-everything",
+      icon: <Zap className={cn("w-4 h-4", isFixingEverything && "animate-pulse")} />,
+      tooltip: "Fix All Issues",
+      onClick: () => fixEverything.mutate(),
+      disabled: runCheck.isPending || isFixingEverything,
+      loading: isFixingEverything,
+      variant: "primary" as const,
+    },
+  ];
+
   return (
     <CrewDashboardShell
       crew={crew}
@@ -818,6 +890,8 @@ export default function SERPContent() {
       missions={missions}
       kpis={kpis}
       inspectorTabs={inspectorTabs}
+      missionPrompt={missionPrompt}
+      headerActions={headerActions}
       onRefresh={() => {
         runCheck.mutate(50);
         queryClient.invalidateQueries({ queryKey: ['serp-missions'] });

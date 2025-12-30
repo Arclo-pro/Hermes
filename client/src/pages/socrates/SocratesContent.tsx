@@ -55,6 +55,8 @@ import {
   type MissionItem,
   type KpiDescriptor,
   type InspectorTab,
+  type MissionPromptConfig,
+  type HeaderAction,
 } from "@/components/crew-dashboard";
 
 interface Learning {
@@ -394,6 +396,28 @@ export function SocratesContent() {
   const siteId = currentSite?.siteId || "default";
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [isAskingSocrates, setIsAskingSocrates] = useState(false);
+
+  const handleAskSocrates = async (question: string) => {
+    setIsAskingSocrates(true);
+    try {
+      const res = await fetch('/api/crew/socrates/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteId, question }),
+      });
+      const data = await res.json();
+      if (data.ok && data.answer) {
+        toast.success(data.answer, { duration: 10000 });
+      } else {
+        toast.error(data.error || 'Failed to get answer from Socrates');
+      }
+    } catch {
+      toast.error('Failed to ask Socrates');
+    } finally {
+      setIsAskingSocrates(false);
+    }
+  };
 
   const { data, isLoading, error } = useQuery<KBOverviewData>({
     queryKey: ["kbase-overview", siteId],
@@ -685,6 +709,24 @@ export function SocratesContent() {
     },
   ];
 
+  const missionPrompt: MissionPromptConfig = {
+    label: "Ask Socrates",
+    placeholder: "e.g., What patterns have you noticed? What should I prioritize?",
+    onSubmit: handleAskSocrates,
+    isLoading: isAskingSocrates,
+  };
+
+  const headerActions: HeaderAction[] = [
+    {
+      id: "refresh-kb",
+      icon: <RefreshCw className={cn("w-4 h-4", runMutation.isPending && "animate-spin")} />,
+      tooltip: "Refresh Knowledge Base",
+      onClick: () => runMutation.mutate(),
+      disabled: runMutation.isPending,
+      loading: runMutation.isPending,
+    },
+  ];
+
   return (
     <CrewDashboardShell
       crew={crew}
@@ -694,6 +736,8 @@ export function SocratesContent() {
       missions={missions}
       kpis={kpis}
       inspectorTabs={inspectorTabs}
+      missionPrompt={missionPrompt}
+      headerActions={headerActions}
       onRefresh={() => runMutation.mutate()}
       isRefreshing={runMutation.isPending}
     >

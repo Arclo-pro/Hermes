@@ -54,6 +54,8 @@ import {
   type MissionItem,
   type KpiDescriptor,
   type InspectorTab,
+  type MissionPromptConfig,
+  type HeaderAction,
 } from "@/components/crew-dashboard";
 
 interface HealthCheck {
@@ -333,6 +335,28 @@ export default function PulseContent() {
   const { currentSite } = useSiteContext();
   const [actionResults, setActionResults] = useState<Record<string, ActionRun>>({});
   const [runningActions, setRunningActions] = useState<Record<string, boolean>>({});
+  const [isAskingPulse, setIsAskingPulse] = useState(false);
+
+  const handleAskPulse = async (question: string) => {
+    setIsAskingPulse(true);
+    try {
+      const res = await fetch('/api/crew/pulse/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteId: currentSite?.siteId || 'default', question }),
+      });
+      const data = await res.json();
+      if (data.ok && data.answer) {
+        toast.success(data.answer, { duration: 10000 });
+      } else {
+        toast.error(data.error || 'Failed to get answer from Pulse');
+      }
+    } catch {
+      toast.error('Failed to ask Pulse');
+    } finally {
+      setIsAskingPulse(false);
+    }
+  };
   
   const { data: report, isLoading } = useQuery({
     queryKey: ['report'],
@@ -511,6 +535,24 @@ export default function PulseContent() {
     },
   ], [parsed]);
 
+  const missionPrompt: MissionPromptConfig = {
+    label: "Ask Pulse",
+    placeholder: "e.g., Why did my traffic drop? Are my tracking tags working?",
+    onSubmit: handleAskPulse,
+    isLoading: isAskingPulse,
+  };
+
+  const headerActions: HeaderAction[] = [
+    {
+      id: "rerun-analysis",
+      icon: <RefreshCw className={cn("w-4 h-4", rerunMutation.isPending && "animate-spin")} />,
+      tooltip: "Re-run Diagnostic Analysis",
+      onClick: () => rerunMutation.mutate(),
+      disabled: rerunMutation.isPending,
+      loading: rerunMutation.isPending,
+    },
+  ];
+
   return (
     <CrewDashboardShell
       crew={crew}
@@ -520,6 +562,8 @@ export default function PulseContent() {
       missions={missions}
       kpis={kpis}
       inspectorTabs={inspectorTabs}
+      missionPrompt={missionPrompt}
+      headerActions={headerActions}
       onRefresh={() => rerunMutation.mutate()}
       onSettings={() => toast.info("Settings coming soon")}
       isRefreshing={rerunMutation.isPending}

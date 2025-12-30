@@ -11,6 +11,7 @@ import {
   Loader2,
   Target,
   AlertCircle,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MissionItem, WidgetState } from "../types";
@@ -23,10 +24,10 @@ import {
 
 function ImpactIndicator({ impact }: { impact: string }) {
   const config = {
-    high: { color: 'bg-red-500', bars: 3 },
-    medium: { color: 'bg-yellow-500', bars: 2 },
-    low: { color: 'bg-green-500', bars: 1 },
-  }[impact.toLowerCase()] || { color: 'bg-muted', bars: 1 };
+    high: { color: 'bg-semantic-danger', bars: 3, label: 'High Impact' },
+    medium: { color: 'bg-semantic-warning', bars: 2, label: 'Medium Impact' },
+    low: { color: 'bg-semantic-success', bars: 1, label: 'Low Impact' },
+  }[impact.toLowerCase()] || { color: 'bg-muted', bars: 1, label: 'Impact' };
   
   return (
     <TooltipProvider>
@@ -45,22 +46,22 @@ function ImpactIndicator({ impact }: { impact: string }) {
             ))}
           </div>
         </TooltipTrigger>
-        <TooltipContent><p>{impact} Impact</p></TooltipContent>
+        <TooltipContent><p>{config.label}</p></TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );
 }
 
 function EffortIndicator({ effort }: { effort: string }) {
-  const effortMap: Record<string, { label: string; icon: string }> = {
-    'XS': { label: 'Quick', icon: '⚡' },
-    'S': { label: 'Quick', icon: '⚡' },
-    'M': { label: 'Medium', icon: '⏱' },
-    'L': { label: 'Long', icon: '📅' },
-    'XL': { label: 'Long', icon: '📅' },
-    'easy': { label: 'Quick', icon: '⚡' },
-    'medium': { label: 'Medium', icon: '⏱' },
-    'hard': { label: 'Long', icon: '📅' },
+  const effortMap: Record<string, { label: string; icon: React.ReactNode }> = {
+    'XS': { label: 'Quick fix', icon: <Zap className="w-3 h-3 text-semantic-success" /> },
+    'S': { label: 'Quick fix', icon: <Zap className="w-3 h-3 text-semantic-success" /> },
+    'M': { label: 'Medium effort', icon: <Clock className="w-3 h-3 text-semantic-warning" /> },
+    'L': { label: 'Long effort', icon: <Clock className="w-3 h-3 text-semantic-danger" /> },
+    'XL': { label: 'Long effort', icon: <Clock className="w-3 h-3 text-semantic-danger" /> },
+    'easy': { label: 'Quick fix', icon: <Zap className="w-3 h-3 text-semantic-success" /> },
+    'medium': { label: 'Medium effort', icon: <Clock className="w-3 h-3 text-semantic-warning" /> },
+    'hard': { label: 'Long effort', icon: <Clock className="w-3 h-3 text-semantic-danger" /> },
   };
   const config = effortMap[effort] || effortMap['M'];
   
@@ -68,9 +69,9 @@ function EffortIndicator({ effort }: { effort: string }) {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className="text-xs text-muted-foreground">{config.icon}</span>
+          <span className="flex items-center">{config.icon}</span>
         </TooltipTrigger>
-        <TooltipContent><p>{config.label} effort</p></TooltipContent>
+        <TooltipContent><p>{config.label}</p></TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );
@@ -197,14 +198,14 @@ function MissionRow({
             type="button"
             variant="default"
             size="sm"
-            className="bg-emerald-600 hover:bg-emerald-700"
+            className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white shadow-sm"
             onClick={(e) => {
               e.preventDefault();
               onAction?.("approve");
             }}
             data-testid={`button-mission-${mission.id}-approve`}
           >
-            <Play className="w-4 h-4 mr-1" />
+            <Zap className="w-4 h-4 mr-1" />
             Fix it
           </Button>
         )}

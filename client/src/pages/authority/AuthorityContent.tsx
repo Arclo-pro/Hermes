@@ -49,6 +49,8 @@ import {
   type MissionItem,
   type KpiDescriptor,
   type InspectorTab,
+  type MissionPromptConfig,
+  type HeaderAction,
 } from "@/components/crew-dashboard";
 
 interface IndustryBenchmark {
@@ -548,6 +550,28 @@ export default function AuthorityContent() {
   const { currentSite } = useSiteContext();
   const [selectedIndustry, setSelectedIndustry] = useState('healthcare');
   const [activeTab, setActiveTab] = useState('all');
+  const [isAskingAuthority, setIsAskingAuthority] = useState(false);
+
+  const handleAskAuthority = async (question: string) => {
+    setIsAskingAuthority(true);
+    try {
+      const res = await fetch('/api/crew/authority/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteId: currentSite?.siteId || 'default', question }),
+      });
+      const data = await res.json();
+      if (data.ok && data.answer) {
+        toast.success(data.answer, { duration: 10000 });
+      } else {
+        toast.error(data.error || 'Failed to get answer from Authority');
+      }
+    } catch {
+      toast.error('Failed to ask Authority');
+    } finally {
+      setIsAskingAuthority(false);
+    }
+  };
 
   const { data: benchmarks, isLoading, refetch } = useQuery({
     queryKey: ['authority-benchmarks', currentSite?.siteId, selectedIndustry],
@@ -682,6 +706,24 @@ export default function AuthorityContent() {
     },
   ], [filteredBenchmarks]);
 
+  const missionPrompt: MissionPromptConfig = {
+    label: "Ask Authority",
+    placeholder: "e.g., What are my weakest backlink areas? How do I compare to competitors?",
+    onSubmit: handleAskAuthority,
+    isLoading: isAskingAuthority,
+  };
+
+  const headerActions: HeaderAction[] = [
+    {
+      id: "refresh-benchmarks",
+      icon: <RefreshCw className={cn("w-4 h-4", isLoading && "animate-spin")} />,
+      tooltip: "Refresh Benchmarks",
+      onClick: () => refetch(),
+      disabled: isLoading,
+      loading: isLoading,
+    },
+  ];
+
   return (
     <CrewDashboardShell
       crew={crew}
@@ -691,6 +733,8 @@ export default function AuthorityContent() {
       missions={missions}
       kpis={kpis}
       inspectorTabs={inspectorTabs}
+      missionPrompt={missionPrompt}
+      headerActions={headerActions}
       onRefresh={() => refetch()}
       onSettings={() => toast.info("Settings coming soon")}
       isRefreshing={isLoading}
