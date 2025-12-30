@@ -131,56 +131,55 @@ export function CrewMissionStatusWidget({
         data-testid="crew-mission-status-widget"
       >
         <CardContent className="p-5">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div className="flex items-center gap-4 flex-1 min-w-0">
-              {status.performanceScore !== undefined && status.performanceScore !== null && (
-                <div 
-                  className={cn(
-                    "flex flex-col items-center justify-center w-14 h-14 rounded-xl shrink-0",
-                    status.performanceScore >= 90 ? "bg-green-500/10 text-green-600" :
-                    status.performanceScore >= 50 ? "bg-yellow-500/10 text-yellow-600" : 
-                    "bg-red-500/10 text-red-600"
-                  )}
-                  data-testid="score-badge-performance"
-                >
-                  <span className="text-xl font-bold leading-none">{Math.round(status.performanceScore)}</span>
-                  <span className="text-[10px] font-medium opacity-80 mt-0.5">Performance</span>
-                </div>
-              )}
-              {status.performanceScore === null && (
-                <div 
-                  className="flex flex-col items-center justify-center w-14 h-14 rounded-xl shrink-0 bg-muted text-muted-foreground"
-                  data-testid="score-badge-performance-empty"
-                >
-                  <span className="text-xl font-bold leading-none">—</span>
-                  <span className="text-[10px] font-medium opacity-80 mt-0.5">Performance</span>
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3 mb-2">
-                  <h2 className="text-lg font-semibold text-foreground">
-                    Mission Status
-                  </h2>
-                  <Badge
-                    variant="outline"
-                    className={cn("text-xs px-2.5 py-0.5 border", config.badgeClass)}
-                  >
-                    <StatusIcon className="w-3 h-3 mr-1" />
-                    {config.label}
-                  </Badge>
-                </div>
+          <div className="flex items-center gap-5">
+            {/* Left: Performance Score Badge */}
+            {(status.performanceScore !== undefined) && (
+              <div 
+                className={cn(
+                  "flex flex-col items-center justify-center w-16 h-16 rounded-xl shrink-0",
+                  status.performanceScore === null 
+                    ? "bg-muted text-muted-foreground"
+                    : status.performanceScore >= 90 
+                      ? "bg-green-500/10 text-green-600" 
+                      : status.performanceScore >= 50 
+                        ? "bg-yellow-500/10 text-yellow-600" 
+                        : "bg-red-500/10 text-red-600"
+                )}
+                data-testid={status.performanceScore === null ? "score-badge-performance-empty" : "score-badge-performance"}
+              >
+                <span className="text-2xl font-bold leading-none">
+                  {status.performanceScore === null ? "—" : Math.round(status.performanceScore)}
+                </span>
+                <span className="text-[10px] font-medium opacity-70 mt-1">Performance</span>
+              </div>
+            )}
 
-                <p className="text-sm text-muted-foreground mb-1">{status.summaryLine}</p>
+            {/* Center: Status Content Block */}
+            <div className="flex-1 min-w-0 space-y-1">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h2 className="text-base font-semibold text-foreground leading-tight">
+                  Mission Status
+                </h2>
+                <Badge
+                  variant="outline"
+                  className={cn("text-xs px-2 py-0.5 border", config.badgeClass)}
+                >
+                  <StatusIcon className="w-3 h-3 mr-1" />
+                  {config.label}
+                </Badge>
+              </div>
 
-                <div className="flex items-center gap-1.5 text-sm">
-                  <ArrowRight className="w-3.5 h-3.5 text-primary" />
-                  <span className="text-foreground font-medium">Next:</span>
-                  <span className="text-muted-foreground truncate">{status.nextStep}</span>
-                </div>
+              <p className="text-sm text-muted-foreground leading-snug">{status.summaryLine}</p>
+
+              <div className="flex items-center gap-1.5 text-sm">
+                <ArrowRight className="w-3.5 h-3.5 text-primary shrink-0" />
+                <span className="text-foreground/80 font-medium">Next:</span>
+                <span className="text-muted-foreground truncate">{status.nextStep}</span>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Right: Action Button */}
+            <div className="flex items-center gap-2 shrink-0">
               {lastPrUrl ? (
                 <Button
                   variant="outline"
