@@ -99,6 +99,7 @@ export default function SERPContent() {
   // Add keywords state
   const [newKeywords, setNewKeywords] = useState('');
   const [showBulkAdd, setShowBulkAdd] = useState(false);
+  const [promptInput, setPromptInput] = useState('');
 
   const runCheck = useMutation({
     mutationFn: async (limit: number) => {
@@ -488,6 +489,17 @@ export default function SERPContent() {
         impact: "medium",
       });
     }
+    
+    // Always show a monitoring status
+    if (items.length === 0) {
+      items.push({
+        id: "monitor-rankings",
+        title: `Tracking ${overview?.totalKeywords || 0} keywords`,
+        reason: `${stats.inTop10} in top 10, ${stats.numberOne} at #1 position`,
+        status: "done",
+        impact: "low",
+      });
+    }
     return items;
   }, [stats, overview]);
 
@@ -694,12 +706,46 @@ export default function SERPContent() {
       agentScoreTooltip="Percentage of keywords ranking in top 10"
       missionStatus={missionStatus}
       missions={missions}
-      kpis={kpis}
-      inspectorTabs={inspectorTabs}
+      kpis={[]}
+      inspectorTabs={[]}
       onRefresh={() => runCheck.mutate(50)}
       onSettings={() => {}}
       isRefreshing={runCheck.isPending}
     >
+      {/* Prompt Input for Lookout */}
+      <Card className="border-primary/20 mb-4">
+        <CardContent className="pt-4">
+          <div className="flex gap-2">
+            <Input
+              placeholder="Ask Lookout about your keyword rankings, suggest new keywords to track..."
+              value={promptInput}
+              onChange={(e) => setPromptInput(e.target.value)}
+              className="flex-1"
+              data-testid="input-lookout-prompt"
+            />
+            <Button 
+              onClick={() => {
+                if (promptInput.trim()) {
+                  toast({
+                    title: "Message sent to Lookout",
+                    description: "Feature coming soon - Lookout will analyze your request",
+                  });
+                  setPromptInput('');
+                }
+              }}
+              disabled={!promptInput.trim()}
+              data-testid="button-send-prompt"
+            >
+              <Brain className="h-4 w-4 mr-2" />
+              Ask
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Try: "What keywords should I focus on?" or "Add 'psychiatrist near me' to tracking"
+          </p>
+        </CardContent>
+      </Card>
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold">SERP Tracking</h2>
