@@ -566,122 +566,6 @@ function AgentSummaryGrid({ agents, totalAgents }: { agents: Array<{ serviceId: 
   );
 }
 
-function ActionQueueCard({ actions, siteId }: { actions: Array<{ id: number; title: string; sourceAgents: string[]; impact: string; effort: string; status: string }>; siteId: string }) {
-  const queryClient = useQueryClient();
-  const [approvingId, setApprovingId] = useState<number | null>(null);
-  
-  const { data: approvedData } = useQuery({
-    queryKey: ['/api/actions/approved', siteId],
-    queryFn: async () => {
-      const res = await fetch(`/api/actions/approved?siteId=${siteId}`);
-      return res.json();
-    },
-    staleTime: 30000,
-  });
-  
-  const approvedKeys = new Set((approvedData?.approvals || []).map((a: any) => a.actionKey));
-  const pendingActions = actions.filter(a => !approvedKeys.has(`action-${a.id}-${a.title.slice(0, 20)}`));
-  
-  const handleApprove = async (actionId: number, title: string) => {
-    const actionKey = `action-${actionId}-${title.slice(0, 20)}`;
-    setApprovingId(actionId);
-    try {
-      const res = await fetch('/api/actions/approve', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ siteId, actionKey, actionTitle: title }),
-      });
-      const data = await res.json();
-      if (!data.ok) throw new Error(data.error);
-      queryClient.invalidateQueries({ queryKey: ['/api/actions/approved', siteId] });
-      toast.success(`Approved: ${title}`);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to approve action");
-    } finally {
-      setApprovingId(null);
-    }
-  };
-  
-  return (
-    <Card className="bg-card/80 backdrop-blur-sm border-border rounded-2xl" data-testid="action-queue">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg text-foreground">Action Queue</CardTitle>
-          <Badge variant="outline" className="border-border text-muted-foreground">{pendingActions.length} pending</Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {pendingActions.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <CheckCircle2 className="w-8 h-8 mx-auto mb-2 opacity-50" />
-            <p>{approvedKeys.size > 0 ? "All actions approved!" : "No pending actions. Run diagnostics to generate missions."}</p>
-          </div>
-        ) : (
-          pendingActions.map((action, idx) => (
-            <div 
-              key={action.id} 
-              className="flex items-start gap-4 p-4 rounded-xl bg-card/60 backdrop-blur-sm border border-border hover:bg-card/80 transition-colors"
-              data-testid={`action-item-${action.id}`}
-            >
-              <div className={cn(
-                "flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold",
-                idx === 0 ? "bg-[var(--color-gold)] text-background" : "bg-muted text-muted-foreground"
-              )}>
-                {idx + 1}
-              </div>
-              <div className="flex-1 min-w-0">
-                <h4 className="font-semibold text-sm text-foreground">{action.title}</h4>
-                <div className="flex flex-wrap items-center gap-2 mt-2">
-                  {action.sourceAgents?.map((agentId) => {
-                    const crew = getCrewMember(agentId);
-                    return (
-                      <Link key={agentId} href={`/agents/${agentId}`}>
-                        <Badge 
-                          className="text-xs font-medium border-0 cursor-pointer hover:opacity-80 transition-opacity"
-                          style={{ 
-                            backgroundColor: `${crew.color}26`,
-                            color: crew.color 
-                          }}
-                        >
-                          {crew.nickname}
-                        </Badge>
-                      </Link>
-                    );
-                  })}
-                </div>
-                <div className="flex items-center gap-2 mt-2">
-                  <ImpactBadge impact={action.impact as any || "Medium"} />
-                  <EffortBadge effort={action.effort as any || "M"} />
-                  <StatusBadge status={action.status} />
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" className="text-xs border-border text-foreground hover:bg-muted rounded-xl">
-                  Review
-                </Button>
-                <Button 
-                  variant="purple" 
-                  size="sm" 
-                  className="text-xs rounded-xl"
-                  disabled={approvingId === action.id}
-                  onClick={() => handleApprove(action.id, action.title)}
-                  data-testid={`approve-action-${action.id}`}
-                >
-                  {approvingId === action.id ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                  ) : (
-                    "Approve"
-                  )}
-                </Button>
-              </div>
-            </div>
-          ))
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
 function VerificationBadge({ status }: { status?: string }) {
   if (status === 'verified') {
     return (
@@ -983,15 +867,6 @@ export default function MissionControl() {
     placeholderReason: recommendationsData?.placeholderReason || "Using mock data - run diagnostics to generate real recommendations"
   };
 
-  const mockActions = (captainData.priorities || []).map((p: any, idx: number) => ({
-    id: idx + 1,
-    title: p.title,
-    sourceAgents: p.agents?.map((a: any) => a.id || a.agentId) || [],
-    impact: p.impact,
-    effort: p.effort,
-    status: p.status || "new",
-  }));
-
   return (
     <DashboardLayout>
       <div className="space-y-6" data-testid="mission-control-page">
@@ -1160,8 +1035,6 @@ export default function MissionControl() {
         <MetricCardsRow />
 
         <AgentSummaryGrid agents={userAgents} totalAgents={USER_FACING_AGENTS.length} />
-
-        <ActionQueueCard actions={mockActions} siteId={currentSite?.siteId || "default"} />
 
         <BenchmarkComparison />
         
