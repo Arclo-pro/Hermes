@@ -43,6 +43,7 @@ const DASHBOARD_GET_PATHS = [
   "/api/metrics",
   "/api/qa",
   "/api/audit-logs",
+  "/api/achievements",
 ];
 
 // Paths that allow unauthenticated POST access (only basic safe operations)
@@ -62,6 +63,7 @@ const DASHBOARD_POST_PATHS = [
   "/api/kbase",
   "/api/qa",
   "/api/vault",
+  "/api/achievements",
 ];
 
 // Paths that allow same-origin POST access (UI actions, protected by origin check)
