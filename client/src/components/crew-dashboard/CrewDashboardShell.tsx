@@ -90,7 +90,7 @@ function InspectorTabContent({
         <AlertCircle className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
         <p className="text-muted-foreground mb-4">This section is temporarily unavailable</p>
         {onRetry && (
-          <Button variant="outline" size="sm" onClick={onRetry}>
+          <Button type="button" variant="outline" size="sm" onClick={onRetry}>
             <RefreshCw className="w-4 h-4 mr-2" />
             Retry
           </Button>
@@ -138,14 +138,23 @@ function MissionPrompt({
             placeholder={config.placeholder}
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleSubmit();
+              }
+            }}
             disabled={config.isLoading}
             className="flex-1"
             data-testid="input-mission-prompt"
           />
           <Button
+            type="button"
             size="icon"
-            onClick={handleSubmit}
+            onClick={(e) => {
+              e.preventDefault();
+              handleSubmit();
+            }}
             disabled={!question.trim() || config.isLoading}
             style={{ backgroundColor: question.trim() ? accentColor : undefined }}
             data-testid="button-submit-mission-prompt"
@@ -259,6 +268,7 @@ export function CrewDashboardShell({
             />
 
             <Button
+              type="button"
               variant="outline"
               size="icon"
               onClick={onRefresh}
@@ -270,6 +280,7 @@ export function CrewDashboardShell({
 
             {onSettings && (
               <Button
+                type="button"
                 variant="outline"
                 size="icon"
                 onClick={onSettings}
