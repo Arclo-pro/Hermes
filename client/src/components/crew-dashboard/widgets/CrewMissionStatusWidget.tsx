@@ -121,6 +121,16 @@ export function CrewMissionStatusWidget({
   const config = statusConfig[status.tier];
   const StatusIcon = config.icon;
 
+  const hasPerformanceScore = status.performanceScore !== undefined;
+  const scoreValue = status.performanceScore;
+  const scoreColor = scoreValue === null 
+    ? "text-muted-foreground" 
+    : scoreValue >= 90 
+      ? "text-green-500" 
+      : scoreValue >= 50 
+        ? "text-gold" 
+        : "text-red-500";
+
   return (
     <>
       <Card
@@ -130,32 +140,45 @@ export function CrewMissionStatusWidget({
         }}
         data-testid="crew-mission-status-widget"
       >
-        <CardContent className="p-5">
-          <div className="flex items-center gap-5">
-            {/* Left: Performance Score Badge */}
-            {(status.performanceScore !== undefined) && (
-              <div 
-                className={cn(
-                  "flex flex-col items-center justify-center w-16 h-16 rounded-xl shrink-0",
-                  status.performanceScore === null 
-                    ? "bg-muted text-muted-foreground"
-                    : status.performanceScore >= 90 
-                      ? "bg-green-500/10 text-green-600" 
-                      : status.performanceScore >= 50 
-                        ? "bg-yellow-500/10 text-yellow-600" 
-                        : "bg-red-500/10 text-red-600"
-                )}
-                data-testid={status.performanceScore === null ? "score-badge-performance-empty" : "score-badge-performance"}
-              >
-                <span className="text-2xl font-bold leading-none">
-                  {status.performanceScore === null ? "—" : Math.round(status.performanceScore)}
+        <div className="flex items-stretch">
+          {/* Left: Performance Score Block - anchored, full height */}
+          {hasPerformanceScore && (
+            <div 
+              className="w-24 shrink-0 flex flex-col items-center justify-center bg-muted/40 rounded-l-2xl border-r border-border/50"
+              style={{
+                background: "linear-gradient(135deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.08) 100%)",
+              }}
+              data-testid={scoreValue === null ? "score-block-performance-empty" : "score-block-performance"}
+            >
+              <div className="flex flex-col items-center justify-center py-5">
+                <div 
+                  className={cn(
+                    "w-14 h-14 rounded-full flex items-center justify-center",
+                    "ring-2 ring-offset-2 ring-offset-transparent",
+                    scoreValue === null 
+                      ? "bg-muted/60 ring-muted-foreground/30"
+                      : scoreValue >= 90 
+                        ? "bg-green-500/15 ring-green-500/40" 
+                        : scoreValue >= 50 
+                          ? "bg-gold/15 ring-gold/40" 
+                          : "bg-red-500/15 ring-red-500/40"
+                  )}
+                >
+                  <span className={cn("text-2xl font-bold leading-none", scoreColor)}>
+                    {scoreValue === null ? "—" : Math.round(scoreValue)}
+                  </span>
+                </div>
+                <span className="text-[11px] font-medium text-muted-foreground mt-2 tracking-wide">
+                  Performance
                 </span>
-                <span className="text-[10px] font-medium opacity-70 mt-1">Performance</span>
               </div>
-            )}
+            </div>
+          )}
 
+          {/* Middle + Right: Main content area */}
+          <div className="flex-1 flex items-center justify-between gap-4 p-5">
             {/* Center: Status Content Block */}
-            <div className="flex-1 min-w-0 space-y-1">
+            <div className="flex-1 min-w-0 space-y-1.5">
               <div className="flex items-center gap-2.5 flex-wrap">
                 <h2 className="text-base font-semibold text-foreground leading-tight">
                   Mission Status
@@ -176,10 +199,17 @@ export function CrewMissionStatusWidget({
                 <span className="text-foreground/80 font-medium">Next:</span>
                 <span className="text-muted-foreground truncate">{status.nextStep}</span>
               </div>
+
+              {status.priorityCount - status.autoFixableCount > 0 && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1 pt-1">
+                  <AlertCircle className="w-3 h-3" />
+                  Some items require manual setup ({status.priorityCount - status.autoFixableCount})
+                </p>
+              )}
             </div>
 
             {/* Right: Action Button */}
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center shrink-0">
               {lastPrUrl ? (
                 <Button
                   variant="outline"
@@ -208,17 +238,9 @@ export function CrewMissionStatusWidget({
                   Fix Everything
                 </Button>
               )}
-
             </div>
           </div>
-
-          {status.priorityCount - status.autoFixableCount > 0 && (
-            <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1">
-              <AlertCircle className="w-3 h-3" />
-              Some items require manual setup ({status.priorityCount - status.autoFixableCount})
-            </p>
-          )}
-        </CardContent>
+        </div>
       </Card>
 
       <Dialog open={confirmModalOpen} onOpenChange={setConfirmModalOpen}>
