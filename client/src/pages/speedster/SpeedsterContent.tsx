@@ -57,6 +57,8 @@ import {
 import { Label } from "@/components/ui/label";
 import {
   CrewDashboardShell,
+  CrewTopActionsBar,
+  type TopAction,
   type CrewIdentity,
   type MissionStatusState,
   type MissionItem,
@@ -661,80 +663,28 @@ export default function SpeedsterContent() {
       onSettings={() => toast.info("Settings coming soon")}
       isRefreshing={isRefetching}
     >
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-emerald-500/10">
-                <Zap className="w-6 h-6 text-emerald-500" />
-              </div>
-              <div>
-                <CardTitle>Core Web Vitals Overview</CardTitle>
-                <CardDescription>
-                  Performance metrics that measure real-world user experience
-                </CardDescription>
-              </div>
-            </div>
-            <Badge variant="outline" className={cn("text-sm", statusColors[overallStatus])}>
-              {overallStatus === 'good' && <CheckCircle className="w-4 h-4 mr-1" />}
-              {overallStatus === 'needs-improvement' && <AlertTriangle className="w-4 h-4 mr-1" />}
-              {overallStatus === 'poor' && <XCircle className="w-4 h-4 mr-1" />}
-              {overallStatus === 'unknown' && <Info className="w-4 h-4 mr-1" />}
-              {overallStatus === 'good' ? 'All Passing' : overallStatus === 'unknown' ? 'No Data' : 'Needs Attention'}
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <Clock className="w-4 h-4" />
-              <span>Last updated: {speedsterData?.capturedAt ? new Date(speedsterData.capturedAt).toLocaleString() : 'Never'}</span>
-            </div>
-            {speedsterData?.source && (
-              <div className="flex items-center gap-1">
-                <Info className="w-4 h-4" />
-                <span>Source: {speedsterData.source}</span>
-              </div>
-            )}
-            {speedsterData?.sampleCount && (
-              <div className="flex items-center gap-1">
-                <Activity className="w-4 h-4" />
-                <span>{speedsterData.sampleCount} URLs tested</span>
-              </div>
-            )}
-          </div>
-          
-          <div className="flex items-center gap-3 pt-2 border-t">
-            <Button 
-              variant="outline" 
-              onClick={() => refetch()}
-              disabled={isRefetching}
-              data-testid="button-run-vitals-scan"
-            >
-              <RefreshCw className={cn("w-4 h-4 mr-2", isRefetching && "animate-spin")} />
-              Run Vitals Scan
-            </Button>
-            <Button variant="outline" data-testid="button-export-fix-pack">
-              <ExternalLink className="w-4 h-4 mr-2" />
-              Export Fix Pack
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-      
-      <div className="grid gap-4 md:grid-cols-3">
-        {coreVitals.map((vital) => (
-          vital.value !== null ? (
-            <VitalCard key={vital.key} vital={vital} />
-          ) : (
-            <MissingDataCard 
-              key={vital.key} 
-              vital={vital.name} 
-              reason={`${vital.name} data is not available from the Core Web Vitals worker.`}
-            />
-          )
-        ))}
-      </div>
+      <CrewTopActionsBar
+        status={overallStatus}
+        lastUpdated={speedsterData?.capturedAt}
+        source={speedsterData?.source}
+        sampleCount={speedsterData?.sampleCount}
+        primaryActions={[
+          {
+            id: "run-vitals-scan",
+            label: "Run Vitals Scan",
+            icon: <RefreshCw className={cn("w-3.5 h-3.5", isRefetching && "animate-spin")} />,
+            onClick: () => refetch(),
+            disabled: isRefetching,
+            loading: isRefetching,
+          },
+          {
+            id: "export-fix-pack",
+            label: "Export Fix Pack",
+            icon: <ExternalLink className="w-3.5 h-3.5" />,
+            onClick: () => toast.info("Export coming soon"),
+          },
+        ]}
+      />
       
       {additionalMetrics.some(m => m.value !== null) && (
         <Card>
