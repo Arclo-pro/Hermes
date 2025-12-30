@@ -536,34 +536,40 @@ export default function SERPContent() {
 
   const kpis: KpiDescriptor[] = useMemo(() => [
     {
+      id: "top-1",
       label: "Top 1",
       value: `${stats.numberOne}`,
       tooltip: "Keywords ranking #1",
     },
     {
+      id: "top-3",
       label: "Top 3",
       value: `${stats.inTop3}`,
       tooltip: "Keywords ranking in top 3 positions",
     },
     {
+      id: "top-10",
       label: "Top 10",
       value: `${stats.inTop10}`,
       tooltip: "Keywords ranking in top 10 positions",
     },
     {
+      id: "avg-pos",
       label: "Avg Pos",
       value: stats.avgPosition != null ? `#${stats.avgPosition}` : "—",
       tooltip: "Average ranking position across all keywords",
     },
   ], [stats]);
 
-  const getImpactLabel = (score: number): "high" | "medium" | "low" => {
+  const getImpactLabel = (score: number | undefined): "high" | "medium" | "low" => {
+    if (score === undefined) return "medium";
     if (score >= 70) return "high";
     if (score >= 40) return "medium";
     return "low";
   };
 
-  const getEffortLabel = (score: number): "S" | "M" | "L" => {
+  const getEffortLabel = (score: number | undefined): "S" | "M" | "L" => {
+    if (score === undefined) return "M";
     if (score <= 30) return "S";
     if (score <= 60) return "M";
     return "L";
@@ -813,10 +819,10 @@ export default function SERPContent() {
       crew={crew}
       agentScore={agentScore}
       agentScoreTooltip="Percentage of keywords ranking in top 10"
-      missionStatus={missionStatus}
+      missionStatus={{ ...missionStatus, status: missionsLoading ? "loading" : "ready" }}
       missions={missions}
-      kpis={[]}
-      inspectorTabs={[]}
+      kpis={kpis}
+      inspectorTabs={inspectorTabs}
       onRefresh={() => {
         runCheck.mutate(50);
         queryClient.invalidateQueries({ queryKey: ['serp-missions'] });
