@@ -535,8 +535,9 @@ export default function SpeedsterContent() {
       priorityCount: needsWorkCount,
       autoFixableCount: autoFixable,
       status: isLoading ? "loading" as const : "ready" as const,
+      performanceScore: performanceScore ?? null,
     };
-  }, [vitals, fixPlan, isLoading]);
+  }, [vitals, fixPlan, isLoading, performanceScore]);
 
   const missions: MissionItem[] = useMemo(() => {
     const items: MissionItem[] = [];
@@ -720,41 +721,6 @@ export default function SpeedsterContent() {
           </div>
         </CardContent>
       </Card>
-      
-      {performanceScore !== null && performanceScore !== undefined && (
-        <Card className={cn(
-          "border-l-4",
-          performanceScore >= 90 ? "border-l-green-500" : 
-          performanceScore >= 50 ? "border-l-yellow-500" : "border-l-red-500"
-        )}>
-          <CardContent className="py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className={cn(
-                  "w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold",
-                  performanceScore >= 90 ? "bg-green-500/10 text-green-600" : 
-                  performanceScore >= 50 ? "bg-yellow-500/10 text-yellow-600" : "bg-red-500/10 text-red-600"
-                )}>
-                  {Math.round(performanceScore)}
-                </div>
-                <div>
-                  <h3 className="font-semibold">Lighthouse Performance Score</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {performanceScore >= 90 ? "Excellent! Your site is fast." : 
-                     performanceScore >= 50 ? "Room for improvement. Some optimizations needed." : 
-                     "Poor performance. Major optimizations required."}
-                  </p>
-                </div>
-              </div>
-              <div className="text-right text-sm text-muted-foreground">
-                <div>0-49: Poor</div>
-                <div>50-89: Needs Work</div>
-                <div>90-100: Good</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
       
       <div className="grid gap-4 md:grid-cols-3">
         {coreVitals.map((vital) => (

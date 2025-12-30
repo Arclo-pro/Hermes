@@ -50,6 +50,7 @@ export interface MissionStatusState {
   missingIntegrations?: number;
   autoFixableCount: number;
   status?: WidgetState;
+  performanceScore?: number | null;
 }
 
 export interface InspectorTab {

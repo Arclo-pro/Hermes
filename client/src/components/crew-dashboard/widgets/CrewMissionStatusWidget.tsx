@@ -132,26 +132,51 @@ export function CrewMissionStatusWidget({
       >
         <CardContent className="p-5">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-3 mb-2">
-                <h2 className="text-lg font-semibold text-foreground">
-                  Mission Status
-                </h2>
-                <Badge
-                  variant="outline"
-                  className={cn("text-xs px-2.5 py-0.5 border", config.badgeClass)}
+            <div className="flex items-center gap-4 flex-1 min-w-0">
+              {status.performanceScore !== undefined && status.performanceScore !== null && (
+                <div 
+                  className={cn(
+                    "flex flex-col items-center justify-center w-14 h-14 rounded-xl shrink-0",
+                    status.performanceScore >= 90 ? "bg-green-500/10 text-green-600" :
+                    status.performanceScore >= 50 ? "bg-yellow-500/10 text-yellow-600" : 
+                    "bg-red-500/10 text-red-600"
+                  )}
+                  data-testid="score-badge-performance"
                 >
-                  <StatusIcon className="w-3 h-3 mr-1" />
-                  {config.label}
-                </Badge>
-              </div>
+                  <span className="text-xl font-bold leading-none">{Math.round(status.performanceScore)}</span>
+                  <span className="text-[10px] font-medium opacity-80 mt-0.5">Score</span>
+                </div>
+              )}
+              {status.performanceScore === null && (
+                <div 
+                  className="flex flex-col items-center justify-center w-14 h-14 rounded-xl shrink-0 bg-muted text-muted-foreground"
+                  data-testid="score-badge-performance-empty"
+                >
+                  <span className="text-xl font-bold leading-none">—</span>
+                  <span className="text-[10px] font-medium opacity-80 mt-0.5">Score</span>
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-3 mb-2">
+                  <h2 className="text-lg font-semibold text-foreground">
+                    Mission Status
+                  </h2>
+                  <Badge
+                    variant="outline"
+                    className={cn("text-xs px-2.5 py-0.5 border", config.badgeClass)}
+                  >
+                    <StatusIcon className="w-3 h-3 mr-1" />
+                    {config.label}
+                  </Badge>
+                </div>
 
-              <p className="text-sm text-muted-foreground mb-1">{status.summaryLine}</p>
+                <p className="text-sm text-muted-foreground mb-1">{status.summaryLine}</p>
 
-              <div className="flex items-center gap-1.5 text-sm">
-                <ArrowRight className="w-3.5 h-3.5 text-primary" />
-                <span className="text-foreground font-medium">Next:</span>
-                <span className="text-muted-foreground truncate">{status.nextStep}</span>
+                <div className="flex items-center gap-1.5 text-sm">
+                  <ArrowRight className="w-3.5 h-3.5 text-primary" />
+                  <span className="text-foreground font-medium">Next:</span>
+                  <span className="text-muted-foreground truncate">{status.nextStep}</span>
+                </div>
               </div>
             </div>
 
