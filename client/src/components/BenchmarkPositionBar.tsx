@@ -24,49 +24,27 @@ export function BenchmarkPositionBar({
   const clampedValue = Math.max(min, Math.min(max, value));
   const position = ((clampedValue - min) / range) * 100;
 
+  const gradientDirection = direction === "lower-is-better" 
+    ? "to right" 
+    : "to left";
+
   return (
-    <div className="relative mt-2 mb-1">
-      <div className="h-2 rounded-full overflow-hidden flex">
-        {direction === "lower-is-better" ? (
-          <>
-            <div 
-              className="bg-green-500/40" 
-              style={{ width: `${((p50 - p25) / range) * 100}%` }} 
-            />
-            <div 
-              className="bg-yellow-500/40" 
-              style={{ width: `${((p75 - p50) / range) * 100}%` }} 
-            />
-            <div 
-              className="bg-red-500/40" 
-              style={{ width: `${((p90 - p75) / range) * 100}%` }} 
-            />
-          </>
-        ) : (
-          <>
-            <div 
-              className="bg-red-500/40" 
-              style={{ width: `${((p75 - p90) / range) * 100}%` }} 
-            />
-            <div 
-              className="bg-yellow-500/40" 
-              style={{ width: `${((p50 - p75) / range) * 100}%` }} 
-            />
-            <div 
-              className="bg-green-500/40" 
-              style={{ width: `${((p25 - p50) / range) * 100}%` }} 
-            />
-          </>
-        )}
-      </div>
-      
+    <div className="mt-2 mb-1">
       <div 
-        className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white border-2 border-foreground shadow-md"
-        style={{ 
-          left: `${position}%`,
-          transform: `translate(-50%, -50%)`,
+        className="relative h-2 rounded-full overflow-visible"
+        style={{
+          background: `linear-gradient(${gradientDirection}, #22c55e, #eab308, #ef4444)`,
         }}
-      />
+      >
+        <div 
+          className="absolute w-3 h-3 rounded-full bg-white border-2 border-foreground shadow-md"
+          style={{ 
+            left: `${position}%`,
+            top: '50%',
+            transform: 'translate(-50%, -50%)',
+          }}
+        />
+      </div>
 
       <div className="flex justify-between mt-1.5 text-[10px] text-muted-foreground">
         {direction === "lower-is-better" ? (
