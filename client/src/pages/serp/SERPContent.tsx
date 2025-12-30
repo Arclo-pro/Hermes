@@ -423,17 +423,25 @@ export default function SERPContent() {
     const coveragePercent = totalKeywords > 0 ? (inTop10 / totalKeywords) * 100 : 0;
 
     let tier: "looking_good" | "doing_okay" | "needs_attention" = "looking_good";
+    let summaryLine = `${inTop10} of ${totalKeywords} keywords in top 10`;
+    let nextStep = "Continue monitoring rankings";
+    
     if (coveragePercent < 30 || notRanking > totalKeywords * 0.3) {
       tier = "needs_attention";
+      summaryLine = `${notRanking} keywords not ranking`;
+      nextStep = "Focus on recovering non-ranking keywords";
     } else if (coveragePercent < 60) {
       tier = "doing_okay";
+      nextStep = "Work on improving positions";
     }
 
     return {
       tier,
-      blockers: notRanking,
-      priorities: totalKeywords - inTop10 - notRanking,
-      autoFixable: 0,
+      summaryLine,
+      nextStep,
+      priorityCount: totalKeywords - inTop10 - notRanking,
+      blockerCount: notRanking,
+      autoFixableCount: 0,
     };
   }, [overview, stats]);
 
@@ -599,9 +607,11 @@ export default function SERPContent() {
   if (!hasKeywords && !isLoading) {
     const emptyMissionStatus: MissionStatusState = {
       tier: "needs_attention",
-      blockers: 0,
-      priorities: 1,
-      autoFixable: 0,
+      summaryLine: "No keywords tracked yet",
+      nextStep: "Generate target keywords to start tracking",
+      priorityCount: 1,
+      blockerCount: 0,
+      autoFixableCount: 0,
     };
 
     const setupMissions: MissionItem[] = [{

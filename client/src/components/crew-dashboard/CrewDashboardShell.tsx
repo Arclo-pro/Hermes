@@ -242,15 +242,17 @@ export function CrewDashboardShell({
         onRetry={onRefresh}
       />
 
-      {/* 4. KPIs Strip */}
-      <Card className="bg-card/60 backdrop-blur-sm border-border">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg">Key Metrics</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <KpiStripWidget kpis={kpis} state={kpiState} onRetry={onRefresh} />
-        </CardContent>
-      </Card>
+      {/* 4. KPIs Strip - only show when there are KPIs */}
+      {kpis.length > 0 && (
+        <Card className="bg-card/60 backdrop-blur-sm border-border">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Key Metrics</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <KpiStripWidget kpis={kpis} state={kpiState} onRetry={onRefresh} />
+          </CardContent>
+        </Card>
+      )}
 
       {/* 5. Inspector / Details Area */}
       {inspectorTabs.length > 0 && (
