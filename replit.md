@@ -25,6 +25,13 @@ The platform now supports orchestrating SEO diagnostics across multiple sites:
 
 Preferred communication style: Simple, everyday language.
 
+### UI Component Preferences
+- **BenchmarkPositionBar**: Horizontal gradient bars showing percentile ranges (p25/p50/p75/p90) with white marker dots - use for metric comparisons across the platform
+- **Performance Score blocks**: Left-anchored 96px panels with gold ring styling for score displays
+- **InlinePrompt**: Embedded mission prompts in header containers with border-top separators
+- **CrewDashboardShell**: Standard shell for all crew dashboards with consistent header actions and mission/KPI structures
+- **Missing data states**: Explicit messages showing which API fields are unavailable, with "Run Scan" CTAs
+
 ## System Architecture
 
 ### Frontend Architecture

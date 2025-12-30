@@ -27,7 +27,9 @@ import {
   Loader2,
   Shield,
   FileCode,
-  Settings2
+  Settings2,
+  ListChecks,
+  FileWarning
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSiteContext } from "@/hooks/useSiteContext";
@@ -685,7 +687,163 @@ export default function SpeedsterContent() {
         </div>
       ),
     },
-  ], [coreVitals, additionalMetrics, allAdditionalMetricsMissing, missingAdditionalMetrics, isRefetching, refetch]);
+    {
+      id: "issues",
+      label: "Issues",
+      icon: <ListChecks className="w-4 h-4" />,
+      badge: speedsterData?.issueTypes?.length > 0 ? String(speedsterData.issueTypes.length) : undefined,
+      content: (() => {
+        const issueTypes = speedsterData?.issueTypes || [];
+        const issuesSummary = speedsterData?.issuesSummary;
+        const topUrls = speedsterData?.topUrls || [];
+        const hasNormalizedIssueData = issueTypes.length > 0 || issuesSummary;
+        
+        if (!hasNormalizedIssueData) {
+          return (
+            <div className="p-6 border border-dashed border-muted-foreground/30 rounded-lg bg-muted/20">
+              <div className="flex flex-col items-center text-center gap-3">
+                <FileWarning className="w-8 h-8 text-yellow-500" />
+                <div>
+                  <h4 className="font-medium text-foreground">Issue Breakdown Unavailable</h4>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Per-page issue data is not being returned by the Core Web Vitals worker.
+                  </p>
+                </div>
+                <div className="text-xs text-muted-foreground bg-muted/50 px-3 py-2 rounded-md font-mono text-left max-w-md">
+                  <div className="font-semibold mb-1">Needed fields:</div>
+                  <div>issuesSummary: {`{ totalPagesScanned, totalIssues, impactedPages }`}</div>
+                  <div className="mt-1">issueTypes: Array&lt;{`{ issueType, pagesAffected, severity, metric?, exampleUrl? }`}&gt;</div>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => refetch()}
+                  disabled={isRefetching}
+                  className="mt-2"
+                >
+                  <RefreshCw className={cn("w-4 h-4 mr-2", isRefetching && "animate-spin")} />
+                  Run Vitals Scan
+                </Button>
+              </div>
+            </div>
+          );
+        }
+        
+        const getSeverityBadge = (severity: string | number) => {
+          if (typeof severity === 'number') {
+            if (severity >= 3 || severity >= 1000) return { label: 'High', variant: 'destructive' as const };
+            if (severity >= 2 || severity >= 500) return { label: 'Medium', variant: 'secondary' as const };
+            return { label: 'Low', variant: 'outline' as const };
+          }
+          const s = String(severity).toLowerCase();
+          if (s === 'high' || s === 'critical') return { label: 'High', variant: 'destructive' as const };
+          if (s === 'medium' || s === 'moderate') return { label: 'Medium', variant: 'secondary' as const };
+          return { label: 'Low', variant: 'outline' as const };
+        };
+        
+        const totalPagesScanned = issuesSummary?.totalPagesScanned || topUrls.length || 0;
+        const totalIssues = issuesSummary?.totalIssues || issueTypes.length || 0;
+        const impactedPages = issuesSummary?.impactedPages || 0;
+        
+        return (
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-3">
+              <div className="p-3 rounded-lg bg-muted/50 border text-center">
+                <div className="text-2xl font-bold text-foreground">{totalPagesScanned}</div>
+                <div className="text-xs text-muted-foreground">Pages Scanned</div>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/50 border text-center">
+                <div className="text-2xl font-bold text-foreground">{totalIssues}</div>
+                <div className="text-xs text-muted-foreground">Issues Found</div>
+              </div>
+              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-center">
+                <div className="text-2xl font-bold text-red-600">{impactedPages}</div>
+                <div className="text-xs text-muted-foreground">Pages Impacted</div>
+              </div>
+            </div>
+            
+            {issueTypes.length > 0 && (
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="text-left p-3 font-medium">Issue Type</th>
+                      <th className="text-center p-3 font-medium w-24">Pages</th>
+                      <th className="text-center p-3 font-medium w-20">Severity</th>
+                      <th className="text-center p-3 font-medium w-20">Metric</th>
+                      <th className="text-left p-3 font-medium">Example URL</th>
+                      <th className="text-right p-3 font-medium w-20">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {issueTypes.map((issue: any, i: number) => {
+                      const severity = getSeverityBadge(issue.severity);
+                      return (
+                        <tr key={i} className="border-t">
+                          <td className="p-3">
+                            <div className="font-medium">{issue.issueType}</div>
+                          </td>
+                          <td className="p-3 text-center font-medium">
+                            {issue.pagesAffected ?? '—'}
+                          </td>
+                          <td className="p-3 text-center">
+                            <Badge variant={severity.variant}>{severity.label}</Badge>
+                          </td>
+                          <td className="p-3 text-center">
+                            <Badge variant="outline">{issue.metric || 'Other'}</Badge>
+                          </td>
+                          <td className="p-3 text-muted-foreground truncate max-w-[200px]">
+                            {issue.exampleUrl ? (
+                              <a 
+                                href={issue.exampleUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="hover:text-foreground hover:underline"
+                              >
+                                {issue.exampleUrl.replace(/^https?:\/\/[^/]+/, '')}
+                              </a>
+                            ) : '—'}
+                          </td>
+                          <td className="p-3 text-right">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-7 text-xs"
+                              onClick={() => toast.info(`Viewing ${issue.pagesAffected || 'affected'} pages with "${issue.issueType}" issue`)}
+                            >
+                              View
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            
+            {topUrls.length > 0 && (
+              <div className="mt-4">
+                <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+                  <FileWarning className="w-4 h-4 text-orange-500" />
+                  Top Affected URLs
+                </h4>
+                <div className="space-y-1 text-sm">
+                  {topUrls.slice(0, 5).map((url: any, i: number) => (
+                    <div key={i} className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50">
+                      <span className="truncate flex-1 text-muted-foreground">{url.path || url.url}</span>
+                      <span className="text-red-500 text-xs ml-2">LCP: {url.lcp?.toFixed(2) || '—'}s</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })(),
+    },
+  ], [coreVitals, additionalMetrics, allAdditionalMetricsMissing, missingAdditionalMetrics, isRefetching, refetch, speedsterData]);
   
   if (isLoading) {
     return (
