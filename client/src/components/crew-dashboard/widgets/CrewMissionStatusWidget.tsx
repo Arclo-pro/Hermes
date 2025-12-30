@@ -144,7 +144,7 @@ export function CrewMissionStatusWidget({
                   data-testid="score-badge-performance"
                 >
                   <span className="text-xl font-bold leading-none">{Math.round(status.performanceScore)}</span>
-                  <span className="text-[10px] font-medium opacity-80 mt-0.5">Score</span>
+                  <span className="text-[10px] font-medium opacity-80 mt-0.5">Performance</span>
                 </div>
               )}
               {status.performanceScore === null && (
@@ -153,7 +153,7 @@ export function CrewMissionStatusWidget({
                   data-testid="score-badge-performance-empty"
                 >
                   <span className="text-xl font-bold leading-none">—</span>
-                  <span className="text-[10px] font-medium opacity-80 mt-0.5">Score</span>
+                  <span className="text-[10px] font-medium opacity-80 mt-0.5">Performance</span>
                 </div>
               )}
               <div className="flex-1 min-w-0">
