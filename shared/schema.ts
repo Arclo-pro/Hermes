@@ -355,6 +355,38 @@ export const insertSerpRankingSchema = createInsertSchema(serpRankings).omit({
 export type InsertSerpRanking = z.infer<typeof insertSerpRankingSchema>;
 export type SerpRanking = typeof serpRankings.$inferSelect;
 
+// Keyword Improvement Actions
+export const keywordActions = pgTable("keyword_actions", {
+  id: serial("id").primaryKey(),
+  keywordId: integer("keyword_id"), // nullable for grouped actions
+  actionType: text("action_type").notNull(), // create_page, improve_page, add_links, add_content, improve_intent, local_signals, optimize_speed, add_schema
+  title: text("title").notNull(), // Human-readable action title
+  description: text("description"), // Detailed description
+  targetKeywords: text("target_keywords").array(), // Keywords affected by this action
+  targetUrl: text("target_url"), // URL to improve or create
+  impactScore: integer("impact_score").notNull().default(50), // 0-100
+  effortScore: integer("effort_score").notNull().default(50), // 0-100 (lower = easier)
+  status: text("status").notNull().default("pending"), // pending, queued, in_progress, completed, failed
+  priority: integer("priority").default(50), // Calculated priority for display ordering
+  reason: text("reason"), // Why this action is recommended
+  metadata: jsonb("metadata"), // Additional action-specific data
+  executedAt: timestamp("executed_at"),
+  completedAt: timestamp("completed_at"),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertKeywordActionSchema = createInsertSchema(keywordActions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  executedAt: true,
+  completedAt: true,
+});
+export type InsertKeywordAction = z.infer<typeof insertKeywordActionSchema>;
+export type KeywordAction = typeof keywordActions.$inferSelect;
+
 // Sites Registry for Multi-Site Orchestration
 export const sites = pgTable("sites", {
   id: serial("id").primaryKey(),
