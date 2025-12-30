@@ -59,6 +59,8 @@ import {
   type KpiDescriptor,
   type InspectorTab,
   type WidgetState,
+  type MissionPromptConfig,
+  type HeaderAction,
 } from "@/components/crew-dashboard";
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -692,8 +694,30 @@ export default function NatashaContent() {
   const { currentSite } = useSiteContext();
   const queryClient = useQueryClient();
   const [isRunning, setIsRunning] = useState(false);
+  const [isAskingNatasha, setIsAskingNatasha] = useState(false);
 
   const siteId = currentSite?.siteId || "default";
+  
+  const handleAskNatasha = async (question: string) => {
+    setIsAskingNatasha(true);
+    try {
+      const res = await fetch('/api/crew/natasha/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteId, question }),
+      });
+      const data = await res.json();
+      if (data.ok && data.answer) {
+        toast.success(data.answer, { duration: 10000 });
+      } else {
+        toast.error(data.error || 'Failed to get answer from Natasha');
+      }
+    } catch {
+      toast.error('Failed to ask Natasha');
+    } finally {
+      setIsAskingNatasha(false);
+    }
+  };
 
   const { data: overview, isLoading, error, refetch } = useQuery<CompetitiveOverview>({
     queryKey: ["competitive-overview", siteId],
@@ -928,6 +952,24 @@ export default function NatashaContent() {
     ];
   }, [data, summary, error, isLoading, isRunning, handleRefresh]);
 
+  const missionPrompt: MissionPromptConfig = {
+    label: "Ask Natasha",
+    placeholder: "e.g., Who is my top competitor? Where am I losing keywords?",
+    onSubmit: handleAskNatasha,
+    isLoading: isAskingNatasha,
+  };
+
+  const headerActions: HeaderAction[] = [
+    {
+      id: "run-analysis",
+      icon: <RefreshCw className={cn("w-4 h-4", isRunning && "animate-spin")} />,
+      tooltip: "Run Competitive Analysis",
+      onClick: handleRefresh,
+      disabled: isRunning,
+      loading: isRunning,
+    },
+  ];
+
   return (
     <CrewDashboardShell
       crew={crewIdentity}
@@ -937,6 +979,8 @@ export default function NatashaContent() {
       missions={missions}
       kpis={kpis}
       inspectorTabs={inspectorTabs}
+      missionPrompt={missionPrompt}
+      headerActions={headerActions}
       onRefresh={handleRefresh}
       onSettings={() => toast.info("Settings coming soon")}
       onFixEverything={() => toast.info("Fix everything coming soon")}

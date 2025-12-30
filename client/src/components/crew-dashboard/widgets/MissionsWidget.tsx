@@ -14,6 +14,67 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MissionItem, WidgetState } from "../types";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
+function ImpactIndicator({ impact }: { impact: string }) {
+  const config = {
+    high: { color: 'bg-red-500', bars: 3 },
+    medium: { color: 'bg-yellow-500', bars: 2 },
+    low: { color: 'bg-green-500', bars: 1 },
+  }[impact.toLowerCase()] || { color: 'bg-muted', bars: 1 };
+  
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="flex items-end gap-0.5 h-4">
+            {[1, 2, 3].map((bar) => (
+              <div
+                key={bar}
+                className={cn(
+                  "w-1 rounded-sm transition-colors",
+                  bar <= config.bars ? config.color : "bg-muted/40"
+                )}
+                style={{ height: `${bar * 4 + 4}px` }}
+              />
+            ))}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent><p>{impact} Impact</p></TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+function EffortIndicator({ effort }: { effort: string }) {
+  const effortMap: Record<string, { label: string; icon: string }> = {
+    'XS': { label: 'Quick', icon: '⚡' },
+    'S': { label: 'Quick', icon: '⚡' },
+    'M': { label: 'Medium', icon: '⏱' },
+    'L': { label: 'Long', icon: '📅' },
+    'XL': { label: 'Long', icon: '📅' },
+    'easy': { label: 'Quick', icon: '⚡' },
+    'medium': { label: 'Medium', icon: '⏱' },
+    'hard': { label: 'Long', icon: '📅' },
+  };
+  const config = effortMap[effort] || effortMap['M'];
+  
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="text-xs text-muted-foreground">{config.icon}</span>
+        </TooltipTrigger>
+        <TooltipContent><p>{config.label} effort</p></TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
 
 interface MissionsWidgetProps {
   missions: MissionItem[];
@@ -62,12 +123,6 @@ function MissionRow({
   const config = statusConfig[mission.status];
   const StatusIcon = config.icon;
 
-  const impactColors = {
-    high: "bg-semantic-danger-soft text-semantic-danger border-semantic-danger-border",
-    medium: "bg-semantic-warning-soft text-semantic-warning border-semantic-warning-border",
-    low: "bg-muted text-muted-foreground border-border",
-  };
-
   return (
     <div
       className="flex items-start gap-4 p-4 rounded-xl bg-card/40 border border-border hover:border-primary/30 transition-colors"
@@ -85,34 +140,18 @@ function MissionRow({
       </div>
 
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <h4 className="font-medium text-foreground">{mission.title}</h4>
-          {mission.impact && (
-            <Badge
-              variant="outline"
-              className={cn("text-xs", impactColors[mission.impact])}
-            >
-              {mission.impact} impact
-            </Badge>
-          )}
-          {mission.effort && (
-            <span className="text-xs text-muted-foreground">
-              Effort: {mission.effort}
-            </span>
-          )}
-        </div>
+        <h4 className="font-medium text-foreground">{mission.title}</h4>
 
         {(mission.reason || mission.expectedOutcome) && (
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
             {mission.reason || mission.expectedOutcome}
           </p>
         )}
 
-        {mission.agents && mission.agents.length > 0 && (
-          <p className="text-xs text-muted-foreground mt-1">
-            Assigned: {mission.agents.join(", ")}
-          </p>
-        )}
+        <div className="flex items-center gap-3 mt-2">
+          {mission.impact && <ImpactIndicator impact={mission.impact} />}
+          {mission.effort && <EffortIndicator effort={mission.effort} />}
+        </div>
       </div>
 
       <div className="flex items-center gap-2 shrink-0">
@@ -152,12 +191,13 @@ function MissionRow({
           </Button>
         ))}
 
-        {/* Default Start button for pending missions without any action */}
+        {/* Default Fix it button for pending missions without any action */}
         {!mission.action && !mission.actions?.length && mission.status === "pending" && (
           <Button
             type="button"
-            variant="outline"
+            variant="default"
             size="sm"
+            className="bg-emerald-600 hover:bg-emerald-700"
             onClick={(e) => {
               e.preventDefault();
               onAction?.("approve");
@@ -165,7 +205,7 @@ function MissionRow({
             data-testid={`button-mission-${mission.id}-approve`}
           >
             <Play className="w-4 h-4 mr-1" />
-            Start
+            Fix it
           </Button>
         )}
 
