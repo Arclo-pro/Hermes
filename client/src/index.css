@@ -45,6 +45,9 @@
   --color-surface-card-active: rgba(148,163,184,0.08);
   --color-surface-card-disabled: rgba(148,163,184,0.03);
   
+  /* Overlay surface - opaque for pullouts, dropdowns, menus (90-95% opacity) */
+  --color-overlay-surface: rgba(17, 24, 39, 0.95);
+  
   /* Gold highlight system */
   --color-gold: #F59E0B;
   --color-gold-soft: rgba(245, 158, 11, 0.15);

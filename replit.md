@@ -45,6 +45,13 @@ Reusable analytics visualization package in `client/src/components/analytics/`:
 
 Color system: Uses ARCLO semantic colors only (success=green, warning=yellow, danger=red, info=blue, purple=secondary)
 
+### Overlay Surface Design (CRITICAL)
+All overlay/pullout UI must use opaque surfaces for readability:
+- **CSS Variable**: `--color-overlay-surface: rgba(17, 24, 39, 0.95)` (95% opacity dark surface)
+- **Affected Components**: Sheet, Dialog, AlertDialog, DropdownMenu, Select, Popover, ContextMenu, Command, HoverCard, Menubar, NavigationMenu
+- **Rule**: Background content must NOT be legible through any pullout/overlay panel
+- **Usage**: `bg-[var(--color-overlay-surface)] backdrop-blur-md`
+
 ## System Architecture
 
 ### Frontend Architecture
