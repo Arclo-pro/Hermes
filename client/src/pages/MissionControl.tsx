@@ -413,12 +413,102 @@ function MetricCardsRow() {
 }
 
 
-function AgentSummaryCard({ agent }: { agent: { serviceId: string; score: number; status: 'good' | 'watch' | 'bad'; keyMetric: string; keyMetricValue: string; delta: string; whatChanged: string } }) {
+function AgentSummaryCard({ agent, enabled = true }: { agent: { serviceId: string; score: number; status: 'good' | 'watch' | 'bad' | 'neutral'; keyMetric: string; keyMetricValue: string; delta: string; whatChanged: string }; enabled?: boolean }) {
   const crew = getCrewMember(agent.serviceId);
   const mockData = getMockAgentData(agent.serviceId);
   
   const tintedGlassStyles = getTintedGlassStyles(crew.color);
   const crewBadgeStyles = getCrewBadgeStyles(crew.color);
+
+  const handleHireCrew = () => {
+    window.location.href = '/crew';
+  };
+  
+  if (!enabled) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Card 
+              className="transition-all backdrop-blur-sm rounded-xl overflow-hidden h-full flex flex-col relative cursor-pointer group"
+              style={{ 
+                ...tintedGlassStyles,
+                opacity: 0.55,
+                filter: 'grayscale(35%)',
+              }}
+              onClick={handleHireCrew}
+              data-testid={`agent-summary-${agent.serviceId}-disabled`}
+            >
+              <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-transparent to-transparent z-10" />
+              
+              <div className="absolute top-3 right-3 z-20">
+                <Button 
+                  size="sm"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg text-xs h-7 px-3"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleHireCrew();
+                  }}
+                  data-testid={`button-hire-${agent.serviceId}`}
+                >
+                  <Users className="w-3 h-3 mr-1.5" />
+                  Hire Crew
+                </Button>
+              </div>
+              
+              <CardContent className="p-4 flex flex-col flex-1 pointer-events-none">
+                <div className="flex items-start gap-3 mb-3">
+                  {crew.avatar ? (
+                    <img 
+                      src={crew.avatar} 
+                      alt={crew.nickname}
+                      className="w-12 h-12 object-contain flex-shrink-0"
+                    />
+                  ) : (
+                    <div 
+                      className="w-12 h-12 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
+                      style={{ backgroundColor: crew.color }}
+                    >
+                      {crew.nickname.slice(0, 2)}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-base" style={{ color: crew.color }}>{crew.nickname}</h4>
+                    <p className="text-xs text-muted-foreground truncate">{crew.role}</p>
+                    {crew.shortDescription && (
+                      <p className="text-xs text-muted-foreground/70 truncate">{crew.shortDescription}</p>
+                    )}
+                    <div className="w-full h-1.5 rounded-full bg-muted mt-1 overflow-hidden">
+                      <div 
+                        className="h-full rounded-full transition-all bg-muted-foreground/30"
+                        style={{ width: '0%' }}
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-baseline gap-2 mb-1">
+                  <span className="text-xl font-bold text-muted-foreground">—</span>
+                </div>
+                <p className="text-xs text-muted-foreground mb-1">Unlock missions + KPIs</p>
+                
+                <div className="flex-1" />
+                
+                <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
+                  <Badge variant="outline" className="text-xs px-2 py-0.5 rounded-full border border-muted-foreground/30 text-muted-foreground">
+                    Not Hired
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="max-w-xs">
+            <p className="text-sm">Activate this crew member to unlock insights and fixes.</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
   
   return (
     <Card 
@@ -536,12 +626,15 @@ function AgentSummaryCard({ agent }: { agent: { serviceId: string; score: number
 }
 
 function AgentSummaryGrid({ agents, totalAgents }: { agents: Array<{ serviceId: string; score: number; status: 'good' | 'watch' | 'bad' }>; totalAgents: number }) {
+  const enabledIds = new Set(agents.map(a => a.serviceId));
   const enabledCount = agents.length;
-  const agentData = agents.map(agent => {
+  
+  const enabledAgentData = agents.map(agent => {
     const mockData = getMockAgentData(agent.serviceId);
     const finding = mockData?.findings?.[0];
     return {
       ...agent,
+      enabled: true,
       keyMetric: finding?.label || "Agent score",
       keyMetricValue: String(finding?.value || agent.score),
       delta: agent.score >= 70 ? "+5%" : agent.score >= 40 ? "-12%" : "-50%",
@@ -549,17 +642,38 @@ function AgentSummaryGrid({ agents, totalAgents }: { agents: Array<{ serviceId: 
     };
   });
 
+  const disabledAgentData = USER_FACING_AGENTS
+    .filter(id => !enabledIds.has(id))
+    .map(serviceId => ({
+      serviceId,
+      score: 0,
+      status: 'neutral' as const,
+      enabled: false,
+      keyMetric: "Not hired",
+      keyMetricValue: "—",
+      delta: "—",
+      whatChanged: "Hire to enable missions and insights",
+    }));
+
+  const allAgentData = [...enabledAgentData, ...disabledAgentData];
+
   return (
     <div data-testid="agent-summary-grid">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <h2 className="text-lg font-semibold text-foreground">Crew Summary</h2>
-          <Badge variant="secondary" className="text-xs bg-muted text-muted-foreground">{enabledCount} of {totalAgents} enabled</Badge>
+          <Badge variant="secondary" className="text-xs bg-muted text-muted-foreground">{enabledCount} of {totalAgents} hired</Badge>
         </div>
+        <Link href="/crew">
+          <Button variant="outline" size="sm" className="text-xs border-dashed border-primary/50 text-primary hover:bg-primary/5">
+            <Users className="w-3 h-3 mr-1.5" />
+            Hire Crew
+          </Button>
+        </Link>
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {agentData.map((agent) => (
-          <AgentSummaryCard key={agent.serviceId} agent={agent} />
+        {allAgentData.map((agent) => (
+          <AgentSummaryCard key={agent.serviceId} agent={agent} enabled={agent.enabled} />
         ))}
       </div>
     </div>
@@ -978,7 +1092,7 @@ export default function MissionControl() {
                 data-testid="button-add-crew"
               >
                 <Users className="w-4 h-4 mr-2" />
-                Add Crew
+                Hire Crew
               </Button>
             </Link>
             <Button 

@@ -228,7 +228,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   )}
                 >
                   <Users className="w-4 h-4 shrink-0" />
-                  <span className="truncate">Add Crew</span>
+                  <span className="truncate">Hire Crew</span>
                 </div>
                 <div
                   className={cn(
@@ -284,7 +284,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   data-testid="link-nav-add-more-crew"
                 >
                   <Plus className="w-4 h-4" />
-                  <span className="truncate">Add more crew</span>
+                  <span className="truncate">Hire more crew</span>
                 </div>
               </Link>
             </CollapsibleContent>
