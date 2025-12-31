@@ -573,6 +573,19 @@ export default function PulseContent() {
       nextStep = "Review moderate drops for patterns";
     }
 
+    // Calculate performance score based on health checks and drops
+    let performanceScore: number | null = null;
+    if (report && parsed) {
+      const healthChecks = parsed.healthChecks || [];
+      const healthyCount = healthChecks.filter(h => h.status === 'healthy').length;
+      const totalChecks = healthChecks.length;
+      if (totalChecks > 0) {
+        const healthPercent = (healthyCount / totalChecks) * 100;
+        // Reduce score by 10 points per severe drop and 5 per moderate drop
+        performanceScore = Math.max(0, Math.round(healthPercent - (severeDrops * 10) - (moderateDrops * 5)));
+      }
+    }
+
     return {
       tier,
       summaryLine,
@@ -581,7 +594,7 @@ export default function PulseContent() {
       priorityCount: moderateDrops,
       autoFixableCount: 0,
       status: isLoading ? "loading" as const : "ready" as const,
-      performanceScore: null,
+      performanceScore,
     };
   }, [parsed, report, isLoading]);
 
