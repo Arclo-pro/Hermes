@@ -32,6 +32,13 @@ export interface MissionItem {
     disabled?: boolean;
   };
   meta?: Record<string, unknown>;
+  completedAt?: string;
+}
+
+export interface CompletedAction {
+  id: string;
+  title: string;
+  completedAt: string;
 }
 
 export interface MissionAction {
@@ -95,6 +102,7 @@ export interface CrewDashboardShellProps {
   agentScoreTooltip?: string;
   missionStatus: MissionStatusState;
   missions: MissionItem[];
+  recentlyCompleted?: CompletedAction | null;
   kpis?: KpiDescriptor[];
   inspectorTabs: InspectorTab[];
   missionPrompt?: MissionPromptConfig;
@@ -102,6 +110,7 @@ export interface CrewDashboardShellProps {
   onRefresh?: () => void;
   onSettings?: () => void;
   onFixEverything?: () => void;
+  onViewAllMissions?: () => void;
   isRefreshing?: boolean;
   children?: ReactNode;
 }

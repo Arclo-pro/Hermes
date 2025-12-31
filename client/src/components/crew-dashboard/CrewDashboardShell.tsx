@@ -14,8 +14,7 @@ import { RefreshCw, Settings, HelpCircle, AlertCircle, MessageSquare, Send, Load
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { CrewMissionStatusWidget } from "./widgets/CrewMissionStatusWidget";
-import { MissionsWidget } from "./widgets/MissionsWidget";
+import { MissionOverviewWidget } from "./widgets/MissionOverviewWidget";
 import { KpiStripWidget } from "./widgets/KpiStripWidget";
 import type { CrewDashboardShellProps, WidgetState, HeaderAction } from "./types";
 
@@ -176,6 +175,7 @@ export function CrewDashboardShell({
   agentScoreTooltip,
   missionStatus,
   missions,
+  recentlyCompleted,
   kpis = [],
   inspectorTabs,
   missionPrompt,
@@ -183,14 +183,12 @@ export function CrewDashboardShell({
   onRefresh,
   onSettings,
   onFixEverything,
+  onViewAllMissions,
   isRefreshing = false,
   children,
 }: CrewDashboardShellProps) {
   const missionStatusState: WidgetState =
     missionStatus.status || (missionStatus.priorityCount >= 0 ? "ready" : "loading");
-
-  const missionsState: WidgetState =
-    missions.length > 0 ? "ready" : missionStatus.status === "loading" ? "loading" : "empty";
 
   const kpiState: WidgetState =
     kpis.length > 0 && kpis.some((k) => k.value !== null) ? "ready" : "empty";
@@ -329,18 +327,14 @@ export function CrewDashboardShell({
         )}
       </div>
 
-      {/* Mission Status Widget */}
-      <CrewMissionStatusWidget
+      {/* Mission Overview Widget - merged Status + Missions + Recently Completed */}
+      <MissionOverviewWidget
         status={missionStatus}
+        missions={missions}
+        recentlyCompleted={recentlyCompleted}
         state={missionStatusState}
         onFixEverything={onFixEverything}
-        onRetry={onRefresh}
-      />
-
-      {/* 3. Missions Widget */}
-      <MissionsWidget
-        missions={missions}
-        state={missionsState}
+        onViewAllMissions={onViewAllMissions}
         onRetry={onRefresh}
       />
 
