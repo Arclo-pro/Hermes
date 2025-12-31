@@ -93,7 +93,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     addSiteMutation.mutate({ displayName: newSiteName.trim(), baseUrl: url });
   };
 
-  const [crewExpanded, setCrewExpanded] = useState(false);
+  const [crewExpanded, setCrewExpanded] = useState(true);
   
   const navItems = [
     { href: "/dashboard", label: "Mission Control", icon: LayoutDashboard },
@@ -207,44 +207,41 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             </div>
           </Link>
           
-          {/* My Crew - expandable with crew members */}
+          {/* Add Crew - expandable with crew members */}
           <Collapsible open={crewExpanded} onOpenChange={setCrewExpanded}>
-            <div 
-              className={cn(
-                "flex items-center justify-between rounded-md transition-colors group",
-                location === "/crew" || location.startsWith("/agents/") || crewExpanded
-                  ? "bg-primary/10" 
-                  : "hover:bg-muted"
-              )}
-            >
-              <Link href="/crew" className="flex-1 min-w-0">
+            <CollapsibleTrigger asChild>
+              <div 
+                className={cn(
+                  "flex items-center justify-between rounded-md transition-colors group cursor-pointer",
+                  location.startsWith("/agents/") || crewExpanded
+                    ? "bg-primary/10" 
+                    : "hover:bg-muted"
+                )}
+                data-testid="button-toggle-crew"
+              >
                 <div 
                   className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-colors cursor-pointer",
-                    location === "/crew"
+                    "flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-colors",
+                    location.startsWith("/agents/") || crewExpanded
                       ? "text-primary" 
                       : "text-muted-foreground group-hover:text-foreground"
                   )}
-                  data-testid="link-nav-my-crew"
                 >
                   <Users className="w-4 h-4 shrink-0" />
-                  <span className="truncate">My Crew</span>
+                  <span className="truncate">Add Crew</span>
                 </div>
-              </Link>
-              <CollapsibleTrigger asChild>
-                <button
+                <div
                   className={cn(
                     "px-3 py-2.5 transition-colors shrink-0",
                     location.startsWith("/agents/") || crewExpanded
                       ? "text-primary" 
                       : "text-muted-foreground/60 group-hover:text-foreground"
                   )}
-                  data-testid="button-expand-crew"
                 >
                   <ChevronRight className={cn("w-4 h-4 transition-transform", crewExpanded && "rotate-90")} />
-                </button>
-              </CollapsibleTrigger>
-            </div>
+                </div>
+              </div>
+            </CollapsibleTrigger>
             <CollapsibleContent className="pl-4 mt-1 space-y-0.5">
               {crewMembers.map((member) => {
                 const isActive = location === `/agents/${member.service_id}`;
@@ -274,22 +271,24 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   </Link>
                 );
               })}
+              
+              {/* Add more crew link */}
+              <Link href="/crew">
+                <div 
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors cursor-pointer border border-dashed border-primary/30 hover:border-primary hover:bg-primary/5",
+                    location === "/crew"
+                      ? "bg-primary/10 text-primary border-primary" 
+                      : "text-primary/70 hover:text-primary"
+                  )}
+                  data-testid="link-nav-add-more-crew"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span className="truncate">Add more crew</span>
+                </div>
+              </Link>
             </CollapsibleContent>
           </Collapsible>
-          
-          {/* Add Crew - first-class CTA */}
-          <Link href="/crew">
-            <div 
-              className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors cursor-pointer border border-dashed border-primary/40 hover:border-primary hover:bg-primary/5",
-                "text-primary"
-              )}
-              data-testid="link-nav-add-crew"
-            >
-              <Plus className="w-4 h-4" />
-              Add Crew
-            </div>
-          </Link>
           
           {navItems.slice(1).map((item) => {
             const Icon = item.icon;
