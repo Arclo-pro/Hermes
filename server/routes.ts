@@ -3457,14 +3457,68 @@ When answering:
         }
       }
       
-      // Save all findings
-      const findingsCount = findingsToSave.length;
+      // Save all findings - verify by checking delta
+      const writtenCount = findingsToSave.length;
+      let writeVerified = false;
+      let totalBefore = 0;
+      let totalAfter = 0;
+      
       if (findingsToSave.length > 0) {
+        // Get count before write for delta comparison
+        totalBefore = await storage.getFindingsCount(siteId, 'seo_kbase');
+        
         await storage.saveFindings(findingsToSave);
         logger.info("KBASE", `Saved ${findingsToSave.length} KBASE findings`, { runId });
+        
+        // Verify the write by comparing delta (totalAfter - totalBefore should match writtenCount)
+        totalAfter = await storage.getFindingsCount(siteId, 'seo_kbase');
+        const delta = totalAfter - totalBefore;
+        writeVerified = delta === writtenCount;
+        logger.info("KBASE", `Write verification: ${writeVerified}, before=${totalBefore}, after=${totalAfter}, delta=${delta}, written=${writtenCount}`);
+        
+        // If verification failed, return error
+        if (!writeVerified) {
+          logger.error("KBASE", "Write verification failed", { delta, writtenCount, runId });
+          
+          // Log the failure event
+          await storage.saveAuditLog({
+            siteId,
+            action: 'kbase_run_failed',
+            actor: 'system',
+            details: {
+              crewId: 'seo_kbase',
+              actionId: 'collect_learnings',
+              runId,
+              writtenCount,
+              actualDelta: delta,
+              writeVerified: false,
+              error: `Write verification failed: expected ${writtenCount} new items but only ${delta} were persisted`,
+            },
+          });
+          
+          return res.status(500).json({
+            ok: false,
+            success: false,
+            siteId,
+            runId,
+            writtenCount,
+            writeVerified: false,
+            error: `Write verification failed: expected ${writtenCount} new items but only ${delta} were persisted`,
+          });
+        }
+      } else {
+        // No findings to write is still a "verified" success (just 0 items)
+        writeVerified = true;
+        totalAfter = await storage.getFindingsCount(siteId, 'seo_kbase');
       }
       
-      // Record service run
+      // Use totalAfter for KB totals
+      const kbTotals = totalAfter;
+      const summary = writtenCount > 0 
+        ? `KBase updated — ${writtenCount} new insights` 
+        : 'No new learnings to add';
+      
+      // Record service run (only on success)
       await storage.createServiceRun({
         runId,
         runType: 'manual',
@@ -3474,16 +3528,39 @@ When answering:
         status: 'success',
         startedAt: new Date(),
         finishedAt: new Date(),
-        summary: `Generated ${findingsCount} insights`,
+        summary,
       });
       
-      logger.info("KBASE", "KBASE run completed", { findingsCount, runId });
+      // Create audit log entry for action completion (only on success)
+      await storage.saveAuditLog({
+        siteId,
+        action: 'kbase_run_completed',
+        actor: 'system',
+        details: {
+          crewId: 'seo_kbase',
+          actionId: 'collect_learnings',
+          runId,
+          writtenCount,
+          writeVerified,
+          kbTotals,
+          summary,
+        },
+      });
+      
+      logger.info("KBASE", "KBASE run completed", { writtenCount, writeVerified, runId });
       
       res.json({
+        ok: true,
         success: true,
+        siteId,
         runId,
-        findingsCount,
-        data: dataPayload,
+        writtenCount,
+        totalProcessed: writtenCount,
+        writeVerified,
+        kbTotals: {
+          totalLearnings: kbTotals,
+        },
+        summary,
       });
     } catch (error: any) {
       logger.error("KBASE", "KBASE run error", { error: error.message });
@@ -5407,6 +5484,66 @@ Keep responses concise and actionable.`;
     } catch (error: any) {
       logger.error("API", "Failed to fetch global audit logs", { error: error.message });
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * GET /api/crews/:crewId/last-execution
+   * Fetch the last completed action for a crew (used for Recently Completed section)
+   */
+  app.get("/api/crews/:crewId/last-execution", async (req, res) => {
+    try {
+      const { crewId } = req.params;
+      const siteId = (req.query.siteId as string) || 'site_empathy_health_clinic';
+      
+      // Map crew IDs to their action patterns
+      const crewActionPatterns: Record<string, string[]> = {
+        'seo_kbase': ['kbase_run_completed'],
+        'socrates': ['kbase_run_completed'],
+        'speedster': ['speedster_run_completed', 'cwv_fix_completed'],
+        'indexer': ['indexer_run_completed'],
+        'serp_intel': ['serp_analysis_completed'],
+      };
+      
+      const actionPatterns = crewActionPatterns[crewId] || [`${crewId}_run_completed`];
+      
+      // Get recent audit logs and find the most recent matching action
+      const logs = await storage.getAuditLogsBySite(siteId, 50);
+      const lastExecution = logs.find(log => actionPatterns.includes(log.action));
+      
+      if (!lastExecution) {
+        return res.json({
+          ok: true,
+          found: false,
+          lastExecution: null,
+        });
+      }
+      
+      // Guard against missing or malformed details
+      const details = (lastExecution.details && typeof lastExecution.details === 'object') 
+        ? lastExecution.details as Record<string, any>
+        : {};
+      
+      res.json({
+        ok: true,
+        found: true,
+        lastExecution: {
+          id: lastExecution.id,
+          crewId: details.crewId ?? crewId,
+          actionId: details.actionId ?? null,
+          status: 'completed',
+          completedAt: lastExecution.createdAt,
+          summary: details.summary ?? `${crewId} action completed`,
+          metadata: {
+            runId: details.runId ?? null,
+            writtenCount: details.writtenCount ?? 0,
+            writeVerified: details.writeVerified ?? false,
+          },
+        },
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to fetch last execution", { error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
     }
   });
 

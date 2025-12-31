@@ -399,6 +399,22 @@ function ConfigurationWarning({ error }: { error?: string | null }) {
   );
 }
 
+interface LastExecution {
+  id: string;
+  crewId: string;
+  actionId: string;
+  status: string;
+  completedAt: string;
+  summary: string;
+  metadata?: Record<string, any>;
+}
+
+interface LastExecutionResponse {
+  ok: boolean;
+  found: boolean;
+  lastExecution?: LastExecution;
+}
+
 export function SocratesContent() {
   const { currentSite } = useSiteContext();
   const queryClient = useQueryClient();
@@ -406,6 +422,7 @@ export function SocratesContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [isAskingSocrates, setIsAskingSocrates] = useState(false);
+  const [completedMissionIds, setCompletedMissionIds] = useState<Set<string>>(new Set());
 
   const handleAskSocrates = async (question: string) => {
     setIsAskingSocrates(true);
@@ -438,6 +455,16 @@ export function SocratesContent() {
     staleTime: 60000,
   });
 
+  const { data: lastExecutionData } = useQuery<LastExecutionResponse>({
+    queryKey: ["crew-last-execution", "seo_kbase", siteId],
+    queryFn: async () => {
+      const res = await fetch(`/api/crews/seo_kbase/last-execution?siteId=${siteId}`);
+      if (!res.ok) return { ok: false, found: false };
+      return res.json();
+    },
+    staleTime: 30000,
+  });
+
   const runMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch("/api/kbase/run", {
@@ -452,10 +479,24 @@ export function SocratesContent() {
       return res.json();
     },
     onSuccess: (result) => {
-      toast.success("Knowledge Base updated", {
-        description: result.findingsCount ? `${result.findingsCount} new insights` : "Refresh complete",
-      });
+      if (result.writtenCount === 0) {
+        toast.info("No new learnings to add", {
+          description: "Knowledge Base is already up to date",
+        });
+      } else if (result.writeVerified === true) {
+        toast.success(result.summary || "Knowledge Base updated", {
+          description: result.writtenCount ? `${result.writtenCount} new learnings added` : undefined,
+        });
+        setCompletedMissionIds(prev => new Set([...prev, "collect"]));
+      } else if (result.writeVerified === false) {
+        toast.error("Failed to verify Knowledge Base update", {
+          description: "Changes may not have been saved correctly",
+        });
+      } else {
+        toast.success(result.summary || "Knowledge Base updated");
+      }
       queryClient.invalidateQueries({ queryKey: ["kbase-overview"] });
+      queryClient.invalidateQueries({ queryKey: ["crew-last-execution", "seo_kbase", siteId] });
     },
     onError: (error: Error) => {
       toast.error(`Analysis failed: ${error.message}`);
@@ -519,13 +560,14 @@ export function SocratesContent() {
 
   const missions: MissionItem[] = useMemo(() => {
     const items: MissionItem[] = [];
+    const lastExec = lastExecutionData?.found ? lastExecutionData.lastExecution : null;
     
     if (!data?.configured) {
       items.push({
         id: "configure",
         title: "Configure Knowledge Base integration",
         reason: "Set up SEO_KBASE secret in Settings to enable external worker",
-        status: "pending",
+        status: completedMissionIds.has("configure") ? "done" : "pending",
         impact: "high",
         action: {
           label: "Fix it",
@@ -535,7 +577,8 @@ export function SocratesContent() {
       });
     }
     
-    if (!data?.isRealData || (data?.totalLearnings || 0) < 5) {
+    const collectCompleted = completedMissionIds.has("collect") || lastExec?.actionId === "collect";
+    if (!collectCompleted && (!data?.isRealData || (data?.totalLearnings || 0) < 5)) {
       items.push({
         id: "collect",
         title: "Add new learnings from diagnostics",
@@ -550,7 +593,8 @@ export function SocratesContent() {
       });
     }
     
-    if (data?.recentLearnings && data.recentLearnings.length > 0 && !data?.patternsCount) {
+    const synthesizeCompleted = completedMissionIds.has("synthesize") || lastExec?.actionId === "synthesize";
+    if (!synthesizeCompleted && data?.recentLearnings && data.recentLearnings.length > 0 && !data?.patternsCount) {
       items.push({
         id: "synthesize",
         title: "Review and categorize findings",
@@ -565,7 +609,8 @@ export function SocratesContent() {
       });
     }
     
-    if (data?.recommendationsCount && data.recommendationsCount > 0) {
+    const exportCompleted = completedMissionIds.has("export") || lastExec?.actionId === "export";
+    if (!exportCompleted && data?.recommendationsCount && data.recommendationsCount > 0) {
       items.push({
         id: "export",
         title: "Export insights to AI prompts",
@@ -580,6 +625,19 @@ export function SocratesContent() {
       });
     }
     
+    if (lastExec && lastExec.status === "completed") {
+      const completedTimeAgo = lastExec.completedAt 
+        ? formatDistanceToNow(new Date(lastExec.completedAt), { addSuffix: true })
+        : null;
+      items.push({
+        id: `completed-${lastExec.id}`,
+        title: lastExec.summary || "Recently completed action",
+        reason: completedTimeAgo ? `Completed ${completedTimeAgo}` : "Recently completed",
+        status: "done",
+        impact: "low",
+      });
+    }
+    
     if (items.length === 0) {
       items.push({
         id: "maintain",
@@ -591,7 +649,7 @@ export function SocratesContent() {
     }
     
     return items;
-  }, [data, runMutation.isPending]);
+  }, [data, runMutation.isPending, lastExecutionData, completedMissionIds]);
 
   const kpis: KpiDescriptor[] = [
     {
