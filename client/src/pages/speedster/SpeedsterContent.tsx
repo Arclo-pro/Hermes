@@ -400,6 +400,28 @@ export default function SpeedsterContent() {
     staleTime: 60000,
   });
   
+  const runScanMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/crew/speedster/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteId }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Scan failed');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast.success('Vitals scan completed');
+      refetch();
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Scan failed');
+    },
+  });
+  
   const metrics = speedsterData?.metrics || {};
   
   // Core Web Vitals (the 3 main metrics Google uses for ranking)
@@ -860,14 +882,16 @@ export default function SpeedsterContent() {
     isLoading: isAskingSpeedster,
   };
 
+  const isScanning = runScanMutation.isPending || isRefetching;
+  
   const headerActions: HeaderAction[] = [
     {
       id: "run-vitals-scan",
-      icon: <RefreshCw className={cn("w-4 h-4", isRefetching && "animate-spin")} />,
+      icon: <RefreshCw className={cn("w-4 h-4", isScanning && "animate-spin")} />,
       tooltip: "Run Vitals Scan",
-      onClick: () => refetch(),
-      disabled: isRefetching,
-      loading: isRefetching,
+      onClick: () => runScanMutation.mutate(),
+      disabled: isScanning,
+      loading: isScanning,
     },
     {
       id: "export-fix-pack",

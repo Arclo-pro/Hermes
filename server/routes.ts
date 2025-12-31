@@ -10729,6 +10729,68 @@ Current metrics for the site: ${metricsContext}`;
     }
   });
   
+  // Run Core Web Vitals scan - triggers the actual worker
+  app.post("/api/crew/speedster/run", async (req, res) => {
+    try {
+      const siteId = (req.body.siteId as string) || "site_empathy_health_clinic";
+      const requestId = randomUUID();
+      
+      const cwvConfig = await resolveWorkerConfig('seo_core_web_vitals');
+      
+      if (!cwvConfig.valid || !cwvConfig.base_url || !cwvConfig.api_key) {
+        return res.status(400).json({
+          ok: false,
+          error: "Core Web Vitals worker not configured",
+          configured: false,
+        });
+      }
+      
+      const workerResponse = await fetch(`${cwvConfig.base_url}/api/run`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': cwvConfig.api_key,
+          'X-Request-Id': requestId,
+        },
+        body: JSON.stringify({ siteId }),
+      });
+      
+      if (!workerResponse.ok) {
+        const errorText = await workerResponse.text();
+        logger.error("Speedster", "CWV worker run failed", { status: workerResponse.status, error: errorText });
+        return res.status(500).json({
+          ok: false,
+          error: `Worker returned ${workerResponse.status}`,
+        });
+      }
+      
+      const workerData = await workerResponse.json();
+      
+      if (workerData.data?.metrics) {
+        await storage.upsertSeoWorkerResult({
+          runId: requestId,
+          siteId,
+          workerKey: 'core_web_vitals',
+          workerName: 'Core Web Vitals',
+          status: 'success',
+          startedAt: new Date(),
+          finishedAt: new Date(),
+          metricsJson: workerData.data.metrics,
+          rawData: workerData.data,
+        });
+      }
+      
+      res.json({
+        ok: true,
+        requestId,
+        data: workerData.data || workerData,
+      });
+    } catch (error: any) {
+      logger.error("Speedster", "CWV run error", { error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+  
   // ═══════════════════════════════════════════════════════════════════════════
   // FIX AUTOMATION ENDPOINTS
   // Orchestrates Knowledge Base → Change Worker → GitHub PR workflow
@@ -12064,11 +12126,10 @@ Current metrics for the site: ${metricsContext}`;
       const siteId = (req.query.siteId as string) || "site_empathy_health_clinic";
       const requestId = (req.headers["x-request-id"] as string) || randomUUID();
 
-      // Get KB service configuration
-      const { getServiceSecrets } = await import("./vault");
-      const kbaseConfig = await getServiceSecrets('seo_kbase');
+      // Get KB service configuration using resolveWorkerConfig (checks Bitwarden, aliases, integrations DB)
+      const kbaseConfig = await resolveWorkerConfig('seo_kbase');
 
-      if (!kbaseConfig?.base_url || !kbaseConfig?.api_key) {
+      if (!kbaseConfig.valid) {
         return res.json({
           ok: true,
           service: "socrates",
@@ -12076,7 +12137,7 @@ Current metrics for the site: ${metricsContext}`;
           data: {
             configured: false,
             status: "not_configured",
-            message: "Knowledge Base worker not configured. Set up SEO_KBASE secret.",
+            message: kbaseConfig.error || "Knowledge Base worker not configured. Set up SEO_KBASE secret.",
             lastWriteAt: null,
             lastQueryAt: null,
             recentLearnings: [],
@@ -12086,11 +12147,14 @@ Current metrics for the site: ${metricsContext}`;
 
       // Check KB worker health
       try {
-        const healthResponse = await fetch(`${kbaseConfig.base_url}/health`, {
+        const headers: Record<string, string> = {};
+        if (kbaseConfig.api_key) {
+          headers['x-api-key'] = kbaseConfig.api_key;
+        }
+
+        const healthResponse = await fetch(`${kbaseConfig.base_url}${kbaseConfig.health_path}`, {
           method: 'GET',
-          headers: {
-            'x-api-key': kbaseConfig.api_key,
-          },
+          headers,
         });
 
         if (!healthResponse.ok) {
