@@ -62,13 +62,13 @@ const statusConfig = {
   looking_good: {
     label: "Good",
     icon: CheckCircle2,
-    badgeClass: "bg-success-soft text-success border-success",
+    badgeClass: "bg-semantic-success-soft text-semantic-success border-semantic-success-border",
     cardClass: "",
   },
   doing_okay: {
     label: "OK",
     icon: CheckCircle2,
-    badgeClass: "bg-info-soft text-info border-info",
+    badgeClass: "bg-semantic-info-soft text-semantic-info border-semantic-info-border",
     cardClass: "",
   },
   needs_attention: {
@@ -81,9 +81,9 @@ const statusConfig = {
 
 function ImpactIndicator({ impact }: { impact: string }) {
   const config = {
-    high: { color: 'bg-danger', bars: 3, label: 'High Impact' },
-    medium: { color: 'bg-warning', bars: 2, label: 'Medium Impact' },
-    low: { color: 'bg-success', bars: 1, label: 'Low Impact' },
+    high: { color: 'bg-semantic-danger', bars: 3, label: 'High Impact' },
+    medium: { color: 'bg-semantic-warning', bars: 2, label: 'Medium Impact' },
+    low: { color: 'bg-semantic-success', bars: 1, label: 'Low Impact' },
   }[impact.toLowerCase()] || { color: 'bg-muted', bars: 1, label: 'Impact' };
   
   return (
@@ -111,9 +111,9 @@ function ImpactIndicator({ impact }: { impact: string }) {
 
 function EffortIndicator({ effort }: { effort: string }) {
   const effortMap: Record<string, { label: string; icon: React.ReactNode }> = {
-    'S': { label: 'Quick fix', icon: <Zap className="w-3 h-3 text-success" /> },
-    'M': { label: 'Medium effort', icon: <Clock className="w-3 h-3 text-warning" /> },
-    'L': { label: 'Long effort', icon: <Clock className="w-3 h-3 text-danger" /> },
+    'S': { label: 'Quick fix', icon: <Zap className="w-3 h-3 text-semantic-success" /> },
+    'M': { label: 'Medium effort', icon: <Clock className="w-3 h-3 text-semantic-warning" /> },
+    'L': { label: 'Long effort', icon: <Clock className="w-3 h-3 text-semantic-danger" /> },
   };
   const config = effortMap[effort] || effortMap['M'];
   
@@ -422,7 +422,7 @@ export function MissionOverviewWidget({
 
             {visibleMissions.length === 0 && (
               <div className="py-6 text-center">
-                <CheckCircle2 className="w-8 h-8 text-success mx-auto mb-2" />
+                <CheckCircle2 className="w-8 h-8 text-semantic-success mx-auto mb-2" />
                 <p className="text-sm text-muted-foreground">All clear. No open missions.</p>
               </div>
             )}
@@ -473,8 +473,8 @@ export function MissionOverviewWidget({
           {recentlyCompleted && (
             <div className="border-t border-border/30 px-5 py-3 bg-muted/20">
               <div className="flex items-center gap-3">
-                <div className="w-5 h-5 rounded-full bg-success-soft flex items-center justify-center">
-                  <CheckCircle2 className="w-3 h-3 text-success" />
+                <div className="w-5 h-5 rounded-full bg-semantic-success-soft flex items-center justify-center">
+                  <CheckCircle2 className="w-3 h-3 text-semantic-success" />
                 </div>
                 <span className="text-xs text-muted-foreground uppercase tracking-wider">Completed</span>
                 <span className="text-sm text-foreground flex-1 truncate">{recentlyCompleted.title}</span>
