@@ -95,6 +95,41 @@ interface KBOverviewData {
   patterns: Learning[];
 }
 
+interface Insight {
+  id: number;
+  insightId: string;
+  title: string;
+  summary: string | null;
+  tags: string[] | null;
+  sources: Array<{ crewId: string; learningId: string }> | null;
+  createdAt: string;
+}
+
+interface Recommendation {
+  id: number;
+  recommendationId: string;
+  title: string;
+  rationale: string | null;
+  priority: string;
+  effort: string | null;
+  actionType: string | null;
+  sources: Array<{ crewId: string; learningId: string }> | null;
+  status: string;
+  createdAt: string;
+}
+
+interface InsightsResponse {
+  ok: boolean;
+  insights: Insight[];
+  total: number;
+}
+
+interface RecommendationsResponse {
+  ok: boolean;
+  recommendations: Recommendation[];
+  total: number;
+}
+
 const categoryColors: Record<string, string> = {
   insight: "bg-semantic-info-soft text-semantic-info",
   learning: "bg-semantic-info-soft text-semantic-info",
@@ -246,6 +281,80 @@ function AgentActivityCard({ activity }: { activity: AgentActivity }) {
         </div>
       </div>
     </Link>
+  );
+}
+
+function InsightCard({ insight }: { insight: Insight }) {
+  const timeAgo = insight.createdAt 
+    ? formatDistanceToNow(new Date(insight.createdAt), { addSuffix: true })
+    : null;
+
+  return (
+    <div className="p-4 rounded-xl bg-card/60 border border-border" data-testid={`insight-${insight.insightId}`}>
+      <div className="flex items-start gap-3">
+        <div className="w-8 h-8 rounded-full bg-semantic-info-soft flex items-center justify-center flex-shrink-0">
+          <Lightbulb className="w-4 h-4 text-semantic-info" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h4 className="font-medium text-sm text-foreground">{insight.title}</h4>
+          {insight.summary && (
+            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{insight.summary}</p>
+          )}
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
+            {insight.tags?.map((tag, idx) => (
+              <Badge key={idx} variant="secondary" className="text-xs">{tag}</Badge>
+            ))}
+            {timeAgo && (
+              <span className="text-xs text-muted-foreground">{timeAgo}</span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RecommendationCard({ recommendation }: { recommendation: Recommendation }) {
+  const timeAgo = recommendation.createdAt 
+    ? formatDistanceToNow(new Date(recommendation.createdAt), { addSuffix: true })
+    : null;
+
+  const priorityColors: Record<string, string> = {
+    high: "bg-semantic-danger-soft text-semantic-danger",
+    medium: "bg-semantic-warning-soft text-semantic-warning",
+    low: "bg-muted text-muted-foreground",
+  };
+
+  return (
+    <div className="p-4 rounded-xl bg-card/60 border border-border" data-testid={`rec-${recommendation.recommendationId}`}>
+      <div className="flex items-start gap-3">
+        <div className="w-8 h-8 rounded-full bg-semantic-warning-soft flex items-center justify-center flex-shrink-0">
+          <Target className="w-4 h-4 text-semantic-warning" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <h4 className="font-medium text-sm text-foreground">{recommendation.title}</h4>
+            <Badge className={cn("text-xs", priorityColors[recommendation.priority] || priorityColors.medium)}>
+              {recommendation.priority}
+            </Badge>
+          </div>
+          {recommendation.rationale && (
+            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{recommendation.rationale}</p>
+          )}
+          <div className="flex items-center gap-2 mt-2">
+            {recommendation.actionType && (
+              <Badge variant="outline" className="text-xs">{recommendation.actionType.replace(/_/g, ' ')}</Badge>
+            )}
+            {recommendation.effort && (
+              <span className="text-xs text-muted-foreground">Effort: {recommendation.effort}</span>
+            )}
+            {timeAgo && (
+              <span className="text-xs text-muted-foreground">{timeAgo}</span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -489,6 +598,26 @@ export function SocratesContent() {
     staleTime: 30000,
   });
 
+  const { data: insightsData } = useQuery<InsightsResponse>({
+    queryKey: ["kb-insights", siteId],
+    queryFn: async () => {
+      const res = await fetch(`/api/kb/insights?siteId=${siteId}`);
+      if (!res.ok) return { ok: false, insights: [], total: 0 };
+      return res.json();
+    },
+    staleTime: 30000,
+  });
+
+  const { data: recommendationsData } = useQuery<RecommendationsResponse>({
+    queryKey: ["kb-recommendations", siteId],
+    queryFn: async () => {
+      const res = await fetch(`/api/kb/recommendations?siteId=${siteId}`);
+      if (!res.ok) return { ok: false, recommendations: [], total: 0 };
+      return res.json();
+    },
+    staleTime: 30000,
+  });
+
   const runMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch("/api/kbase/run", {
@@ -521,6 +650,8 @@ export function SocratesContent() {
       queryClient.invalidateQueries({ queryKey: ["kbase-overview"] });
       queryClient.invalidateQueries({ queryKey: ["crew-last-execution", "seo_kbase", siteId] });
       queryClient.invalidateQueries({ queryKey: ["mission-state", "seo_kbase", siteId] });
+      queryClient.invalidateQueries({ queryKey: ["kb-insights", siteId] });
+      queryClient.invalidateQueries({ queryKey: ["kb-recommendations", siteId] });
     },
     onError: (error: Error) => {
       if (error.message.includes('Already completed recently')) {
@@ -804,22 +935,19 @@ export function SocratesContent() {
       id: "insights",
       label: "Insights",
       icon: <Lightbulb className="w-4 h-4" />,
-      badge: data?.insightsCount || 0,
-      state: data?.insights?.length ? "ready" : "empty",
+      badge: insightsData?.total || 0,
+      state: insightsData?.insights?.length ? "ready" : "empty",
       content: (
         <div className="space-y-3">
-          {!data?.insights?.length ? (
-            <div className="text-center py-8">
-              <Lightbulb className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
-              <p className="text-muted-foreground">No insights yet</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Insights are generated from cross-agent analysis
-              </p>
-            </div>
-          ) : (
-            data.insights.map((insight) => (
-              <LearningCard key={insight.id} learning={insight} />
+          {insightsData?.insights?.length ? (
+            insightsData.insights.map(insight => (
+              <InsightCard key={insight.insightId} insight={insight} />
             ))
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <Lightbulb className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p>No insights yet — run "Collect Learnings" to generate insights.</p>
+            </div>
           )}
         </div>
       ),
@@ -828,22 +956,19 @@ export function SocratesContent() {
       id: "recommendations",
       label: "Recommendations",
       icon: <Target className="w-4 h-4" />,
-      badge: data?.recommendationsCount || 0,
-      state: data?.recommendations?.length ? "ready" : "empty",
+      badge: recommendationsData?.total || 0,
+      state: recommendationsData?.recommendations?.length ? "ready" : "empty",
       content: (
         <div className="space-y-3">
-          {!data?.recommendations?.length ? (
-            <div className="text-center py-8">
-              <Target className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
-              <p className="text-muted-foreground">No recommendations yet</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Recommendations are generated after analyzing patterns
-              </p>
-            </div>
-          ) : (
-            data.recommendations.map((rec) => (
-              <LearningCard key={rec.id} learning={rec} />
+          {recommendationsData?.recommendations?.length ? (
+            recommendationsData.recommendations.map(rec => (
+              <RecommendationCard key={rec.recommendationId} recommendation={rec} />
             ))
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <Target className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p>No recommendations yet — generate insights first.</p>
+            </div>
           )}
         </div>
       ),
