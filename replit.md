@@ -145,6 +145,31 @@ All microservice workers must follow the Gold Standard Worker Blueprint (see `do
 - Fingerprint mismatch triggers `api_key_mismatch` failure bucket with actionable fix suggestion
 - Fingerprints are safe to display (never exposes raw keys)
 
+### Worker Validation Harness
+Automated worker validation infrastructure in `server/validation/`:
+- **WorkerRegistry**: Unified registry combining SERVICE_SECRET_MAP with crew assignments
+- **Schemas**: Zod schemas for validating health, smoke-test, and capabilities responses
+- **Harness**: Runs validation tests against all configured workers
+- **Reports**: Generates JSON and Markdown reports with pass/fail/skip/warning status
+
+**API Endpoints:**
+- `GET /api/validation/workers` - Run validation (query params: workers, category, crew, format)
+- `GET /api/validation/workers/registry` - List all registered workers
+
+**CLI Usage:**
+```bash
+npx tsx scripts/validate-workers.ts                    # Run all workers
+npx tsx scripts/validate-workers.ts --workers serp_intel,crawl_render
+npx tsx scripts/validate-workers.ts --category analysis --format both
+npx tsx scripts/validate-workers.ts --crew SEO --output ./report.md
+```
+
+**Report Output:**
+- Summary counts (passed/failed/skipped/warning)
+- Breakdown by category and crew
+- Per-worker endpoint test results with response times
+- Common issues detection (config errors, timeouts, auth failures)
+
 ### Authentication
 - Google OAuth 2.0 for API access
 - Tokens stored in database with refresh capability

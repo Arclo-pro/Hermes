@@ -566,6 +566,54 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/validation/workers", async (req, res) => {
+    try {
+      const { workers, category, crew, format } = req.query;
+      const { runValidation, generateMarkdownReport } = await import("./validation");
+
+      const options: {
+        workers?: string[];
+        category?: string;
+        crew?: string;
+        parallel?: boolean;
+      } = { parallel: true };
+
+      if (workers && typeof workers === "string") {
+        options.workers = workers.split(",").map(s => s.trim());
+      }
+      if (category && typeof category === "string") {
+        options.category = category;
+      }
+      if (crew && typeof crew === "string") {
+        options.crew = crew;
+      }
+
+      logger.info("API", "Running worker validation", options);
+      const report = await runValidation(options);
+
+      if (format === "markdown") {
+        const markdown = generateMarkdownReport(report);
+        res.type("text/markdown").send(markdown);
+      } else {
+        res.json(report);
+      }
+    } catch (error: any) {
+      logger.error("API", "Worker validation failed", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/validation/workers/registry", async (req, res) => {
+    try {
+      const { getWorkerRegistry } = await import("./validation");
+      const registry = getWorkerRegistry();
+      res.json({ workers: registry, count: registry.length });
+    } catch (error: any) {
+      logger.error("API", "Worker registry fetch failed", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/status", async (req, res) => {
     try {
       const token = await storage.getToken("google");
