@@ -257,13 +257,6 @@ export function MissionOverviewWidget({
 
   const hasPerformanceScore = status.performanceScore !== undefined;
   const scoreValue = status.performanceScore;
-  const scoreColor = scoreValue === null 
-    ? "text-muted-foreground" 
-    : scoreValue >= 90 
-      ? "text-green-500" 
-      : scoreValue >= 50 
-        ? "text-gold" 
-        : "text-red-500";
 
   const pendingMissions = missions.filter(m => m.status === "pending" || m.status === "in_progress");
   const visibleMissions = pendingMissions.slice(0, maxActions);
@@ -279,30 +272,20 @@ export function MissionOverviewWidget({
         data-testid="mission-overview-widget"
       >
         <div className="flex flex-col">
-          <div className="flex items-stretch">
+          <div className="flex items-start">
             {hasPerformanceScore && (
               <div 
-                className="w-24 shrink-0 flex flex-col items-center justify-center bg-muted/40 border-r border-border/50"
+                className="w-24 shrink-0 flex flex-col items-center justify-start bg-muted/40 border-r border-border/50 self-stretch"
                 style={{
                   background: "linear-gradient(135deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.08) 100%)",
                 }}
                 data-testid={scoreValue === null ? "score-block-performance-empty" : "score-block-performance"}
               >
-                <div className="flex flex-col items-center justify-center py-5">
+                <div className="flex flex-col items-center pt-5 pb-3">
                   <div 
-                    className={cn(
-                      "w-14 h-14 rounded-full flex items-center justify-center",
-                      "ring-2 ring-offset-2 ring-offset-transparent",
-                      scoreValue === null 
-                        ? "bg-muted/60 ring-muted-foreground/30"
-                        : scoreValue >= 90 
-                          ? "bg-green-500/15 ring-green-500/40" 
-                          : scoreValue >= 50 
-                            ? "bg-gold/15 ring-gold/40" 
-                            : "bg-red-500/15 ring-red-500/40"
-                    )}
+                    className="w-14 h-14 rounded-full flex items-center justify-center bg-gold-soft ring-2 ring-gold/40 ring-offset-2 ring-offset-transparent"
                   >
-                    <span className={cn("text-2xl font-bold leading-none", scoreColor)}>
+                    <span className="text-2xl font-bold leading-none text-gold">
                       {scoreValue === null ? "—" : Math.round(scoreValue)}
                     </span>
                   </div>
