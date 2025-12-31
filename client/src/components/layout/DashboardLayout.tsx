@@ -191,27 +191,44 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
 
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+          {/* Mission Control - standalone */}
+          <Link href="/dashboard">
+            <div 
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors cursor-pointer",
+                location === "/dashboard" || location === "/mission-control"
+                  ? "bg-primary/10 text-primary" 
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              )}
+              data-testid="link-nav-mission-control"
+            >
+              <LayoutDashboard className="w-4 h-4 shrink-0" />
+              <span className="truncate">Mission Control</span>
+            </div>
+          </Link>
+          
+          {/* My Crew - expandable with crew members */}
           <Collapsible open={crewExpanded} onOpenChange={setCrewExpanded}>
             <div 
               className={cn(
                 "flex items-center justify-between rounded-md transition-colors group",
-                location === "/dashboard" || location === "/mission-control" || location.startsWith("/agents/") || crewExpanded
+                location === "/crew" || location.startsWith("/agents/") || crewExpanded
                   ? "bg-primary/10" 
                   : "hover:bg-muted"
               )}
             >
-              <Link href="/dashboard" className="flex-1 min-w-0">
+              <Link href="/crew" className="flex-1 min-w-0">
                 <div 
                   className={cn(
                     "flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-colors cursor-pointer",
-                    location === "/dashboard" || location === "/mission-control"
+                    location === "/crew"
                       ? "text-primary" 
                       : "text-muted-foreground group-hover:text-foreground"
                   )}
-                  data-testid="link-nav-mission-control"
+                  data-testid="link-nav-my-crew"
                 >
-                  <LayoutDashboard className="w-4 h-4 shrink-0" />
-                  <span className="truncate">Mission Control</span>
+                  <Users className="w-4 h-4 shrink-0" />
+                  <span className="truncate">My Crew</span>
                 </div>
               </Link>
               <CollapsibleTrigger asChild>
@@ -260,18 +277,17 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             </CollapsibleContent>
           </Collapsible>
           
+          {/* Add Crew - first-class CTA */}
           <Link href="/crew">
             <div 
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors cursor-pointer",
-                location === "/crew"
-                  ? "bg-primary/10 text-primary" 
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors cursor-pointer border border-dashed border-primary/40 hover:border-primary hover:bg-primary/5",
+                "text-primary"
               )}
-              data-testid="link-nav-my-crew"
+              data-testid="link-nav-add-crew"
             >
-              <Users className="w-4 h-4" />
-              My Crew
+              <Plus className="w-4 h-4" />
+              Add Crew
             </div>
           </Link>
           
