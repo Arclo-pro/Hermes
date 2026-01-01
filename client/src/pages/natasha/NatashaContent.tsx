@@ -187,6 +187,60 @@ interface CompetitiveOverview {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// KPI Normalization Helper
+// ═══════════════════════════════════════════════════════════════════════════
+
+interface NormalizedKpis {
+  avgRank: number;
+  shareOfVoicePct: number;
+}
+
+function normalizeCompetitiveKpis(data: any): NormalizedKpis {
+  let avgRank = 0;
+  let shareOfVoicePct = 0;
+
+  const avgRankCandidates = [
+    data?.avgRank,
+    data?.avg_rank,
+    data?.averageRank,
+    data?.metrics?.avgRank,
+    data?.kpis?.avgRank,
+  ];
+  for (const candidate of avgRankCandidates) {
+    if (typeof candidate === 'number' && Number.isFinite(candidate) && candidate > 0) {
+      avgRank = candidate;
+      break;
+    }
+  }
+
+  const sovCandidates = [
+    data?.shareOfVoice,
+    data?.share_of_voice,
+    data?.sov,
+    data?.metrics?.shareOfVoice,
+    data?.kpis?.shareOfVoice,
+  ];
+  for (const candidate of sovCandidates) {
+    if (typeof candidate === 'number' && Number.isFinite(candidate)) {
+      shareOfVoicePct = candidate;
+      break;
+    }
+    if (typeof candidate === 'object' && candidate !== null) {
+      const targetSov = candidate.target_sov ?? candidate.targetSov;
+      if (typeof targetSov === 'number' && Number.isFinite(targetSov)) {
+        shareOfVoicePct = targetSov;
+        break;
+      }
+    }
+  }
+
+  return {
+    avgRank: Number.isFinite(avgRank) ? avgRank : 0,
+    shareOfVoicePct: Number.isFinite(shareOfVoicePct) ? shareOfVoicePct : 0,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // Inspector Tab Components
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -797,6 +851,9 @@ export default function NatashaContent() {
 
   const summary = data.summary;
 
+  // Normalize KPIs to ensure they never show blank
+  const normalizedKpis = useMemo(() => normalizeCompetitiveKpis(data), [data]);
+
   // Crew identity for Natasha
   const crewIdentity: CrewIdentity = {
     crewId: "natasha",
@@ -937,7 +994,7 @@ export default function NatashaContent() {
       {
         id: "share-of-voice",
         label: "Share of Voice",
-        value: data.shareOfVoice,
+        value: normalizedKpis.shareOfVoicePct,
         unit: "%",
         tooltip: "Your visibility across tracked keywords vs competitors",
         status: kpiStatus,
@@ -945,7 +1002,7 @@ export default function NatashaContent() {
       {
         id: "avg-rank",
         label: "Avg. Rank",
-        value: data.avgRank || null,
+        value: normalizedKpis.avgRank > 0 ? normalizedKpis.avgRank : 0,
         tooltip: "Average position across tracked keywords",
         status: kpiStatus,
       },
@@ -984,7 +1041,7 @@ export default function NatashaContent() {
         status: kpiStatus,
       },
     ];
-  }, [data, summary, error, isLoading]);
+  }, [data, summary, error, isLoading, normalizedKpis]);
 
   const keyMetrics = useMemo(() => [
     {
@@ -1011,18 +1068,18 @@ export default function NatashaContent() {
     {
       id: "avg-rank",
       label: "Avg Rank",
-      value: data.avgRank ? `#${data.avgRank.toFixed(1)}` : "—",
+      value: normalizedKpis.avgRank > 0 ? `#${normalizedKpis.avgRank.toFixed(1)}` : "0",
       icon: BarChart3,
-      status: data.avgRank && data.avgRank < 10 ? "primary" as const : data.avgRank ? "warning" as const : "neutral" as const,
+      status: normalizedKpis.avgRank > 0 && normalizedKpis.avgRank < 10 ? "primary" as const : normalizedKpis.avgRank > 0 ? "warning" as const : "neutral" as const,
     },
     {
       id: "share-of-voice",
       label: "Share of Voice",
-      value: data.shareOfVoice ? `${data.shareOfVoice}%` : "—",
+      value: `${Math.round(normalizedKpis.shareOfVoicePct)}%`,
       icon: TrendingUp,
-      status: data.shareOfVoice && data.shareOfVoice > 20 ? "primary" as const : data.shareOfVoice ? "warning" as const : "neutral" as const,
+      status: normalizedKpis.shareOfVoicePct > 20 ? "primary" as const : normalizedKpis.shareOfVoicePct > 0 ? "warning" as const : "neutral" as const,
     },
-  ], [data, summary]);
+  ], [data, summary, normalizedKpis]);
 
   // Inspector tabs
   const inspectorTabs: InspectorTab[] = useMemo(() => {
