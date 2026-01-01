@@ -682,50 +682,49 @@ export default function SERPContent() {
     },
   ], [stats, overview]);
 
-  const keyMetrics = useMemo(() => [
-    {
-      id: "ranking",
-      label: "Keywords Ranking",
-      value: stats.ranking,
-      icon: TrendingUp,
-      status: "good" as const,
-    },
-    {
-      id: "not-ranking",
-      label: "Keywords Not Ranking",
-      value: stats.notRanking,
-      icon: AlertTriangle,
-      status: stats.notRanking > 0 ? "warning" as const : "neutral" as const,
-    },
-    {
-      id: "top-1",
-      label: "Top 1",
-      value: stats.numberOne,
-      iconNode: <TieredCrown tier="top1" />,
-      status: "good" as const,
-    },
-    {
-      id: "top-3",
-      label: "Top 3",
-      value: stats.inTop3,
-      iconNode: <TieredCrown tier="top3" />,
-      status: "good" as const,
-    },
-    {
-      id: "top-10",
-      label: "Top 10",
-      value: stats.inTop10,
-      iconNode: <TieredCrown tier="top10" />,
-      status: "good" as const,
-    },
-    {
-      id: "avg-position",
-      label: "Avg Position",
-      value: stats.avgPosition != null ? `#${stats.avgPosition}` : "—",
-      icon: Target,
-      status: "neutral" as const,
-    },
-  ], [stats]);
+  const keyMetrics = useMemo(() => {
+    const totalKeywords = overview?.totalKeywords || 0;
+    const rankedKeywords = stats.ranking || 0;
+    const notRankedKeywords = Math.max(0, totalKeywords - rankedKeywords);
+    
+    return [
+      {
+        id: "ranking",
+        label: "Keywords Ranking",
+        value: rankedKeywords,
+        icon: TrendingUp,
+        status: rankedKeywords > 0 ? "good" as const : "neutral" as const,
+      },
+      {
+        id: "not-ranking",
+        label: "Not Ranking",
+        value: notRankedKeywords,
+        icon: AlertTriangle,
+        status: notRankedKeywords > 0 ? "warning" as const : "neutral" as const,
+      },
+      {
+        id: "top-1",
+        label: "Top 1",
+        value: stats.numberOne,
+        iconNode: <TieredCrown tier="top1" />,
+        status: "good" as const,
+      },
+      {
+        id: "top-3",
+        label: "Top 3",
+        value: stats.inTop3,
+        iconNode: <TieredCrown tier="top3" />,
+        status: "good" as const,
+      },
+      {
+        id: "top-10",
+        label: "Top 10",
+        value: stats.inTop10,
+        iconNode: <TieredCrown tier="top10" />,
+        status: "good" as const,
+      },
+    ];
+  }, [stats, overview]);
 
   const getImpactLabel = (score: number | undefined): "high" | "medium" | "low" => {
     if (score === undefined) return "medium";
