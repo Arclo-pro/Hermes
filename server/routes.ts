@@ -1594,18 +1594,21 @@ Format your response as JSON with these keys:
 
   app.get("/api/hemingway/dashboard", async (req, res) => {
     try {
+      const siteId = (req.query.siteId as string) || "default";
       const config = await resolveWorkerConfig("content_generator");
       if (!config.valid || !config.base_url) {
         return res.json({ ok: false, error: "Hemingway worker not configured", configured: false });
       }
-      const response = await fetch(`${config.base_url}/dashboard`, {
+      const url = new URL(`${config.base_url}/dashboard`);
+      url.searchParams.set("siteId", siteId);
+      const response = await fetch(url.toString(), {
         headers: { 
           "X-Api-Key": config.api_key || "",
           "Content-Type": "application/json"
         }
       });
       const data = await response.json();
-      res.json(data);
+      res.json({ ...data, configured: true });
     } catch (error: any) {
       logger.error("API", "Hemingway dashboard proxy failed", { error: error.message });
       res.status(500).json({ ok: false, error: error.message });
@@ -1614,11 +1617,14 @@ Format your response as JSON with these keys:
 
   app.get("/api/hemingway/findings", async (req, res) => {
     try {
+      const siteId = (req.query.siteId as string) || "default";
       const config = await resolveWorkerConfig("content_generator");
       if (!config.valid || !config.base_url) {
         return res.json({ ok: false, error: "Hemingway worker not configured", configured: false });
       }
-      const response = await fetch(`${config.base_url}/findings`, {
+      const url = new URL(`${config.base_url}/findings`);
+      url.searchParams.set("siteId", siteId);
+      const response = await fetch(url.toString(), {
         headers: { 
           "X-Api-Key": config.api_key || "",
           "Content-Type": "application/json"
@@ -1634,11 +1640,14 @@ Format your response as JSON with these keys:
 
   app.get("/api/hemingway/content", async (req, res) => {
     try {
+      const siteId = (req.query.siteId as string) || "default";
       const config = await resolveWorkerConfig("content_generator");
       if (!config.valid || !config.base_url) {
         return res.json({ ok: false, error: "Hemingway worker not configured", configured: false });
       }
-      const response = await fetch(`${config.base_url}/content`, {
+      const url = new URL(`${config.base_url}/content`);
+      url.searchParams.set("siteId", siteId);
+      const response = await fetch(url.toString(), {
         headers: { 
           "X-Api-Key": config.api_key || "",
           "Content-Type": "application/json"

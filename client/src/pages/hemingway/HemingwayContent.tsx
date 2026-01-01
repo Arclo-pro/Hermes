@@ -280,7 +280,7 @@ export default function HemingwayContent() {
   const { data: dashboardData, isLoading: dashboardLoading, refetch: refetchDashboard } = useQuery<HemingwayDashboardResponse>({
     queryKey: ['hemingway-dashboard', siteId],
     queryFn: async () => {
-      const res = await fetch(`/api/hemingway/dashboard`);
+      const res = await fetch(`/api/hemingway/dashboard?siteId=${encodeURIComponent(siteId)}`);
       if (!res.ok) {
         return { ok: false, error: 'Failed to fetch dashboard' };
       }
@@ -293,7 +293,7 @@ export default function HemingwayContent() {
   const { data: findingsData, isLoading: findingsLoading, refetch: refetchFindings } = useQuery<HemingwayFindingsResponse>({
     queryKey: ['hemingway-findings', siteId],
     queryFn: async () => {
-      const res = await fetch(`/api/hemingway/findings`);
+      const res = await fetch(`/api/hemingway/findings?siteId=${encodeURIComponent(siteId)}`);
       if (!res.ok) {
         return { ok: false, findings: [] };
       }
@@ -306,7 +306,7 @@ export default function HemingwayContent() {
   const { data: contentData, isLoading: contentLoading, refetch: refetchContent } = useQuery<HemingwayContentResponse>({
     queryKey: ['hemingway-content', siteId],
     queryFn: async () => {
-      const res = await fetch(`/api/hemingway/content`);
+      const res = await fetch(`/api/hemingway/content?siteId=${encodeURIComponent(siteId)}`);
       if (!res.ok) {
         return { ok: false, content: [] };
       }
