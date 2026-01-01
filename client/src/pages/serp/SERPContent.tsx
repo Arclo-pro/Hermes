@@ -683,22 +683,15 @@ export default function SERPContent() {
 
   const keyMetrics = useMemo(() => [
     {
-      id: "total-keywords",
-      label: "Total Keywords",
-      value: overview?.totalKeywords || 0,
-      icon: Search,
-      status: "neutral" as const,
-    },
-    {
       id: "ranking",
-      label: "Ranking",
+      label: "Keywords Ranking",
       value: stats.ranking,
       icon: TrendingUp,
       status: "good" as const,
     },
     {
       id: "not-ranking",
-      label: "Not Ranking",
+      label: "Keywords Not Ranking",
       value: stats.notRanking,
       icon: AlertTriangle,
       status: stats.notRanking > 0 ? "warning" as const : "neutral" as const,
@@ -731,21 +724,7 @@ export default function SERPContent() {
       icon: Target,
       status: "neutral" as const,
     },
-    {
-      id: "winners",
-      label: "Winners",
-      value: stats.winners,
-      icon: TrendingUp,
-      status: stats.winners > 0 ? "good" as const : "neutral" as const,
-    },
-    {
-      id: "losers",
-      label: "Losers",
-      value: stats.losers,
-      icon: TrendingDown,
-      status: stats.losers > 0 ? "warning" as const : "neutral" as const,
-    },
-  ], [overview, stats]);
+  ], [stats]);
 
   const getImpactLabel = (score: number | undefined): "high" | "medium" | "low" => {
     if (score === undefined) return "medium";
