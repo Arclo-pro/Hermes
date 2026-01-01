@@ -5819,6 +5819,15 @@ Keep responses concise and actionable.`;
       // Get all rankings for the last 90 days
       const allRankings = await storage.getAllRankingsWithHistory(90);
       
+      // Get pending actions to mark keywords with available optimizations
+      const { keywordActions } = await import("@shared/schema");
+      const { eq } = await import("drizzle-orm");
+      const pendingActions = await db
+        .select({ keywordId: keywordActions.keywordId })
+        .from(keywordActions)
+        .where(eq(keywordActions.status, "pending"));
+      const pendingKeywordIds = new Set(pendingActions.map(a => a.keywordId));
+      
       // Calculate date boundaries
       const now = new Date();
       const day7Ago = new Date(now);
@@ -5899,6 +5908,7 @@ Keep responses concise and actionable.`;
           trend,
           volume: kw.volume ?? latestRanking?.volume ?? null,
           difficulty: kw.difficulty ?? null,
+          hasPending: pendingKeywordIds.has(kw.id),
         };
       });
       

@@ -108,6 +108,7 @@ export default function SERPContent() {
       priority: number | null;
       priorityReason: string | null;
       intent: string | null;
+      hasPending: boolean;
     }>;
   }>({
     queryKey: ['serp-rankings-full'],
@@ -922,14 +923,17 @@ export default function SERPContent() {
                               size="sm"
                               className="h-7 w-7 p-0"
                               onClick={() => optimizeKeyword.mutate(kw.id)}
-                              disabled={optimizeKeyword.isPending}
+                              disabled={optimizeKeyword.isPending || !kw.hasPending}
                               data-testid={`button-optimize-${kw.id}`}
                             >
-                              <Wrench className="h-4 w-4" />
+                              <Wrench 
+                                className="h-4 w-4" 
+                                style={{ color: kw.hasPending ? '#F2C94C' : '#9CA3AF' }}
+                              />
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>
-                            <p>Optimize this keyword</p>
+                            <p>{kw.hasPending ? 'Optimization available' : 'No pending optimization'}</p>
                           </TooltipContent>
                         </Tooltip>
                       </td>
