@@ -1,12 +1,14 @@
 import { cn } from "@/lib/utils";
 import { KeyMetricCard } from "./KeyMetricCard";
 import { LucideIcon } from "lucide-react";
+import { ReactNode } from "react";
 
 interface MetricConfig {
   id: string;
   label: string;
   value: number | string;
   icon?: LucideIcon;
+  iconNode?: ReactNode;
   status?: "good" | "warning" | "neutral" | "inactive";
 }
 
@@ -29,6 +31,7 @@ export function KeyMetricsGrid({ metrics, accentColor, className }: KeyMetricsGr
           label={metric.label}
           value={metric.value}
           icon={metric.icon}
+          iconNode={metric.iconNode}
           status={metric.status}
           accentColor={accentColor}
         />

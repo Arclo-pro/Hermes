@@ -1,10 +1,12 @@
 import { cn } from "@/lib/utils";
 import { LucideIcon } from "lucide-react";
+import { ReactNode } from "react";
 
 interface KeyMetricCardProps {
   label: string;
   value: number | string;
   icon?: LucideIcon;
+  iconNode?: ReactNode;
   status?: "primary" | "good" | "warning" | "neutral" | "inactive";
   accentColor?: string;
   className?: string;
@@ -51,7 +53,8 @@ const statusStyles = {
 export function KeyMetricCard({ 
   label, 
   value, 
-  icon: Icon, 
+  icon: Icon,
+  iconNode,
   status = "primary",
   accentColor,
   className 
@@ -102,7 +105,7 @@ export function KeyMetricCard({
           </p>
         </div>
         
-        {Icon && (
+        {(Icon || iconNode) && (
           <div 
             className={cn(
               "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0",
@@ -110,10 +113,14 @@ export function KeyMetricCard({
             )}
             style={dynamicStyles?.iconBg}
           >
-            <Icon 
-              className={cn("w-5 h-5", !dynamicStyles && effectiveStyles.text)} 
-              style={dynamicStyles?.iconColor}
-            />
+            {iconNode ? (
+              iconNode
+            ) : Icon ? (
+              <Icon 
+                className={cn("w-5 h-5", !dynamicStyles && effectiveStyles.text)} 
+                style={dynamicStyles?.iconColor}
+              />
+            ) : null}
           </div>
         )}
       </div>

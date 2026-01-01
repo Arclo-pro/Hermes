@@ -22,7 +22,7 @@ import {
   type MissionPromptConfig,
   type HeaderAction,
 } from "@/components/crew-dashboard";
-import { KeyMetricsGrid } from "@/components/key-metrics";
+import { KeyMetricsGrid, TieredCrown } from "@/components/key-metrics";
 
 interface RankingData {
   id: number;
@@ -682,21 +682,21 @@ export default function SERPContent() {
       id: "top-1",
       label: "Top 1",
       value: stats.numberOne,
-      icon: Crown,
+      iconNode: <TieredCrown tier="top1" />,
       status: "good" as const,
     },
     {
       id: "top-3",
       label: "Top 3",
       value: stats.inTop3,
-      icon: Trophy,
+      iconNode: <TieredCrown tier="top3" />,
       status: "good" as const,
     },
     {
       id: "top-10",
       label: "Top 10",
       value: stats.inTop10,
-      icon: Trophy,
+      iconNode: <TieredCrown tier="top10" />,
       status: "good" as const,
     },
     {
