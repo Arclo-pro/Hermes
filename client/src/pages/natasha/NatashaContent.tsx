@@ -1066,13 +1066,6 @@ export default function NatashaContent() {
       status: data.contentGaps?.length > 0 ? "warning" as const : "neutral" as const,
     },
     {
-      id: "avg-rank",
-      label: "Avg Rank",
-      value: normalizedKpis.avgRank > 0 ? `#${normalizedKpis.avgRank.toFixed(1)}` : "0",
-      icon: BarChart3,
-      status: normalizedKpis.avgRank > 0 && normalizedKpis.avgRank < 10 ? "primary" as const : normalizedKpis.avgRank > 0 ? "warning" as const : "neutral" as const,
-    },
-    {
       id: "share-of-voice",
       label: "Share of Voice",
       value: `${Math.round(normalizedKpis.shareOfVoicePct)}%`,
