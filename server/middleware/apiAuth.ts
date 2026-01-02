@@ -45,6 +45,7 @@ const DASHBOARD_GET_PATHS = [
   "/api/audit-logs",
   "/api/achievements",
   "/api/crews",
+  "/api/snapshots",
 ];
 
 // Paths that allow unauthenticated POST access (only basic safe operations)
@@ -78,6 +79,7 @@ const SAME_ORIGIN_POST_PATHS = [
   "/api/crew",
   "/api/kb",
   "/api/fix-plan",
+  "/api/snapshots",
 ];
 
 // Check if request is from same origin (browser UI)
