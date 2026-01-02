@@ -1,726 +1,1071 @@
 import { useState, useMemo } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { 
-  FileText, 
-  File,
-  RefreshCw,
-  AlertTriangle,
-  CheckCircle,
-  BookOpen,
-  Shield,
-  Loader2,
-  Settings,
-  Search,
-  Upload,
-  User,
-  Clock
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getCrewMember } from "@/config/agents";
 import { useSiteContext } from "@/hooks/useSiteContext";
 import { toast } from "sonner";
-import { getCrewMember } from "@/config/agents";
-import { useCrewMissions } from "@/hooks/useCrewMissions";
-import { SERVICE_TO_CREW } from "@shared/registry";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import {
   CrewDashboardShell,
   type CrewIdentity,
   type MissionStatusState,
   type MissionItem,
-  type KpiDescriptor,
   type InspectorTab,
-  type MissionPromptConfig,
+  type HeaderAction,
 } from "@/components/crew-dashboard";
 import { KeyMetricsGrid } from "@/components/key-metrics";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  RefreshCw,
+  AlertTriangle,
+  CheckCircle2,
+  XCircle,
+  FileText,
+  Zap,
+  ExternalLink,
+  TrendingUp,
+  TrendingDown,
+  Info,
+  Search,
+  BarChart3,
+  BookOpen,
+  Shield,
+  User,
+  PenTool,
+  Settings,
+  Play,
+  Sparkles,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
-interface ContentMetrics {
-  contentQualityScore: number | null;
-  readabilityGrade: number | null;
-  eeatCoverage: number | null;
-  contentAtRisk: number | null;
-  totalBlogs: number | null;
-  totalPages: number | null;
-  thinContent?: number | null;
-  staleContent?: number | null;
-  missingAuthor?: number | null;
-  trends?: {
-    qualityTrend?: number;
-    readabilityTrend?: number;
-    eeatTrend?: number;
-    riskTrend?: number;
-  };
+const HEMINGWAY_ACCENT_COLOR = "#0EA5E9";
+
+interface ContentQualityMetrics {
+  contentQualityScore: number;
+  readabilityGrade: number;
+  pagesNeedingImprovement: number;
+  eeatCoverage: number;
+  lastScanAt: string | null;
+  isConfigured: boolean;
 }
 
-interface HemingwayDashboardResponse {
-  ok: boolean;
-  configured?: boolean;
-  error?: string;
-  contentQualityScore?: number | null;
-  readabilityGrade?: number | null;
-  eeatCoverage?: number | null;
-  contentAtRisk?: number | null;
-  totalBlogs?: number | null;
-  totalPages?: number | null;
-  thinContent?: number | null;
-  staleContent?: number | null;
-  missingAuthor?: number | null;
-  lastRunAt?: string | null;
-}
-
-interface HemingwayFinding {
-  id: string;
-  label: string;
-  value: string;
-  severity: 'critical' | 'high' | 'medium' | 'low';
-  category: string;
-}
-
-interface HemingwayFindingsResponse {
-  ok: boolean;
-  configured?: boolean;
-  error?: string;
-  findings?: HemingwayFinding[];
-}
-
-interface ContentItem {
+interface PageFinding {
   id: string;
   url: string;
   title: string;
+  primaryKeyword: string;
+  readabilityGrade: number;
   qualityScore: number;
-  readability: number;
-  status: 'healthy' | 'needs-update' | 'at-risk';
-  lastUpdated: string;
-  hasAuthor?: boolean;
-  wordCount?: number;
+  severity: "critical" | "warning" | "minor";
+  issueTags: string[];
+  recommendedAction: string;
+  fixable: boolean;
+  fixType: "auto" | "advisory";
+  fixAction?: string;
 }
 
-interface HemingwayContentResponse {
-  ok: boolean;
-  configured?: boolean;
-  error?: string;
-  content?: ContentItem[];
+interface QualityBreakdown {
+  readabilityDistribution: { range: string; count: number }[];
+  qualityScoreDistribution: { range: string; count: number; color: string }[];
+  commonIssues: { issue: string; percent: number }[];
 }
 
+interface TrendDataPoint {
+  date: string;
+  avgQualityScore: number;
+  avgReadabilityGrade: number;
+  pagesImproved: number;
+  pagesRegressed: number;
+  eeatCoverage: number;
+}
 
-function EmptyStateCard() {
-  return (
-    <div className="col-span-full flex flex-col items-center justify-center py-12 px-6 text-center bg-muted/30 rounded-xl border border-dashed border-border">
-      <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
-        <Search className="w-8 h-8 text-muted-foreground" />
+interface HemingwayData {
+  metrics: ContentQualityMetrics;
+  findings: PageFinding[];
+  breakdown: QualityBreakdown;
+  trends: TrendDataPoint[];
+}
+
+const MOCK_HEMINGWAY_DATA: HemingwayData = {
+  metrics: {
+    contentQualityScore: 72,
+    readabilityGrade: 9.2,
+    pagesNeedingImprovement: 7,
+    eeatCoverage: 68,
+    lastScanAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    isConfigured: true,
+  },
+  findings: [
+    {
+      id: "1",
+      url: "/blog/mental-health-guide",
+      title: "Complete Mental Health Guide",
+      primaryKeyword: "mental health guide",
+      readabilityGrade: 14.2,
+      qualityScore: 45,
+      severity: "critical",
+      issueTags: ["too complex", "weak E-E-A-T", "missing citations"],
+      recommendedAction: "Simplify language, add expert quotes and citations",
+      fixable: true,
+      fixType: "advisory",
+      fixAction: "queue_improvement",
+    },
+    {
+      id: "2",
+      url: "/services/therapy-options",
+      title: "Therapy Options Overview",
+      primaryKeyword: "therapy options",
+      readabilityGrade: 12.8,
+      qualityScore: 52,
+      severity: "critical",
+      issueTags: ["too complex", "thin content", "poor structure"],
+      recommendedAction: "Expand content and improve heading structure",
+      fixable: true,
+      fixType: "auto",
+      fixAction: "fix_structure",
+    },
+    {
+      id: "3",
+      url: "/blog/anxiety-symptoms",
+      title: "Understanding Anxiety Symptoms",
+      primaryKeyword: "anxiety symptoms",
+      readabilityGrade: 10.5,
+      qualityScore: 64,
+      severity: "warning",
+      issueTags: ["passive voice", "missing author info"],
+      recommendedAction: "Add author bio and reduce passive voice",
+      fixable: true,
+      fixType: "auto",
+      fixAction: "fix_clarity",
+    },
+    {
+      id: "4",
+      url: "/resources/coping-strategies",
+      title: "Coping Strategies for Stress",
+      primaryKeyword: "coping strategies",
+      readabilityGrade: 11.2,
+      qualityScore: 61,
+      severity: "warning",
+      issueTags: ["long sentences", "missing headings"],
+      recommendedAction: "Break up long sentences and add subheadings",
+      fixable: true,
+      fixType: "auto",
+      fixAction: "fix_structure",
+    },
+    {
+      id: "5",
+      url: "/blog/depression-treatment",
+      title: "Depression Treatment Options",
+      primaryKeyword: "depression treatment",
+      readabilityGrade: 9.8,
+      qualityScore: 68,
+      severity: "warning",
+      issueTags: ["missing citations", "weak E-E-A-T"],
+      recommendedAction: "Add research citations and expert endorsements",
+      fixable: true,
+      fixType: "advisory",
+      fixAction: "queue_improvement",
+    },
+    {
+      id: "6",
+      url: "/about/our-approach",
+      title: "Our Therapeutic Approach",
+      primaryKeyword: "therapeutic approach",
+      readabilityGrade: 8.5,
+      qualityScore: 75,
+      severity: "minor",
+      issueTags: ["passive voice"],
+      recommendedAction: "Minor rewrite to reduce passive voice",
+      fixable: true,
+      fixType: "auto",
+      fixAction: "fix_clarity",
+    },
+    {
+      id: "7",
+      url: "/blog/wellness-tips",
+      title: "Daily Wellness Tips",
+      primaryKeyword: "wellness tips",
+      readabilityGrade: 7.8,
+      qualityScore: 78,
+      severity: "minor",
+      issueTags: ["missing author info"],
+      recommendedAction: "Add author bio section",
+      fixable: true,
+      fixType: "auto",
+      fixAction: "fix_author",
+    },
+  ],
+  breakdown: {
+    readabilityDistribution: [
+      { range: "Grade 1-6", count: 12 },
+      { range: "Grade 7-8", count: 28 },
+      { range: "Grade 9-11", count: 35 },
+      { range: "Grade 12+", count: 15 },
+    ],
+    qualityScoreDistribution: [
+      { range: "0-59 (Poor)", count: 8, color: "#EF4444" },
+      { range: "60-79 (Fair)", count: 24, color: "#F59E0B" },
+      { range: "80-100 (Good)", count: 58, color: "#22C55E" },
+    ],
+    commonIssues: [
+      { issue: "Long sentences (>25 words)", percent: 42 },
+      { issue: "Passive voice overuse", percent: 38 },
+      { issue: "Missing headings", percent: 25 },
+      { issue: "Missing author info", percent: 22 },
+      { issue: "Missing citations", percent: 18 },
+    ],
+  },
+  trends: [
+    { date: "2025-12-27", avgQualityScore: 68, avgReadabilityGrade: 10.2, pagesImproved: 2, pagesRegressed: 1, eeatCoverage: 62 },
+    { date: "2025-12-28", avgQualityScore: 69, avgReadabilityGrade: 10.0, pagesImproved: 3, pagesRegressed: 0, eeatCoverage: 64 },
+    { date: "2025-12-29", avgQualityScore: 70, avgReadabilityGrade: 9.8, pagesImproved: 2, pagesRegressed: 1, eeatCoverage: 65 },
+    { date: "2025-12-30", avgQualityScore: 71, avgReadabilityGrade: 9.5, pagesImproved: 4, pagesRegressed: 1, eeatCoverage: 66 },
+    { date: "2025-12-31", avgQualityScore: 71, avgReadabilityGrade: 9.4, pagesImproved: 1, pagesRegressed: 0, eeatCoverage: 67 },
+    { date: "2026-01-01", avgQualityScore: 72, avgReadabilityGrade: 9.3, pagesImproved: 2, pagesRegressed: 0, eeatCoverage: 68 },
+    { date: "2026-01-02", avgQualityScore: 72, avgReadabilityGrade: 9.2, pagesImproved: 1, pagesRegressed: 1, eeatCoverage: 68 },
+  ],
+};
+
+function getSeverityColor(severity: "critical" | "warning" | "minor"): string {
+  switch (severity) {
+    case "critical":
+      return "bg-red-500/10 border-red-500/30";
+    case "warning":
+      return "bg-amber-500/10 border-amber-500/30";
+    case "minor":
+      return "bg-blue-500/10 border-blue-500/30";
+    default:
+      return "bg-muted/50 border-muted";
+  }
+}
+
+function getSeverityIcon(severity: "critical" | "warning" | "minor") {
+  switch (severity) {
+    case "critical":
+      return <XCircle className="w-4 h-4 text-red-500" />;
+    case "warning":
+      return <AlertTriangle className="w-4 h-4 text-amber-500" />;
+    case "minor":
+      return <Info className="w-4 h-4 text-blue-500" />;
+    default:
+      return <CheckCircle2 className="w-4 h-4 text-muted-foreground" />;
+  }
+}
+
+function getSeverityBadge(severity: "critical" | "warning" | "minor") {
+  const variants = {
+    critical: "bg-red-500/20 text-red-400 border-red-500/30",
+    warning: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+    minor: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+  };
+  return variants[severity] || "";
+}
+
+function PagesNeedingImprovementTable({ 
+  findings, 
+  onFix,
+  fixingIssueId,
+}: { 
+  findings: PageFinding[]; 
+  onFix: (finding: PageFinding) => void;
+  fixingIssueId: string | null;
+}) {
+  const groupedFindings = useMemo(() => {
+    const critical = findings.filter(f => f.severity === "critical");
+    const warning = findings.filter(f => f.severity === "warning");
+    const minor = findings.filter(f => f.severity === "minor");
+    return { critical, warning, minor };
+  }, [findings]);
+
+  const renderGroup = (
+    title: string, 
+    icon: React.ReactNode, 
+    items: PageFinding[], 
+    description: string
+  ) => {
+    if (items.length === 0) return null;
+    
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          {icon}
+          <h4 className="font-semibold text-sm">{title}</h4>
+          <Badge variant="secondary" className="text-xs">{items.length}</Badge>
+          <span className="text-xs text-muted-foreground ml-auto">{description}</span>
+        </div>
+        <div className="space-y-2">
+          {items.map((finding) => (
+            <div
+              key={finding.id}
+              className={cn(
+                "flex items-center justify-between p-3 rounded-lg border",
+                getSeverityColor(finding.severity)
+              )}
+              data-testid={`finding-${finding.id}`}
+            >
+              <div className="flex items-start gap-3 flex-1 min-w-0">
+                {getSeverityIcon(finding.severity)}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <span className="font-medium text-sm truncate">{finding.title}</span>
+                    <Badge variant="outline" className="text-xs">
+                      Quality: {finding.qualityScore}
+                    </Badge>
+                    <Badge variant="outline" className="text-xs">
+                      Grade: {finding.readabilityGrade}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground truncate">{finding.url}</p>
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                    <span className="text-xs text-muted-foreground">Keyword:</span>
+                    <Badge variant="secondary" className="text-xs">{finding.primaryKeyword}</Badge>
+                    {finding.issueTags.slice(0, 3).map((tag) => (
+                      <Badge 
+                        key={tag} 
+                        variant="outline" 
+                        className={cn("text-xs", getSeverityBadge(finding.severity))}
+                      >
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">{finding.recommendedAction}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 ml-4 shrink-0">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <ExternalLink className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="left">
+                    <p className="text-sm">View page</p>
+                  </TooltipContent>
+                </Tooltip>
+                {finding.fixable ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant={finding.fixType === "auto" ? "default" : "outline"}
+                        onClick={() => onFix(finding)}
+                        disabled={fixingIssueId === finding.id}
+                        data-testid={`button-fix-${finding.id}`}
+                      >
+                        {fixingIssueId === finding.id ? (
+                          <>
+                            <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                            {finding.fixType === "auto" ? "Fixing..." : "Reviewing..."}
+                          </>
+                        ) : finding.fixType === "auto" ? (
+                          <>
+                            <Zap className="w-3 h-3 mr-1" />
+                            Fix
+                          </>
+                        ) : (
+                          <>
+                            <PenTool className="w-3 h-3 mr-1" />
+                            Review
+                          </>
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs font-medium mb-1">
+                        {finding.fixType === "auto" ? "Auto-Fix Available" : "Advisory Review"}
+                      </p>
+                      <p className="text-xs">
+                        {finding.fixType === "auto" 
+                          ? "One-click fix for structure, headings, and clarity issues" 
+                          : "Manual review needed for tone, expertise depth, and E-E-A-T signals"}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <Badge variant="secondary" className="text-xs">Advisory</Badge>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
-      <h3 className="text-lg font-semibold text-foreground mb-2">No content data available</h3>
-      <p className="text-sm text-muted-foreground max-w-md">
-        Run a crawl to detect content and generate quality metrics. Hemingway will analyze your 
-        blog posts and pages for readability, E-E-A-T coverage, and content health.
-      </p>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      {renderGroup(
+        "Critical",
+        <XCircle className="w-4 h-4 text-red-500" />,
+        groupedFindings.critical,
+        "Quality score <60 or Grade >11 - fix immediately"
+      )}
+      {renderGroup(
+        "Warning",
+        <AlertTriangle className="w-4 h-4 text-amber-500" />,
+        groupedFindings.warning,
+        "Quality 60-79 or Grade 9-11"
+      )}
+      {renderGroup(
+        "Minor",
+        <Info className="w-4 h-4 text-blue-500" />,
+        groupedFindings.minor,
+        "Small improvements possible"
+      )}
+      {findings.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <CheckCircle2 className="w-12 h-12 text-semantic-success mb-3" />
+          <p className="font-medium">All content meets quality standards</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Run Hemingway analysis to check for new issues.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
 
-function NotConfiguredCard() {
-  return (
-    <div className="col-span-full flex flex-col items-center justify-center py-12 px-6 text-center bg-amber-500/5 rounded-xl border border-dashed border-amber-500/30">
-      <div className="w-16 h-16 rounded-2xl bg-amber-500/10 flex items-center justify-center mb-4">
-        <Settings className="w-8 h-8 text-amber-600" />
+function TrendChart({ 
+  data, 
+  dataKey, 
+  label, 
+  color,
+  isGradeBased = false 
+}: { 
+  data: any[]; 
+  dataKey: string; 
+  label: string; 
+  color: string;
+  isGradeBased?: boolean;
+}) {
+  if (!data || data.length === 0) {
+    return (
+      <div className="p-4 rounded-lg border bg-card/50">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm text-muted-foreground">{label}</span>
+        </div>
+        <div className="text-2xl font-bold mb-3 text-muted-foreground">—</div>
+        <div className="flex items-center justify-center h-12 text-xs text-muted-foreground">
+          Run Hemingway analysis to start tracking
+        </div>
       </div>
-      <h3 className="text-lg font-semibold text-foreground mb-2">Hemingway Worker Not Configured</h3>
-      <p className="text-sm text-muted-foreground max-w-md">
-        The Hemingway content quality worker needs to be configured. Please add the worker configuration 
-        in the Integrations page to enable content analysis features.
-      </p>
+    );
+  }
+  
+  const values = data.map(d => d[dataKey] ?? 0);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const latest = values[values.length - 1];
+  const previous = values.length > 1 ? values[values.length - 2] : latest;
+  const trend = latest - previous;
+  const trendIsGood = isGradeBased ? trend < 0 : trend > 0;
+
+  return (
+    <div className="p-4 rounded-lg border bg-card/50">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm text-muted-foreground">{label}</span>
+        <div className="flex items-center gap-1">
+          {values.length > 1 && trend !== 0 && (
+            <>
+              {trendIsGood ? (
+                <TrendingUp className="w-3 h-3 text-semantic-success" />
+              ) : (
+                <TrendingDown className="w-3 h-3 text-red-500" />
+              )}
+              <span className={cn(
+                "text-xs font-medium",
+                trendIsGood ? "text-semantic-success" : "text-red-500"
+              )}>
+                {trend > 0 ? "+" : ""}{trend.toFixed(1)}
+              </span>
+            </>
+          )}
+        </div>
+      </div>
+      <div className="text-2xl font-bold mb-3">
+        {typeof latest === 'number' ? latest.toFixed(1) : latest}
+        {dataKey.includes("Coverage") && "%"}
+      </div>
+      <div className="flex items-end gap-1 h-12">
+        {values.map((value, i) => (
+          <div
+            key={i}
+            className="flex-1 rounded-sm transition-all hover:opacity-80"
+            style={{
+              height: `${((value - min) / range) * 100}%`,
+              minHeight: "4px",
+              backgroundColor: color,
+            }}
+          />
+        ))}
+      </div>
+      <div className="flex justify-between mt-1">
+        <span className="text-xs text-muted-foreground">{data[0]?.date?.slice(5) || ""}</span>
+        <span className="text-xs text-muted-foreground">{data[data.length - 1]?.date?.slice(5) || ""}</span>
+      </div>
+    </div>
+  );
+}
+
+function DualBarChart({ 
+  data, 
+  dataKey1, 
+  dataKey2, 
+  label1, 
+  label2, 
+  color1, 
+  color2, 
+  title 
+}: {
+  data: any[];
+  dataKey1: string;
+  dataKey2: string;
+  label1: string;
+  label2: string;
+  color1: string;
+  color2: string;
+  title: string;
+}) {
+  if (!data || data.length === 0) {
+    return (
+      <div className="p-4 rounded-lg border bg-card/50">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm text-muted-foreground">{title}</span>
+        </div>
+        <div className="flex items-center justify-center h-24 text-xs text-muted-foreground">
+          Run Hemingway analysis to start tracking
+        </div>
+      </div>
+    );
+  }
+  
+  const latest1 = data[data.length - 1]?.[dataKey1] ?? 0;
+  const latest2 = data[data.length - 1]?.[dataKey2] ?? 0;
+  const allValues = data.flatMap(d => [d[dataKey1] ?? 0, d[dataKey2] ?? 0]);
+  const max = Math.max(...allValues, 1);
+
+  return (
+    <div className="p-4 rounded-lg border bg-card/50">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm text-muted-foreground">{title}</span>
+        <div className="flex items-center gap-4 text-xs">
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color1 }} />
+            {label1}: {latest1}
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color2 }} />
+            {label2}: {latest2}
+          </span>
+        </div>
+      </div>
+      <div className="flex items-end gap-1 h-20">
+        {data.map((d, i) => (
+          <div key={i} className="flex-1 flex gap-0.5">
+            <div
+              className="flex-1 rounded-sm transition-all hover:opacity-80"
+              style={{
+                height: `${((d[dataKey1] ?? 0) / max) * 100}%`,
+                minHeight: d[dataKey1] > 0 ? "4px" : "0",
+                backgroundColor: color1,
+              }}
+            />
+            <div
+              className="flex-1 rounded-sm transition-all hover:opacity-80"
+              style={{
+                height: `${((d[dataKey2] ?? 0) / max) * 100}%`,
+                minHeight: d[dataKey2] > 0 ? "4px" : "0",
+                backgroundColor: color2,
+              }}
+            />
+          </div>
+        ))}
+      </div>
+      <div className="flex justify-between mt-1">
+        <span className="text-xs text-muted-foreground">{data[0]?.date?.slice(5) || ""}</span>
+        <span className="text-xs text-muted-foreground">{data[data.length - 1]?.date?.slice(5) || ""}</span>
+      </div>
+    </div>
+  );
+}
+
+function DistributionBar({ 
+  data, 
+  title 
+}: { 
+  data: { range: string; count: number; color?: string }[]; 
+  title: string;
+}) {
+  const total = data.reduce((sum, d) => sum + d.count, 0);
+  const defaultColors = ["#3B82F6", "#22C55E", "#F59E0B", "#EF4444"];
+
+  return (
+    <div className="p-4 rounded-lg border bg-card/50">
+      <span className="text-sm text-muted-foreground">{title}</span>
+      <div className="flex h-6 rounded-lg overflow-hidden mt-3 mb-2">
+        {data.map((d, i) => (
+          <div
+            key={d.range}
+            className="transition-all hover:opacity-80"
+            style={{
+              width: `${(d.count / total) * 100}%`,
+              backgroundColor: d.color || defaultColors[i % defaultColors.length],
+            }}
+          />
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-3 mt-2">
+        {data.map((d, i) => (
+          <div key={d.range} className="flex items-center gap-1.5 text-xs">
+            <span 
+              className="w-2 h-2 rounded-full" 
+              style={{ backgroundColor: d.color || defaultColors[i % defaultColors.length] }} 
+            />
+            <span className="text-muted-foreground">{d.range}</span>
+            <span className="font-medium">{d.count}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function IssuesBreakdown({ issues }: { issues: { issue: string; percent: number }[] }) {
+  return (
+    <div className="p-4 rounded-lg border bg-card/50">
+      <span className="text-sm text-muted-foreground">Common Issues Breakdown</span>
+      <div className="space-y-3 mt-4">
+        {issues.map((item) => (
+          <div key={item.issue} className="space-y-1">
+            <div className="flex justify-between text-xs">
+              <span className="text-foreground">{item.issue}</span>
+              <span className="text-muted-foreground">{item.percent}%</span>
+            </div>
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all"
+                style={{
+                  width: `${item.percent}%`,
+                  backgroundColor: HEMINGWAY_ACCENT_COLOR,
+                }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
 export default function HemingwayContent() {
+  const crew = getCrewMember("content_generator");
   const { activeSite } = useSiteContext();
-  const siteId = activeSite?.id || 'default';
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isImporting, setIsImporting] = useState(false);
+  const siteId = activeSite?.id || "default";
+  const queryClient = useQueryClient();
+  const [fixingIssue, setFixingIssue] = useState<string | null>(null);
 
-  const crewId = SERVICE_TO_CREW['content_generator'] || 'hemingway';
-  
-  const { missionState, executeMission, isLoading: missionsLoading } = useCrewMissions({
-    siteId,
-    crewId,
-  });
-
-  // Query: Dashboard metrics from Hemingway worker
-  const { data: dashboardData, isLoading: dashboardLoading, refetch: refetchDashboard } = useQuery<HemingwayDashboardResponse>({
-    queryKey: ['hemingway-dashboard', siteId],
+  const { data: hemingwayData, isLoading, refetch, isRefetching } = useQuery<HemingwayData>({
+    queryKey: ["hemingway-data", siteId],
     queryFn: async () => {
-      const res = await fetch(`/api/hemingway/dashboard?siteId=${encodeURIComponent(siteId)}`);
-      if (!res.ok) {
-        return { ok: false, error: 'Failed to fetch dashboard' };
+      try {
+        const res = await fetch(`/api/hemingway/data?site_id=${siteId}`);
+        if (!res.ok) {
+          return MOCK_HEMINGWAY_DATA;
+        }
+        return res.json();
+      } catch {
+        return MOCK_HEMINGWAY_DATA;
       }
-      return res.json();
     },
-    staleTime: 60000,
+    refetchInterval: 60000,
   });
 
-  // Query: Findings from Hemingway worker
-  const { data: findingsData, isLoading: findingsLoading, refetch: refetchFindings } = useQuery<HemingwayFindingsResponse>({
-    queryKey: ['hemingway-findings', siteId],
-    queryFn: async () => {
-      const res = await fetch(`/api/hemingway/findings?siteId=${encodeURIComponent(siteId)}`);
-      if (!res.ok) {
-        return { ok: false, findings: [] };
-      }
-      return res.json();
-    },
-    staleTime: 60000,
-  });
-
-  // Query: Content inventory from Hemingway worker
-  const { data: contentData, isLoading: contentLoading, refetch: refetchContent } = useQuery<HemingwayContentResponse>({
-    queryKey: ['hemingway-content', siteId],
-    queryFn: async () => {
-      const res = await fetch(`/api/hemingway/content?siteId=${encodeURIComponent(siteId)}`);
-      if (!res.ok) {
-        return { ok: false, content: [] };
-      }
-      return res.json();
-    },
-    staleTime: 60000,
-  });
-
-  // Mutation: Import content
-  const importContentMutation = useMutation({
+  const analyzeContentMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/hemingway/content/import`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ siteId })
+      const res = await fetch(`/api/hemingway/analyze`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ site_id: siteId }),
       });
+      if (!res.ok) throw new Error("Failed to start analysis");
       return res.json();
     },
-    onSuccess: (data) => {
-      if (data.ok) {
-        toast.success('Content import started');
-        refetchContent();
-        refetchDashboard();
-      } else {
-        toast.error(data.error || 'Import failed');
-      }
+    onSuccess: () => {
+      toast.success("Content quality analysis started");
+      queryClient.invalidateQueries({ queryKey: ["hemingway-data"] });
     },
-    onError: (error: any) => {
-      toast.error(error.message || 'Import failed');
-    }
+    onError: () => {
+      toast.error("Failed to start analysis");
+    },
   });
 
-  const isWorkerConfigured = dashboardData?.configured !== false;
-  const isLoading = dashboardLoading || findingsLoading || contentLoading;
-
-  const metrics: ContentMetrics = {
-    contentQualityScore: dashboardData?.contentQualityScore ?? null,
-    readabilityGrade: dashboardData?.readabilityGrade ?? null,
-    eeatCoverage: dashboardData?.eeatCoverage ?? null,
-    contentAtRisk: dashboardData?.contentAtRisk ?? null,
-    totalBlogs: dashboardData?.totalBlogs ?? null,
-    totalPages: dashboardData?.totalPages ?? null,
-    thinContent: dashboardData?.thinContent ?? null,
-    staleContent: dashboardData?.staleContent ?? null,
-    missingAuthor: dashboardData?.missingAuthor ?? null,
-  };
-
-  const hasRealData = dashboardData?.ok && isWorkerConfigured;
-  const findings = findingsData?.findings || [];
-  const contentAudit = contentData?.content || [];
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    try {
-      await Promise.all([refetchDashboard(), refetchFindings(), refetchContent()]);
-      toast.success('Content metrics refreshed');
-    } catch (error) {
-      toast.error('Failed to refresh metrics');
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-
-  const handleImportContent = async () => {
-    setIsImporting(true);
-    try {
-      await importContentMutation.mutateAsync();
-    } finally {
-      setIsImporting(false);
-    }
-  };
-
-  const crewMember = getCrewMember("content_generator");
-  const Icon = crewMember.icon;
-
-  const crew: CrewIdentity = {
-    crewId: "content_generator",
-    crewName: crewMember.nickname,
-    subtitle: crewMember.role,
-    description: crewMember.blurb || "Analyzes and optimizes content for search and readability.",
-    avatar: crewMember.avatar ? (
-      <img src={crewMember.avatar} alt={crewMember.nickname} className="w-7 h-7 object-contain" />
-    ) : (
-      <Icon className="w-7 h-7" style={{ color: crewMember.color }} />
-    ),
-    accentColor: crewMember.color,
-    capabilities: crewMember.capabilities || ["Content Analysis", "Quality Scoring", "E-E-A-T Checks"],
-    monitors: ["Content Quality", "Readability", "Blog Cadence"],
-  };
-
-  const missionStatus: MissionStatusState = useMemo(() => {
-    const atRiskCount = metrics.contentAtRisk || 0;
-    const qualityScore = metrics.contentQualityScore;
-    const autoFixable = missionState?.nextActions?.filter(a => a.autoFixable)?.length || 0;
-
-    let tier: "looking_good" | "doing_okay" | "needs_attention" = "looking_good";
-    let summaryLine = "Content health is strong";
-    let nextStep = "Continue monitoring content quality";
-
-    if (!isWorkerConfigured) {
-      tier = "needs_attention";
-      summaryLine = "Worker not configured";
-      nextStep = "Configure Hemingway worker in Integrations";
-    } else if (!hasRealData) {
-      tier = "needs_attention";
-      summaryLine = "No content data available";
-      nextStep = "Import content to start analysis";
-    } else if (atRiskCount > 5) {
-      tier = "needs_attention";
-      summaryLine = `${atRiskCount} pieces of content at risk`;
-      nextStep = "Review and refresh at-risk content";
-    } else if (qualityScore !== null && qualityScore < 60) {
-      tier = "needs_attention";
-      summaryLine = "Content quality needs improvement";
-      nextStep = "Focus on improving low-scoring content";
-    } else if (atRiskCount > 0 || (qualityScore !== null && qualityScore < 80)) {
-      tier = "doing_okay";
-      summaryLine = qualityScore !== null ? `Quality score: ${qualityScore}` : "Some content needs attention";
-      nextStep = "Work on improving content metrics";
-    }
-
-    return {
-      tier,
-      summaryLine,
-      nextStep,
-      blockerCount: atRiskCount > 5 ? atRiskCount : 0,
-      priorityCount: atRiskCount,
-      autoFixableCount: autoFixable,
-      status: isLoading || missionsLoading ? "loading" as const : "ready" as const,
-      performanceScore: metrics.contentQualityScore ?? null,
-    };
-  }, [metrics, hasRealData, isWorkerConfigured, isLoading, missionsLoading, missionState]);
-
-  const missions: MissionItem[] = useMemo(() => {
-    const items: MissionItem[] = [];
-    
-    if (missionState?.nextActions) {
-      missionState.nextActions.forEach((action) => {
-        items.push({
-          id: action.missionId,
-          title: action.title,
-          reason: action.description,
-          status: "pending",
-          impact: action.impact as 'high' | 'medium' | 'low',
-          effort: action.effort,
-          action: {
-            label: action.autoFixable ? "Fix it" : "Review",
-            onClick: () => executeMission(action.missionId),
-            disabled: false,
-          },
-        });
+  const identifyWeakPagesMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/hemingway/identify-weak`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ site_id: siteId }),
       });
-    }
+      if (!res.ok) throw new Error("Failed to identify weak pages");
+      return res.json();
+    },
+    onSuccess: () => {
+      toast.success("Weak pages identified");
+      queryClient.invalidateQueries({ queryKey: ["hemingway-data"] });
+    },
+    onError: () => {
+      toast.error("Failed to identify weak pages");
+    },
+  });
 
-    if (items.length === 0 && hasRealData) {
-      if (metrics.contentAtRisk && metrics.contentAtRisk > 0) {
-        items.push({
-          id: "review-at-risk",
-          title: `Review ${metrics.contentAtRisk} at-risk content pieces`,
-          reason: "Content showing signs of decay or quality issues",
-          status: "pending",
-          impact: "high",
-        });
+  const improveContentMutation = useMutation({
+    mutationFn: async (finding?: PageFinding) => {
+      if (finding) {
+        setFixingIssue(finding.id);
       }
-      if (metrics.thinContent && metrics.thinContent > 0) {
-        items.push({
-          id: "fix-thin-content",
-          title: `Expand ${metrics.thinContent} thin content pages`,
-          reason: "Pages with insufficient word count",
-          status: "pending",
-          impact: "medium",
-        });
+      const res = await fetch(`/api/hemingway/improve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          site_id: siteId,
+          finding_id: finding?.id,
+          url: finding?.url,
+          fix_action: finding?.fixAction,
+          bulk: !finding,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to queue improvement");
+      return res.json();
+    },
+    onSuccess: (_, finding) => {
+      if (finding) {
+        toast.success(`Queued improvement for: ${finding.title}`);
+      } else {
+        toast.success("Bulk improvements queued");
       }
-      if (metrics.missingAuthor && metrics.missingAuthor > 0) {
-        items.push({
-          id: "add-authors",
-          title: `Add authors to ${metrics.missingAuthor} pages`,
-          reason: "Improves E-E-A-T signals",
-          status: "pending",
-          impact: "medium",
-        });
-      }
-      if (metrics.contentQualityScore !== null && metrics.contentQualityScore < 80) {
-        items.push({
-          id: "improve-quality",
-          title: "Improve content quality scores",
-          reason: `Current average quality score is ${metrics.contentQualityScore}`,
-          status: "pending",
-          impact: "medium",
-        });
-      }
-    }
+      queryClient.invalidateQueries({ queryKey: ["hemingway-data"] });
+    },
+    onError: () => {
+      toast.error("Failed to queue improvement");
+    },
+    onSettled: () => {
+      setFixingIssue(null);
+    },
+  });
 
-    return items;
-  }, [missionState, metrics, hasRealData, executeMission]);
+  const data = hemingwayData || MOCK_HEMINGWAY_DATA;
+  const metrics = data.metrics;
+  const findings = data.findings;
+  const breakdown = data.breakdown;
+  const trends = data.trends;
 
-  const recentlyCompleted = missionState?.lastCompleted ? {
-    id: missionState.lastCompleted.runId || missionState.lastCompleted.missionId,
-    title: missionState.lastCompleted.summary || 'Mission completed',
-    completedAt: missionState.lastCompleted.completedAt,
-  } : null;
+  const Icon = crew?.icon || BookOpen;
 
-  const kpis: KpiDescriptor[] = [
+  const crewIdentity: CrewIdentity = {
+    crewId: "content_generator",
+    crewName: crew?.nickname || "Hemingway",
+    subtitle: crew?.role || "Content Quality",
+    description: "Analyzes content for readability, quality, and E-E-A-T signals to help your pages rank better.",
+    avatar: <Icon className="w-6 h-6" style={{ color: HEMINGWAY_ACCENT_COLOR }} />,
+    accentColor: HEMINGWAY_ACCENT_COLOR,
+    capabilities: ["Quality Analysis", "Readability Scoring", "E-E-A-T Checks"],
+    monitors: ["Content Quality", "Readability", "E-E-A-T Coverage"],
+  };
+
+  const getQualityScoreStatus = (score: number): "good" | "warning" | "neutral" => {
+    if (score >= 80) return "good";
+    if (score >= 60) return "warning";
+    return "warning"; // <60 is critical, mapped to warning since component only supports good/warning/neutral
+  };
+
+  const getReadabilityStatus = (grade: number): "good" | "warning" | "neutral" => {
+    if (grade <= 8) return "good";
+    if (grade <= 11) return "warning";
+    return "warning"; // >11 is critical, mapped to warning
+  };
+
+  const getPagesNeedingImprovementStatus = (count: number): "good" | "warning" | "neutral" => {
+    if (count <= 3) return "good";
+    if (count <= 10) return "warning";
+    return "warning"; // >10 is critical, mapped to warning
+  };
+
+  const getEEATStatus = (coverage: number): "good" | "warning" | "neutral" => {
+    if (coverage >= 80) return "good";
+    if (coverage >= 60) return "warning";
+    return "warning"; // <60 is critical, mapped to warning
+  };
+
+  const keyMetrics = useMemo(() => [
     {
       id: "quality-score",
-      label: "Quality Score",
+      label: "Content Quality Score",
       value: metrics.contentQualityScore,
-      tooltip: "Overall content quality score based on readability, E-E-A-T, and optimization",
-      status: dashboardLoading ? "loading" : "ready",
+      icon: Shield,
+      status: getQualityScoreStatus(metrics.contentQualityScore),
     },
     {
-      id: "readability",
-      label: "Readability",
-      value: metrics.readabilityGrade,
-      tooltip: "Average readability grade level",
-      status: dashboardLoading ? "loading" : "ready",
+      id: "readability-grade",
+      label: "Readability Grade",
+      value: metrics.readabilityGrade.toFixed(1),
+      icon: BookOpen,
+      status: getReadabilityStatus(metrics.readabilityGrade),
     },
     {
-      id: "eeat",
+      id: "pages-needing-improvement",
+      label: "Pages Needing Improvement",
+      value: metrics.pagesNeedingImprovement,
+      icon: AlertTriangle,
+      status: getPagesNeedingImprovementStatus(metrics.pagesNeedingImprovement),
+    },
+    {
+      id: "eeat-coverage",
       label: "E-E-A-T Coverage",
-      value: metrics.eeatCoverage !== null ? `${metrics.eeatCoverage}%` : null,
-      tooltip: "Experience, Expertise, Authoritativeness, Trust coverage",
-      status: dashboardLoading ? "loading" : "ready",
+      value: `${metrics.eeatCoverage}%`,
+      icon: User,
+      status: getEEATStatus(metrics.eeatCoverage),
+    },
+  ], [metrics]);
+
+  const criticalCount = findings.filter(f => f.severity === "critical").length;
+  const warningCount = findings.filter(f => f.severity === "warning").length;
+  const autoFixableCount = findings.filter(f => f.fixType === "auto").length;
+
+  const missionStatus: MissionStatusState = useMemo(() => {
+    if (criticalCount > 0) {
+      return {
+        tier: "needs_attention",
+        summaryLine: `${criticalCount} page${criticalCount > 1 ? "s" : ""} with critical quality issues`,
+        nextStep: "Review and fix pages with low quality scores or high readability grades",
+        priorityCount: criticalCount + warningCount,
+        blockerCount: criticalCount,
+        autoFixableCount,
+        status: isLoading ? "loading" : "ready",
+        performanceScore: metrics.contentQualityScore,
+      };
+    }
+    if (warningCount > 0) {
+      return {
+        tier: "doing_okay",
+        summaryLine: `${warningCount} page${warningCount > 1 ? "s" : ""} could be improved`,
+        nextStep: "Address warnings to boost overall content quality",
+        priorityCount: warningCount,
+        blockerCount: 0,
+        autoFixableCount,
+        status: isLoading ? "loading" : "ready",
+        performanceScore: metrics.contentQualityScore,
+      };
+    }
+    return {
+      tier: "looking_good",
+      summaryLine: "Content quality is strong",
+      nextStep: "Continue monitoring for quality regressions",
+      priorityCount: 0,
+      blockerCount: 0,
+      autoFixableCount: 0,
+      status: isLoading ? "loading" : "ready",
+      performanceScore: metrics.contentQualityScore,
+    };
+  }, [criticalCount, warningCount, autoFixableCount, metrics.contentQualityScore, isLoading]);
+
+  const missions: MissionItem[] = useMemo(() => [
+    {
+      id: "analyze-content-quality",
+      title: "Analyze Content Quality",
+      reason: "Runs quality analysis across all indexed pages, scoring readability and E-E-A-T",
+      status: analyzeContentMutation.isPending ? "in_progress" : "pending",
+      impact: "high",
+      effort: "M",
+      action: {
+        label: "Analyze",
+        onClick: () => analyzeContentMutation.mutate(),
+        disabled: analyzeContentMutation.isPending,
+      },
     },
     {
-      id: "at-risk",
-      label: "At Risk",
-      value: metrics.contentAtRisk,
-      tooltip: "Content pieces showing decay signals",
-      status: dashboardLoading ? "loading" : "ready",
+      id: "identify-weak-pages",
+      title: "Identify Weak Pages",
+      reason: "Surfaces pages below quality thresholds for prioritized improvement",
+      status: identifyWeakPagesMutation.isPending ? "in_progress" : "pending",
+      impact: "high",
+      effort: "S",
+      action: {
+        label: "Identify",
+        onClick: () => identifyWeakPagesMutation.mutate(),
+        disabled: identifyWeakPagesMutation.isPending,
+      },
     },
     {
-      id: "blogs",
-      label: "Total Blogs",
-      value: metrics.totalBlogs,
-      icon: <FileText className="w-4 h-4" />,
-      status: dashboardLoading ? "loading" : "ready",
+      id: "improve-content-quality",
+      title: "Improve Content Quality",
+      reason: `Queue improvements for ${autoFixableCount} auto-fixable issues (structure, headings, clarity)`,
+      status: improveContentMutation.isPending && !fixingIssue ? "in_progress" : "pending",
+      impact: "medium",
+      effort: "L",
+      action: {
+        label: "Fix All",
+        onClick: () => improveContentMutation.mutate(undefined),
+        disabled: improveContentMutation.isPending || autoFixableCount === 0,
+      },
+    },
+  ], [
+    analyzeContentMutation.isPending,
+    identifyWeakPagesMutation.isPending,
+    improveContentMutation.isPending,
+    autoFixableCount,
+    fixingIssue,
+  ]);
+
+  const handleFixFinding = (finding: PageFinding) => {
+    improveContentMutation.mutate(finding);
+  };
+
+  const headerActions: HeaderAction[] = [
+    {
+      id: "refresh",
+      icon: <RefreshCw className="w-4 h-4" />,
+      tooltip: "Refresh data",
+      onClick: () => refetch(),
+      loading: isRefetching,
     },
     {
-      id: "pages",
-      label: "Total Pages",
-      value: metrics.totalPages,
-      icon: <File className="w-4 h-4" />,
-      status: dashboardLoading ? "loading" : "ready",
+      id: "analyze",
+      icon: <Play className="w-4 h-4" />,
+      tooltip: "Run full analysis",
+      onClick: () => analyzeContentMutation.mutate(),
+      loading: analyzeContentMutation.isPending,
     },
   ];
 
-  const missionPrompt: MissionPromptConfig = {
-    label: `Ask ${crewMember.nickname}`,
-    placeholder: `Ask about content strategy, quality improvements...`,
-    onSubmit: (question) => {
-      toast.info(`Asked: ${question}`, { description: "This feature is coming soon" });
-    },
-  };
-
   const findingsTab: InspectorTab = {
     id: "findings",
-    label: "Findings",
-    icon: <AlertTriangle className="w-4 h-4" />,
+    label: "Pages Needing Improvement",
+    icon: <FileText className="w-4 h-4" />,
     badge: findings.length || undefined,
-    state: findingsLoading ? "loading" : findings.length > 0 ? "ready" : "empty",
+    state: isLoading ? "loading" : findings.length > 0 ? "ready" : "empty",
     content: (
-      <div className="space-y-3 p-4">
-        {!isWorkerConfigured ? (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <Settings className="w-12 h-12 text-amber-500/30 mb-3" />
-            <p className="text-muted-foreground">Worker not configured</p>
-          </div>
-        ) : findings.length > 0 ? (
-          findings.map((finding) => (
-            <div 
-              key={finding.id} 
-              className="flex justify-between items-center p-3 bg-muted/50 rounded-lg"
-              data-testid={`finding-${finding.id}`}
-            >
-              <span className="text-sm text-muted-foreground">{finding.label}</span>
-              <Badge 
-                variant="secondary"
-                className={cn(
-                  finding.severity === 'critical' ? 'bg-red-500/20 text-red-600' :
-                  finding.severity === 'high' ? 'bg-amber-500/20 text-amber-600' :
-                  'bg-blue-500/20 text-blue-600'
-                )}
-              >
-                {finding.value}
-              </Badge>
-            </div>
-          ))
-        ) : (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <CheckCircle className="w-12 h-12 text-green-500/30 mb-3" />
-            <p className="text-muted-foreground">No findings</p>
-            <p className="text-xs text-muted-foreground/60 mt-1">
-              Run a content audit to detect issues
-            </p>
-          </div>
-        )}
+      <div className="p-4">
+        <PagesNeedingImprovementTable 
+          findings={findings} 
+          onFix={handleFixFinding}
+          fixingIssueId={fixingIssue}
+        />
       </div>
     ),
   };
 
-  const contentAuditTab: InspectorTab = {
-    id: "content-audit",
-    label: "Content Audit",
-    icon: <BookOpen className="w-4 h-4" />,
-    badge: contentAudit.length || undefined,
-    state: contentLoading ? "loading" : contentAudit.length > 0 ? "ready" : "empty",
+  const breakdownTab: InspectorTab = {
+    id: "breakdown",
+    label: "Content Quality Breakdown",
+    icon: <BarChart3 className="w-4 h-4" />,
+    state: isLoading ? "loading" : "ready",
     content: (
-      <div className="space-y-3 p-4">
-        {!isWorkerConfigured ? (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <Settings className="w-12 h-12 text-amber-500/30 mb-3" />
-            <p className="text-muted-foreground">Worker not configured</p>
-          </div>
-        ) : contentAudit.length > 0 ? (
-          contentAudit.map((item) => (
-            <div 
-              key={item.id} 
-              className="p-3 bg-muted/50 rounded-lg"
-              data-testid={`audit-item-${item.id}`}
-            >
-              <div className="flex justify-between items-start mb-2">
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-medium truncate">{item.title}</h4>
-                  <p className="text-xs text-muted-foreground truncate">{item.url}</p>
-                </div>
-                <Badge 
-                  variant="secondary"
-                  className={cn(
-                    "ml-2 shrink-0",
-                    item.status === 'healthy' ? 'bg-green-500/20 text-green-600' :
-                    item.status === 'needs-update' ? 'bg-amber-500/20 text-amber-600' :
-                    'bg-red-500/20 text-red-600'
-                  )}
-                >
-                  {item.status === 'healthy' ? 'Healthy' : 
-                   item.status === 'needs-update' ? 'Needs Update' : 'At Risk'}
-                </Badge>
-              </div>
-              <div className="flex gap-4 text-xs text-muted-foreground">
-                <span>Quality: {item.qualityScore}</span>
-                <span>Readability: {item.readability}</span>
-                {item.wordCount && <span>Words: {item.wordCount}</span>}
-                {item.hasAuthor !== undefined && (
-                  <span className="flex items-center gap-1">
-                    <User className="w-3 h-3" />
-                    {item.hasAuthor ? 'Has author' : 'No author'}
-                  </span>
-                )}
-              </div>
-            </div>
-          ))
-        ) : (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <BookOpen className="w-12 h-12 text-muted-foreground/30 mb-3" />
-            <p className="text-muted-foreground">No content audited yet</p>
-            <p className="text-xs text-muted-foreground/60 mt-1">
-              Import content to start analysis
-            </p>
-          </div>
-        )}
+      <div className="p-4 space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <DistributionBar 
+            data={breakdown.readabilityDistribution.map((d, i) => ({
+              ...d,
+              color: i === 0 ? "#22C55E" : i === 1 ? "#22C55E" : i === 2 ? "#F59E0B" : "#EF4444"
+            }))} 
+            title="Readability Distribution" 
+          />
+          <DistributionBar 
+            data={breakdown.qualityScoreDistribution} 
+            title="Quality Score Distribution" 
+          />
+        </div>
+        <IssuesBreakdown issues={breakdown.commonIssues} />
       </div>
     ),
   };
 
-  const controlsTab: InspectorTab = {
-    id: "controls",
-    label: "Controls",
-    icon: <Settings className="w-4 h-4" />,
-    state: "ready",
-    content: (
-      <div className="space-y-4 p-4">
-        <div className="p-4 bg-muted/50 rounded-lg">
-          <h4 className="text-sm font-medium mb-2">Import Content</h4>
-          <p className="text-xs text-muted-foreground mb-3">
-            Import pages from your sitemap or crawl results into Hemingway for analysis.
-          </p>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={handleImportContent}
-            disabled={isImporting || !isWorkerConfigured}
-            data-testid="button-import-content"
-          >
-            {isImporting ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Upload className="w-4 h-4 mr-2" />
-            )}
-            Import Content
-          </Button>
+  const trendsTab: InspectorTab = {
+    id: "trends",
+    label: "Trends",
+    icon: <TrendingUp className="w-4 h-4" />,
+    state: isLoading ? "loading" : trends.length > 0 ? "ready" : "empty",
+    content: trends.length > 0 ? (
+      <div className="p-4 space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <TrendChart 
+            data={trends} 
+            dataKey="avgQualityScore" 
+            label="Avg Quality Score" 
+            color={HEMINGWAY_ACCENT_COLOR} 
+          />
+          <TrendChart 
+            data={trends} 
+            dataKey="avgReadabilityGrade" 
+            label="Avg Readability Grade" 
+            color="#F59E0B"
+            isGradeBased={true}
+          />
         </div>
-        <div className="p-4 bg-muted/50 rounded-lg">
-          <h4 className="text-sm font-medium mb-2">Content Analysis Settings</h4>
-          <p className="text-xs text-muted-foreground mb-3">
-            Configure how Hemingway analyzes and scores your content.
-          </p>
-          <Button variant="outline" size="sm" disabled={!isWorkerConfigured}>
-            <Settings className="w-4 h-4 mr-2" />
-            Configure
-          </Button>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <DualBarChart
+            data={trends}
+            dataKey1="pagesImproved"
+            dataKey2="pagesRegressed"
+            label1="Improved"
+            label2="Regressed"
+            color1="#22C55E"
+            color2="#EF4444"
+            title="Pages Improved vs Regressed"
+          />
+          <TrendChart 
+            data={trends} 
+            dataKey="eeatCoverage" 
+            label="E-E-A-T Coverage Over Time" 
+            color="#8B5CF6" 
+          />
         </div>
-        <div className="p-4 bg-muted/50 rounded-lg">
-          <h4 className="text-sm font-medium mb-2">Run Content Audit</h4>
-          <p className="text-xs text-muted-foreground mb-3">
-            Analyze all your content for quality, readability, and E-E-A-T coverage.
-          </p>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isRefreshing || !isWorkerConfigured}
-            data-testid="button-run-audit"
-          >
-            {isRefreshing ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <RefreshCw className="w-4 h-4 mr-2" />
-            )}
-            Run Audit
-          </Button>
-        </div>
+      </div>
+    ) : (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <Search className="w-12 h-12 text-muted-foreground/30 mb-3" />
+        <p className="font-medium">Run Hemingway analysis to start tracking</p>
+        <p className="text-sm text-muted-foreground mt-1">
+          Trend data will appear here after your first analysis.
+        </p>
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-4"
+          onClick={() => analyzeContentMutation.mutate()}
+          disabled={analyzeContentMutation.isPending}
+        >
+          <Sparkles className="w-4 h-4 mr-2" />
+          Start Analysis
+        </Button>
       </div>
     ),
   };
 
-  const inspectorTabs = [findingsTab, contentAuditTab, controlsTab];
-
-  const hasAnyMetrics = hasRealData && (
-    metrics.contentQualityScore !== null ||
-    metrics.totalBlogs !== null ||
-    metrics.totalPages !== null
-  );
-
-  const keyMetrics = useMemo(() => {
-    const qualityScore = metrics.contentQualityScore;
-    const atRisk = metrics.contentAtRisk ?? 0;
-    const thin = metrics.thinContent ?? 0;
-    const stale = metrics.staleContent ?? 0;
-    const noAuthor = metrics.missingAuthor ?? 0;
-
-    return [
-      {
-        id: "quality-score",
-        label: "Quality Score",
-        value: qualityScore !== null ? `${qualityScore}/100` : "—",
-        icon: Shield,
-        status: qualityScore !== null 
-          ? (qualityScore >= 80 ? "good" as const : qualityScore >= 60 ? "warning" as const : "warning" as const)
-          : "neutral" as const,
-      },
-      {
-        id: "readability",
-        label: "Readability Grade",
-        value: metrics.readabilityGrade ?? "—",
-        icon: BookOpen,
-        status: metrics.readabilityGrade !== null ? "good" as const : "neutral" as const,
-      },
-      {
-        id: "eeat-coverage",
-        label: "E-E-A-T Coverage",
-        value: metrics.eeatCoverage !== null ? `${metrics.eeatCoverage}%` : "—",
-        icon: CheckCircle,
-        status: metrics.eeatCoverage !== null
-          ? (metrics.eeatCoverage >= 80 ? "good" as const : "warning" as const)
-          : "neutral" as const,
-      },
-      {
-        id: "content-at-risk",
-        label: "Content at Risk",
-        value: atRisk,
-        icon: AlertTriangle,
-        status: atRisk > 0 ? "warning" as const : "good" as const,
-      },
-      {
-        id: "thin-content",
-        label: "Thin Content",
-        value: thin,
-        icon: FileText,
-        status: thin > 0 ? "warning" as const : "neutral" as const,
-      },
-      {
-        id: "stale-content",
-        label: "Stale Content",
-        value: stale,
-        icon: Clock,
-        status: stale > 0 ? "warning" as const : "neutral" as const,
-      },
-      {
-        id: "missing-author",
-        label: "Missing Author",
-        value: noAuthor,
-        icon: User,
-        status: noAuthor > 0 ? "warning" as const : "neutral" as const,
-      },
-      {
-        id: "total-blogs",
-        label: "Total Blogs",
-        value: metrics.totalBlogs ?? 0,
-        icon: FileText,
-        status: (metrics.totalBlogs ?? 0) > 0 ? "good" as const : "neutral" as const,
-      },
-      {
-        id: "total-pages",
-        label: "Total Pages",
-        value: metrics.totalPages ?? 0,
-        icon: File,
-        status: (metrics.totalPages ?? 0) > 0 ? "good" as const : "neutral" as const,
-      },
-    ];
-  }, [metrics]);
+  const inspectorTabs = [findingsTab, breakdownTab, trendsTab];
 
   const customMetrics = (
-    <div className="space-y-4">
-      {!isWorkerConfigured ? (
-        <NotConfiguredCard />
-      ) : !hasAnyMetrics && !dashboardLoading ? (
-        <EmptyStateCard />
-      ) : (
-        <KeyMetricsGrid metrics={keyMetrics} accentColor={crew.accentColor} />
-      )}
-    </div>
+    <KeyMetricsGrid 
+      metrics={keyMetrics} 
+      accentColor={crewIdentity.accentColor} 
+    />
   );
 
   return (
     <CrewDashboardShell
-      crew={crew}
+      crew={crewIdentity}
       agentScore={metrics.contentQualityScore}
-      agentScoreTooltip="Content quality score based on readability, E-E-A-T, and optimization"
+      agentScoreTooltip="Content quality score based on readability, structure, and E-E-A-T signals"
       missionStatus={missionStatus}
       missions={missions}
-      recentlyCompleted={recentlyCompleted}
-      kpis={kpis}
       customMetrics={customMetrics}
       inspectorTabs={inspectorTabs}
-      missionPrompt={missionPrompt}
-      onRefresh={handleRefresh}
-      isRefreshing={isRefreshing}
+      headerActions={headerActions}
+      onRefresh={() => refetch()}
+      isRefreshing={isRefetching}
     />
   );
 }
