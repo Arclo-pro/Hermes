@@ -331,11 +331,11 @@ function MetricCardsRow() {
     gcTime: 300000, // Keep in cache for 5 minutes
   });
   
-  // Fetch competitive overview for Share of Voice
-  const { data: competitiveData } = useQuery({
-    queryKey: ['competitive-overview', siteId],
+  // Fetch Market SOV from Lookout keyword rankings (CTR-weighted)
+  const { data: marketSovData } = useQuery({
+    queryKey: ['market-sov'],
     queryFn: async () => {
-      const res = await fetch(`/api/competitive/overview?siteId=${siteId}`);
+      const res = await fetch('/api/serp/market-sov');
       if (!res.ok) return null;
       return res.json();
     },
@@ -414,15 +414,15 @@ function MetricCardsRow() {
       timeRange: 'Last 30 days',
     },
     {
-      id: 'share-of-voice',
-      label: 'Share of Voice',
-      value: competitiveData?.shareOfVoice != null ? `${Math.round(competitiveData.shareOfVoice)}%` : '—',
-      delta: competitiveData?.shareOfVoice > 0 ? '+' : '',
+      id: 'market-sov',
+      label: 'Market SOV',
+      value: marketSovData?.marketSov != null ? `${marketSovData.marketSov}%` : '—',
+      delta: marketSovData?.marketSov > 0 ? '+' : '',
       deltaPct: 0,
-      verdict: competitiveData?.shareOfVoice > 20 ? 'good' : competitiveData?.shareOfVoice > 0 ? 'watch' : 'neutral',
-      sparkline: [0, 5, 8, 12, 15, 18, competitiveData?.shareOfVoice || 0],
-      nextAction: { text: 'Review Natasha', link: buildRoute.agent('competitive_snapshot') },
-      timeRange: 'vs competitors',
+      verdict: marketSovData?.marketSov > 20 ? 'good' : marketSovData?.marketSov > 0 ? 'watch' : 'neutral',
+      sparkline: [0, 5, 8, 12, 15, 18, marketSovData?.marketSov || 0],
+      nextAction: { text: 'Review Lookout', link: buildRoute.agent('serp_tracker') },
+      timeRange: 'CTR-weighted',
     },
   ];
 
@@ -431,7 +431,7 @@ function MetricCardsRow() {
       <h2 className="text-lg font-semibold text-foreground mb-4">Key Metrics</h2>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {metrics.map((metric) => (
-          <MetricCard key={metric.id} metric={metric} highlighted={metric.id === 'share-of-voice'} />
+          <MetricCard key={metric.id} metric={metric} highlighted={metric.id === 'market-sov'} />
         ))}
       </div>
     </div>
