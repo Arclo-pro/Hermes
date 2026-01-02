@@ -242,10 +242,10 @@ export function CrewDashboardShell({
                     {cap}
                   </Badge>
                 ))}
-                {crew.monitors.length > 0 && (crew.capabilities?.length || 0) > 0 && (
+                {(crew.monitors?.length || 0) > 0 && (crew.capabilities?.length || 0) > 0 && (
                   <span className="text-muted-foreground/50 px-1">|</span>
                 )}
-                {crew.monitors.map((monitor) => (
+                {(crew.monitors || []).map((monitor) => (
                   <Badge
                     key={monitor}
                     variant="outline"
@@ -355,7 +355,7 @@ export function CrewDashboardShell({
       )}
 
       {/* 5. Inspector / Details Area */}
-      {inspectorTabs.length > 0 && (
+      {(inspectorTabs?.length || 0) > 0 && (
         <Card className="bg-card/60 backdrop-blur-sm border-border">
           <CardContent className="pt-6">
             <Tabs defaultValue={inspectorTabs[0]?.id}>
