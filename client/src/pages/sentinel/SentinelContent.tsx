@@ -676,7 +676,12 @@ export default function SentinelContent() {
   }, [criticalCount, warningCount, mildCount, fixableCount, metrics.avgDecaySeverity, isLoading]);
 
   const missionPrompt: MissionPromptConfig = {
-    inlinePrompt: "Detect, prioritize, and reverse content decay before rankings and traffic are lost.",
+    label: "Ask Sentinel",
+    placeholder: "e.g., Why is this page losing rankings? What content needs refreshing?",
+    onSubmit: (question) => {
+      console.log("Question for Sentinel:", question);
+      toast.info("Analyzing your content decay question...");
+    },
   };
 
   const missions: MissionItem[] = [
@@ -715,18 +720,12 @@ export default function SentinelContent() {
   const headerActions: HeaderAction[] = [
     {
       id: "run-scan",
-      label: "Run Scan",
       icon: <Play className="w-4 h-4" />,
       tooltip: "Scan for content decay",
       onClick: () => detectDecayMutation.mutate(),
+      disabled: detectDecayMutation.isPending,
       loading: detectDecayMutation.isPending,
-    },
-    {
-      id: "refresh",
-      icon: <RefreshCw className={cn("w-4 h-4", isLoading && "animate-spin")} />,
-      tooltip: "Refresh data",
-      onClick: () => detectDecayMutation.mutate(),
-      loading: isLoading,
+      variant: "primary" as const,
     },
   ];
 
