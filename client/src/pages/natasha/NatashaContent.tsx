@@ -1046,21 +1046,21 @@ export default function NatashaContent() {
   const keyMetrics = useMemo(() => [
     {
       id: "opportunities-found",
-      label: "Opportunities Found",
+      label: "Opportunities",
       value: summary.totalGaps || 0,
       icon: Target,
       status: summary.totalGaps > 0 ? "primary" as const : "neutral" as const,
     },
     {
       id: "competitors-tracked",
-      label: "Competitors Tracked",
+      label: "Competitors",
       value: summary.totalCompetitors || 0,
       icon: Users,
       status: summary.totalCompetitors > 0 ? "primary" as const : "neutral" as const,
     },
     {
       id: "keywords-with-gaps",
-      label: "Keywords with Gaps",
+      label: "Keyword Gaps",
       value: data.contentGaps?.length || 0,
       icon: Search,
       status: data.contentGaps?.length > 0 ? "warning" as const : "neutral" as const,
