@@ -5841,6 +5841,49 @@ Keep responses concise and actionable.`;
     }
   });
 
+  // SEO Agent Snapshots - Save and retrieve historical metrics
+  app.post("/api/snapshots", async (req, res) => {
+    try {
+      const { agentSlug, siteId, scoreValue, scoreType, metrics, triggerType } = req.body;
+      
+      if (!agentSlug || scoreValue === undefined) {
+        return res.status(400).json({ error: "agentSlug and scoreValue are required" });
+      }
+      
+      const snapshot = await storage.saveAgentSnapshot({
+        agentSlug,
+        siteId: siteId || "default",
+        scoreValue,
+        scoreType: scoreType || "sov",
+        metrics: metrics || {},
+        triggerType: triggerType || "manual",
+      });
+      
+      res.json(snapshot);
+    } catch (error: any) {
+      logger.error("API", "Failed to save snapshot", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/snapshots/:agentSlug", async (req, res) => {
+    try {
+      const { agentSlug } = req.params;
+      const { siteId, limit } = req.query;
+      
+      const snapshots = await storage.getAgentSnapshots(
+        agentSlug,
+        siteId as string || "default",
+        limit ? parseInt(limit as string) : 30
+      );
+      
+      res.json(snapshots);
+    } catch (error: any) {
+      logger.error("API", "Failed to fetch snapshots", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Near Wins - Keywords ranking #2 or #3 where we're close to #1
   app.get("/api/serp/near-wins", async (req, res) => {
     try {
