@@ -595,21 +595,6 @@ function OverviewPanel({ data, onRefresh, isRefreshing }: { data: CompetitiveOve
         </div>
       </div>
 
-      <div>
-        <h4 className="font-medium text-foreground mb-3">Share of Voice</h4>
-        <div className="space-y-3">
-          <ShareOfVoiceBar name="Your Site" value={data.shareOfVoice} isYou />
-          {data.competitors.slice(0, 3).map((comp, idx) => (
-            <ShareOfVoiceBar 
-              key={comp.id} 
-              name={comp.name} 
-              value={comp.visibility} 
-              color={["#ef4444", "#f97316", "#eab308"][idx]}
-            />
-          ))}
-        </div>
-      </div>
-
       {data.lastRunAt && (
         <p className="text-xs text-muted-foreground flex items-center gap-1">
           <Clock className="w-3 h-3" />
@@ -737,6 +722,92 @@ function TrendsPanel({ alerts }: { alerts: TrendAlert[] }) {
       {alerts.map((alert) => (
         <TrendAlertCard key={alert.id} alert={alert} />
       ))}
+    </div>
+  );
+}
+
+function ShareOfVoicePanel({ 
+  marketSov, 
+  trackedSov, 
+  marketSovData,
+  competitors,
+  shareOfVoice
+}: { 
+  marketSov: number; 
+  trackedSov: number;
+  marketSovData?: { marketSov: number; totalKeywords: number; rankingKeywords: number; breakdown: any; message: string };
+  competitors: Competitor[];
+  shareOfVoice: number;
+}) {
+  return (
+    <div className="space-y-6">
+      <div className="p-4 rounded-xl bg-card/40 border border-border">
+        <div className="flex items-start gap-3">
+          <Info className="w-5 h-5 text-purple-accent shrink-0 mt-0.5" />
+          <div className="space-y-2">
+            <p className="text-sm text-foreground font-medium">Understanding Share of Voice</p>
+            <ul className="text-sm text-muted-foreground space-y-1">
+              <li><strong className="text-foreground">Market SOV</strong> shows how visible you are across all target keywords (CTR-weighted from Lookout rankings).</li>
+              <li><strong className="text-foreground">Tracked SOV</strong> compares your visibility against your selected competitors below.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="p-4 rounded-xl bg-card/60 border border-border text-center">
+          <p className="text-3xl font-bold text-foreground">{marketSov}%</p>
+          <p className="text-sm text-muted-foreground mt-1">Market SOV</p>
+          {marketSovData && (
+            <p className="text-xs text-muted-foreground mt-2">
+              {marketSovData.rankingKeywords} of {marketSovData.totalKeywords} keywords ranking
+            </p>
+          )}
+        </div>
+        <div className="p-4 rounded-xl bg-card/60 border border-border text-center">
+          <p className="text-3xl font-bold text-foreground">{trackedSov}%</p>
+          <p className="text-sm text-muted-foreground mt-1">Tracked SOV</p>
+          <p className="text-xs text-muted-foreground mt-2">
+            vs {competitors.length} tracked competitors
+          </p>
+        </div>
+      </div>
+
+      {marketSovData?.breakdown && (
+        <div>
+          <h4 className="font-medium text-foreground mb-3">Position Distribution</h4>
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+            {[
+              { label: "#1", value: marketSovData.breakdown.top1, color: "text-semantic-success" },
+              { label: "#2-3", value: marketSovData.breakdown.top3, color: "text-semantic-success" },
+              { label: "#4-10", value: marketSovData.breakdown.top10, color: "text-semantic-warning" },
+              { label: "#11-20", value: marketSovData.breakdown.top20, color: "text-semantic-warning" },
+              { label: "#21-50", value: marketSovData.breakdown.top50, color: "text-muted-foreground" },
+              { label: "Not ranking", value: marketSovData.breakdown.notRanking, color: "text-semantic-danger" },
+            ].map((item) => (
+              <div key={item.label} className="p-3 rounded-lg bg-muted/30 text-center">
+                <p className={cn("text-lg font-semibold", item.color)}>{item.value}</p>
+                <p className="text-xs text-muted-foreground">{item.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div>
+        <h4 className="font-medium text-foreground mb-3">Visibility vs Tracked Competitors</h4>
+        <div className="space-y-3">
+          <ShareOfVoiceBar name="Your Site" value={shareOfVoice} isYou />
+          {competitors.slice(0, 5).map((comp, idx) => (
+            <ShareOfVoiceBar 
+              key={comp.id} 
+              name={comp.name} 
+              value={comp.visibility} 
+              color={["#ef4444", "#f97316", "#eab308", "#84cc16", "#06b6d4"][idx]}
+            />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -1171,8 +1242,23 @@ export default function NatashaContent() {
         badge: data.alerts.length > 0 ? data.alerts.length : undefined,
         state: tabState,
       },
+      {
+        id: "share-of-voice",
+        label: "Share of Voice",
+        icon: <BarChart3 className="w-4 h-4" />,
+        content: (
+          <ShareOfVoicePanel 
+            marketSov={marketSov}
+            trackedSov={Math.round(normalizedKpis.shareOfVoicePct)}
+            marketSovData={marketSovData}
+            competitors={data.competitors}
+            shareOfVoice={data.shareOfVoice}
+          />
+        ),
+        state: tabState,
+      },
     ];
-  }, [data, summary, error, isLoading, isRunning, handleRefresh]);
+  }, [data, summary, error, isLoading, isRunning, handleRefresh, marketSov, marketSovData, normalizedKpis]);
 
   const missionPrompt: MissionPromptConfig = {
     label: "Ask Natasha",
