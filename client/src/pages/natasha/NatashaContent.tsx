@@ -1715,14 +1715,14 @@ export default function NatashaContent() {
       label: "Opportunities",
       value: uniqueKeywordGaps || 0,
       icon: Target,
-      status: uniqueKeywordGaps > 0 ? "primary" as const : "neutral" as const,
+      status: uniqueKeywordGaps > 0 ? "good" as const : "neutral" as const,
     },
     {
       id: "competitors-tracked",
       label: "Competitors",
       value: summary.totalCompetitors || 0,
       icon: Users,
-      status: summary.totalCompetitors > 0 ? "primary" as const : "neutral" as const,
+      status: summary.totalCompetitors > 0 ? "good" as const : "neutral" as const,
     },
     {
       id: "keywords-with-gaps",
@@ -1736,14 +1736,14 @@ export default function NatashaContent() {
       label: "Market SOV",
       value: `${marketSov}%`,
       icon: TrendingUp,
-      status: marketSov > 20 ? "primary" as const : marketSov > 0 ? "warning" as const : "neutral" as const,
+      status: marketSov > 20 ? "good" as const : marketSov > 0 ? "warning" as const : "neutral" as const,
     },
     {
       id: "tracked-sov",
       label: "Tracked SOV",
       value: `${Math.round(normalizedKpis.shareOfVoicePct)}%`,
       icon: Users,
-      status: normalizedKpis.shareOfVoicePct > 20 ? "primary" as const : normalizedKpis.shareOfVoicePct > 0 ? "warning" as const : "neutral" as const,
+      status: normalizedKpis.shareOfVoicePct > 20 ? "good" as const : normalizedKpis.shareOfVoicePct > 0 ? "warning" as const : "neutral" as const,
     },
   ], [data, summary, normalizedKpis, uniqueKeywordGaps, marketSov]);
 

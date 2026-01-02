@@ -1,9 +1,8 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getCrewMember } from "@/config/agents";
 import { useQuery } from "@tanstack/react-query";
-import { PlayCircle, AlertCircle, CheckCircle2, Clock, Wrench, Loader2, Download, FileText, Settings2, RefreshCw } from "lucide-react";
+import { PlayCircle, AlertCircle, CheckCircle2, Clock, Wrench, Download, Settings2, RefreshCw, Search, Lightbulb } from "lucide-react";
 import { useSiteContext } from "@/hooks/useSiteContext";
 import { CrewDashboardShell } from "@/components/crew-dashboard/CrewDashboardShell";
 import { useCrewMissions } from "@/hooks/useCrewMissions";
@@ -16,7 +15,8 @@ import type {
   KpiDescriptor,
   MissionPromptConfig 
 } from "@/components/crew-dashboard/types";
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { KeyMetricsGrid } from "@/components/key-metrics";
 
 interface AgentData {
   ok: boolean;
@@ -143,6 +143,30 @@ export default function GenericAgentContent({ agentId }: GenericAgentContentProp
       status: isLoading ? "loading" : "ready",
     },
   ];
+
+  const keyMetrics = useMemo(() => [
+    {
+      id: "score",
+      label: "Agent Score",
+      value: hasRealData && data?.score !== undefined ? data.score : 0,
+      icon: CheckCircle2,
+      status: (data?.score ?? 0) >= 80 ? "good" : (data?.score ?? 0) >= 50 ? "warning" : "neutral" as const,
+    },
+    {
+      id: "findings",
+      label: "Findings",
+      value: hasRealData ? findings.length : 0,
+      icon: Search,
+      status: findings.length > 0 ? "warning" : "good" as const,
+    },
+    {
+      id: "suggestions",
+      label: "Suggestions",
+      value: hasRealData ? (data?.suggestionsCount ?? 0) : 0,
+      icon: Lightbulb,
+      status: (data?.suggestionsCount ?? 0) > 0 ? "warning" : "good" as const,
+    },
+  ], [hasRealData, data, findings.length]);
 
   const missionPrompt: MissionPromptConfig = {
     label: `Ask ${crew.nickname}`,
@@ -325,6 +349,7 @@ export default function GenericAgentContent({ agentId }: GenericAgentContentProp
       missions={missions}
       recentlyCompleted={recentlyCompleted}
       kpis={kpis}
+      customMetrics={<KeyMetricsGrid metrics={keyMetrics} accentColor={crewIdentity.accentColor} />}
       inspectorTabs={inspectorTabs}
       missionPrompt={missionPrompt}
       headerActions={headerActions}
