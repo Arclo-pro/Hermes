@@ -982,9 +982,9 @@ export default function NatashaContent() {
       blockerCount: blockers,
       autoFixableCount: autoFixable,
       status: error ? "unavailable" : isLoading ? "loading" : "ready",
-      performanceScore: data.agentScore ?? null,
+      performanceScore: marketSov,
     };
-  }, [data, summary, error, isLoading]);
+  }, [data, summary, error, isLoading, marketSov]);
 
   // Convert competitive missions to MissionItem format - ALWAYS have at least one mission
   const missions: MissionItem[] = useMemo(() => {
@@ -1283,8 +1283,8 @@ export default function NatashaContent() {
   return (
     <CrewDashboardShell
       crew={crewIdentity}
-      agentScore={data.agentScore}
-      agentScoreTooltip="Score will update once competitive data is available"
+      agentScore={marketSov}
+      agentScoreTooltip="Market SOV — Your visibility across all target keywords (CTR-weighted)"
       missionStatus={missionStatus}
       missions={missions}
       kpis={kpis}
