@@ -785,6 +785,19 @@ export default function NatashaContent() {
     retry: 1,
   });
 
+  // Market SOV - calculated from Lookout keyword rankings using CTR weighting
+  const { data: marketSovData } = useQuery<{ marketSov: number; totalKeywords: number; rankingKeywords: number; breakdown: any; message: string }>({
+    queryKey: ["market-sov"],
+    queryFn: async () => {
+      const res = await fetch("/api/serp/market-sov");
+      if (!res.ok) throw new Error("Failed to fetch market SOV");
+      return res.json();
+    },
+    staleTime: 60000,
+    retry: 1,
+  });
+  const marketSov = marketSovData?.marketSov || 0;
+
   const runAnalysis = useMutation({
     mutationFn: async () => {
       const res = await fetch("/api/competitive/run", {
@@ -1102,13 +1115,20 @@ export default function NatashaContent() {
       status: data.contentGaps?.length > 0 ? "warning" as const : "neutral" as const,
     },
     {
-      id: "share-of-voice",
-      label: "Share of Voice",
-      value: `${Math.round(normalizedKpis.shareOfVoicePct)}%`,
+      id: "market-sov",
+      label: "Market SOV",
+      value: `${marketSov}%`,
       icon: TrendingUp,
+      status: marketSov > 20 ? "primary" as const : marketSov > 0 ? "warning" as const : "neutral" as const,
+    },
+    {
+      id: "tracked-sov",
+      label: "Tracked SOV",
+      value: `${Math.round(normalizedKpis.shareOfVoicePct)}%`,
+      icon: Users,
       status: normalizedKpis.shareOfVoicePct > 20 ? "primary" as const : normalizedKpis.shareOfVoicePct > 0 ? "warning" as const : "neutral" as const,
     },
-  ], [data, summary, normalizedKpis, uniqueKeywordGaps]);
+  ], [data, summary, normalizedKpis, uniqueKeywordGaps, marketSov]);
 
   // Inspector tabs
   const inspectorTabs: InspectorTab[] = useMemo(() => {

@@ -5755,6 +5755,92 @@ Keep responses concise and actionable.`;
     }
   });
 
+  // Market SOV - Share of Voice calculated from actual keyword rankings using CTR weighting
+  app.get("/api/serp/market-sov", async (req, res) => {
+    try {
+      const rankings = await storage.getLatestRankings();
+      const keywords = await storage.getSerpKeywords(true);
+      
+      if (rankings.length === 0) {
+        return res.json({
+          marketSov: 0,
+          totalKeywords: keywords.length,
+          rankingKeywords: 0,
+          breakdown: {
+            top1: 0,
+            top3: 0,
+            top10: 0,
+            top20: 0,
+            top50: 0,
+            notRanking: keywords.length,
+          },
+          message: "No ranking data available. Run a scan to calculate Market SOV.",
+        });
+      }
+      
+      // CTR weight curve based on position
+      const getWeight = (position: number | null): number => {
+        if (!position) return 0;
+        if (position === 1) return 1.00;
+        if (position <= 3) return 0.70;
+        if (position <= 10) return 0.40;
+        if (position <= 20) return 0.15;
+        if (position <= 50) return 0.05;
+        return 0;
+      };
+      
+      // Calculate weights for each keyword
+      let totalWeight = 0;
+      let top1 = 0, top3 = 0, top10 = 0, top20 = 0, top50 = 0, notRanking = 0;
+      
+      for (const r of rankings) {
+        const weight = getWeight(r.position);
+        totalWeight += weight;
+        
+        if (!r.position) {
+          notRanking++;
+        } else if (r.position === 1) {
+          top1++;
+        } else if (r.position <= 3) {
+          top3++;
+        } else if (r.position <= 10) {
+          top10++;
+        } else if (r.position <= 20) {
+          top20++;
+        } else if (r.position <= 50) {
+          top50++;
+        } else {
+          notRanking++;
+        }
+      }
+      
+      // Market SOV = sum of weights / total keywords * 100
+      const marketSov = rankings.length > 0 
+        ? Math.round((totalWeight / rankings.length) * 100)
+        : 0;
+      
+      res.json({
+        marketSov,
+        totalKeywords: rankings.length,
+        rankingKeywords: rankings.filter(r => r.position && r.position <= 100).length,
+        breakdown: {
+          top1,
+          top3,
+          top10,
+          top20,
+          top50,
+          notRanking,
+        },
+        message: marketSov > 0 
+          ? `${marketSov}% visibility across ${rankings.length} keywords`
+          : "Low visibility - focus on improving rankings",
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to calculate market SOV", { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Near Wins - Keywords ranking #2 or #3 where we're close to #1
   app.get("/api/serp/near-wins", async (req, res) => {
     try {
