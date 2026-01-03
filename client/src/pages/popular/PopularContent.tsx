@@ -838,7 +838,15 @@ export default function PopularContent() {
 
   const score = data.score;
   const issues = data.issues;
-  const kpisRaw = data.kpis;
+  
+  // Transform kpis object to array format for display
+  const kpisObj = data.kpis as { sessions7d?: number; users7d?: number; clicks7d?: number; impressions7d?: number } | undefined;
+  const kpisRaw = kpisObj ? [
+    { id: "sessions", label: "Sessions (7d)", value: kpisObj.sessions7d ?? 0, delta: undefined, deltaLabel: undefined },
+    { id: "users", label: "Users (7d)", value: kpisObj.users7d ?? 0, delta: undefined, deltaLabel: undefined },
+    { id: "clicks", label: "Clicks (7d)", value: kpisObj.clicks7d ?? 0, delta: undefined, deltaLabel: undefined },
+    { id: "impressions", label: "Impressions (7d)", value: kpisObj.impressions7d ?? 0, delta: undefined, deltaLabel: undefined },
+  ] : [];
 
   const tier: MissionStatusState["tier"] =
     score >= 80 ? "looking_good" : score >= 50 ? "doing_okay" : "needs_attention";

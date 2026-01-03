@@ -29,6 +29,20 @@ import {
   type CanonicalIssue,
   type CorroborationCheck
 } from "@shared/canonicalIssues";
+import { 
+  pushChangesToEmpathy, 
+  getEmpathyConfig, 
+  testEmpathyConnection,
+  EmpathyExecutorError,
+  type FileChange 
+} from "./services/empathyExecutor";
+import { 
+  buildChangePlan, 
+  buildChangePlansFromRecommendations, 
+  aggregateChanges,
+  getSupportedFixTypes,
+  type Recommendation 
+} from "./services/changePlanBuilder";
 
 const createSiteSchema = z.object({
   displayName: z.string().min(1, "Display name is required"),
@@ -15889,6 +15903,197 @@ Return JSON in this exact format:
     } catch (error: any) {
       logger.error("Achievements", "Failed to increment achievement", { error: error.message });
       res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
+  // ==================== EMPATHY HEALTH EXECUTOR ====================
+  
+  // Get Empathy executor configuration
+  app.get("/api/empathy/config", async (_req, res) => {
+    try {
+      const config = await getEmpathyConfig();
+      const supportedFixTypes = getSupportedFixTypes();
+      
+      res.json({
+        ok: true,
+        data: {
+          ...config,
+          supportedFixTypes,
+        },
+      });
+    } catch (error: any) {
+      logger.error("EmpathyExecutor", "Failed to get config", { error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
+  // Test Empathy connection
+  app.post("/api/empathy/test", async (_req, res) => {
+    try {
+      const result = await testEmpathyConnection();
+      res.json({
+        ok: result.ok,
+        data: result,
+      });
+    } catch (error: any) {
+      logger.error("EmpathyExecutor", "Connection test failed", { error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
+  // Build change plan from recommendations (preview only)
+  app.post("/api/empathy/plan", async (req, res) => {
+    try {
+      const { recommendations } = req.body as { recommendations: Recommendation[] };
+      
+      if (!Array.isArray(recommendations)) {
+        return res.status(400).json({ ok: false, error: "recommendations must be an array" });
+      }
+      
+      const plans = buildChangePlansFromRecommendations(recommendations);
+      const totalChanges = aggregateChanges(plans);
+      
+      res.json({
+        ok: true,
+        data: {
+          plans,
+          totalChanges: totalChanges.length,
+          affectedFiles: [...new Set(totalChanges.map(c => c.file))],
+        },
+      });
+    } catch (error: any) {
+      logger.error("EmpathyExecutor", "Failed to build change plan", { error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
+  // Apply changes to Empathy Health site
+  app.post("/api/empathy/apply", async (req, res) => {
+    const requestId = randomUUID();
+    
+    try {
+      const { recommendations, changes, dry_run = true } = req.body as {
+        recommendations?: Recommendation[];
+        changes?: FileChange[];
+        dry_run?: boolean;
+      };
+      
+      let changesToApply: FileChange[] = [];
+      
+      if (changes && Array.isArray(changes)) {
+        changesToApply = changes;
+      } else if (recommendations && Array.isArray(recommendations)) {
+        const plans = buildChangePlansFromRecommendations(recommendations);
+        changesToApply = aggregateChanges(plans);
+      } else {
+        return res.status(400).json({ 
+          ok: false, 
+          error: "Either 'recommendations' or 'changes' must be provided" 
+        });
+      }
+      
+      if (changesToApply.length === 0) {
+        return res.json({
+          ok: true,
+          request_id: requestId,
+          dry_run,
+          data: {
+            results: [],
+            summary: { total: 0, updated: 0, skipped: 0, failed: 0 },
+            message: "No changes to apply",
+          },
+        });
+      }
+      
+      logger.info("EmpathyExecutor", `Applying ${changesToApply.length} changes (dry_run=${dry_run})`, { requestId });
+      
+      const result = await pushChangesToEmpathy(changesToApply, dry_run);
+      
+      res.json({
+        ok: result.ok,
+        request_id: requestId,
+        dry_run,
+        data: {
+          results: result.results,
+          summary: result.summary,
+        },
+      });
+    } catch (error: any) {
+      if (error instanceof EmpathyExecutorError) {
+        logger.error("EmpathyExecutor", "Empathy apply failed", { 
+          error: error.message, 
+          statusCode: error.statusCode,
+          requestId 
+        });
+        return res.status(error.statusCode || 500).json({ 
+          ok: false, 
+          request_id: requestId,
+          error: error.message,
+          details: error.responseBody,
+        });
+      }
+      
+      logger.error("EmpathyExecutor", "Apply changes failed", { error: error.message, requestId });
+      res.status(500).json({ ok: false, request_id: requestId, error: error.message });
+    }
+  });
+
+  // Fix a specific finding/recommendation by ID
+  app.post("/api/empathy/fix/:findingId", async (req, res) => {
+    const { findingId } = req.params;
+    const { dry_run = true } = req.body as { dry_run?: boolean };
+    const requestId = randomUUID();
+    
+    try {
+      const finding = await storage.getFindingById(findingId);
+      
+      if (!finding) {
+        return res.status(404).json({ ok: false, error: "Finding not found" });
+      }
+      
+      const recommendation: Recommendation = {
+        id: finding.findingId,
+        type: finding.category?.toUpperCase().replace(/ /g, "_") || "UNKNOWN",
+        title: finding.title,
+        description: finding.details as string || undefined,
+        data: finding.evidence as Record<string, unknown> || {},
+      };
+      
+      const plan = buildChangePlan(recommendation);
+      
+      if (plan.changes.length === 0) {
+        return res.json({
+          ok: true,
+          request_id: requestId,
+          dry_run,
+          data: {
+            findingId,
+            plan,
+            results: [],
+            summary: { total: 0, updated: 0, skipped: 0, failed: 0 },
+            message: "No automated fix available for this finding type",
+          },
+        });
+      }
+      
+      logger.info("EmpathyExecutor", `Fixing finding ${findingId} with ${plan.changes.length} changes`, { requestId, dry_run });
+      
+      const result = await pushChangesToEmpathy(plan.changes, dry_run);
+      
+      res.json({
+        ok: result.ok,
+        request_id: requestId,
+        dry_run,
+        data: {
+          findingId,
+          plan,
+          results: result.results,
+          summary: result.summary,
+        },
+      });
+    } catch (error: any) {
+      logger.error("EmpathyExecutor", `Fix finding ${findingId} failed`, { error: error.message, requestId });
+      res.status(500).json({ ok: false, request_id: requestId, error: error.message });
     }
   });
 
