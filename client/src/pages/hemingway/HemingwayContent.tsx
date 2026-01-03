@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { getCrewMember } from "@/config/agents";
 import { useSiteContext } from "@/hooks/useSiteContext";
 import { toast } from "sonner";
@@ -12,6 +13,8 @@ import {
   type HeaderAction,
 } from "@/components/crew-dashboard";
 import { KeyMetricsGrid } from "@/components/key-metrics";
+import { NoDeadEndsState, TableEmptyState, ChartEmptyState } from "@/components/empty-states";
+import type { MetaStatus, RemediationAction } from "@shared/noDeadEnds";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +40,7 @@ import {
   Settings,
   Play,
   Sparkles,
+  Plug,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -86,6 +90,12 @@ interface HemingwayData {
   findings: PageFinding[];
   breakdown: QualityBreakdown;
   trends: TrendDataPoint[];
+}
+
+interface HemingwayApiResult {
+  data: HemingwayData | null;
+  isPreviewMode: boolean;
+  errorStatus: number | null;
 }
 
 const MOCK_HEMINGWAY_DATA: HemingwayData = {
@@ -228,6 +238,66 @@ const MOCK_HEMINGWAY_DATA: HemingwayData = {
   ],
 };
 
+function getHemingwayMeta(result: HemingwayApiResult): MetaStatus {
+  if (result.errorStatus === 401 || result.errorStatus === 403) {
+    return {
+      status: "needs_setup",
+      reasonCode: "HEMINGWAY_WORKER_NOT_CONNECTED",
+      userMessage: "Connect Hemingway worker to see content quality insights",
+      developerMessage: "API key required for /api/hemingway/data endpoint",
+      actions: [
+        { id: "configure", label: "Configure Hemingway", kind: "route", route: "/settings/integrations", priority: 1 },
+        { id: "docs", label: "View Setup Guide", kind: "href", href: "#hemingway-setup", priority: 2 },
+      ],
+    };
+  }
+  if (result.errorStatus) {
+    return {
+      status: "error",
+      reasonCode: "HEMINGWAY_API_ERROR",
+      userMessage: "Failed to load content quality data. Please try again.",
+      developerMessage: `API returned status ${result.errorStatus}`,
+      actions: [
+        { id: "retry", label: "Retry", kind: "retry", priority: 1 },
+        { id: "view_logs", label: "View Logs", kind: "view_logs", priority: 2 },
+      ],
+    };
+  }
+  if (!result.data || (result.data as any).status === "stub") {
+    return {
+      status: "empty",
+      reasonCode: "NO_HEMINGWAY_DATA",
+      userMessage: "No content quality data yet. Run a Hemingway scan to get started.",
+      actions: [
+        { id: "run_scan", label: "Run Content Analysis", kind: "run_scan", priority: 1 },
+      ],
+    };
+  }
+  return { status: "ok", reasonCode: "SUCCESS", userMessage: "Data loaded", actions: [] };
+}
+
+function getEmptyFindingsMeta(): MetaStatus {
+  return {
+    status: "empty",
+    reasonCode: "NO_FINDINGS",
+    userMessage: "All content meets quality standards. Run analysis to check for new issues.",
+    actions: [
+      { id: "run_scan", label: "Run Analysis", kind: "run_scan", priority: 1 },
+    ],
+  };
+}
+
+function getEmptyTrendsMeta(): MetaStatus {
+  return {
+    status: "empty",
+    reasonCode: "NO_TRENDS_DATA",
+    userMessage: "Run Hemingway analysis to start tracking quality trends over time.",
+    actions: [
+      { id: "run_scan", label: "Start Analysis", kind: "run_scan", priority: 1 },
+    ],
+  };
+}
+
 function getSeverityColor(severity: "critical" | "warning" | "minor"): string {
   switch (severity) {
     case "critical":
@@ -267,10 +337,12 @@ function PagesNeedingImprovementTable({
   findings, 
   onFix,
   fixingIssueId,
+  onAction,
 }: { 
   findings: PageFinding[]; 
   onFix: (finding: PageFinding) => void;
   fixingIssueId: string | null;
+  onAction?: (action: RemediationAction) => void;
 }) {
   const groupedFindings = useMemo(() => {
     const critical = findings.filter(f => f.severity === "critical");
@@ -395,6 +467,16 @@ function PagesNeedingImprovementTable({
     );
   };
 
+  if (findings.length === 0) {
+    return (
+      <TableEmptyState
+        meta={getEmptyFindingsMeta()}
+        title="All Content Meets Quality Standards"
+        onAction={onAction}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
       {renderGroup(
@@ -415,15 +497,6 @@ function PagesNeedingImprovementTable({
         groupedFindings.minor,
         "Small improvements possible"
       )}
-      {findings.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <CheckCircle2 className="w-12 h-12 text-semantic-success mb-3" />
-          <p className="font-medium">All content meets quality standards</p>
-          <p className="text-sm text-muted-foreground mt-1">
-            Run Hemingway analysis to check for new issues.
-          </p>
-        </div>
-      )}
     </div>
   );
 }
@@ -433,25 +506,24 @@ function TrendChart({
   dataKey, 
   label, 
   color,
-  isGradeBased = false 
+  isGradeBased = false,
+  onAction,
 }: { 
   data: any[]; 
   dataKey: string; 
   label: string; 
   color: string;
   isGradeBased?: boolean;
+  onAction?: (action: RemediationAction) => void;
 }) {
   if (!data || data.length === 0) {
     return (
-      <div className="p-4 rounded-lg border bg-card/50">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm text-muted-foreground">{label}</span>
-        </div>
-        <div className="text-2xl font-bold mb-3 text-muted-foreground">—</div>
-        <div className="flex items-center justify-center h-12 text-xs text-muted-foreground">
-          Run Hemingway analysis to start tracking
-        </div>
-      </div>
+      <ChartEmptyState
+        meta={getEmptyTrendsMeta()}
+        title={label}
+        onAction={onAction}
+        height={120}
+      />
     );
   }
   
@@ -519,7 +591,8 @@ function DualBarChart({
   label2, 
   color1, 
   color2, 
-  title 
+  title,
+  onAction,
 }: {
   data: any[];
   dataKey1: string;
@@ -529,17 +602,16 @@ function DualBarChart({
   color1: string;
   color2: string;
   title: string;
+  onAction?: (action: RemediationAction) => void;
 }) {
   if (!data || data.length === 0) {
     return (
-      <div className="p-4 rounded-lg border bg-card/50">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm text-muted-foreground">{title}</span>
-        </div>
-        <div className="flex items-center justify-center h-24 text-xs text-muted-foreground">
-          Run Hemingway analysis to start tracking
-        </div>
-      </div>
+      <ChartEmptyState
+        meta={getEmptyTrendsMeta()}
+        title={title}
+        onAction={onAction}
+        height={120}
+      />
     );
   }
   
@@ -666,19 +738,27 @@ export default function HemingwayContent() {
   const { activeSite } = useSiteContext();
   const siteId = activeSite?.id || "default";
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   const [fixingIssue, setFixingIssue] = useState<string | null>(null);
 
-  const { data: hemingwayData, isLoading, refetch, isRefetching } = useQuery<HemingwayData>({
+  const { data: apiResult, isLoading, refetch, isRefetching } = useQuery<HemingwayApiResult>({
     queryKey: ["hemingway-data", siteId],
     queryFn: async () => {
       try {
         const res = await fetch(`/api/hemingway/data?site_id=${siteId}`);
-        if (!res.ok) {
-          return MOCK_HEMINGWAY_DATA;
+        if (res.status === 401 || res.status === 403) {
+          return { data: MOCK_HEMINGWAY_DATA, isPreviewMode: true, errorStatus: res.status };
         }
-        return res.json();
+        if (!res.ok) {
+          return { data: MOCK_HEMINGWAY_DATA, isPreviewMode: true, errorStatus: res.status };
+        }
+        const jsonData = await res.json();
+        if (!jsonData || (jsonData as any).status === "stub") {
+          return { data: MOCK_HEMINGWAY_DATA, isPreviewMode: true, errorStatus: null };
+        }
+        return { data: jsonData, isPreviewMode: false, errorStatus: null };
       } catch {
-        return MOCK_HEMINGWAY_DATA;
+        return { data: MOCK_HEMINGWAY_DATA, isPreviewMode: true, errorStatus: 500 };
       }
     },
     refetchInterval: 60000,
@@ -757,11 +837,40 @@ export default function HemingwayContent() {
     },
   });
 
-  const data = hemingwayData || MOCK_HEMINGWAY_DATA;
+  const result = apiResult || { data: MOCK_HEMINGWAY_DATA, isPreviewMode: true, errorStatus: null };
+  const meta = getHemingwayMeta(result);
+  const isPreviewMode = result.isPreviewMode;
+  const data = result.data || MOCK_HEMINGWAY_DATA;
   const metrics = data.metrics;
   const findings = data.findings;
   const breakdown = data.breakdown;
   const trends = data.trends;
+
+  const handleRemediationAction = (action: RemediationAction) => {
+    switch (action.kind) {
+      case "route":
+        if (action.route) {
+          setLocation(action.route);
+        }
+        break;
+      case "href":
+        if (action.href) {
+          window.open(action.href, "_blank");
+        }
+        break;
+      case "retry":
+        refetch();
+        break;
+      case "run_scan":
+        analyzeContentMutation.mutate();
+        break;
+      case "view_logs":
+        toast.info("Opening logs panel...");
+        break;
+      default:
+        break;
+    }
+  };
 
   const Icon = crew?.icon || BookOpen;
 
@@ -779,25 +888,25 @@ export default function HemingwayContent() {
   const getQualityScoreStatus = (score: number): "good" | "warning" | "neutral" => {
     if (score >= 80) return "good";
     if (score >= 60) return "warning";
-    return "warning"; // <60 is critical, mapped to warning since component only supports good/warning/neutral
+    return "warning";
   };
 
   const getReadabilityStatus = (grade: number): "good" | "warning" | "neutral" => {
     if (grade <= 8) return "good";
     if (grade <= 11) return "warning";
-    return "warning"; // >11 is critical, mapped to warning
+    return "warning";
   };
 
   const getPagesNeedingImprovementStatus = (count: number): "good" | "warning" | "neutral" => {
     if (count <= 3) return "good";
     if (count <= 10) return "warning";
-    return "warning"; // >10 is critical, mapped to warning
+    return "warning";
   };
 
   const getEEATStatus = (coverage: number): "good" | "warning" | "neutral" => {
     if (coverage >= 80) return "good";
     if (coverage >= 60) return "warning";
-    return "warning"; // <60 is critical, mapped to warning
+    return "warning";
   };
 
   const keyMetrics = useMemo(() => [
@@ -836,6 +945,18 @@ export default function HemingwayContent() {
   const autoFixableCount = findings.filter(f => f.fixType === "auto").length;
 
   const missionStatus: MissionStatusState = useMemo(() => {
+    if (meta.status !== "ok" && !isPreviewMode) {
+      return {
+        tier: "needs_attention",
+        summaryLine: meta.userMessage,
+        nextStep: meta.actions[0]?.label || "Configure Hemingway",
+        priorityCount: 1,
+        blockerCount: 1,
+        autoFixableCount: 0,
+        status: isLoading ? "loading" : "ready",
+        performanceScore: 0,
+      };
+    }
     if (criticalCount > 0) {
       return {
         tier: "needs_attention",
@@ -870,7 +991,7 @@ export default function HemingwayContent() {
       status: isLoading ? "loading" : "ready",
       performanceScore: metrics.contentQualityScore,
     };
-  }, [criticalCount, warningCount, autoFixableCount, metrics.contentQualityScore, isLoading]);
+  }, [criticalCount, warningCount, autoFixableCount, metrics.contentQualityScore, isLoading, meta, isPreviewMode]);
 
   const missions: MissionItem[] = useMemo(() => [
     {
@@ -949,11 +1070,20 @@ export default function HemingwayContent() {
     state: isLoading ? "loading" : findings.length > 0 ? "ready" : "empty",
     content: (
       <div className="p-4">
-        <PagesNeedingImprovementTable 
-          findings={findings} 
-          onFix={handleFixFinding}
-          fixingIssueId={fixingIssue}
-        />
+        {meta.status !== "ok" && !isPreviewMode ? (
+          <NoDeadEndsState
+            meta={meta}
+            title="Content Quality Data Unavailable"
+            onAction={handleRemediationAction}
+          />
+        ) : (
+          <PagesNeedingImprovementTable 
+            findings={findings} 
+            onFix={handleFixFinding}
+            fixingIssueId={fixingIssue}
+            onAction={handleRemediationAction}
+          />
+        )}
       </div>
     ),
   };
@@ -965,20 +1095,30 @@ export default function HemingwayContent() {
     state: isLoading ? "loading" : "ready",
     content: (
       <div className="p-4 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <DistributionBar 
-            data={breakdown.readabilityDistribution.map((d, i) => ({
-              ...d,
-              color: i === 0 ? "#22C55E" : i === 1 ? "#22C55E" : i === 2 ? "#F59E0B" : "#EF4444"
-            }))} 
-            title="Readability Distribution" 
+        {meta.status !== "ok" && !isPreviewMode ? (
+          <NoDeadEndsState
+            meta={meta}
+            title="Quality Breakdown Unavailable"
+            onAction={handleRemediationAction}
           />
-          <DistributionBar 
-            data={breakdown.qualityScoreDistribution} 
-            title="Quality Score Distribution" 
-          />
-        </div>
-        <IssuesBreakdown issues={breakdown.commonIssues} />
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <DistributionBar 
+                data={breakdown.readabilityDistribution.map((d, i) => ({
+                  ...d,
+                  color: i === 0 ? "#22C55E" : i === 1 ? "#22C55E" : i === 2 ? "#F59E0B" : "#EF4444"
+                }))} 
+                title="Readability Distribution" 
+              />
+              <DistributionBar 
+                data={breakdown.qualityScoreDistribution} 
+                title="Quality Score Distribution" 
+              />
+            </div>
+            <IssuesBreakdown issues={breakdown.commonIssues} />
+          </>
+        )}
       </div>
     ),
   };
@@ -988,59 +1128,62 @@ export default function HemingwayContent() {
     label: "Trends",
     icon: <TrendingUp className="w-4 h-4" />,
     state: isLoading ? "loading" : trends.length > 0 ? "ready" : "empty",
-    content: trends.length > 0 ? (
+    content: (
       <div className="p-4 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <TrendChart 
-            data={trends} 
-            dataKey="avgQualityScore" 
-            label="Avg Quality Score" 
-            color={HEMINGWAY_ACCENT_COLOR} 
+        {meta.status !== "ok" && !isPreviewMode ? (
+          <NoDeadEndsState
+            meta={meta}
+            title="Trend Data Unavailable"
+            onAction={handleRemediationAction}
           />
-          <TrendChart 
-            data={trends} 
-            dataKey="avgReadabilityGrade" 
-            label="Avg Readability Grade" 
-            color="#F59E0B"
-            isGradeBased={true}
+        ) : trends.length > 0 ? (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <TrendChart 
+                data={trends} 
+                dataKey="avgQualityScore" 
+                label="Avg Quality Score" 
+                color={HEMINGWAY_ACCENT_COLOR}
+                onAction={handleRemediationAction}
+              />
+              <TrendChart 
+                data={trends} 
+                dataKey="avgReadabilityGrade" 
+                label="Avg Readability Grade" 
+                color="#F59E0B"
+                isGradeBased={true}
+                onAction={handleRemediationAction}
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <DualBarChart
+                data={trends}
+                dataKey1="pagesImproved"
+                dataKey2="pagesRegressed"
+                label1="Improved"
+                label2="Regressed"
+                color1="#22C55E"
+                color2="#EF4444"
+                title="Pages Improved vs Regressed"
+                onAction={handleRemediationAction}
+              />
+              <TrendChart 
+                data={trends} 
+                dataKey="eeatCoverage" 
+                label="E-E-A-T Coverage Over Time" 
+                color="#8B5CF6"
+                onAction={handleRemediationAction}
+              />
+            </div>
+          </>
+        ) : (
+          <ChartEmptyState
+            meta={getEmptyTrendsMeta()}
+            title="No Trend Data Yet"
+            onAction={handleRemediationAction}
+            height={200}
           />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <DualBarChart
-            data={trends}
-            dataKey1="pagesImproved"
-            dataKey2="pagesRegressed"
-            label1="Improved"
-            label2="Regressed"
-            color1="#22C55E"
-            color2="#EF4444"
-            title="Pages Improved vs Regressed"
-          />
-          <TrendChart 
-            data={trends} 
-            dataKey="eeatCoverage" 
-            label="E-E-A-T Coverage Over Time" 
-            color="#8B5CF6" 
-          />
-        </div>
-      </div>
-    ) : (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <Search className="w-12 h-12 text-muted-foreground/30 mb-3" />
-        <p className="font-medium">Run Hemingway analysis to start tracking</p>
-        <p className="text-sm text-muted-foreground mt-1">
-          Trend data will appear here after your first analysis.
-        </p>
-        <Button
-          variant="outline"
-          size="sm"
-          className="mt-4"
-          onClick={() => analyzeContentMutation.mutate()}
-          disabled={analyzeContentMutation.isPending}
-        >
-          <Sparkles className="w-4 h-4 mr-2" />
-          Start Analysis
-        </Button>
+        )}
       </div>
     ),
   };
@@ -1048,10 +1191,29 @@ export default function HemingwayContent() {
   const inspectorTabs = [findingsTab, breakdownTab, trendsTab];
 
   const customMetrics = (
-    <KeyMetricsGrid 
-      metrics={keyMetrics} 
-      accentColor={crewIdentity.accentColor} 
-    />
+    <div className="space-y-4">
+      {isPreviewMode && (
+        <div className="flex items-center gap-2 p-3 rounded-lg border border-amber-500/30 bg-amber-500/5">
+          <Plug className="w-4 h-4 text-amber-500" />
+          <span className="text-sm text-amber-200">
+            Preview Mode — Connect Hemingway worker for live data
+          </span>
+          <Button
+            size="sm"
+            variant="outline"
+            className="ml-auto"
+            onClick={() => setLocation("/settings/integrations")}
+          >
+            <Settings className="w-3 h-3 mr-1" />
+            Configure
+          </Button>
+        </div>
+      )}
+      <KeyMetricsGrid 
+        metrics={keyMetrics} 
+        accentColor={crewIdentity.accentColor} 
+      />
+    </div>
   );
 
   return (

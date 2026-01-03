@@ -35,9 +35,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSiteContext } from "@/hooks/useSiteContext";
 import { SiteSelector } from "@/components/site/SiteSelector";
 import { USER_FACING_AGENTS, getCrewMember } from "@/config/agents";
-import { getMockAgentData } from "@/config/mockAgentInsights";
-import { getMockCaptainRecommendations } from "@/config/mockCaptainRecommendations";
 import { cn } from "@/lib/utils";
+import { NoDeadEndsState } from "@/components/empty-states";
 import { Link } from "wouter";
 import { toast } from "sonner";
 import { ROUTES, buildRoute } from "@shared/routes";
@@ -441,7 +440,6 @@ function MetricCardsRow() {
 
 function AgentSummaryCard({ agent, enabled = true }: { agent: { serviceId: string; score: number; status: 'good' | 'watch' | 'bad' | 'neutral'; keyMetric: string; keyMetricValue: string; delta: string; whatChanged: string }; enabled?: boolean }) {
   const crew = getCrewMember(agent.serviceId);
-  const mockData = getMockAgentData(agent.serviceId);
   
   const tintedGlassStyles = getTintedGlassStyles(crew.color);
   const crewBadgeStyles = getCrewBadgeStyles(crew.color);
@@ -651,20 +649,38 @@ function AgentSummaryCard({ agent, enabled = true }: { agent: { serviceId: strin
   );
 }
 
-function AgentSummaryGrid({ agents, totalAgents }: { agents: Array<{ serviceId: string; score: number; status: 'good' | 'watch' | 'bad' }>; totalAgents: number }) {
+function AgentSummaryGrid({ agents, totalAgents, crewSummaries, kbStatus }: { 
+  agents: Array<{ serviceId: string; score: number; status: 'good' | 'watch' | 'bad' }>; 
+  totalAgents: number;
+  crewSummaries?: Array<{ crewId: string; nickname: string; pendingCount: number; lastCompletedAt: string | null; status: 'looking_good' | 'doing_okay' | 'needs_attention' }>;
+  kbStatus?: { totalLearnings?: number; configured?: boolean; status?: string };
+}) {
   const enabledIds = new Set(agents.map(a => a.serviceId));
   const enabledCount = agents.length;
   
   const enabledAgentData = agents.map(agent => {
-    const mockData = getMockAgentData(agent.serviceId);
-    const finding = mockData?.findings?.[0];
+    const crewSummary = crewSummaries?.find(cs => cs.crewId === agent.serviceId);
+    const isSocrates = agent.serviceId === 'seo_kbase';
+    
+    let keyMetric = "Pending missions";
+    let keyMetricValue = String(crewSummary?.pendingCount || 0);
+    let whatChanged = crewSummary?.lastCompletedAt 
+      ? `Last completed: ${new Date(crewSummary.lastCompletedAt).toLocaleDateString()}`
+      : "No missions completed yet";
+    
+    if (isSocrates && kbStatus) {
+      keyMetric = "Knowledge entries";
+      keyMetricValue = String(kbStatus.totalLearnings || 0);
+      whatChanged = kbStatus.configured ? "Knowledge base connected" : "Connect to SEO KBase worker";
+    }
+    
     return {
       ...agent,
       enabled: true,
-      keyMetric: finding?.label || "Agent score",
-      keyMetricValue: String(finding?.value || agent.score),
+      keyMetric,
+      keyMetricValue,
       delta: agent.score >= 70 ? "+5%" : agent.score >= 40 ? "-12%" : "-50%",
-      whatChanged: mockData?.nextSteps?.[0]?.action || "Run diagnostics to see insights",
+      whatChanged,
     };
   });
 
@@ -909,9 +925,27 @@ export default function MissionControl() {
     },
   });
 
+  const { data: kbStatus } = useQuery({
+    queryKey: ["kb-status", currentSite?.siteId],
+    queryFn: async () => {
+      const res = await fetch(`/api/kb/status?siteId=${currentSite?.siteId || ""}`);
+      if (!res.ok) return { configured: false, totalLearnings: 0 };
+      const result = await res.json();
+      return {
+        configured: result.data?.configured || false,
+        totalLearnings: result.data?.recentLearnings?.length || 0,
+        status: result.data?.status || 'unknown',
+        canRead: result.data?.canRead || false,
+        canWrite: result.data?.canWrite || false,
+      };
+    },
+    staleTime: 60000,
+  });
+
   const userAgents = USER_FACING_AGENTS.map((serviceId) => {
-    const mockData = getMockAgentData(serviceId);
-    const score = mockData?.score || 0;
+    const crewSummary = dashboard?.crewSummaries?.find((cs: any) => cs.crewId === serviceId);
+    const statusFromSummary = crewSummary?.status;
+    const score = statusFromSummary === 'looking_good' ? 85 : statusFromSummary === 'doing_okay' ? 60 : statusFromSummary === 'needs_attention' ? 30 : 50;
     return {
       serviceId,
       score,
@@ -952,9 +986,6 @@ export default function MissionControl() {
     },
   });
 
-  // Use dashboard hook data if available, otherwise fall back to recommendations/mock
-  const mockData = getMockCaptainRecommendations();
-  
   // Convert dashboard data to the format expected by ConsolidatedMissionWidget
   const dashboardPriorities = dashboard?.nextActions?.map((action, idx) => ({
     id: action.missionId || `action-${idx}`,
@@ -968,6 +999,7 @@ export default function MissionControl() {
   })) || [];
 
   const hasDashboardData = dashboard && dashboard.nextActions && dashboard.nextActions.length > 0;
+  const hasRecommendationsData = recommendationsData?.isRealData && recommendationsData?.priorities?.length > 0;
   
   const captainData = hasDashboardData ? {
     priorities: dashboardPriorities,
@@ -976,10 +1008,18 @@ export default function MissionControl() {
                 dashboard.aggregatedStatus?.tier === 'doing_okay' ? 'Medium' : 'Low',
     isRealData: true,
     placeholderReason: undefined,
-  } : recommendationsData?.isRealData ? recommendationsData : {
-    ...mockData,
+  } : hasRecommendationsData ? {
+    priorities: recommendationsData.priorities,
+    blockers: recommendationsData.blockers || [],
+    confidence: recommendationsData.confidence || 'Low',
+    isRealData: true,
+    placeholderReason: undefined,
+  } : {
+    priorities: [],
+    blockers: [],
+    confidence: 'Low',
     isRealData: false,
-    placeholderReason: recommendationsData?.placeholderReason || "Using mock data - run diagnostics to generate real recommendations"
+    placeholderReason: "No missions available - run diagnostics to generate recommendations"
   };
 
   return (
@@ -1165,7 +1205,12 @@ export default function MissionControl() {
 
         <MetricCardsRow />
 
-        <AgentSummaryGrid agents={userAgents} totalAgents={USER_FACING_AGENTS.length} />
+        <AgentSummaryGrid 
+          agents={userAgents} 
+          totalAgents={USER_FACING_AGENTS.length}
+          crewSummaries={dashboard?.crewSummaries}
+          kbStatus={kbStatus}
+        />
 
         <SocratesMemoryCard />
       </div>

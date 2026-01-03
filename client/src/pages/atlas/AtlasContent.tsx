@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { getCrewMember } from "@/config/agents";
 import { useSiteContext } from "@/hooks/useSiteContext";
 import { toast } from "sonner";
@@ -12,6 +13,8 @@ import {
   type HeaderAction,
 } from "@/components/crew-dashboard";
 import { KeyMetricsGrid } from "@/components/key-metrics";
+import { NoDeadEndsState, TableEmptyState, ChartEmptyState } from "@/components/empty-states";
+import type { MetaStatus, RemediationAction } from "@shared/noDeadEnds";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +45,7 @@ import {
   Stethoscope,
   Shield,
   HelpCircle,
+  Plug,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -290,6 +294,50 @@ const MOCK_ATLAS_DATA: AtlasData = {
     { date: "2026-01-02", aiVisibilityScore: 68, structuredDataCoverage: 72, entityCoverage: 65, llmAnswerability: 58 },
   ],
 };
+
+interface AtlasApiResult {
+  data: AtlasData | null;
+  isPreviewMode: boolean;
+  errorStatus: number | null;
+}
+
+function getAtlasMeta(result: AtlasApiResult): MetaStatus {
+  if (result.errorStatus === 401 || result.errorStatus === 403) {
+    return {
+      status: "needs_setup",
+      reasonCode: "ATLAS_WORKER_NOT_CONNECTED",
+      userMessage: "Connect Atlas worker to see AI optimization insights",
+      developerMessage: "API key required for /api/atlas/data endpoint",
+      actions: [
+        { id: "configure", label: "Configure Atlas", kind: "route", route: "/settings/integrations", priority: 1 },
+        { id: "docs", label: "View Setup Guide", kind: "href", href: "#atlas-setup", priority: 2 },
+      ],
+    };
+  }
+  if (result.errorStatus) {
+    return {
+      status: "error",
+      reasonCode: "ATLAS_API_ERROR",
+      userMessage: "Failed to load Atlas data. Please try again.",
+      developerMessage: `API returned status ${result.errorStatus}`,
+      actions: [
+        { id: "retry", label: "Retry", kind: "retry", priority: 1 },
+        { id: "view_logs", label: "View Logs", kind: "view_logs", priority: 2 },
+      ],
+    };
+  }
+  if (!result.data || (result.data as any).status === "stub") {
+    return {
+      status: "empty",
+      reasonCode: "NO_ATLAS_DATA",
+      userMessage: "No AI optimization data yet. Run an Atlas scan to get started.",
+      actions: [
+        { id: "run_scan", label: "Run Atlas Scan", kind: "run_scan", priority: 1 },
+      ],
+    };
+  }
+  return { status: "ok", reasonCode: "SUCCESS", userMessage: "Data loaded", actions: [] };
+}
 
 function getSeverityColor(severity: "critical" | "warning" | "info"): string {
   switch (severity) {
@@ -798,22 +846,40 @@ export default function AtlasContent() {
   const siteId = activeSite?.id || "default";
   const queryClient = useQueryClient();
   const [fixingIssue, setFixingIssue] = useState<string | null>(null);
+  const [, navigate] = useLocation();
 
-  const { data: atlasData, isLoading, refetch, isRefetching } = useQuery<AtlasData>({
+  const { data: atlasResult, isLoading, refetch, isRefetching } = useQuery<AtlasApiResult>({
     queryKey: ["atlas-data", siteId],
     queryFn: async () => {
       try {
         const res = await fetch(`/api/atlas/data?site_id=${siteId}`);
         if (!res.ok) {
-          return MOCK_ATLAS_DATA;
+          return {
+            data: null,
+            isPreviewMode: true,
+            errorStatus: res.status,
+          };
         }
-        return res.json();
+        const responseData = await res.json();
+        return {
+          data: responseData,
+          isPreviewMode: false,
+          errorStatus: null,
+        };
       } catch {
-        return MOCK_ATLAS_DATA;
+        return {
+          data: null,
+          isPreviewMode: true,
+          errorStatus: 500,
+        };
       }
     },
     refetchInterval: 60000,
   });
+
+  const atlasMeta = getAtlasMeta(atlasResult || { data: null, isPreviewMode: true, errorStatus: null });
+  const isPreviewMode = atlasResult?.isPreviewMode ?? true;
+  const showPreviewBanner = isPreviewMode && atlasMeta.status !== "ok";
 
   const scanMutation = useMutation({
     mutationFn: async () => {
@@ -899,14 +965,37 @@ export default function AtlasContent() {
     },
   });
 
-  const data = atlasData || MOCK_ATLAS_DATA;
-  const metrics = data.metrics;
-  const findings = data.findings;
-  const structuredData = data.structuredData;
-  const entities = data.entities;
-  const summaries = data.summaries;
-  const llmVisibility = data.llmVisibility;
-  const trends = data.trends;
+  const handleRemediationAction = (action: RemediationAction) => {
+    switch (action.kind) {
+      case "route":
+        if (action.route) navigate(action.route);
+        break;
+      case "href":
+        if (action.href) window.open(action.href, "_blank");
+        break;
+      case "retry":
+        refetch();
+        break;
+      case "run_scan":
+        scanMutation.mutate();
+        break;
+      case "view_logs":
+        toast.info("Opening logs...");
+        break;
+      default:
+        break;
+    }
+  };
+
+  const hasRealData = atlasResult?.data && atlasMeta.status === "ok";
+  const data = hasRealData ? atlasResult.data! : (isPreviewMode ? MOCK_ATLAS_DATA : null);
+  const metrics = data?.metrics ?? { aiVisibilityScore: 0, structuredDataCoverage: 0, entityCoverage: 0, llmAnswerability: 0, lastScanAt: null, isConfigured: false };
+  const findings = data?.findings ?? [];
+  const structuredData = data?.structuredData ?? [];
+  const entities = data?.entities ?? [];
+  const summaries = data?.summaries ?? [];
+  const llmVisibility = data?.llmVisibility ?? [];
+  const trends = data?.trends ?? [];
 
   const Icon = crew?.icon || BrainCircuit;
 
@@ -1100,6 +1189,17 @@ export default function AtlasContent() {
     },
   ];
 
+  const tableEmptyMeta: MetaStatus = {
+    status: "empty",
+    reasonCode: "NO_DATA_YET",
+    userMessage: "No data yet. Run an Atlas scan to analyze your site.",
+    actions: [
+      { id: "run_scan", label: "Run Atlas Scan", kind: "run_scan", priority: 1 },
+    ],
+  };
+
+  const needsSetupForTable = atlasMeta.status === "needs_setup" && !isPreviewMode;
+
   const findingsTab: InspectorTab = {
     id: "findings",
     label: "Findings",
@@ -1108,11 +1208,25 @@ export default function AtlasContent() {
     state: isLoading ? "loading" : findings.length > 0 ? "ready" : "empty",
     content: (
       <div className="p-4">
-        <FindingsTable
-          findings={findings}
-          onFix={handleFixFinding}
-          fixingIssueId={fixingIssue}
-        />
+        {needsSetupForTable ? (
+          <TableEmptyState
+            meta={atlasMeta}
+            title="Connect Atlas Worker"
+            onAction={handleRemediationAction}
+          />
+        ) : findings.length === 0 && !isPreviewMode ? (
+          <TableEmptyState
+            meta={tableEmptyMeta}
+            title="No Findings Yet"
+            onAction={handleRemediationAction}
+          />
+        ) : (
+          <FindingsTable
+            findings={findings}
+            onFix={handleFixFinding}
+            fixingIssueId={fixingIssue}
+          />
+        )}
       </div>
     ),
   };
@@ -1125,7 +1239,21 @@ export default function AtlasContent() {
     state: isLoading ? "loading" : structuredData.length > 0 ? "ready" : "empty",
     content: (
       <div className="p-4">
-        <StructuredDataTable items={structuredData} />
+        {needsSetupForTable ? (
+          <TableEmptyState
+            meta={atlasMeta}
+            title="Connect Atlas Worker"
+            onAction={handleRemediationAction}
+          />
+        ) : structuredData.length === 0 && !isPreviewMode ? (
+          <TableEmptyState
+            meta={tableEmptyMeta}
+            title="No Structured Data Analyzed"
+            onAction={handleRemediationAction}
+          />
+        ) : (
+          <StructuredDataTable items={structuredData} />
+        )}
       </div>
     ),
   };
@@ -1138,7 +1266,21 @@ export default function AtlasContent() {
     state: isLoading ? "loading" : entities.length > 0 ? "ready" : "empty",
     content: (
       <div className="p-4">
-        <EntityTable items={entities} />
+        {needsSetupForTable ? (
+          <TableEmptyState
+            meta={atlasMeta}
+            title="Connect Atlas Worker"
+            onAction={handleRemediationAction}
+          />
+        ) : entities.length === 0 && !isPreviewMode ? (
+          <TableEmptyState
+            meta={tableEmptyMeta}
+            title="No Entities Analyzed"
+            onAction={handleRemediationAction}
+          />
+        ) : (
+          <EntityTable items={entities} />
+        )}
       </div>
     ),
   };
@@ -1151,7 +1293,21 @@ export default function AtlasContent() {
     state: isLoading ? "loading" : summaries.length > 0 ? "ready" : "empty",
     content: (
       <div className="p-4">
-        <SummaryTable items={summaries} />
+        {needsSetupForTable ? (
+          <TableEmptyState
+            meta={atlasMeta}
+            title="Connect Atlas Worker"
+            onAction={handleRemediationAction}
+          />
+        ) : summaries.length === 0 && !isPreviewMode ? (
+          <TableEmptyState
+            meta={tableEmptyMeta}
+            title="No AI Summaries Analyzed"
+            onAction={handleRemediationAction}
+          />
+        ) : (
+          <SummaryTable items={summaries} />
+        )}
       </div>
     ),
   };
@@ -1164,9 +1320,32 @@ export default function AtlasContent() {
     state: isLoading ? "loading" : llmVisibility.length > 0 ? "ready" : "empty",
     content: (
       <div className="p-4">
-        <LlmVisibilityTable items={llmVisibility} />
+        {needsSetupForTable ? (
+          <TableEmptyState
+            meta={atlasMeta}
+            title="Connect Atlas Worker"
+            onAction={handleRemediationAction}
+          />
+        ) : llmVisibility.length === 0 && !isPreviewMode ? (
+          <TableEmptyState
+            meta={tableEmptyMeta}
+            title="No LLM Visibility Tests"
+            onAction={handleRemediationAction}
+          />
+        ) : (
+          <LlmVisibilityTable items={llmVisibility} />
+        )}
       </div>
     ),
+  };
+
+  const chartEmptyMeta: MetaStatus = {
+    status: "empty",
+    reasonCode: "NO_TREND_DATA",
+    userMessage: "No trend data available yet. Run a scan to start tracking.",
+    actions: [
+      { id: "run_scan", label: "Run Atlas Scan", kind: "run_scan", priority: 1 },
+    ],
   };
 
   const trendsTab: InspectorTab = {
@@ -1206,28 +1385,55 @@ export default function AtlasContent() {
         </div>
       </div>
     ) : (
-      <Card className="m-4 p-8 text-center">
-        <BarChart3 className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-        <p className="text-muted-foreground mb-4">No trend data available yet</p>
-        <Button
-          onClick={() => scanMutation.mutate()}
-          disabled={scanMutation.isPending}
-          data-testid="button-run-scan-trends"
-        >
-          <Play className="w-4 h-4 mr-2" />
-          Run AI Readiness Scan
-        </Button>
-      </Card>
+      <div className="p-4">
+        <ChartEmptyState
+          meta={chartEmptyMeta}
+          title="No Trend Data"
+          onAction={handleRemediationAction}
+          height={200}
+        />
+      </div>
     ),
   };
 
   const inspectorTabs = [findingsTab, structuredDataTab, entityTab, summaryTab, llmVisibilityTab, trendsTab];
 
   const customMetrics = (
-    <KeyMetricsGrid
-      metrics={keyMetrics}
-      accentColor={crewIdentity.accentColor}
-    />
+    <div className="space-y-4">
+      {showPreviewBanner && (
+        <div className="flex items-center gap-3 p-3 rounded-lg border border-amber-500/30 bg-amber-500/5" data-testid="preview-mode-banner">
+          <Plug className="w-5 h-5 text-amber-500 shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-amber-200">Preview Mode — Worker Not Connected</p>
+            <p className="text-xs text-amber-300/80">Showing sample data. Connect the Atlas worker for real insights.</p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-amber-500/50 text-amber-300 hover:bg-amber-500/10"
+            onClick={() => navigate("/settings/integrations")}
+            data-testid="button-configure-atlas"
+          >
+            <Plug className="w-3 h-3 mr-1.5" />
+            Configure
+          </Button>
+        </div>
+      )}
+      
+      {atlasMeta.status === "needs_setup" && !showPreviewBanner && (
+        <NoDeadEndsState
+          meta={atlasMeta}
+          title="Connect Atlas AI Worker"
+          onAction={handleRemediationAction}
+          isLoading={isLoading}
+        />
+      )}
+      
+      <KeyMetricsGrid
+        metrics={keyMetrics}
+        accentColor={crewIdentity.accentColor}
+      />
+    </div>
   );
 
   return (

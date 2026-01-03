@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { getCrewMember } from "@/config/agents";
 import { useSiteContext } from "@/hooks/useSiteContext";
 import { toast } from "sonner";
@@ -12,6 +13,8 @@ import {
   type HeaderAction,
 } from "@/components/crew-dashboard";
 import { KeyMetricsGrid } from "@/components/key-metrics";
+import { NoDeadEndsState, TableEmptyState, ChartEmptyState } from "@/components/empty-states";
+import type { MetaStatus, RemediationAction } from "@shared/noDeadEnds";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -49,6 +52,7 @@ import {
   Zap,
   Ban,
   Info,
+  Plug,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -97,6 +101,14 @@ interface DraperAction {
   note: string;
   createdAt: string;
   payload?: Record<string, unknown>;
+}
+
+interface DraperApiResult {
+  data: DraperSnapshot | null;
+  findings: DraperFinding[];
+  actions: DraperAction[];
+  isPreviewMode: boolean;
+  errorStatus: number | null;
 }
 
 const MOCK_SNAPSHOT: DraperSnapshot = {
@@ -231,6 +243,66 @@ const MOCK_ACTIONS: DraperAction[] = [
   },
 ];
 
+function getDraperMeta(result: DraperApiResult): MetaStatus {
+  if (result.errorStatus === 401 || result.errorStatus === 403) {
+    return {
+      status: "needs_setup",
+      reasonCode: "DRAPER_WORKER_NOT_CONNECTED",
+      userMessage: "Connect Draper worker to see Google Ads insights",
+      developerMessage: "API key required for /api/draper endpoints",
+      actions: [
+        { id: "configure", label: "Configure Draper", kind: "route", route: "/settings/integrations", priority: 1 },
+        { id: "docs", label: "View Setup Guide", kind: "href", href: "#draper-setup", priority: 2 },
+      ],
+    };
+  }
+  if (result.errorStatus) {
+    return {
+      status: "error",
+      reasonCode: "DRAPER_API_ERROR",
+      userMessage: "Failed to load Google Ads data. Please try again.",
+      developerMessage: `API returned status ${result.errorStatus}`,
+      actions: [
+        { id: "retry", label: "Retry", kind: "retry", priority: 1 },
+        { id: "view_logs", label: "View Logs", kind: "view_logs", priority: 2 },
+      ],
+    };
+  }
+  if (!result.data || (result.data as any).status === "stub") {
+    return {
+      status: "empty",
+      reasonCode: "NO_DRAPER_DATA",
+      userMessage: "No Google Ads data yet. Connect your Google Ads account to get started.",
+      actions: [
+        { id: "connect", label: "Connect Google Ads", kind: "route", route: "/settings/integrations", priority: 1 },
+      ],
+    };
+  }
+  return { status: "ok", reasonCode: "SUCCESS", userMessage: "Data loaded", actions: [] };
+}
+
+function getEmptyFindingsMeta(): MetaStatus {
+  return {
+    status: "empty",
+    reasonCode: "NO_FINDINGS",
+    userMessage: "No issues found. Your campaigns are performing well!",
+    actions: [
+      { id: "run_scan", label: "Run New Scan", kind: "run_scan", priority: 1 },
+    ],
+  };
+}
+
+function getEmptyActionsMeta(): MetaStatus {
+  return {
+    status: "empty",
+    reasonCode: "NO_ACTIONS_QUEUED",
+    userMessage: "No actions in queue. Review findings to queue optimization actions.",
+    actions: [
+      { id: "view_findings", label: "View Findings", kind: "route", route: "#findings", priority: 1 },
+    ],
+  };
+}
+
 function getImpactBadgeColor(impact: "Low" | "Med" | "High") {
   switch (impact) {
     case "High":
@@ -272,26 +344,43 @@ export default function DraperContent() {
   const { currentSite } = useSiteContext();
   const siteId = currentSite?.id || 1;
   const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
   const agent = getCrewMember("google_ads_connector");
 
   const [settingsForm, setSettingsForm] = useState<DraperSettings>(MOCK_SETTINGS);
 
-  const { data: snapshot, isLoading: snapshotLoading, refetch: refetchSnapshot } = useQuery({
+  const { data: apiResult, isLoading: snapshotLoading, refetch: refetchSnapshot } = useQuery({
     queryKey: ["draper", "snapshot", siteId],
-    queryFn: async () => {
+    queryFn: async (): Promise<DraperApiResult> => {
       try {
         const res = await fetch(`/api/draper/snapshot?site_id=${siteId}`);
-        if (!res.ok) return MOCK_SNAPSHOT;
+        if (res.status === 401 || res.status === 403) {
+          return { data: MOCK_SNAPSHOT, findings: MOCK_FINDINGS, actions: MOCK_ACTIONS, isPreviewMode: true, errorStatus: res.status };
+        }
+        if (!res.ok) {
+          return { data: MOCK_SNAPSHOT, findings: MOCK_FINDINGS, actions: MOCK_ACTIONS, isPreviewMode: true, errorStatus: res.status };
+        }
         const data = await res.json();
-        return data.metrics || MOCK_SNAPSHOT;
+        return { 
+          data: data.metrics || data, 
+          findings: data.findings || [], 
+          actions: data.actions || [], 
+          isPreviewMode: false, 
+          errorStatus: null 
+        };
       } catch {
-        return MOCK_SNAPSHOT;
+        return { data: MOCK_SNAPSHOT, findings: MOCK_FINDINGS, actions: MOCK_ACTIONS, isPreviewMode: true, errorStatus: 500 };
       }
     },
     staleTime: 1000 * 60 * 5,
   });
 
-  const { data: findings = MOCK_FINDINGS, isLoading: findingsLoading } = useQuery({
+  const snapshot = apiResult?.data || MOCK_SNAPSHOT;
+  const isPreviewMode = apiResult?.isPreviewMode ?? true;
+  const errorStatus = apiResult?.errorStatus;
+  const draperMeta = useMemo(() => getDraperMeta(apiResult || { data: null, findings: [], actions: [], isPreviewMode: true, errorStatus: 401 }), [apiResult]);
+
+  const { data: findings = isPreviewMode ? MOCK_FINDINGS : [], isLoading: findingsLoading, refetch: refetchFindings } = useQuery({
     queryKey: ["draper", "findings", siteId],
     queryFn: async () => {
       try {
@@ -303,6 +392,7 @@ export default function DraperContent() {
       }
     },
     staleTime: 1000 * 60 * 5,
+    enabled: !isPreviewMode,
   });
 
   const { data: settings, isLoading: settingsLoading } = useQuery({
@@ -322,7 +412,7 @@ export default function DraperContent() {
     staleTime: 1000 * 60 * 5,
   });
 
-  const { data: actions = MOCK_ACTIONS, isLoading: actionsLoading } = useQuery({
+  const { data: actions = isPreviewMode ? MOCK_ACTIONS : [], isLoading: actionsLoading, refetch: refetchActions } = useQuery({
     queryKey: ["draper", "actions", siteId],
     queryFn: async () => {
       try {
@@ -334,7 +424,41 @@ export default function DraperContent() {
       }
     },
     staleTime: 1000 * 30,
+    enabled: !isPreviewMode,
   });
+
+  const handleRemediationAction = (action: RemediationAction) => {
+    switch (action.kind) {
+      case "route":
+        if (action.route) {
+          if (action.route.startsWith("#")) {
+            const tabId = action.route.slice(1);
+            document.querySelector(`[data-testid="tab-${tabId}"]`)?.scrollIntoView({ behavior: "smooth" });
+          } else {
+            navigate(action.route);
+          }
+        }
+        break;
+      case "href":
+        if (action.href) {
+          window.open(action.href, "_blank");
+        }
+        break;
+      case "retry":
+        refetchSnapshot();
+        refetchFindings();
+        refetchActions();
+        break;
+      case "run_scan":
+        enqueueAction.mutate({ action_type: "full_scan", note: "Full campaign scan" });
+        break;
+      case "view_logs":
+        navigate("/settings/logs");
+        break;
+      default:
+        break;
+    }
+  };
 
   const enqueueAction = useMutation({
     mutationFn: async (data: { action_type: string; payload?: Record<string, unknown>; note: string }) => {
@@ -402,6 +526,9 @@ export default function DraperContent() {
     monitors: ["Ad Spend", "Conversions", "ROAS"],
   };
 
+  const displayFindings = isPreviewMode ? MOCK_FINDINGS : findings;
+  const displayActions = isPreviewMode ? MOCK_ACTIONS : actions;
+
   const missions: MissionItem[] = [
     {
       id: "campaign-review",
@@ -437,8 +564,8 @@ export default function DraperContent() {
     },
   ];
 
-  const highPriorityCount = findings.filter((f: DraperFinding) => f.impact === "High").length;
-  const completedCount = actions.filter((a: DraperAction) => a.status === "done").length;
+  const highPriorityCount = displayFindings.filter((f: DraperFinding) => f.impact === "High").length;
+  const completedCount = displayActions.filter((a: DraperAction) => a.status === "done").length;
   const pendingCount = missions.filter(m => m.status === "pending" || m.status === "ready").length;
   
   const missionStatus: MissionStatusState = {
@@ -492,64 +619,74 @@ export default function DraperContent() {
       id: "findings",
       label: "Findings",
       icon: <Search className="w-4 h-4" />,
-      badge: findings.length,
+      badge: displayFindings.length,
       state: findingsLoading ? "loading" : "ready",
       content: (
-        <div className="space-y-4">
-          <Alert className="border-amber-500/50 bg-amber-500/10">
-            <AlertTriangle className="h-4 w-4 text-amber-500" />
-            <AlertDescription className="text-amber-200">
-              Preview data (worker not connected)
-            </AlertDescription>
-          </Alert>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Issue Type</TableHead>
-                <TableHead>Scope</TableHead>
-                <TableHead>Impact</TableHead>
-                <TableHead>Recommended Action</TableHead>
-                <TableHead className="w-[100px]">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {findings.map((finding: DraperFinding) => (
-                <TableRow key={finding.id}>
-                  <TableCell className="font-medium">{finding.issueType}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs capitalize">
-                        {finding.scopeType.replace("_", " ")}
-                      </Badge>
-                      <span className="text-muted-foreground">{finding.scope}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={cn("text-xs", getImpactBadgeColor(finding.impact))}>
-                      {finding.impact}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="max-w-[300px] truncate">{finding.recommendedAction}</TableCell>
-                  <TableCell>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => enqueueAction.mutate({
-                        action_type: finding.fixAction || "fix_finding",
-                        payload: { finding_id: finding.id },
-                        note: `Fix: ${finding.issueType}`,
-                      })}
-                      disabled={enqueueAction.isPending}
-                      data-testid={`button-fix-finding-${finding.id}`}
-                    >
-                      <Zap className="w-3 h-3 mr-1" />
-                      Fix
-                    </Button>
-                  </TableCell>
+        <div className="space-y-4" data-testid="tab-findings">
+          {isPreviewMode && (
+            <NoDeadEndsState
+              meta={draperMeta}
+              title="Worker Not Connected"
+              onAction={handleRemediationAction}
+              compact
+            />
+          )}
+          {displayFindings.length === 0 ? (
+            <TableEmptyState
+              meta={getEmptyFindingsMeta()}
+              title="No Findings"
+              onAction={handleRemediationAction}
+            />
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Issue Type</TableHead>
+                  <TableHead>Scope</TableHead>
+                  <TableHead>Impact</TableHead>
+                  <TableHead>Recommended Action</TableHead>
+                  <TableHead className="w-[100px]">Action</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {displayFindings.map((finding: DraperFinding) => (
+                  <TableRow key={finding.id}>
+                    <TableCell className="font-medium">{finding.issueType}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs capitalize">
+                          {finding.scopeType.replace("_", " ")}
+                        </Badge>
+                        <span className="text-muted-foreground">{finding.scope}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={cn("text-xs", getImpactBadgeColor(finding.impact))}>
+                        {finding.impact}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="max-w-[300px] truncate">{finding.recommendedAction}</TableCell>
+                    <TableCell>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => enqueueAction.mutate({
+                          action_type: finding.fixAction || "fix_finding",
+                          payload: { finding_id: finding.id },
+                          note: `Fix: ${finding.issueType}`,
+                        })}
+                        disabled={enqueueAction.isPending}
+                        data-testid={`button-fix-finding-${finding.id}`}
+                      >
+                        <Zap className="w-3 h-3 mr-1" />
+                        Fix
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </div>
       ),
     },
@@ -704,17 +841,26 @@ export default function DraperContent() {
       id: "action-queue",
       label: "Action Queue",
       icon: <Clock className="w-4 h-4" />,
-      badge: actions.filter((a: DraperAction) => a.status === "queued" || a.status === "running").length,
+      badge: displayActions.filter((a: DraperAction) => a.status === "queued" || a.status === "running").length,
       state: actionsLoading ? "loading" : "ready",
       content: (
-        <div className="space-y-3">
-          {actions.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              <p>No actions in queue</p>
-            </div>
+        <div className="space-y-3" data-testid="tab-action-queue">
+          {isPreviewMode && (
+            <NoDeadEndsState
+              meta={draperMeta}
+              title="Worker Not Connected"
+              onAction={handleRemediationAction}
+              compact
+            />
+          )}
+          {displayActions.length === 0 ? (
+            <TableEmptyState
+              meta={getEmptyActionsMeta()}
+              title="No Actions Queued"
+              onAction={handleRemediationAction}
+            />
           ) : (
-            actions.map((action: DraperAction) => (
+            displayActions.map((action: DraperAction) => (
               <div
                 key={action.id}
                 className="flex items-center justify-between p-4 rounded-lg bg-card/40 border border-border"
@@ -761,12 +907,14 @@ export default function DraperContent() {
 
   return (
     <div className="space-y-4">
-      <Alert className="border-amber-500/50 bg-amber-500/10">
-        <AlertTriangle className="h-4 w-4 text-amber-500" />
-        <AlertDescription className="text-amber-200">
-          Draper worker not connected — showing preview data. You can queue actions and configure targets now.
-        </AlertDescription>
-      </Alert>
+      {draperMeta.status !== "ok" && (
+        <NoDeadEndsState
+          meta={draperMeta}
+          title="Worker Not Connected"
+          onAction={handleRemediationAction}
+          isLoading={snapshotLoading}
+        />
+      )}
 
       <CrewDashboardShell
         crew={crew}
