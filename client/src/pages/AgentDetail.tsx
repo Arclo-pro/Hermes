@@ -8,7 +8,7 @@ import { useEffect } from "react";
 
 import AuthorityContent from "./authority/AuthorityContent";
 import SERPContent from "./serp/SERPContent";
-import PulseContent from "./pulse/PulseContent";
+import PopularContent from "./popular/PopularContent";
 import SpeedsterContent from "./speedster/SpeedsterContent";
 import NatashaContent from "./natasha/NatashaContent";
 import SocratesContent from "./socrates/SocratesContent";
@@ -55,7 +55,7 @@ export default function AgentDetail() {
       case "serp_intel":
         return <SERPContent />;
       case "google_data_connector":
-        return <PulseContent />;
+        return <PopularContent />;
       case "core_web_vitals":
         return <SpeedsterContent />;
       case "competitive_snapshot":

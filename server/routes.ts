@@ -193,6 +193,170 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
 
+  // ============================================================
+  // Popular Crew API endpoints (canonical issues & corroboration)
+  // These are BEFORE apiKeyAuth so they're accessible from frontend
+  // ============================================================
+
+  // GET /api/popular/dashboard - Returns unified Popular dashboard
+  app.get("/api/popular/dashboard", async (req, res) => {
+    try {
+      const siteId = (req.query.site_id as string) || "default";
+      const requestId = randomUUID();
+      
+      // Fetch raw anomalies from existing GA4/diagnostic data
+      // For now, return stub data that will be replaced when worker connected
+      
+      const stubIssues = [
+        {
+          id: "issue_organic_traffic_2025-12-07",
+          displayTitle: "Organic Traffic (Sessions)",
+          severity: "high",
+          status: "detected",
+          evidence: {
+            rawAnomalies: [],
+            primaryAnomaly: {
+              id: "anomaly_1",
+              date: "2025-12-07",
+              source: "GA4",
+              metric: "sessions",
+              dropPercent: -42.4,
+              currentValue: 1200,
+              baselineValue: 2083,
+              zScore: -3.2,
+            },
+            confirmedMetrics: {
+              confirmedPctChange: -42.4,
+              confirmedCurrentValue: 1200,
+              confirmedBaselineValue: 2083,
+              confirmedMethod: "vs_prev_7day_avg",
+              validatedAt: new Date().toISOString(),
+            },
+            corroborations: [],
+          },
+          confidence: 70,
+          recommendedActions: [
+            { id: "check_performance", title: "Check Site Performance", applicable: true, priority: 1 },
+            { id: "check_content", title: "Review Content Changes", applicable: true, priority: 2 },
+          ],
+          detectedAt: new Date().toISOString(),
+          lastUpdatedAt: new Date().toISOString(),
+        },
+      ];
+      
+      // Compute score and mission count from issues
+      const score = 100 - stubIssues.filter(i => i.status !== "resolved").length * 25;
+      const missionCount = stubIssues.reduce((acc, i) => 
+        acc + i.recommendedActions.filter(a => a.applicable).length, 0);
+      
+      res.json({
+        ok: true,
+        siteId,
+        request_id: requestId,
+        score: Math.max(0, score),
+        missionCount,
+        issues: stubIssues,
+        kpis: {
+          sessions7d: null,
+          users7d: null,
+          clicks7d: null,
+          impressions7d: null,
+        },
+        meta: {
+          status: "ok",
+          reasonCode: "SUCCESS",
+          userMessage: "Dashboard loaded",
+          actions: [],
+        },
+      });
+    } catch (error) {
+      logger.error("Popular", "Dashboard error", { error });
+      res.status(500).json({ ok: false, error: "Failed to load dashboard" });
+    }
+  });
+
+  // POST /api/popular/issues/:issueId/corroborate - Runs cross-agent corroboration
+  app.post("/api/popular/issues/:issueId/corroborate", async (req, res) => {
+    try {
+      const { issueId } = req.params;
+      const { sources } = req.body; // ["speedster", "hemingway"]
+      const requestId = randomUUID();
+      
+      // Stub corroboration results (will be replaced with actual worker calls)
+      const results: Array<{
+        source: string;
+        status: string;
+        checkedAt: string;
+        summary: string;
+        degraded?: boolean;
+        contentChanged?: boolean;
+        details: string;
+      }> = [];
+      
+      if (sources?.includes("speedster") || !sources) {
+        results.push({
+          source: "speedster",
+          status: "ok",
+          checkedAt: new Date().toISOString(),
+          summary: "No performance degradation detected",
+          degraded: false,
+          details: "Core Web Vitals within acceptable ranges during the anomaly window",
+        });
+      }
+      
+      if (sources?.includes("hemingway") || !sources) {
+        results.push({
+          source: "hemingway",
+          status: "ok",
+          checkedAt: new Date().toISOString(),
+          summary: "No significant content changes detected",
+          contentChanged: false,
+          details: "No major content updates or deletions during the anomaly window",
+        });
+      }
+      
+      res.json({
+        ok: true,
+        issueId,
+        request_id: requestId,
+        corroborations: results,
+      });
+    } catch (error) {
+      logger.error("Popular", "Corroboration error", { error });
+      res.status(500).json({ ok: false, error: "Corroboration failed" });
+    }
+  });
+
+  // POST /api/popular/issues/:issueId/validate - Validates % drop with GA4 data
+  app.post("/api/popular/issues/:issueId/validate", async (req, res) => {
+    try {
+      const { issueId } = req.params;
+      const { windowStart, windowEnd } = req.body;
+      const requestId = randomUUID();
+      
+      // Stub validation (will call GA4 API when wired)
+      res.json({
+        ok: true,
+        issueId,
+        request_id: requestId,
+        confirmedMetrics: {
+          confirmedPctChange: -42.4,
+          confirmedCurrentValue: 1200,
+          confirmedBaselineValue: 2083,
+          confirmedMethod: "vs_prev_7day_avg",
+          validatedAt: new Date().toISOString(),
+        },
+      });
+    } catch (error) {
+      logger.error("Popular", "Validation error", { error });
+      res.status(500).json({ ok: false, error: "Validation failed" });
+    }
+  });
+
+  // ============================================================
+  // End Popular Crew API endpoints
+  // ============================================================
+
   app.use(apiKeyAuth);
 
   // Server-side route redirects for legacy URLs

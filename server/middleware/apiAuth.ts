@@ -46,6 +46,7 @@ const DASHBOARD_GET_PATHS = [
   "/api/achievements",
   "/api/crews",
   "/api/snapshots",
+  "/api/popular",
 ];
 
 // Paths that allow unauthenticated POST access (only basic safe operations)
@@ -66,6 +67,7 @@ const DASHBOARD_POST_PATHS = [
   "/api/qa",
   "/api/vault",
   "/api/achievements",
+  "/api/popular",
 ];
 
 // Paths that allow same-origin POST access (UI actions, protected by origin check)
