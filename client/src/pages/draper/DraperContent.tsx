@@ -437,12 +437,18 @@ export default function DraperContent() {
     },
   ];
 
+  const highPriorityCount = findings.filter((f: DraperFinding) => f.impact === "High").length;
+  const completedCount = actions.filter((a: DraperAction) => a.status === "done").length;
+  const pendingCount = missions.filter(m => m.status === "pending" || m.status === "ready").length;
+  
   const missionStatus: MissionStatusState = {
-    priorityCount: findings.filter((f: DraperFinding) => f.impact === "High").length,
-    completedCount: actions.filter((a: DraperAction) => a.status === "done").length,
+    tier: highPriorityCount > 0 ? "needs_attention" : completedCount > 0 ? "looking_good" : "doing_okay",
+    summaryLine: `${highPriorityCount} high-impact issues, ${completedCount} actions completed`,
+    nextStep: pendingCount > 0 ? "Review campaign findings" : "All actions complete",
+    priorityCount: highPriorityCount,
+    blockerCount: 0,
+    autoFixableCount: pendingCount,
     status: snapshotLoading ? "loading" : "ready",
-    summaryLabel: "high-impact issues",
-    completedLabel: "actions completed",
   };
 
   const kpis = [

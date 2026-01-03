@@ -58,7 +58,12 @@ interface MissionOverviewWidgetProps {
   maxActions?: number;
 }
 
-const statusConfig = {
+const statusConfig: Record<string, {
+  label: string;
+  icon: typeof CheckCircle2;
+  badgeClass: string;
+  cardClass: string;
+}> = {
   looking_good: {
     label: "Good",
     icon: CheckCircle2,
@@ -77,6 +82,13 @@ const statusConfig = {
     badgeClass: "bg-gold-soft text-gold border-gold",
     cardClass: "bg-gold-soft/30 border-gold/30",
   },
+};
+
+const defaultStatusConfig = {
+  label: "Unknown",
+  icon: AlertTriangle,
+  badgeClass: "bg-muted text-muted-foreground border-muted",
+  cardClass: "",
 };
 
 function ImpactIndicator({ impact }: { impact: string }) {
@@ -298,7 +310,7 @@ export function MissionOverviewWidget({
     return <OverviewUnavailable onRetry={onRetry} />;
   }
 
-  const config = statusConfig[status.tier];
+  const config = statusConfig[status.tier] || defaultStatusConfig;
   const StatusIcon = config.icon;
   const needsAttention = status.tier === "needs_attention";
 
