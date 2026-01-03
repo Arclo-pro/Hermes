@@ -14615,6 +14615,225 @@ Current metrics for the site: ${metricsContext}`;
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // DRAPER (Paid Ads) Endpoints
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // Snapshot - returns stub KPI data (no worker connection yet)
+  app.get("/api/draper/snapshot", async (req, res) => {
+    const siteId = (req.query.site_id as string) || "default";
+    
+    res.json({
+      ok: true,
+      configured: false,
+      metrics: {
+        spend7d: 0,
+        conversions7d: 0,
+        cpa7d: 0,
+        roas7d: 0,
+      },
+      campaigns: [],
+      adGroups: [],
+      lastSyncAt: null,
+    });
+  });
+
+  // Get Draper settings
+  app.get("/api/draper/settings", async (req, res) => {
+    try {
+      const siteId = (req.query.site_id as string) || "default";
+      const settings = await storage.getDraperSettings(siteId);
+      
+      res.json({
+        ok: true,
+        settings: settings || {
+          siteId,
+          customerId: null,
+          targetCpa: null,
+          targetRoas: null,
+          dailySpendCap: null,
+          autoApplyNegatives: false,
+          pauseLowPerformers: false,
+        },
+      });
+    } catch (error: any) {
+      logger.error("Draper", "Failed to get settings", { error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
+  // Save Draper settings
+  app.post("/api/draper/settings", async (req, res) => {
+    try {
+      const siteId = (req.body.site_id as string) || "default";
+      const { customerId, targetCpa, targetRoas, dailySpendCap, autoApplyNegatives, pauseLowPerformers } = req.body;
+      
+      const settings = await storage.upsertDraperSettings(siteId, {
+        customerId,
+        targetCpa,
+        targetRoas,
+        dailySpendCap,
+        autoApplyNegatives,
+        pauseLowPerformers,
+      });
+      
+      res.json({ ok: true, settings });
+    } catch (error: any) {
+      logger.error("Draper", "Failed to save settings", { error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
+  // List queued actions
+  app.get("/api/draper/actions", async (req, res) => {
+    try {
+      const siteId = (req.query.site_id as string) || "default";
+      const limit = parseInt(req.query.limit as string) || 50;
+      const actions = await storage.getDraperActions(siteId, limit);
+      
+      res.json({ ok: true, actions });
+    } catch (error: any) {
+      logger.error("Draper", "Failed to get actions", { error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
+  // Enqueue new action
+  app.post("/api/draper/actions", async (req, res) => {
+    try {
+      const siteId = (req.body.site_id as string) || "default";
+      const { actionType, payload, note } = req.body;
+      
+      if (!actionType) {
+        return res.status(400).json({ ok: false, error: "actionType is required" });
+      }
+      
+      const action = await storage.createDraperAction({
+        siteId,
+        actionType,
+        payload,
+        note,
+        status: "queued",
+      });
+      
+      res.json({ ok: true, action });
+    } catch (error: any) {
+      logger.error("Draper", "Failed to create action", { error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
+  // Cancel action
+  app.post("/api/draper/actions/:id/cancel", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({ ok: false, error: "Invalid action ID" });
+      }
+      
+      await storage.cancelDraperAction(id);
+      res.json({ ok: true });
+    } catch (error: any) {
+      logger.error("Draper", "Failed to cancel action", { error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
+  // Stub findings data for preview
+  app.get("/api/draper/findings", async (req, res) => {
+    const siteId = (req.query.site_id as string) || "default";
+    
+    const mockFindings = [
+      {
+        id: "draper_finding_1",
+        issueType: "Wasted spend",
+        scope: "campaign",
+        scopeName: "Brand - Broad Match",
+        impactEstimate: "High",
+        wastedSpend: 342.50,
+        recommendedAction: "Add negative keywords for irrelevant search terms",
+        fixable: true,
+      },
+      {
+        id: "draper_finding_2",
+        issueType: "Missing negatives",
+        scope: "ad_group",
+        scopeName: "Services - Mental Health",
+        impactEstimate: "Med",
+        wastedSpend: 127.80,
+        recommendedAction: "Add 12 suggested negative keywords from search terms report",
+        fixable: true,
+      },
+      {
+        id: "draper_finding_3",
+        issueType: "Low CTR ad group",
+        scope: "ad_group",
+        scopeName: "Therapy - Generic",
+        impactEstimate: "Med",
+        ctr: 0.8,
+        benchmarkCtr: 3.2,
+        recommendedAction: "Refresh ad copy with stronger CTAs and relevant keywords",
+        fixable: true,
+      },
+      {
+        id: "draper_finding_4",
+        issueType: "Underperforming campaign",
+        scope: "campaign",
+        scopeName: "Display - Remarketing",
+        impactEstimate: "High",
+        roas: 0.4,
+        targetRoas: 3.0,
+        recommendedAction: "Pause campaign or significantly reduce budget allocation",
+        fixable: true,
+      },
+      {
+        id: "draper_finding_5",
+        issueType: "Budget pacing issue",
+        scope: "campaign",
+        scopeName: "Search - Services",
+        impactEstimate: "Low",
+        utilizationPct: 42,
+        recommendedAction: "Increase bids or expand targeting to improve budget utilization",
+        fixable: false,
+      },
+      {
+        id: "draper_finding_6",
+        issueType: "Landing page mismatch",
+        scope: "ad_group",
+        scopeName: "Anxiety Treatment",
+        impactEstimate: "Med",
+        qualityScore: 4,
+        recommendedAction: "Align landing page content with ad group keywords",
+        fixable: false,
+      },
+      {
+        id: "draper_finding_7",
+        issueType: "Ad disapproval",
+        scope: "ad_group",
+        scopeName: "PTSD Services",
+        impactEstimate: "High",
+        disapprovedAds: 3,
+        recommendedAction: "Review and fix policy violations in ad copy",
+        fixable: true,
+      },
+    ];
+    
+    res.json({
+      ok: true,
+      configured: false,
+      findings: mockFindings,
+      summary: {
+        totalFindings: mockFindings.length,
+        highImpact: mockFindings.filter(f => f.impactEstimate === "High").length,
+        medImpact: mockFindings.filter(f => f.impactEstimate === "Med").length,
+        lowImpact: mockFindings.filter(f => f.impactEstimate === "Low").length,
+        fixable: mockFindings.filter(f => f.fixable).length,
+      },
+      lastAnalyzedAt: null,
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // SOCRATES (KNOWLEDGE BASE) PROXY ENDPOINTS
   // Hermes is the single integration point for KB read/write operations
   // ═══════════════════════════════════════════════════════════════════════════

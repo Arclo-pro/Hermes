@@ -1681,6 +1681,49 @@ export const insertAiSnapshotSchema = createInsertSchema(aiSnapshots).omit({
 export type InsertAiSnapshot = z.infer<typeof insertAiSnapshotSchema>;
 export type AiSnapshot = typeof aiSnapshots.$inferSelect;
 
+// Draper Settings Table - Paid Ads optimization settings
+export const draperSettings = pgTable("draper_settings", {
+  id: serial("id").primaryKey(),
+  siteId: text("site_id").notNull().default("default"),
+  customerId: text("customer_id"), // Google Ads customer ID (optional for now)
+  targetCpa: real("target_cpa"), // Target cost per acquisition
+  targetRoas: real("target_roas"), // Target ROAS e.g. 3.0 for 3x return
+  dailySpendCap: real("daily_spend_cap"), // Max daily budget
+  autoApplyNegatives: boolean("auto_apply_negatives").default(false),
+  pauseLowPerformers: boolean("pause_low_performers").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertDraperSettingsSchema = createInsertSchema(draperSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertDraperSettings = z.infer<typeof insertDraperSettingsSchema>;
+export type DraperSettings = typeof draperSettings.$inferSelect;
+
+// Draper Action Queue Table - Queue for paid ads optimization actions
+export const draperActionQueue = pgTable("draper_action_queue", {
+  id: serial("id").primaryKey(),
+  siteId: text("site_id").notNull().default("default"),
+  status: text("status").notNull().default("queued"), // queued, running, done, failed, cancelled
+  actionType: text("action_type").notNull(), // campaign_review, spend_analysis, ad_copy_optimization, landing_page_alignment, fix_finding
+  payload: jsonb("payload"), // Action-specific data
+  note: text("note"), // Human-readable description
+  result: jsonb("result"), // Result when done
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertDraperActionSchema = createInsertSchema(draperActionQueue).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertDraperAction = z.infer<typeof insertDraperActionSchema>;
+export type DraperAction = typeof draperActionQueue.$inferSelect;
+
 // SEO Suggestions - generated recommendations from combined worker signals
 export const seoSuggestions = pgTable("seo_suggestions", {
   id: serial("id").primaryKey(),

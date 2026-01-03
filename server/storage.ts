@@ -145,6 +145,12 @@ import {
   aiSnapshots,
   type AiSnapshot,
   type InsertAiSnapshot,
+  draperSettings,
+  type DraperSettings,
+  type InsertDraperSettings,
+  draperActionQueue,
+  type DraperAction,
+  type InsertDraperAction,
   seoSuggestions,
   type SeoSuggestion,
   type InsertSeoSuggestion,
@@ -503,6 +509,16 @@ export interface IStorage {
   getAiSnapshots(siteId: string, limit?: number): Promise<AiSnapshot[]>;
   getLatestAiSnapshot(siteId: string): Promise<AiSnapshot | undefined>;
   createAiSnapshot(snapshot: InsertAiSnapshot): Promise<AiSnapshot>;
+  
+  // Draper Settings
+  getDraperSettings(siteId: string): Promise<DraperSettings | undefined>;
+  upsertDraperSettings(siteId: string, settings: Partial<InsertDraperSettings>): Promise<DraperSettings>;
+  
+  // Draper Action Queue
+  getDraperActions(siteId: string, limit?: number): Promise<DraperAction[]>;
+  createDraperAction(action: InsertDraperAction): Promise<DraperAction>;
+  updateDraperActionStatus(id: number, status: string, result?: any): Promise<void>;
+  cancelDraperAction(id: number): Promise<void>;
 }
 
 class DBStorage implements IStorage {
@@ -2881,6 +2897,67 @@ class DBStorage implements IStorage {
   async createAiSnapshot(snapshot: InsertAiSnapshot): Promise<AiSnapshot> {
     const [result] = await db.insert(aiSnapshots).values(snapshot).returning();
     return result;
+  }
+
+  // Draper Settings
+  async getDraperSettings(siteId: string): Promise<DraperSettings | undefined> {
+    const [settings] = await db
+      .select()
+      .from(draperSettings)
+      .where(eq(draperSettings.siteId, siteId))
+      .limit(1);
+    return settings;
+  }
+
+  async upsertDraperSettings(siteId: string, settings: Partial<InsertDraperSettings>): Promise<DraperSettings> {
+    const existing = await this.getDraperSettings(siteId);
+    
+    if (existing) {
+      await db
+        .update(draperSettings)
+        .set({ ...settings, updatedAt: new Date() })
+        .where(eq(draperSettings.siteId, siteId));
+      return (await this.getDraperSettings(siteId))!;
+    } else {
+      const [newSettings] = await db
+        .insert(draperSettings)
+        .values({ ...settings, siteId })
+        .returning();
+      return newSettings;
+    }
+  }
+
+  // Draper Action Queue
+  async getDraperActions(siteId: string, limit = 50): Promise<DraperAction[]> {
+    return db
+      .select()
+      .from(draperActionQueue)
+      .where(eq(draperActionQueue.siteId, siteId))
+      .orderBy(desc(draperActionQueue.createdAt))
+      .limit(limit);
+  }
+
+  async createDraperAction(action: InsertDraperAction): Promise<DraperAction> {
+    const [result] = await db.insert(draperActionQueue).values(action).returning();
+    return result;
+  }
+
+  async updateDraperActionStatus(id: number, status: string, result?: any): Promise<void> {
+    const updateData: any = { status, updatedAt: new Date() };
+    if (result !== undefined) {
+      updateData.result = result;
+    }
+    await db
+      .update(draperActionQueue)
+      .set(updateData)
+      .where(eq(draperActionQueue.id, id));
+  }
+
+  async cancelDraperAction(id: number): Promise<void> {
+    await db
+      .update(draperActionQueue)
+      .set({ status: "cancelled", updatedAt: new Date() })
+      .where(eq(draperActionQueue.id, id));
   }
 }
 

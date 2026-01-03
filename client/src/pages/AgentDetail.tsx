@@ -16,6 +16,7 @@ import HemingwayContent from "./hemingway/HemingwayContent";
 import ScottyContent from "./scotty/ScottyContent";
 import SentinelContent from "./sentinel/SentinelContent";
 import AtlasContent from "./atlas/AtlasContent";
+import DraperContent from "./draper/DraperContent";
 import GenericAgentContent from "./agents/GenericAgentContent";
 
 export default function AgentDetail() {
@@ -69,6 +70,8 @@ export default function AgentDetail() {
         return <SentinelContent />;
       case "ai_optimization":
         return <AtlasContent />;
+      case "google_ads_connector":
+        return <DraperContent />;
       default:
         return <GenericAgentContent agentId={agentId} />;
     }
