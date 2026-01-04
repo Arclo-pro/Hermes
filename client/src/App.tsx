@@ -28,6 +28,8 @@ import DevLineage from "@/pages/DevLineage";
 import Speedster from "@/pages/Speedster";
 import Socrates from "@/pages/Socrates";
 import Achievements from "@/pages/Achievements";
+import WebsitesSettings from "@/pages/WebsitesSettings";
+import WebsiteDetail from "@/pages/WebsiteDetail";
 import { ROUTES, buildRoute, resolveAgentSlug } from "@shared/routes";
 import { useRoute } from "wouter";
 import { useEffect } from "react";
@@ -73,6 +75,8 @@ function Router() {
       <Route path={ROUTES.ACHIEVEMENTS} component={Achievements} />
       <Route path={ROUTES.INTEGRATIONS} component={Integrations} />
       <Route path={ROUTES.SETTINGS} component={Settings} />
+      <Route path={ROUTES.SETTINGS_WEBSITES} component={WebsitesSettings} />
+      <Route path={ROUTES.SETTINGS_WEBSITE_DETAIL} component={WebsiteDetail} />
       <Route path={ROUTES.SITES}>
         <Redirect to={buildRoute.settingsTab("sites")} />
       </Route>

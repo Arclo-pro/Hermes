@@ -50,6 +50,8 @@ export const ROUTES = {
   // Settings & Configuration
   INTEGRATIONS: "/integrations",
   SETTINGS: "/settings",
+  SETTINGS_WEBSITES: "/settings/websites",
+  SETTINGS_WEBSITE_DETAIL: "/settings/websites/:siteId",
   SITES: "/sites",
   SITE_DETAIL: "/sites/:siteId",
   SITE_NEW: "/sites/new",
@@ -69,6 +71,7 @@ export const buildRoute = {
   run: (runId: string) => `/runs/${runId}`,
   site: (siteId: string) => `/sites/${siteId}`,
   settingsTab: (tab: string) => `/settings?tab=${tab}`,
+  settingsWebsite: (siteId: string) => `/settings/websites/${siteId}`,
 } as const;
 
 // ============================================
