@@ -526,7 +526,7 @@ function AgentSummaryCard({ agent, enabled = true }: { agent: { serviceId: strin
                   data-testid={`button-hire-${agent.serviceId}`}
                 >
                   <Users className="w-3 h-3 mr-1.5" />
-                  Hire Crew
+                  Hire
                 </Button>
               </div>
               
@@ -769,7 +769,7 @@ function AgentSummaryGrid({ agents, totalAgents, crewSummaries, kbStatus }: {
         <Link href={ROUTES.CREW}>
           <Button variant="outline" size="sm" className="text-xs border-dashed border-primary/50 text-primary hover:bg-primary/5">
             <Users className="w-3 h-3 mr-1.5" />
-            Hire Crew
+            Manage Crew
           </Button>
         </Link>
       </div>
@@ -1107,7 +1107,7 @@ export default function MissionControl() {
                 data-testid="button-add-crew"
               >
                 <Users className="w-4 h-4 mr-2" />
-                Hire Crew
+                Manage Crew
               </Button>
             </Link>
             {dashboard?.aggregatedStatus?.autoFixableCount && dashboard.aggregatedStatus.autoFixableCount > 0 && (

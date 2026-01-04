@@ -229,7 +229,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   )}
                 >
                   <Users className="w-4 h-4 shrink-0" />
-                  <span className="truncate">Hire Crew</span>
+                  <span className="truncate">Crew</span>
                 </div>
                 <div
                   className={cn(
