@@ -64,8 +64,10 @@ export function useMissionsDashboard(options?: UseMissionsDashboardOptions) {
   const {
     data: dashboard,
     isLoading,
+    isFetching,
     isError,
     refetch,
+    dataUpdatedAt,
   } = useQuery<MissionsDashboard>({
     queryKey,
     queryFn: async () => {
@@ -75,7 +77,11 @@ export function useMissionsDashboard(options?: UseMissionsDashboardOptions) {
       const res = await apiRequest("GET", url);
       return res.json();
     },
+    staleTime: 60 * 1000,
   });
+
+  const isRefreshing = isFetching && !isLoading;
+  const hasData = !!dashboard;
 
   const executeAll = async (): Promise<void> => {
     if (!dashboard?.nextActions) return;
@@ -103,9 +109,13 @@ export function useMissionsDashboard(options?: UseMissionsDashboardOptions) {
 
   return {
     dashboard,
-    isLoading,
+    isLoading: isLoading && !hasData,
+    isFetching,
+    isRefreshing,
     isError,
     executeAll,
     refetch,
+    dataUpdatedAt,
+    hasData,
   };
 }

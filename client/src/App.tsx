@@ -1,6 +1,8 @@
 import { Switch, Route, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -34,6 +36,12 @@ import { ROUTES, buildRoute, resolveAgentSlug } from "@shared/routes";
 import { useRoute } from "wouter";
 import { useEffect } from "react";
 import { useLocation } from "wouter";
+
+const persister = createSyncStoragePersister({
+  storage: window.localStorage,
+  key: "arclo-query-cache",
+  throttleTime: 1000,
+});
 
 function CrewRedirect() {
   const [, params] = useRoute("/crew/:agentId");
@@ -105,7 +113,28 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{
+        persister,
+        maxAge: 24 * 60 * 60 * 1000,
+        dehydrateOptions: {
+          shouldDehydrateQuery: (query) => {
+            const key = query.queryKey[0];
+            if (typeof key !== "string") return false;
+            const safePrefixes = [
+              "/api/missions",
+              "/api/sites",
+              "/api/dashboard",
+              "/api/benchmarks",
+              "/api/serp",
+              "/api/kb",
+            ];
+            return safePrefixes.some((prefix) => key.startsWith(prefix));
+          },
+        },
+      }}
+    >
       <SiteProvider>
         <TooltipProvider>
           <Toaster />
@@ -113,7 +142,7 @@ function App() {
           <Router />
         </TooltipProvider>
       </SiteProvider>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   );
 }
 

@@ -3,7 +3,10 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { prefetchCrewStatus } from "@/lib/queryClient";
+import { useSiteContext } from "@/hooks/useSiteContext";
 import type { AgentFinding, AgentNextStep } from "@shared/agentInsight";
+import { SERVICE_TO_CREW } from "@shared/registry";
 
 interface AgentCardProps {
   serviceId: string;
@@ -62,11 +65,19 @@ export function AgentCard({
   className, 
   onClick 
 }: AgentCardProps) {
+  const { currentSite } = useSiteContext();
   const crew = getCrewMember(serviceId);
   const Icon = crew.icon;
 
   const displayFindings = findings.slice(0, 3);
   const displaySteps = nextSteps && nextSteps.length > 0 ? nextSteps : DEFAULT_NEXT_STEPS;
+
+  const handleMouseEnter = () => {
+    if (currentSite?.siteId) {
+      const crewId = SERVICE_TO_CREW[serviceId as keyof typeof SERVICE_TO_CREW] || serviceId;
+      prefetchCrewStatus(currentSite.siteId, crewId);
+    }
+  };
 
   return (
     <Card 
@@ -77,6 +88,7 @@ export function AgentCard({
       )}
       style={{ borderLeftColor: crew.color }}
       onClick={onClick}
+      onMouseEnter={handleMouseEnter}
       data-testid={`agent-card-${serviceId}`}
     >
       <CardHeader className="pb-3 pt-4 px-5">

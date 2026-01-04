@@ -53,9 +53,11 @@ export function useCrewStatus(options: UseCrewStatusOptions) {
   const {
     data: crewStatus,
     isLoading,
+    isFetching,
     isError,
     error,
     refetch,
+    dataUpdatedAt,
   } = useQuery<CrewStatus>({
     queryKey,
     queryFn: async () => {
@@ -68,14 +70,22 @@ export function useCrewStatus(options: UseCrewStatusOptions) {
       return json as CrewStatus;
     },
     enabled: enabled && !!siteId && !!crewId,
+    staleTime: 2 * 60 * 1000,
   });
+
+  const isRefreshing = isFetching && !isLoading;
+  const hasData = !!crewStatus;
 
   return {
     crewStatus,
-    isLoading,
+    isLoading: isLoading && !hasData,
+    isFetching,
+    isRefreshing,
     isError,
     error,
     refetch,
+    dataUpdatedAt,
+    hasData,
     score: crewStatus?.score ?? null,
     status: crewStatus?.status ?? null,
     tier: crewStatus?.tier ?? null,

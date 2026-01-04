@@ -3,6 +3,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { CheckCircle, XCircle, AlertTriangle, Clock } from "lucide-react";
+import { prefetchCrewStatus } from "@/lib/queryClient";
+import { useSiteContext } from "@/hooks/useSiteContext";
+import { SERVICE_TO_CREW } from "@shared/registry";
 
 interface CrewCardProps {
   serviceId: string;
@@ -21,10 +24,18 @@ const STATUS_CONFIG = {
 };
 
 export function CrewCard({ serviceId, status = "unknown", lastCheckIn, className, onClick }: CrewCardProps) {
+  const { currentSite } = useSiteContext();
   const crew = getCrewMember(serviceId);
   const Icon = crew.icon;
   const statusConfig = STATUS_CONFIG[status];
   const StatusIcon = statusConfig.icon;
+
+  const handleMouseEnter = () => {
+    if (currentSite?.siteId) {
+      const crewId = SERVICE_TO_CREW[serviceId as keyof typeof SERVICE_TO_CREW] || serviceId;
+      prefetchCrewStatus(currentSite.siteId, crewId);
+    }
+  };
 
   return (
     <Card 
@@ -34,6 +45,7 @@ export function CrewCard({ serviceId, status = "unknown", lastCheckIn, className
       )}
       style={{ borderLeftColor: crew.color, borderLeftWidth: 4 }}
       onClick={onClick}
+      onMouseEnter={handleMouseEnter}
       data-testid={`crew-card-${serviceId}`}
     >
       <CardHeader className="pb-2">
