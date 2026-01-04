@@ -15906,6 +15906,302 @@ Return JSON in this exact format:
     }
   });
 
+  // ==================== WEBSITE SETTINGS ====================
+
+  // List all websites with integration summaries
+  app.get("/api/settings/websites", async (req, res) => {
+    try {
+      const sites = await storage.getAllSites();
+      
+      // For each site, get its integrations and summarize
+      const websitesWithSummary = await Promise.all(sites.map(async (site) => {
+        const integrations = await storage.getWebsiteIntegrations(site.siteId);
+        
+        // Count connected integrations
+        const deployIntegration = integrations.find(i => i.integrationType.startsWith("deploy_"));
+        const dataIntegrations = integrations.filter(i => !i.integrationType.startsWith("deploy_"));
+        const connectedData = dataIntegrations.filter(i => i.status === "connected").length;
+        
+        return {
+          ...site,
+          deployConnected: deployIntegration?.status === "connected",
+          deployMethod: deployIntegration?.integrationType.replace("deploy_", "") || null,
+          dataIntegrationsCount: dataIntegrations.length,
+          dataConnectedCount: connectedData,
+          needsSetup: !deployIntegration || deployIntegration.status !== "connected",
+        };
+      }));
+      
+      res.json({ ok: true, data: websitesWithSummary });
+    } catch (error: any) {
+      logger.error("WebsiteSettings", "Failed to list websites", { error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
+  // Get website details with all integrations
+  app.get("/api/settings/websites/:siteId", async (req, res) => {
+    const { siteId } = req.params;
+    try {
+      const site = await storage.getSite(siteId);
+      if (!site) {
+        return res.status(404).json({ ok: false, error: "Website not found" });
+      }
+      
+      const integrations = await storage.getWebsiteIntegrations(siteId);
+      
+      res.json({ 
+        ok: true, 
+        data: { 
+          ...site, 
+          integrations 
+        } 
+      });
+    } catch (error: any) {
+      logger.error("WebsiteSettings", `Failed to get website ${siteId}`, { error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
+  // Get all integrations for a website
+  app.get("/api/settings/websites/:siteId/integrations", async (req, res) => {
+    const { siteId } = req.params;
+    try {
+      const integrations = await storage.getWebsiteIntegrations(siteId);
+      res.json({ ok: true, data: integrations });
+    } catch (error: any) {
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
+  // Update/connect an integration
+  app.post("/api/settings/websites/:siteId/integrations/:integrationType/connect", async (req, res) => {
+    const { siteId, integrationType } = req.params;
+    const { config, secretRefs } = req.body;
+    
+    try {
+      const integration = await storage.upsertWebsiteIntegration({
+        siteId,
+        integrationType,
+        status: "connecting",
+        configJson: config || {},
+        secretRefs: secretRefs || [],
+        connectionOwner: "user",
+      });
+      
+      res.json({ ok: true, data: integration });
+    } catch (error: any) {
+      logger.error("WebsiteSettings", `Failed to connect ${integrationType} for ${siteId}`, { error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
+  // Test an integration connection
+  app.post("/api/settings/websites/:siteId/integrations/:integrationType/test", async (req, res) => {
+    const { siteId, integrationType } = req.params;
+    
+    try {
+      // Get current integration config
+      const integration = await storage.getWebsiteIntegration(siteId, integrationType);
+      if (!integration) {
+        return res.status(404).json({ ok: false, error: "Integration not configured" });
+      }
+      
+      // Test based on integration type
+      let testResult = { success: false, message: "Unknown integration type" };
+      
+      if (integrationType === "ga4") {
+        // Check if we have Google OAuth token
+        const token = await storage.getToken("google");
+        if (token) {
+          testResult = { success: true, message: "Google OAuth connected" };
+        } else {
+          testResult = { success: false, message: "Google OAuth not connected. Please authenticate first." };
+        }
+      } else if (integrationType === "gsc") {
+        const token = await storage.getToken("google");
+        if (token) {
+          testResult = { success: true, message: "Google OAuth connected" };
+        } else {
+          testResult = { success: false, message: "Google OAuth not connected. Please authenticate first." };
+        }
+      } else if (integrationType === "deploy_github") {
+        // For now just check if config is set
+        const config = integration.configJson as any;
+        if (config?.repoUrl) {
+          testResult = { success: true, message: `Repository ${config.repoUrl} configured` };
+        } else {
+          testResult = { success: false, message: "Repository URL not configured" };
+        }
+      } else if (integrationType === "deploy_wordpress") {
+        const config = integration.configJson as any;
+        if (config?.siteUrl) {
+          testResult = { success: true, message: `WordPress site ${config.siteUrl} configured` };
+        } else {
+          testResult = { success: false, message: "WordPress site URL not configured" };
+        }
+      } else if (integrationType === "deploy_replit") {
+        const config = integration.configJson as any;
+        if (config?.replitUrl) {
+          testResult = { success: true, message: `Replit app ${config.replitUrl} configured` };
+        } else {
+          testResult = { success: false, message: "Replit app URL not configured" };
+        }
+      } else if (integrationType === "empathy") {
+        const config = integration.configJson as any;
+        if (config?.baseUrl) {
+          testResult = { success: true, message: `Empathy endpoint ${config.baseUrl} configured` };
+        } else {
+          testResult = { success: false, message: "Empathy base URL not configured" };
+        }
+      } else {
+        testResult = { success: true, message: "Configuration saved" };
+      }
+      
+      // Update status based on test result
+      await storage.updateWebsiteIntegrationStatus(
+        siteId, 
+        integrationType, 
+        testResult.success ? "connected" : "error",
+        testResult.success ? undefined : { message: testResult.message }
+      );
+      
+      res.json({ 
+        ok: true, 
+        data: {
+          ...testResult,
+          integrationType,
+          testedAt: new Date().toISOString()
+        }
+      });
+    } catch (error: any) {
+      logger.error("WebsiteSettings", `Failed to test ${integrationType}`, { error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
+  // Update integration config
+  app.patch("/api/settings/websites/:siteId/integrations/:integrationType/config", async (req, res) => {
+    const { siteId, integrationType } = req.params;
+    const { config } = req.body;
+    
+    try {
+      const existing = await storage.getWebsiteIntegration(siteId, integrationType);
+      
+      const integration = await storage.upsertWebsiteIntegration({
+        siteId,
+        integrationType,
+        status: existing?.status || "not_configured",
+        configJson: { ...(existing?.configJson as object || {}), ...config },
+        secretRefs: existing?.secretRefs || [],
+        connectionOwner: existing?.connectionOwner || "user",
+      });
+      
+      res.json({ ok: true, data: integration });
+    } catch (error: any) {
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
+  // Disconnect/delete an integration
+  app.delete("/api/settings/websites/:siteId/integrations/:integrationType", async (req, res) => {
+    const { siteId, integrationType } = req.params;
+    
+    try {
+      await storage.deleteWebsiteIntegration(siteId, integrationType);
+      res.json({ ok: true, message: "Integration disconnected" });
+    } catch (error: any) {
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
+  // Get crew readiness for a website
+  app.get("/api/settings/websites/:siteId/crew-readiness", async (req, res) => {
+    const { siteId } = req.params;
+    
+    try {
+      const integrations = await storage.getWebsiteIntegrations(siteId);
+      const integrationMap = new Map(integrations.map(i => [i.integrationType, i]));
+      
+      // Define crew requirements
+      const crews = [
+        { 
+          slug: "popular", 
+          name: "Popular", 
+          requires: ["ga4", "gsc"],
+          description: "Traffic drop detection and analysis"
+        },
+        { 
+          slug: "speedster", 
+          name: "Speedster", 
+          requires: ["core_web_vitals"],
+          description: "Core Web Vitals monitoring"
+        },
+        { 
+          slug: "hemingway", 
+          name: "Hemingway", 
+          requires: ["deploy_github", "deploy_wordpress", "deploy_replit"],
+          requiresAny: true,
+          description: "Content optimization and fixes"
+        },
+        { 
+          slug: "scotty", 
+          name: "Scotty", 
+          requires: ["crawler"],
+          description: "Technical SEO audits"
+        },
+        { 
+          slug: "lookout", 
+          name: "Lookout", 
+          requires: ["gsc"],
+          description: "Indexing and crawl monitoring"
+        },
+        { 
+          slug: "draper", 
+          name: "Draper", 
+          requires: ["google_ads"],
+          description: "Google Ads optimization"
+        },
+      ];
+      
+      const readiness = crews.map(crew => {
+        let isReady = false;
+        let blockedBy: string[] = [];
+        
+        if (crew.requiresAny) {
+          // At least one of the required integrations must be connected
+          isReady = crew.requires.some(req => {
+            const integration = integrationMap.get(req);
+            return integration?.status === "connected";
+          });
+          if (!isReady) {
+            blockedBy = crew.requires;
+          }
+        } else {
+          // All required integrations must be connected
+          blockedBy = crew.requires.filter(req => {
+            const integration = integrationMap.get(req);
+            return !integration || integration.status !== "connected";
+          });
+          isReady = blockedBy.length === 0;
+        }
+        
+        return {
+          slug: crew.slug,
+          name: crew.name,
+          description: crew.description,
+          status: isReady ? "ready" : "blocked",
+          blockedBy,
+          requiresAny: crew.requiresAny || false,
+        };
+      });
+      
+      res.json({ ok: true, data: readiness });
+    } catch (error: any) {
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
   // ==================== API KEY MANAGEMENT ====================
   
   const apiKeyCreateSchema = z.object({
