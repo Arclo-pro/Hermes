@@ -179,6 +179,9 @@ import {
   apiKeys,
   type ApiKey,
   type InsertApiKey,
+  websiteIntegrations,
+  type WebsiteIntegration,
+  type InsertWebsiteIntegration,
 } from "@shared/schema";
 import { eq, desc, and, gte, sql, asc, or, isNull, arrayContains } from "drizzle-orm";
 
@@ -3083,6 +3086,86 @@ class DBStorage implements IStorage {
       .where(eq(findings.findingId, findingId))
       .limit(1);
     return finding;
+  }
+
+  // Website Integrations
+  async getWebsiteIntegrations(siteId: string): Promise<WebsiteIntegration[]> {
+    return db
+      .select()
+      .from(websiteIntegrations)
+      .where(eq(websiteIntegrations.siteId, siteId))
+      .orderBy(asc(websiteIntegrations.integrationType));
+  }
+
+  async getWebsiteIntegration(siteId: string, integrationType: string): Promise<WebsiteIntegration | undefined> {
+    const [result] = await db
+      .select()
+      .from(websiteIntegrations)
+      .where(and(
+        eq(websiteIntegrations.siteId, siteId),
+        eq(websiteIntegrations.integrationType, integrationType)
+      ))
+      .limit(1);
+    return result;
+  }
+
+  async upsertWebsiteIntegration(integration: InsertWebsiteIntegration): Promise<WebsiteIntegration> {
+    const existing = await this.getWebsiteIntegration(integration.siteId, integration.integrationType);
+    
+    if (existing) {
+      const [updated] = await db
+        .update(websiteIntegrations)
+        .set({ 
+          ...integration,
+          updatedAt: new Date()
+        })
+        .where(eq(websiteIntegrations.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db
+        .insert(websiteIntegrations)
+        .values(integration)
+        .returning();
+      return created;
+    }
+  }
+
+  async updateWebsiteIntegrationStatus(
+    siteId: string, 
+    integrationType: string, 
+    status: string, 
+    error?: { message: string; code?: string; details?: any }
+  ): Promise<void> {
+    const updates: any = { 
+      status,
+      lastCheckedAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    if (status === "connected") {
+      updates.lastOkAt = new Date();
+      updates.lastError = null;
+    } else if (error) {
+      updates.lastError = { ...error, timestamp: new Date().toISOString() };
+    }
+    
+    await db
+      .update(websiteIntegrations)
+      .set(updates)
+      .where(and(
+        eq(websiteIntegrations.siteId, siteId),
+        eq(websiteIntegrations.integrationType, integrationType)
+      ));
+  }
+
+  async deleteWebsiteIntegration(siteId: string, integrationType: string): Promise<void> {
+    await db
+      .delete(websiteIntegrations)
+      .where(and(
+        eq(websiteIntegrations.siteId, siteId),
+        eq(websiteIntegrations.integrationType, integrationType)
+      ));
   }
 }
 

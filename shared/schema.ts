@@ -2206,3 +2206,106 @@ export const insertApiKeySchema = createInsertSchema(apiKeys).omit({
 });
 export type InsertApiKey = z.infer<typeof insertApiKeySchema>;
 export type ApiKey = typeof apiKeys.$inferSelect;
+
+// ==================== WEBSITE INTEGRATIONS ====================
+
+export const integrationTypeEnum = [
+  "deploy_github",
+  "deploy_wordpress", 
+  "deploy_replit",
+  "ga4",
+  "gsc",
+  "clarity",
+  "google_ads",
+  "core_web_vitals",
+  "crawler",
+  "empathy",
+] as const;
+
+export const integrationStatusEnum = [
+  "not_configured",
+  "connecting",
+  "connected",
+  "needs_reauth",
+  "error",
+  "disabled",
+] as const;
+
+export const websiteIntegrations = pgTable("website_integrations", {
+  id: serial("id").primaryKey(),
+  siteId: text("site_id").notNull(),
+  integrationType: text("integration_type").notNull(),
+  status: text("status").notNull().default("not_configured"),
+  configJson: jsonb("config_json"),
+  secretRefs: text("secret_refs").array(),
+  lastOkAt: timestamp("last_ok_at"),
+  lastCheckedAt: timestamp("last_checked_at"),
+  lastError: jsonb("last_error"),
+  connectionOwner: text("connection_owner"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertWebsiteIntegrationSchema = createInsertSchema(websiteIntegrations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastOkAt: true,
+  lastCheckedAt: true,
+});
+export type InsertWebsiteIntegration = z.infer<typeof insertWebsiteIntegrationSchema>;
+export type WebsiteIntegration = typeof websiteIntegrations.$inferSelect;
+
+export type IntegrationType = typeof integrationTypeEnum[number];
+export type IntegrationStatus = typeof integrationStatusEnum[number];
+
+export interface GitHubDeployConfig {
+  repoUrl: string;
+  branch: string;
+  deployStrategy: "pr" | "direct_push" | "patch_file";
+  authMethod: "github_app" | "pat";
+  installationId?: string;
+}
+
+export interface WordPressDeployConfig {
+  siteUrl: string;
+  stagingUrl?: string;
+  pluginVersion?: string;
+}
+
+export interface ReplitDeployConfig {
+  replitUrl: string;
+  deployTarget: "autoscale" | "dev";
+}
+
+export interface GA4Config {
+  propertyId: string;
+  dataStreamId?: string;
+}
+
+export interface GSCConfig {
+  siteUrl: string;
+}
+
+export interface ClarityConfig {
+  projectId: string;
+}
+
+export interface GoogleAdsConfig {
+  customerId: string;
+  managerId?: string;
+}
+
+export interface CoreWebVitalsConfig {
+  measurementUrl?: string;
+}
+
+export interface CrawlerConfig {
+  maxDepth?: number;
+  maxPages?: number;
+  respectRobots?: boolean;
+}
+
+export interface EmpathyConfig {
+  baseUrl: string;
+}
