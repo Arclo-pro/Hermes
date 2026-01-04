@@ -120,10 +120,19 @@ Used for secure credential storage via `@bitwarden/sdk-napi`. Supports secret al
 - `DATABASE_URL`
 - `BWS_ACCESS_TOKEN`, `BWS_PROJECT_ID`, `BWS_ORGANIZATION_ID`
 
+### Stale-While-Revalidate (SWR) Caching
+Implements client-side caching with persistence to prevent blank states during navigation:
+- **React Query Defaults**: `staleTime: 60s`, `gcTime: 30min`, `keepPreviousData: true`, `retry: 2`
+- **Cache Persistence**: `@tanstack/query-sync-storage-persister` persists queries to localStorage (key: `arclo-query-cache`)
+- **Prefetching**: `prefetchCrewStatus`, `prefetchMissionsDashboard`, `prefetchDashboardStats` functions warm cache on hover/navigation
+- **SWR Indicators**: `RefreshingBadge` and `StaleIndicator` components show "Updating..." instead of blank states
+- **Hook Patterns**: All data hooks expose `isFetching`, `isRefreshing`, `hasData`, `dataUpdatedAt` for UI states
+- **Rule**: When data exists, never show full skeleton - show stale data with refresh indicator
+
 ### NPM Packages (Key Dependencies)
 - `googleapis`
 - `drizzle-orm`, `pg`
 - `node-cron`
 - `express`
-- `@tanstack/react-query`
+- `@tanstack/react-query`, `@tanstack/react-query-persist-client`, `@tanstack/query-sync-storage-persister`
 - `recharts`

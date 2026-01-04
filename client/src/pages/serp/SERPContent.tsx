@@ -61,7 +61,7 @@ export default function SERPContent() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { selectedSiteId } = useSiteContext();
-  const { score: unifiedScore, status: crewStatusValue, isLoading: statusLoading } = useCrewStatus({ 
+  const { score: unifiedScore, status: crewStatusValue, isLoading: statusLoading, isRefreshing: crewIsRefreshing, dataUpdatedAt: crewDataUpdatedAt } = useCrewStatus({ 
     siteId: selectedSiteId || 'site_empathy_health_clinic', 
     crewId: 'lookout' 
   });
@@ -1198,7 +1198,8 @@ export default function SERPContent() {
         headerActions={setupHeaderActions}
         onRefresh={() => {}}
         onSettings={() => {}}
-        isRefreshing={generateKeywords.isPending}
+        isRefreshing={generateKeywords.isPending || crewIsRefreshing}
+        dataUpdatedAt={crewDataUpdatedAt}
       >
         <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
           <CardHeader className="text-center pb-2">
@@ -1317,7 +1318,8 @@ export default function SERPContent() {
         }}
         onSettings={() => {}}
         onFixEverything={() => fixEverything.mutate()}
-        isRefreshing={runCheck.isPending || isFixingEverything}
+        isRefreshing={runCheck.isPending || isFixingEverything || crewIsRefreshing}
+        dataUpdatedAt={crewDataUpdatedAt}
       >
       {!overview?.configured && (
         <Card className="border-semantic-warning-border bg-semantic-warning-soft">

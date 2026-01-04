@@ -37,11 +37,13 @@ import { useRoute } from "wouter";
 import { useEffect } from "react";
 import { useLocation } from "wouter";
 
-const persister = createSyncStoragePersister({
-  storage: window.localStorage,
-  key: "arclo-query-cache",
-  throttleTime: 1000,
-});
+const persister = typeof window !== 'undefined' 
+  ? createSyncStoragePersister({
+      storage: window.localStorage,
+      key: "arclo-query-cache",
+      throttleTime: 1000,
+    })
+  : undefined;
 
 function CrewRedirect() {
   const [, params] = useRoute("/crew/:agentId");
@@ -112,6 +114,20 @@ function Router() {
 }
 
 function App() {
+  if (!persister) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <SiteProvider>
+          <TooltipProvider>
+            <Toaster />
+            <SonnerToaster position="top-right" richColors />
+            <Router />
+          </TooltipProvider>
+        </SiteProvider>
+      </QueryClientProvider>
+    );
+  }
+
   return (
     <PersistQueryClientProvider
       client={queryClient}

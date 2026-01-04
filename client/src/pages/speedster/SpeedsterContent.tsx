@@ -239,7 +239,7 @@ export default function SpeedsterContent() {
   const { activeSite } = useSiteContext();
   const siteId = activeSite?.id || 'site_empathy_health_clinic';
   
-  const { score: unifiedScore } = useCrewStatus({
+  const { score: unifiedScore, isRefreshing: crewIsRefreshing, dataUpdatedAt: crewDataUpdatedAt } = useCrewStatus({
     siteId,
     crewId: 'speedster',
   });
@@ -985,7 +985,8 @@ export default function SpeedsterContent() {
         headerActions={headerActions}
         onRefresh={() => refetch()}
         onSettings={() => toast.info("Settings coming soon")}
-        isRefreshing={isRefetching}
+        isRefreshing={isRefetching || crewIsRefreshing}
+        dataUpdatedAt={crewDataUpdatedAt}
       >
       {speedsterData?.benchmarks && Object.keys(speedsterData.benchmarks).length > 0 && (
         <Card>

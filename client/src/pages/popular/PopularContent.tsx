@@ -771,7 +771,7 @@ export default function PopularContent() {
   const [corroboratingId, setCorroboratingId] = useState<string | null>(null);
   const [validatingId, setValidatingId] = useState<string | null>(null);
 
-  const { score: unifiedScore } = useCrewStatus({
+  const { score: unifiedScore, isRefreshing: crewIsRefreshing, dataUpdatedAt: crewDataUpdatedAt } = useCrewStatus({
     siteId: siteId || 'default',
     crewId: 'popular',
   });
@@ -1022,7 +1022,8 @@ export default function PopularContent() {
           inspectorTabs={inspectorTabs}
           headerActions={headerActions}
           onRefresh={() => refetch()}
-          isRefreshing={isRefetching}
+          isRefreshing={isRefetching || crewIsRefreshing}
+          dataUpdatedAt={crewDataUpdatedAt}
         />
       </TooltipProvider>
     </CrewPageLayout>

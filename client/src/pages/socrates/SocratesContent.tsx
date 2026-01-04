@@ -533,7 +533,7 @@ export function SocratesContent() {
   const { currentSite } = useSiteContext();
   const queryClient = useQueryClient();
   const siteId = currentSite?.siteId || "default";
-  const { score: unifiedScore } = useCrewStatus({ siteId, crewId: 'socrates' });
+  const { score: unifiedScore, isRefreshing: crewIsRefreshing, dataUpdatedAt: crewDataUpdatedAt } = useCrewStatus({ siteId, crewId: 'socrates' });
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [isAskingSocrates, setIsAskingSocrates] = useState(false);
@@ -984,7 +984,8 @@ export function SocratesContent() {
         missionPrompt={missionPrompt}
         headerActions={headerActions}
         onRefresh={() => runMutation.mutate()}
-        isRefreshing={runMutation.isPending}
+        isRefreshing={runMutation.isPending || crewIsRefreshing}
+        dataUpdatedAt={crewDataUpdatedAt}
       >
       
       {!data?.configured && <ConfigurationWarning error={data?.configError} />}

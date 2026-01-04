@@ -113,5 +113,7 @@ export interface CrewDashboardShellProps {
   onFixEverything?: () => void;
   onViewAllMissions?: () => void;
   isRefreshing?: boolean;
+  isError?: boolean;
+  dataUpdatedAt?: number;
   children?: ReactNode;
 }

@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { useOptionalCrewTheme } from "@/components/crew/CrewPageLayout";
 import { MissionOverviewWidget } from "./widgets/MissionOverviewWidget";
 import { KpiStripWidget } from "./widgets/KpiStripWidget";
+import { RefreshingBadge } from "@/components/ui/stale-indicator";
 import type { CrewDashboardShellProps, WidgetState, HeaderAction } from "./types";
 
 function AgentScoreDisplay({
@@ -191,6 +192,8 @@ export function CrewDashboardShell({
   onFixEverything,
   onViewAllMissions,
   isRefreshing = false,
+  isError = false,
+  dataUpdatedAt,
   children,
 }: CrewDashboardShellProps) {
   const crewTheme = useOptionalCrewTheme();
@@ -205,7 +208,8 @@ export function CrewDashboardShell({
   return (
     <div className="space-y-5">
       {/* Unified Header - Single consolidated block */}
-      <div className="p-4 rounded-xl bg-card/40 border border-border">
+      <div className="relative p-4 rounded-xl bg-card/40 border border-border">
+        <RefreshingBadge isRefreshing={isRefreshing} />
         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
           {/* Left cluster: Avatar + Title + Subtitle + Description */}
           <div className="flex items-start gap-4 flex-1 min-w-0">
