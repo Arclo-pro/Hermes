@@ -33,15 +33,20 @@ function AgentScoreDisplay({
     return <Skeleton className="h-10 w-16 rounded-xl" />;
   }
 
-  const displayScore = score ?? "—";
+  const displayScore = score === null || score === undefined
+    ? "—"
+    : score === 0
+    ? "All clear"
+    : `${score} open`;
+  
   const scoreColor =
     score === null || score === undefined
       ? "text-muted-foreground"
-      : score >= 80
+      : score === 0
       ? "text-semantic-success"
-      : score >= 60
-      ? "text-semantic-warning"
-      : "text-semantic-danger";
+      : score <= 2
+      ? "text-semantic-info"
+      : "text-semantic-warning";
 
   return (
     <TooltipProvider>
@@ -51,7 +56,7 @@ function AgentScoreDisplay({
             className="flex items-center gap-2 px-3 py-2 rounded-xl bg-card/60 border border-border"
             data-testid="agent-score"
           >
-            <span className="text-xs text-muted-foreground">Score</span>
+            <span className="text-xs text-muted-foreground">Open missions</span>
             <span className={cn("text-xl font-bold", scoreColor)}>{displayScore}</span>
             {tooltip && <HelpCircle className="w-3 h-3 text-muted-foreground" />}
           </div>

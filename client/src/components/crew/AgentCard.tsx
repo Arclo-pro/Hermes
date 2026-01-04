@@ -32,25 +32,20 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function getScoreColor(score: number): string {
-  if (score >= 70) return "#22C55E";
-  if (score >= 40) return "#F59E0B";
-  return "#EF4444";
+function getOpenMissionsColor(count: number): string {
+  if (count === 0) return "#22C55E";
+  if (count <= 2) return "#3B82F6";
+  return "#F59E0B";
 }
 
 function AgentScoreBadge({ score }: { score: number }) {
-  const color = getScoreColor(score);
+  const color = getOpenMissionsColor(score);
+  const label = score === 0 ? "All clear" : `${score} open`;
   return (
     <div className="flex flex-col items-end gap-1">
       <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-muted bg-background">
-        <span className="text-xs text-muted-foreground">Agent Score</span>
-        <span className="text-sm font-bold" style={{ color }}>{score}</span>
-      </div>
-      <div className="w-full h-1 rounded-full bg-muted overflow-hidden">
-        <div 
-          className="h-full rounded-full transition-all"
-          style={{ width: `${score}%`, backgroundColor: color }}
-        />
+        <span className="text-xs text-muted-foreground">Open missions</span>
+        <span className="text-sm font-bold" style={{ color }}>{label}</span>
       </div>
     </div>
   );
