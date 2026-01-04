@@ -5683,13 +5683,12 @@ When answering:
         const lastCompleted = crewCompletions[0];
         
         let status: 'looking_good' | 'doing_okay' | 'needs_attention';
-        const hasHighPriority = pendingForCrew.some(m => m.impact === 'high');
-        if (hasHighPriority) {
-          status = 'needs_attention';
-        } else if (pendingForCrew.length > 0) {
+        if (pendingForCrew.length === 0) {
+          status = 'looking_good';
+        } else if (pendingForCrew.length <= 2) {
           status = 'doing_okay';
         } else {
-          status = 'looking_good';
+          status = 'needs_attention';
         }
         
         // Calculate per-crew metrics with real deltas based on service runs
@@ -5742,31 +5741,8 @@ When answering:
           ? (pendingForCrew.length > 0 ? 'Run missions to see metrics' : 'All caught up!')
           : null;
         
-        // Compute unified score using CrewStatusService for consistency with crew pages
-        let score: number;
-        
-        // Use CrewStatusService score if available (preferred for consistency)
-        if (crewStatusMap[crewId]) {
-          score = crewStatusMap[crewId].score;
-        } else if (crewId === 'popular' && popularScoreFromIssues !== null) {
-          // Fallback: For Popular, use issue-based score (same as Popular dashboard page)
-          score = popularScoreFromIssues;
-        } else {
-          // Fallback: Score formula based on status + completion activity + delta bonus
-          const completedThisWeek = metricValue;
-          const deltaBonus = deltaPercent !== null && deltaPercent > 0 ? Math.min(deltaPercent / 10, 10) : 0;
-          
-          if (status === 'looking_good') {
-            score = 80 + Math.min(completedThisWeek * 2, 15) + deltaBonus; // 80-105, capped at 100
-          } else if (status === 'doing_okay') {
-            score = 50 + Math.min(completedThisWeek * 3, 25) + deltaBonus; // 50-85
-          } else {
-            // needs_attention: factor in completions to differentiate crews with activity
-            const completionBonus = completedThisWeek * 5;
-            score = Math.max(15, 35 - pendingForCrew.length * 2 + completionBonus + deltaBonus);
-          }
-          score = Math.min(100, Math.max(0, Math.round(score)));
-        }
+        // Score = pending mission count (new semantics: missions that need attention)
+        const score = pendingForCrew.length;
         
         return {
           crewId,
@@ -5774,15 +5750,15 @@ When answering:
           pendingCount: pendingForCrew.length,
           lastCompletedAt: lastCompleted?.createdAt || null,
           status,
-          score, // Server-computed score for consistency with crew pages
+          score, // Score = pending mission count
           // New fields for per-crew metrics
-          primaryMetric: metricType === 'runs' ? 'Successful runs' : 'Completed this week',
-          primaryMetricValue: metricValue,
-          deltaPercent,
-          deltaLabel: 'vs last week',
+          primaryMetric: 'Open missions',
+          primaryMetricValue: pendingForCrew.length,
+          deltaPercent: null,
+          deltaLabel: pendingForCrew.length === 0 ? 'All clear' : 'needs attention',
           // Empty state metadata for "No Dead Ends" UX
-          hasNoData,
-          emptyStateReason,
+          hasNoData: pendingForCrew.length === 0,
+          emptyStateReason: pendingForCrew.length === 0 ? 'All caught up!' : null,
         };
       });
       

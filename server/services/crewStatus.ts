@@ -250,9 +250,9 @@ async function computeMissionBasedScore(
   };
 }
 
-function determineStatusFromScore(score: number): CrewStatusValue {
-  if (score >= 80) return "looking_good";
-  if (score >= 50) return "doing_okay";
+function determineStatusFromPending(pending: number): CrewStatusValue {
+  if (pending === 0) return "looking_good";
+  if (pending <= 2) return "doing_okay";
   return "needs_attention";
 }
 
@@ -292,35 +292,32 @@ export async function computeCrewStatus(
     setupHint: null,
   };
   
+  const missionResult = await computeMissionBasedScore(crewId, siteId, timeWindowDays);
+  missions = missionResult.missions;
+  
+  score = missions.pending;
+  status = determineStatusFromPending(missions.pending);
+  
+  primaryMetric = {
+    label: "Open missions",
+    value: missions.pending,
+    unit: missions.pending === 1 ? "mission" : "missions",
+    deltaPercent: null,
+    deltaLabel: missions.pending === 0 ? "All clear" : "needs attention",
+  };
+  
   if (crewId === "popular") {
-    const result = await computePopularCrewScore(siteId, timeWindowDays);
-    score = result.score;
-    status = determineStatusFromScore(score);
-    
-    const activeIssues = result.issues.filter(i => i.status !== "resolved");
-    primaryMetric = {
-      label: "Active Issues",
-      value: activeIssues.length,
-      unit: "issues",
-      deltaPercent: null,
-      deltaLabel: "detected",
-    };
-    
-    const missionResult = await computeMissionBasedScore(crewId, siteId, timeWindowDays);
-    missions = missionResult.missions;
+    const issueResult = await computePopularCrewScore(siteId, timeWindowDays);
+    const activeIssues = issueResult.issues.filter(i => i.status !== "resolved");
+    if (activeIssues.length > 0) {
+      primaryMetric.deltaLabel = `${activeIssues.length} active issues`;
+    }
     
   } else if (crewId === "lookout") {
     const result = await computeLookoutCrewScore();
-    score = result.score;
-    status = determineStatusFromScore(score);
-    
-    primaryMetric = {
-      label: "Keywords in Top 10",
-      value: result.inTop10,
-      unit: `of ${result.totalKeywords}`,
-      deltaPercent: null,
-      deltaLabel: "coverage",
-    };
+    if (result.totalKeywords > 0) {
+      primaryMetric.deltaLabel = `${result.inTop10} of ${result.totalKeywords} in Top 10`;
+    }
     
     if (result.totalKeywords === 0) {
       readiness = {
@@ -330,21 +327,11 @@ export async function computeCrewStatus(
       };
     }
     
-    const missionResult = await computeMissionBasedScore(crewId, siteId, timeWindowDays);
-    missions = missionResult.missions;
-    
   } else if (crewId === "speedster") {
     const result = await computeSpeedsterCrewScore(siteId);
-    score = result.score;
-    status = determineStatusFromScore(score);
-    
-    primaryMetric = {
-      label: "Performance Score",
-      value: result.performanceScore,
-      unit: "/ 100",
-      deltaPercent: null,
-      deltaLabel: "Core Web Vitals",
-    };
+    if (result.performanceScore !== null) {
+      primaryMetric.deltaLabel = `Performance: ${result.performanceScore}/100`;
+    }
     
     if (result.performanceScore === null) {
       readiness = {
@@ -354,23 +341,7 @@ export async function computeCrewStatus(
       };
     }
     
-    const missionResult = await computeMissionBasedScore(crewId, siteId, timeWindowDays);
-    missions = missionResult.missions;
-    
   } else {
-    const missionResult = await computeMissionBasedScore(crewId, siteId, timeWindowDays);
-    score = missionResult.score;
-    status = missionResult.status;
-    missions = missionResult.missions;
-    
-    primaryMetric = {
-      label: "Completed this week",
-      value: missionResult.metricValue,
-      unit: "missions",
-      deltaPercent: missionResult.deltaPercent,
-      deltaLabel: "vs last week",
-    };
-    
     if (missions.total === 0 && missionResult.metricValue === 0) {
       readiness = {
         isReady: false,
