@@ -82,14 +82,22 @@ A unified pipeline across 12 "crews" (e.g., popular, speedster, scotty) defined 
 All crew identity, theming, integrations, and scores come from a single canonical source:
 - **Crew Registry**: `shared/registry.ts` defines CrewDefinition with theme tokens (primary, ring, bg, text, badge), primaryMetricId, and dependencies (required/optional integrations)
 - **Integration Registry**: `shared/integrations/registry.ts` defines IntegrationDefinition with ownership mapping for 10+ integrations
-- **CrewStatusService**: `server/services/crewStatus.ts` computes unified scores server-side with crew-specific formulas:
-  - Popular: Issue-based score (100 minus confidence-weighted penalties)
-  - Lookout: Keyword coverage (inTop10/totalKeywords * 100)
-  - Speedster: Core Web Vitals performance score
-  - Other crews: Mission-based formula (baseScore + completions + momentum)
+- **CrewStatusService**: `server/services/crewStatus.ts` computes unified scores server-side
 - **API Endpoints**: `GET /api/sites/:siteId/crew-status` and `GET /api/sites/:siteId/crew-status/:crewId`
 - **Frontend Hook**: `useCrewStatus` hook fetches from crew-status API for consistent scores
 - **Rule**: All crew pages consume scores via useCrewStatus; no client-side score computation allowed
+
+### Crew Score Semantics (Updated)
+Score = pending mission count (NOT 0-100 health percentage):
+- **Score value**: Number of open/pending missions for the crew
+- **Display label**: "Open missions" (not "Score")
+- **Status tiers based on pending count**:
+  - 0 pending = `looking_good` (green, "All clear")
+  - 1-2 pending = `doing_okay` (blue, "X open")
+  - 3+ pending = `needs_attention` (orange/warning)
+- **Backend sources**: `CrewStatusService.computeStatus()` and `/api/missions/dashboard` crewSummaries
+- **UI components**: `AgentScoreBadge` (AgentCard), `AgentScoreDisplay` (CrewDashboardShell)
+- **Color logic**: Lower is better (inverted from health scores)
 
 ### Gold Standard Worker Blueprint
 All microservice workers adhere to a blueprint defining required endpoints (`/health`, `/smoke-test`, `/capabilities`, `/run`), a standard JSON response shape, API key authentication (`x-api-key` or `Authorization: Bearer`), `X-Request-Id` correlation, and API key fingerprint diagnostics for verification.

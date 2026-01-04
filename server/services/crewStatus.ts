@@ -133,30 +133,22 @@ async function computeSpeedsterCrewScore(siteId: string): Promise<{
   return { score: 50, performanceScore: null };
 }
 
-async function computeMissionBasedScore(
+async function computeMissionsData(
   crewId: string,
   siteId: string,
   timeWindowDays: number
 ): Promise<{
-  score: number;
-  status: CrewStatusValue;
   missions: MissionsData;
   metricValue: number;
-  deltaPercent: number | null;
 }> {
   const now = new Date();
   const oneWeekAgo = new Date(now);
   oneWeekAgo.setDate(oneWeekAgo.getDate() - timeWindowDays);
-  const twoWeeksAgo = new Date(now);
-  twoWeeksAgo.setDate(twoWeeksAgo.getDate() - timeWindowDays * 2);
   
   const allMissions = getMissionsForCrew(crewId);
   
   const twoWeekHours = timeWindowDays * 2 * 24;
-  const [allCompletions, serviceRuns] = await Promise.all([
-    storage.getRecentMissionCompletions(siteId, "all", twoWeekHours),
-    storage.getLatestServiceRuns(100),
-  ]);
+  const allCompletions = await storage.getRecentMissionCompletions(siteId, "all", twoWeekHours);
   
   const crewCompletionsAll = allCompletions.filter(log => {
     const missionId = (log.details as any)?.missionId || (log.details as any)?.actionId;
@@ -174,70 +166,11 @@ async function computeMissionBasedScore(
   const highPriorityCount = pendingMissions.filter(m => m.impact === "high").length;
   const autoFixableCount = pendingMissions.filter(m => m.autoFixable).length;
   
-  let status: CrewStatusValue;
-  const hasHighPriority = pendingMissions.some(m => m.impact === "high");
-  if (hasHighPriority) {
-    status = "needs_attention";
-  } else if (pendingMissions.length > 0) {
-    status = "doing_okay";
-  } else {
-    status = "looking_good";
-  }
-  
-  const crewServiceRuns = serviceRuns.filter(r => r.serviceId === crewId);
-  const thisWeekRuns = crewServiceRuns.filter(r => new Date(r.startedAt) >= oneWeekAgo);
-  const lastWeekRuns = crewServiceRuns.filter(r => {
-    const runDate = new Date(r.startedAt);
-    return runDate >= twoWeeksAgo && runDate < oneWeekAgo;
-  });
-  
-  const thisWeekSuccess = thisWeekRuns.filter(r => r.status === "success").length;
-  const lastWeekSuccess = lastWeekRuns.filter(r => r.status === "success").length;
-  
-  let deltaPercent: number | null = null;
-  let metricValue = 0;
-  
-  if (thisWeekRuns.length > 0 || lastWeekRuns.length > 0) {
-    if (lastWeekSuccess > 0) {
-      deltaPercent = Math.round(((thisWeekSuccess - lastWeekSuccess) / lastWeekSuccess) * 100);
-    } else if (thisWeekSuccess > 0) {
-      deltaPercent = 100;
-    }
-    metricValue = thisWeekSuccess;
-  } else {
-    const thisWeekCompletions = crewCompletionsAll.filter(c => 
-      new Date(c.createdAt) >= oneWeekAgo
-    ).length;
-    const lastWeekCompletions = crewCompletionsAll.filter(c => {
-      const cDate = new Date(c.createdAt);
-      return cDate >= twoWeeksAgo && cDate < oneWeekAgo;
-    }).length;
-    
-    if (lastWeekCompletions > 0) {
-      deltaPercent = Math.round(((thisWeekCompletions - lastWeekCompletions) / lastWeekCompletions) * 100);
-    } else if (thisWeekCompletions > 0) {
-      deltaPercent = 100;
-    }
-    metricValue = thisWeekCompletions;
-  }
-  
-  let score: number;
-  const completedThisWeek = metricValue;
-  const deltaBonus = deltaPercent !== null && deltaPercent > 0 ? Math.min(deltaPercent / 10, 10) : 0;
-  
-  if (status === "looking_good") {
-    score = 80 + Math.min(completedThisWeek * 2, 15) + deltaBonus;
-  } else if (status === "doing_okay") {
-    score = 50 + Math.min(completedThisWeek * 3, 25) + deltaBonus;
-  } else {
-    const completionBonus = completedThisWeek * 5;
-    score = Math.max(15, 35 - pendingMissions.length * 2 + completionBonus + deltaBonus);
-  }
-  score = Math.min(100, Math.max(0, Math.round(score)));
+  const thisWeekCompletions = crewCompletionsAll.filter(c => 
+    new Date(c.createdAt) >= oneWeekAgo
+  ).length;
   
   return {
-    score,
-    status,
     missions: {
       total: allMissions.length,
       completed: completedMissionIds.size,
@@ -245,8 +178,7 @@ async function computeMissionBasedScore(
       highPriority: highPriorityCount,
       autoFixable: autoFixableCount,
     },
-    metricValue,
-    deltaPercent,
+    metricValue: thisWeekCompletions,
   };
 }
 
@@ -292,7 +224,7 @@ export async function computeCrewStatus(
     setupHint: null,
   };
   
-  const missionResult = await computeMissionBasedScore(crewId, siteId, timeWindowDays);
+  const missionResult = await computeMissionsData(crewId, siteId, timeWindowDays);
   missions = missionResult.missions;
   
   score = missions.pending;
