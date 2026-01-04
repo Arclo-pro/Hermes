@@ -101,6 +101,16 @@ export default function SERPContent() {
     refetchInterval: 60000,
   });
 
+  const { data: dashboardStats } = useQuery({
+    queryKey: ["dashboard-stats"],
+    queryFn: async () => {
+      const res = await fetch("/api/dashboard/stats");
+      if (!res.ok) return null;
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   const { data: rankingsData } = useQuery<{
     keywords: Array<{
       id: number;
@@ -669,26 +679,47 @@ export default function SERPContent() {
     };
   }, [overview, stats, missionsData, missionsLoading, isFixingEverything, unifiedScore]);
 
-  const kpis: KpiDescriptor[] = useMemo(() => [
-    {
-      id: "total-keywords",
-      label: "Keywords",
-      value: `${overview?.totalKeywords || 0}`,
-      tooltip: "Total keywords being tracked",
-    },
-    {
-      id: "top-10",
-      label: "Top 10",
-      value: `${stats.inTop10}`,
-      tooltip: "Keywords ranking in top 10 positions",
-    },
-    {
-      id: "avg-pos",
-      label: "Avg Pos",
-      value: stats.avgPosition != null ? `#${stats.avgPosition}` : "—",
-      tooltip: "Average ranking position across all keywords",
-    },
-  ], [stats, overview]);
+  const kpis: KpiDescriptor[] = useMemo(() => {
+    const totalKeywords = overview?.totalKeywords || 0;
+    const rankingKeywords = stats.ranking || 0;
+    const rankingCoverage = totalKeywords > 0 ? Math.round((rankingKeywords / totalKeywords) * 100) : 0;
+    const rankingTrend = dashboardStats?.ranking?.trend;
+
+    return [
+      {
+        id: "rankingCoverage",
+        label: "Ranking Coverage",
+        value: `${rankingCoverage}%`,
+        tooltip: "Percentage of tracked keywords that have rankings",
+        trendIsGood: "up" as const,
+        sparklineData: rankingTrend?.coverage || undefined,
+      },
+      {
+        id: "avgPosition",
+        label: "Avg Position",
+        value: stats.avgPosition != null ? `#${stats.avgPosition.toFixed(1)}` : "—",
+        tooltip: "Average SERP position across all ranking keywords (lower is better)",
+        trendIsGood: "down" as const,
+        sparklineData: rankingTrend?.avgPosition || undefined,
+      },
+      {
+        id: "top10Keywords",
+        label: "Top 10",
+        value: stats.inTop10,
+        tooltip: "Keywords ranking in positions 1-10",
+        trendIsGood: "up" as const,
+        sparklineData: rankingTrend?.top10 || undefined,
+      },
+      {
+        id: "top3Keywords",
+        label: "Top 3",
+        value: stats.inTop3,
+        tooltip: "Keywords ranking in positions 1-3",
+        trendIsGood: "up" as const,
+        sparklineData: rankingTrend?.top3 || undefined,
+      },
+    ];
+  }, [stats, overview, dashboardStats]);
 
   const keyMetrics = useMemo(() => {
     const totalKeywords = overview?.totalKeywords || 0;

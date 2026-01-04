@@ -67,8 +67,8 @@ import {
   type MissionItem,
   type InspectorTab,
   type MissionPromptConfig,
+  type KpiDescriptor,
 } from "@/components/crew-dashboard";
-import { KeyMetricsGrid } from "@/components/key-metrics";
 import { CrewPageLayout } from "@/components/crew/CrewPageLayout";
 
 interface VitalMetric {
@@ -408,6 +408,16 @@ export default function SpeedsterContent() {
     staleTime: 60000,
   });
   
+  const { data: dashboardStats } = useQuery({
+    queryKey: ["dashboard-stats"],
+    queryFn: async () => {
+      const res = await fetch("/api/dashboard/stats");
+      if (!res.ok) return null;
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+  
   const runScanMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch('/api/crew/speedster/run', {
@@ -571,50 +581,61 @@ export default function SpeedsterContent() {
     return value.toFixed(3);
   };
 
-  const keyMetrics = useMemo(() => [
+  const performanceTrend = dashboardStats?.performance?.trend?.slice(-7)?.map((p: { value: number }) => p.value) ?? [];
+  const lcpTrend = dashboardStats?.performance?.lcpTrend?.slice(-7)?.map((p: { value: number }) => p.value) ?? [];
+  const clsTrend = dashboardStats?.performance?.clsTrend?.slice(-7)?.map((p: { value: number }) => p.value) ?? [];
+  const inpTrend = dashboardStats?.performance?.inpTrend?.slice(-7)?.map((p: { value: number }) => p.value) ?? [];
+  
+  const passRate = performanceScore != null ? Math.round(performanceScore) : null;
+  const passRateChange = dashboardStats?.performance?.change7d ?? null;
+
+  const kpis: KpiDescriptor[] = useMemo(() => [
+    {
+      id: "passRate",
+      label: "CWV Pass Rate",
+      value: passRate != null ? `${passRate}%` : "—",
+      delta: passRateChange,
+      deltaLabel: "vs last week",
+      deltaIsGood: passRateChange != null && passRateChange > 0,
+      sparklineData: performanceTrend.length > 1 ? performanceTrend : undefined,
+      trendIsGood: "up" as const,
+      tooltip: "Core Web Vitals pass rate percentage",
+      icon: <Zap className="w-4 h-4" />,
+    },
     {
       id: "lcp",
       label: "LCP",
       value: formatVitalValue(coreVitals[0]?.value, coreVitals[0]?.unit),
-      icon: Eye,
-      status: mapVitalStatusToMetricStatus(coreVitals[0]?.status || 'unknown'),
+      delta: coreVitals[0]?.trend,
+      deltaIsGood: coreVitals[0]?.trend != null && coreVitals[0]?.trend < 0,
+      sparklineData: lcpTrend.length > 1 ? lcpTrend : undefined,
+      trendIsGood: "down" as const,
+      tooltip: "Largest Contentful Paint - loading performance",
+      icon: <Eye className="w-4 h-4" />,
     },
     {
       id: "inp",
       label: "INP",
       value: formatVitalValue(coreVitals[2]?.value, coreVitals[2]?.unit),
-      icon: MousePointer,
-      status: mapVitalStatusToMetricStatus(coreVitals[2]?.status || 'unknown'),
+      delta: coreVitals[2]?.trend,
+      deltaIsGood: coreVitals[2]?.trend != null && coreVitals[2]?.trend < 0,
+      sparklineData: inpTrend.length > 1 ? inpTrend : undefined,
+      trendIsGood: "down" as const,
+      tooltip: "Interaction to Next Paint - responsiveness",
+      icon: <MousePointer className="w-4 h-4" />,
     },
     {
       id: "cls",
       label: "CLS",
       value: formatVitalValue(coreVitals[1]?.value, coreVitals[1]?.unit),
-      icon: Activity,
-      status: mapVitalStatusToMetricStatus(coreVitals[1]?.status || 'unknown'),
+      delta: coreVitals[1]?.trend,
+      deltaIsGood: coreVitals[1]?.trend != null && coreVitals[1]?.trend < 0,
+      sparklineData: clsTrend.length > 1 ? clsTrend : undefined,
+      trendIsGood: "down" as const,
+      tooltip: "Cumulative Layout Shift - visual stability",
+      icon: <Activity className="w-4 h-4" />,
     },
-    {
-      id: "fcp",
-      label: "FCP",
-      value: formatVitalValue(additionalMetrics[0]?.value, additionalMetrics[0]?.unit),
-      icon: Timer,
-      status: mapVitalStatusToMetricStatus(additionalMetrics[0]?.status || 'unknown'),
-    },
-    {
-      id: "ttfb",
-      label: "TTFB",
-      value: formatVitalValue(additionalMetrics[1]?.value, additionalMetrics[1]?.unit),
-      icon: Server,
-      status: mapVitalStatusToMetricStatus(additionalMetrics[1]?.status || 'unknown'),
-    },
-    {
-      id: "speed-index",
-      label: "Speed Index",
-      value: formatVitalValue(additionalMetrics[3]?.value, additionalMetrics[3]?.unit),
-      icon: Gauge,
-      status: mapVitalStatusToMetricStatus(additionalMetrics[3]?.status || 'unknown'),
-    },
-  ], [coreVitals, additionalMetrics]);
+  ], [coreVitals, passRate, passRateChange, performanceTrend, lcpTrend, inpTrend, clsTrend]);
 
   const missionStatus: MissionStatusState = useMemo(() => {
     const poorCount = vitals.filter(v => v.status === 'poor').length;
@@ -979,7 +1000,7 @@ export default function SpeedsterContent() {
         agentScoreTooltip="Performance score from Core Web Vitals analysis"
         missionStatus={missionStatus}
         missions={missions}
-        customMetrics={<KeyMetricsGrid metrics={keyMetrics} accentColor={crew.accentColor} />}
+        kpis={kpis}
         inspectorTabs={inspectorTabs}
         missionPrompt={missionPrompt}
         headerActions={headerActions}
