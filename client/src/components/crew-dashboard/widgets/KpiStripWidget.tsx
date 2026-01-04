@@ -43,10 +43,24 @@ function KpiCard({ kpi }: { kpi: KpiDescriptor }) {
   };
 
   const getSparklineColor = (): "success" | "danger" | "primary" => {
-    if (kpi.delta === undefined || kpi.delta === null) return "primary";
-    const isPositive = kpi.delta > 0;
-    const isGoodTrend = kpi.trendIsGood === "up" ? isPositive : !isPositive;
-    return isGoodTrend ? "success" : "danger";
+    let isPositive: boolean | undefined;
+    
+    if (kpi.delta !== undefined && kpi.delta !== null) {
+      isPositive = kpi.delta > 0;
+    } else if (kpi.sparklineData && kpi.sparklineData.length >= 2) {
+      const first = kpi.sparklineData[0];
+      const last = kpi.sparklineData[kpi.sparklineData.length - 1];
+      isPositive = last > first;
+    }
+    
+    if (isPositive === undefined) return "primary";
+    
+    if (kpi.trendIsGood) {
+      const isGoodTrend = kpi.trendIsGood === "up" ? isPositive : !isPositive;
+      return isGoodTrend ? "success" : "danger";
+    }
+    
+    return isPositive ? "success" : "danger";
   };
 
   const themedStyles = crewTheme && hasValue && !isUnavailable ? {
