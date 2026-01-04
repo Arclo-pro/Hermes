@@ -40,6 +40,7 @@ import { NoDeadEndsState } from "@/components/empty-states";
 import { Link } from "wouter";
 import { toast } from "sonner";
 import { ROUTES, buildRoute } from "@shared/routes";
+import { SERVICE_TO_CREW } from "@shared/registry";
 import { SocratesMemoryCard } from "@/components/dashboard/SocratesMemoryCard";
 import { ExportFixPackModal } from "@/components/export/ExportFixPackModal";
 import { MissionDetailsModal } from "@/components/dashboard/MissionDetailsModal";
@@ -709,7 +710,9 @@ function AgentSummaryGrid({ agents, totalAgents, crewSummaries, kbStatus }: {
   const enabledCount = agents.length;
   
   const enabledAgentData = agents.map(agent => {
-    const crewSummary = crewSummaries?.find(cs => cs.crewId === agent.serviceId);
+    // Map service_id to crew_id for lookup in crewSummaries
+    const crewId = SERVICE_TO_CREW[agent.serviceId] || agent.serviceId;
+    const crewSummary = crewSummaries?.find(cs => cs.crewId === crewId);
     const isSocrates = agent.serviceId === 'seo_kbase';
     
     let keyMetric = crewSummary?.primaryMetric || "Pending missions";
@@ -1002,10 +1005,36 @@ export default function MissionControl() {
     staleTime: 60000,
   });
 
-  const userAgents = USER_FACING_AGENTS.map((serviceId) => {
-    const crewSummary = dashboard?.crewSummaries?.find((cs: any) => cs.crewId === serviceId);
+  const userAgents = USER_FACING_AGENTS.map((serviceId, index) => {
+    // Map service_id to crew_id for lookup in crewSummaries
+    const crewId = SERVICE_TO_CREW[serviceId] || serviceId;
+    const crewSummary = dashboard?.crewSummaries?.find((cs: any) => cs.crewId === crewId);
     const statusFromSummary = crewSummary?.status;
-    const score = statusFromSummary === 'looking_good' ? 85 : statusFromSummary === 'doing_okay' ? 60 : statusFromSummary === 'needs_attention' ? 30 : 50;
+    
+    // Calculate unique score based on actual crew data
+    let score = 50; // Default fallback
+    if (crewSummary) {
+      // Use completion metrics and pending count to calculate a unique score
+      const completedThisWeek = crewSummary.primaryMetricValue || 0;
+      const pendingCount = crewSummary.pendingCount || 0;
+      const deltaPercent = crewSummary.deltaPercent || 0;
+      
+      // Score formula: base on status + completion activity + delta + variance
+      if (statusFromSummary === 'looking_good') {
+        score = 80 + Math.min(completedThisWeek * 2, 15); // 80-95
+      } else if (statusFromSummary === 'doing_okay') {
+        score = 50 + Math.min(completedThisWeek * 3, 25); // 50-75
+      } else if (statusFromSummary === 'needs_attention') {
+        // Factor in completions to differentiate crews with activity
+        const completionBonus = completedThisWeek * 5;
+        const deltaBonus = deltaPercent > 0 ? Math.min(deltaPercent / 10, 10) : 0;
+        score = Math.max(15, Math.min(45, 35 - pendingCount * 2 + completionBonus + deltaBonus));
+      }
+    } else {
+      // No crew summary - use pending/inactive state
+      score = 0;
+    }
+    
     return {
       serviceId,
       score,
