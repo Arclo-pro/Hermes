@@ -26,6 +26,7 @@ export interface DashboardRecentlyCompleted {
 export interface CrewSummary {
   crewId: string;
   nickname: string;
+  score: number;
   pendingCount: number;
   lastCompletedAt: string | null;
   status: 'looking_good' | 'doing_okay' | 'needs_attention';

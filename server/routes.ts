@@ -43,6 +43,11 @@ import {
   getSupportedFixTypes,
   type Recommendation 
 } from "./services/changePlanBuilder";
+import { 
+  computeCrewStatus, 
+  computeAllCrewStatuses,
+  type CrewStatus 
+} from "./services/crewStatus";
 
 const createSiteSchema = z.object({
   displayName: z.string().min(1, "Display name is required"),
@@ -8877,6 +8882,46 @@ Keep responses concise and actionable.`;
     } catch (error: any) {
       logger.error("API", "Failed to fetch audit logs", { error: error.message });
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // =============== CREW STATUS ENDPOINTS ===============
+
+  app.get("/api/sites/:siteId/crew-status", async (req, res) => {
+    try {
+      const { siteId } = req.params;
+      const timeWindowDays = parseInt(req.query.timeWindowDays as string) || 7;
+      
+      const crews = await computeAllCrewStatuses(siteId, timeWindowDays);
+      
+      res.json({
+        ok: true,
+        siteId,
+        crews,
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to fetch crew statuses", { error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
+  app.get("/api/sites/:siteId/crew-status/:crewId", async (req, res) => {
+    try {
+      const { siteId, crewId } = req.params;
+      const timeWindowDays = parseInt(req.query.timeWindowDays as string) || 7;
+      
+      const status = await computeCrewStatus({ siteId, crewId, timeWindowDays });
+      
+      res.json({
+        ok: true,
+        ...status,
+      });
+    } catch (error: any) {
+      if (error.message?.includes("Unknown crew")) {
+        return res.status(404).json({ ok: false, error: error.message });
+      }
+      logger.error("API", "Failed to fetch crew status", { error: error.message, crewId });
+      res.status(500).json({ ok: false, error: error.message });
     }
   });
 
