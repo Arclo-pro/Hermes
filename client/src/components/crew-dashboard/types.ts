@@ -13,6 +13,8 @@ export interface KpiDescriptor {
   unit?: string;
   icon?: ReactNode;
   status?: WidgetState;
+  sparklineData?: number[];
+  trendIsGood?: "up" | "down";
 }
 
 export interface MissionItem {

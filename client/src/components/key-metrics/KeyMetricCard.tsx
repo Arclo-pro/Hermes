@@ -1,7 +1,8 @@
 import { cn } from "@/lib/utils";
-import { LucideIcon } from "lucide-react";
+import { LucideIcon, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { ReactNode } from "react";
 import { useOptionalCrewTheme } from "@/components/crew/CrewPageLayout";
+import { GlassSparkline } from "@/components/analytics";
 
 interface KeyMetricCardProps {
   label: string;
@@ -11,6 +12,10 @@ interface KeyMetricCardProps {
   status?: "primary" | "good" | "warning" | "neutral" | "inactive";
   accentColor?: string;
   className?: string;
+  delta?: number | null;
+  deltaLabel?: string;
+  trendIsGood?: "up" | "down";
+  sparklineData?: number[];
 }
 
 const statusStyles = {
@@ -58,7 +63,11 @@ export function KeyMetricCard({
   iconNode,
   status = "primary",
   accentColor,
-  className 
+  className,
+  delta,
+  deltaLabel,
+  trendIsGood = "up",
+  sparklineData,
 }: KeyMetricCardProps) {
   const crewTheme = useOptionalCrewTheme();
   const isZero = value === 0 || value === "0";
@@ -72,6 +81,16 @@ export function KeyMetricCard({
     iconBg: { backgroundColor: crewTheme ? "var(--crew-bg)" : `${accentColor}15` },
     iconColor: { color: crewTheme ? "var(--crew-text)" : accentColor },
   } : null;
+
+  const hasDelta = delta !== undefined && delta !== null;
+  const isPositiveDelta = hasDelta && delta > 0;
+  const isNegativeDelta = hasDelta && delta < 0;
+  const isGoodTrend = (trendIsGood === "up" && isPositiveDelta) || (trendIsGood === "down" && isNegativeDelta);
+  const isBadTrend = (trendIsGood === "up" && isNegativeDelta) || (trendIsGood === "down" && isPositiveDelta);
+
+  const TrendIcon = isPositiveDelta ? TrendingUp : isNegativeDelta ? TrendingDown : Minus;
+  const trendColor = isGoodTrend ? "text-semantic-success" : isBadTrend ? "text-semantic-danger" : "text-muted-foreground";
+  const sparklineColor = isGoodTrend ? "success" : isBadTrend ? "danger" : "primary";
 
   return (
     <div
@@ -105,26 +124,50 @@ export function KeyMetricCard({
           <p className="text-sm text-muted-foreground mt-1 truncate">
             {label}
           </p>
+          {hasDelta && (
+            <div className={cn("flex items-center gap-1 mt-2", trendColor)}>
+              <TrendIcon className="w-3 h-3" />
+              <span className="text-xs font-medium tabular-nums">
+                {isPositiveDelta ? "+" : ""}{delta.toFixed(1)}%
+              </span>
+              {deltaLabel && (
+                <span className="text-xs text-muted-foreground ml-1">{deltaLabel}</span>
+              )}
+            </div>
+          )}
         </div>
         
-        {(Icon || iconNode) && (
-          <div 
-            className={cn(
-              "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0",
-              !dynamicStyles && effectiveStyles.iconBg
-            )}
-            style={dynamicStyles?.iconBg}
-          >
-            {iconNode ? (
-              iconNode
-            ) : Icon ? (
-              <Icon 
-                className={cn("w-5 h-5", !dynamicStyles && effectiveStyles.text)} 
-                style={dynamicStyles?.iconColor}
+        <div className="flex flex-col items-end gap-2 flex-shrink-0">
+          {sparklineData && sparklineData.length > 1 && (
+            <div className="w-16 h-8">
+              <GlassSparkline
+                data={sparklineData}
+                color={sparklineColor}
+                showFill
+                height={32}
               />
-            ) : null}
-          </div>
-        )}
+            </div>
+          )}
+          
+          {(Icon || iconNode) && !sparklineData && (
+            <div 
+              className={cn(
+                "w-10 h-10 rounded-xl flex items-center justify-center",
+                !dynamicStyles && effectiveStyles.iconBg
+              )}
+              style={dynamicStyles?.iconBg}
+            >
+              {iconNode ? (
+                iconNode
+              ) : Icon ? (
+                <Icon 
+                  className={cn("w-5 h-5", !dynamicStyles && effectiveStyles.text)} 
+                  style={dynamicStyles?.iconColor}
+                />
+              ) : null}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

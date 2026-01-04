@@ -795,6 +795,16 @@ export default function PopularContent() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const { data: dashboardStats } = useQuery({
+    queryKey: ["dashboard-stats"],
+    queryFn: async () => {
+      const res = await fetch("/api/dashboard/stats");
+      if (!res.ok) return null;
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   const corroborateMutation = useMutation({
     mutationFn: async (issueId: string) => {
       setCorroboratingId(issueId);
@@ -857,14 +867,70 @@ export default function PopularContent() {
     monthlySessions?: number | null;
   } | undefined;
   
+  const sessionsTrend = dashboardStats?.organicTraffic?.trend?.slice(-7)?.map((p: { value: number }) => p.value) ?? [];
+  const sessionsChange = dashboardStats?.organicTraffic?.change7d ?? null;
+
   const kpisRaw = kpisObj ? [
-    { id: "sessions", label: "Sessions (7d)", value: kpisObj.sessions7d ?? 0, delta: undefined, deltaLabel: undefined },
-    { id: "users", label: "Users (7d)", value: kpisObj.users7d ?? 0, delta: undefined, deltaLabel: undefined },
-    { id: "clicks", label: "Clicks (7d)", value: kpisObj.clicks7d ?? 0, delta: undefined, deltaLabel: undefined },
-    { id: "impressions", label: "Impressions (7d)", value: kpisObj.impressions7d ?? 0, delta: undefined, deltaLabel: undefined },
-    { id: "bounceRate", label: "Bounce Rate", value: kpisObj.bounceRate != null ? `${kpisObj.bounceRate.toFixed(1)}%` : "—", delta: undefined, deltaLabel: undefined, isMissing: kpisObj.bounceRate == null },
-    { id: "conversionRate", label: "Conversion Rate", value: kpisObj.conversionRate != null ? `${kpisObj.conversionRate.toFixed(2)}%` : "—", delta: undefined, deltaLabel: undefined, isMissing: kpisObj.conversionRate == null },
-    { id: "monthlySessions", label: "Monthly Sessions", value: kpisObj.monthlySessions != null ? kpisObj.monthlySessions.toLocaleString() : "—", delta: undefined, deltaLabel: undefined, isMissing: kpisObj.monthlySessions == null },
+    { 
+      id: "sessions", 
+      label: "Sessions (7d)", 
+      value: kpisObj.sessions7d ?? 0, 
+      delta: sessionsChange, 
+      deltaLabel: "vs prev week",
+      sparklineData: sessionsTrend.length > 1 ? sessionsTrend : undefined,
+      trendIsGood: "up" as const,
+    },
+    { 
+      id: "users", 
+      label: "Users (7d)", 
+      value: kpisObj.users7d ?? 0, 
+      delta: undefined, 
+      deltaLabel: undefined,
+      trendIsGood: "up" as const,
+    },
+    { 
+      id: "clicks", 
+      label: "Clicks (7d)", 
+      value: kpisObj.clicks7d ?? 0, 
+      delta: undefined, 
+      deltaLabel: undefined,
+      trendIsGood: "up" as const,
+    },
+    { 
+      id: "impressions", 
+      label: "Impressions (7d)", 
+      value: kpisObj.impressions7d ?? 0, 
+      delta: undefined, 
+      deltaLabel: undefined,
+      trendIsGood: "up" as const,
+    },
+    { 
+      id: "bounceRate", 
+      label: "Bounce Rate", 
+      value: kpisObj.bounceRate != null ? `${kpisObj.bounceRate.toFixed(1)}%` : "—", 
+      delta: undefined, 
+      deltaLabel: undefined, 
+      isMissing: kpisObj.bounceRate == null,
+      trendIsGood: "down" as const,
+    },
+    { 
+      id: "conversionRate", 
+      label: "Conversion Rate", 
+      value: kpisObj.conversionRate != null ? `${kpisObj.conversionRate.toFixed(2)}%` : "—", 
+      delta: undefined, 
+      deltaLabel: undefined, 
+      isMissing: kpisObj.conversionRate == null,
+      trendIsGood: "up" as const,
+    },
+    { 
+      id: "monthlySessions", 
+      label: "Monthly Sessions", 
+      value: kpisObj.monthlySessions != null ? kpisObj.monthlySessions.toLocaleString() : "—", 
+      delta: undefined, 
+      deltaLabel: undefined, 
+      isMissing: kpisObj.monthlySessions == null,
+      trendIsGood: "up" as const,
+    },
   ] : [];
 
   const tier: MissionStatusState["tier"] =
@@ -922,7 +988,9 @@ export default function PopularContent() {
     value: kpi.value,
     delta: kpi.delta,
     deltaLabel: kpi.deltaLabel,
-    deltaIsGood: kpi.delta ? Number(kpi.delta) > 0 : undefined,
+    deltaIsGood: kpi.trendIsGood === "up" ? Number(kpi.delta) > 0 : Number(kpi.delta) < 0,
+    sparklineData: (kpi as any).sparklineData,
+    trendIsGood: kpi.trendIsGood,
     icon:
       kpi.id === "sessions" ? <Activity className="w-4 h-4" /> :
       kpi.id === "users" ? <Users className="w-4 h-4" /> :

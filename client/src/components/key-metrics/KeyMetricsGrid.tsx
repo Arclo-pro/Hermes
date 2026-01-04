@@ -10,6 +10,10 @@ interface MetricConfig {
   icon?: LucideIcon;
   iconNode?: ReactNode;
   status?: "good" | "warning" | "neutral" | "inactive";
+  delta?: number | null;
+  deltaLabel?: string;
+  trendIsGood?: "up" | "down";
+  sparklineData?: number[];
 }
 
 interface KeyMetricsGridProps {
@@ -34,6 +38,10 @@ export function KeyMetricsGrid({ metrics, accentColor, className }: KeyMetricsGr
           iconNode={metric.iconNode}
           status={metric.status}
           accentColor={accentColor}
+          delta={metric.delta}
+          deltaLabel={metric.deltaLabel}
+          trendIsGood={metric.trendIsGood}
+          sparklineData={metric.sparklineData}
         />
       ))}
     </div>

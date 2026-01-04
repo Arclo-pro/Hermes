@@ -9,6 +9,7 @@ import {
 import { TrendingUp, TrendingDown, Minus, AlertCircle, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useOptionalCrewTheme } from "@/components/crew/CrewPageLayout";
+import { GlassSparkline } from "@/components/analytics";
 import type { KpiDescriptor, WidgetState } from "../types";
 
 interface KpiStripWidgetProps {
@@ -23,6 +24,7 @@ function KpiCard({ kpi }: { kpi: KpiDescriptor }) {
   const isLoading = kpi.status === "loading";
   const isUnavailable = kpi.status === "unavailable";
   const hasValue = kpi.value !== null && kpi.value !== undefined && kpi.value !== "—";
+  const hasSparkline = kpi.sparklineData && kpi.sparklineData.length > 1;
 
   const getDeltaIcon = () => {
     if (kpi.delta === undefined || kpi.delta === null) return null;
@@ -38,6 +40,13 @@ function KpiCard({ kpi }: { kpi: KpiDescriptor }) {
       return kpi.deltaIsGood ? "text-semantic-success" : "text-semantic-danger";
     }
     return isPositive ? "text-semantic-success" : "text-semantic-danger";
+  };
+
+  const getSparklineColor = (): "success" | "danger" | "primary" => {
+    if (kpi.delta === undefined || kpi.delta === null) return "primary";
+    const isPositive = kpi.delta > 0;
+    const isGoodTrend = kpi.trendIsGood === "up" ? isPositive : !isPositive;
+    return isGoodTrend ? "success" : "danger";
   };
 
   const themedStyles = crewTheme && hasValue && !isUnavailable ? {
@@ -81,17 +90,29 @@ function KpiCard({ kpi }: { kpi: KpiDescriptor }) {
         </div>
       ) : (
         <>
-          <div className="flex items-baseline gap-1">
-            {kpi.icon && (
-              <span className="mr-1" style={{ color: iconColor }}>
-                {kpi.icon}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-baseline gap-1">
+              {kpi.icon && !hasSparkline && (
+                <span className="mr-1" style={{ color: iconColor }}>
+                  {kpi.icon}
+                </span>
+              )}
+              <span className="text-xl font-bold text-foreground">
+                {kpi.value ?? "—"}
               </span>
-            )}
-            <span className="text-xl font-bold text-foreground">
-              {kpi.value ?? "—"}
-            </span>
-            {kpi.unit && (
-              <span className="text-xs text-muted-foreground">{kpi.unit}</span>
+              {kpi.unit && (
+                <span className="text-xs text-muted-foreground">{kpi.unit}</span>
+              )}
+            </div>
+            {hasSparkline && (
+              <div className="w-14 h-6 flex-shrink-0">
+                <GlassSparkline
+                  data={kpi.sparklineData!}
+                  color={getSparklineColor()}
+                  showFill
+                  height={24}
+                />
+              </div>
             )}
           </div>
 
@@ -100,7 +121,7 @@ function KpiCard({ kpi }: { kpi: KpiDescriptor }) {
               {getDeltaIcon()}
               <span>
                 {kpi.delta > 0 ? "+" : ""}
-                {kpi.delta}
+                {typeof kpi.delta === 'number' ? kpi.delta.toFixed(1) : kpi.delta}%
                 {kpi.deltaLabel && ` ${kpi.deltaLabel}`}
               </span>
             </div>
