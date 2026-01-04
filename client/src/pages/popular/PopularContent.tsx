@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { getCrewMember } from "@/config/agents";
 import { useSiteContext } from "@/hooks/useSiteContext";
+import { useCrewStatus } from "@/hooks/useCrewStatus";
 import { toast } from "sonner";
 import {
   CrewDashboardShell,
@@ -770,6 +771,11 @@ export default function PopularContent() {
   const [corroboratingId, setCorroboratingId] = useState<string | null>(null);
   const [validatingId, setValidatingId] = useState<string | null>(null);
 
+  const { score: unifiedScore } = useCrewStatus({
+    siteId: siteId || 'default',
+    crewId: 'popular',
+  });
+
   const crewMember = getCrewMember("google_data_connector");
 
   const { data: apiResult, isLoading, refetch, isRefetching } = useQuery<PopularApiResult>({
@@ -891,14 +897,14 @@ export default function PopularContent() {
 
   const missionStatus: MissionStatusState = {
     tier,
-    summaryLine: `Score: ${score}/100`,
+    summaryLine: `Score: ${unifiedScore ?? score}/100`,
     nextStep: priorityCount > 0
       ? `Investigate ${priorityCount} high-priority issue${priorityCount !== 1 ? "s" : ""}`
       : "All clear - monitor for changes",
     priorityCount,
     blockerCount: issues.filter((i) => i.status === "needs_data").length,
     autoFixableCount,
-    performanceScore: score,
+    performanceScore: unifiedScore ?? score,
   };
 
   const missions: MissionItem[] = issues.slice(0, 5).map((issue) => ({

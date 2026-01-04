@@ -3,6 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { useCrewStatus } from "@/hooks/useCrewStatus";
+import { useSiteContext } from "@/hooks/useSiteContext";
 import { useState, useMemo, useEffect } from "react";
 import { Search, TrendingUp, TrendingDown, Minus, RefreshCw, Sparkles, ArrowUp, ArrowDown, Target, AlertTriangle, Crown, Trophy, Zap, Plus, ChevronUp, ChevronDown, Star, Brain, DollarSign, Info, ShoppingCart, HelpCircle, Eye, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -58,6 +60,11 @@ interface SerpOverview {
 export default function SERPContent() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { selectedSiteId } = useSiteContext();
+  const { score: unifiedScore, status: crewStatusValue, isLoading: statusLoading } = useCrewStatus({ 
+    siteId: selectedSiteId || 'site_empathy_health_clinic', 
+    crewId: 'lookout' 
+  });
   const [setupDomain, setSetupDomain] = useState('empathyhealthclinic.com');
   const [setupBusinessType, setSetupBusinessType] = useState('psychiatry clinic');
   const [setupLocation, setSetupLocation] = useState('Orlando, Florida');
@@ -658,9 +665,9 @@ export default function SERPContent() {
       blockerCount: notRanking,
       autoFixableCount: missionsData?.totalPending || 0,
       status: status as "loading" | "ready" | "empty" | "unavailable",
-      performanceScore: totalKeywords > 0 ? Math.round((stats.inTop10 / totalKeywords) * 100) : null,
+      performanceScore: unifiedScore,
     };
-  }, [overview, stats, missionsData, missionsLoading, isFixingEverything]);
+  }, [overview, stats, missionsData, missionsLoading, isFixingEverything, unifiedScore]);
 
   const kpis: KpiDescriptor[] = useMemo(() => [
     {

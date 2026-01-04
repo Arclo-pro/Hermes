@@ -5647,6 +5647,18 @@ When answering:
         // If fetching Popular score fails, we'll fall back to mission-based score
       }
       
+      // Fetch unified crew scores from CrewStatusService for consistency with crew pages
+      let crewStatusMap: Record<string, { score: number; status: string }> = {};
+      try {
+        const allCrewStatuses = await computeAllCrewStatuses(targetSiteId, 7);
+        for (const cs of allCrewStatuses) {
+          crewStatusMap[cs.crewId] = { score: cs.score, status: cs.status };
+        }
+      } catch (err) {
+        // If CrewStatusService fails, we'll compute scores inline as fallback
+        logger.warn("API", "CrewStatusService failed, falling back to inline score computation", { error: (err as Error).message });
+      }
+      
       const crewSummaries = crewIds.map(crewId => {
         const crew = CREW[crewId];
         const crewMissions = getMissionsForCrew(crewId);
@@ -5730,14 +5742,17 @@ When answering:
           ? (pendingForCrew.length > 0 ? 'Run missions to see metrics' : 'All caught up!')
           : null;
         
-        // Compute unified score using consistent formula
+        // Compute unified score using CrewStatusService for consistency with crew pages
         let score: number;
         
-        // For Popular, use issue-based score (same as Popular dashboard page)
-        if (crewId === 'popular' && popularScoreFromIssues !== null) {
+        // Use CrewStatusService score if available (preferred for consistency)
+        if (crewStatusMap[crewId]) {
+          score = crewStatusMap[crewId].score;
+        } else if (crewId === 'popular' && popularScoreFromIssues !== null) {
+          // Fallback: For Popular, use issue-based score (same as Popular dashboard page)
           score = popularScoreFromIssues;
         } else {
-          // Score formula: base on status + completion activity + delta bonus
+          // Fallback: Score formula based on status + completion activity + delta bonus
           const completedThisWeek = metricValue;
           const deltaBonus = deltaPercent !== null && deltaPercent > 0 ? Math.min(deltaPercent / 10, 10) : 0;
           

@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSiteContext } from "@/hooks/useSiteContext";
+import { useCrewStatus } from "@/hooks/useCrewStatus";
 import { toast } from "sonner";
 import { getCrewMember } from "@/config/agents";
 import {
@@ -237,6 +238,11 @@ interface FixPlanData {
 export default function SpeedsterContent() {
   const { activeSite } = useSiteContext();
   const siteId = activeSite?.id || 'site_empathy_health_clinic';
+  
+  const { score: unifiedScore } = useCrewStatus({
+    siteId,
+    crewId: 'speedster',
+  });
   
   const [showFixModal, setShowFixModal] = useState(false);
   const [showCooldownOverride, setShowCooldownOverride] = useState(false);
@@ -642,9 +648,9 @@ export default function SpeedsterContent() {
       priorityCount: needsWorkCount,
       autoFixableCount: autoFixable,
       status: isLoading ? "loading" as const : "ready" as const,
-      performanceScore: performanceScore ?? null,
+      performanceScore: unifiedScore ?? null,
     };
-  }, [vitals, fixPlan, isLoading, performanceScore]);
+  }, [vitals, fixPlan, isLoading, unifiedScore]);
 
   const missions: MissionItem[] = useMemo(() => {
     const items: MissionItem[] = [];
