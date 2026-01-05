@@ -9,6 +9,7 @@ import { USER_FACING_AGENTS, getCrewMember, type CrewMember } from "@/config/age
 import { Check, Zap, Lock, Sparkles, TrendingUp, Shield, Eye, FileText, Activity, Plus, CheckCircle, BrainCircuit } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ShipCanvasA1 } from "@/components/crew/ShipCanvasA1";
+import { useSiteContext } from "@/hooks/useSiteContext";
 
 const CREW_ROLES = USER_FACING_AGENTS;
 
@@ -657,47 +658,52 @@ function SetBonusCard({
 
 export default function MyCrew() {
   const queryClient = useQueryClient();
+  const { selectedSiteId } = useSiteContext();
   const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
   const [drawerAgentId, setDrawerAgentId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const { data: crewState } = useQuery<CrewStateResponse>({
-    queryKey: ["/api/crew/state"],
+    queryKey: ["crew-state", selectedSiteId],
     queryFn: async () => {
-      const res = await fetch("/api/crew/state?siteId=default");
+      const siteId = selectedSiteId || "default";
+      const res = await fetch(`/api/crew/state?siteId=${encodeURIComponent(siteId)}`);
       if (!res.ok) throw new Error("Failed to fetch crew state");
       return res.json();
     },
+    enabled: !!selectedSiteId,
   });
 
   const enableMutation = useMutation({
     mutationFn: async (agentId: string) => {
+      const siteId = selectedSiteId || "default";
       const res = await fetch("/api/crew/enable", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ agentId, siteId: "default" }),
+        body: JSON.stringify({ agentId, siteId }),
       });
       if (!res.ok) throw new Error("Failed to enable agent");
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crew/state"] });
+      queryClient.invalidateQueries({ queryKey: ["crew-state", selectedSiteId] });
       setDrawerOpen(false);
     },
   });
 
   const disableMutation = useMutation({
     mutationFn: async (agentId: string) => {
+      const siteId = selectedSiteId || "default";
       const res = await fetch("/api/crew/disable", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ agentId, siteId: "default" }),
+        body: JSON.stringify({ agentId, siteId }),
       });
       if (!res.ok) throw new Error("Failed to disable agent");
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/crew/state"] });
+      queryClient.invalidateQueries({ queryKey: ["crew-state", selectedSiteId] });
       setDrawerOpen(false);
     },
   });
