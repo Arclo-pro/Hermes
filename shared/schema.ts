@@ -2406,3 +2406,159 @@ export const insertWebsiteSubscriptionSchema = createInsertSchema(websiteSubscri
 });
 export type InsertWebsiteSubscription = z.infer<typeof insertWebsiteSubscriptionSchema>;
 export type WebsiteSubscription = typeof websiteSubscriptions.$inferSelect;
+
+// =============================================================================
+// FREE REPORTS
+// Stores complete Free Report v1 data with all 6 sections
+// =============================================================================
+
+export const freeReports = pgTable("free_reports", {
+  id: serial("id").primaryKey(),
+  reportId: text("report_id").notNull().unique(),
+  scanId: text("scan_id").notNull(),
+  websiteUrl: text("website_url").notNull(),
+  websiteDomain: text("website_domain").notNull(),
+  reportVersion: integer("report_version").default(1),
+  status: text("status").default("generating"),
+  
+  summary: jsonb("summary"),
+  competitors: jsonb("competitors"),
+  keywords: jsonb("keywords"),
+  technical: jsonb("technical"),
+  performance: jsonb("performance"),
+  nextSteps: jsonb("next_steps"),
+  meta: jsonb("meta"),
+  
+  shareToken: text("share_token"),
+  shareTokenExpiresAt: timestamp("share_token_expires_at"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertFreeReportSchema = createInsertSchema(freeReports).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertFreeReport = z.infer<typeof insertFreeReportSchema>;
+export type FreeReport = typeof freeReports.$inferSelect;
+
+// Free Report JSON types for strong typing
+export interface FreeReportSummary {
+  health_score: number;
+  top_issues: Array<{
+    title: string;
+    explanation: string;
+    severity: "low" | "medium" | "high";
+    impact: "traffic" | "conversion" | "both";
+    mapped_section: "competitors" | "keywords" | "technical" | "performance";
+  }>;
+  top_opportunities: Array<{
+    title: string;
+    explanation: string;
+    severity: "low" | "medium" | "high";
+    impact: "traffic" | "conversion" | "both";
+    mapped_section: "competitors" | "keywords" | "technical" | "performance";
+  }>;
+  estimated_opportunity: {
+    traffic_range_monthly: { min: number; max: number } | null;
+    leads_range_monthly: { min: number; max: number } | null;
+    revenue_range_monthly: { min: number; max: number } | null;
+    confidence: "low" | "medium" | "high";
+  };
+}
+
+export interface FreeReportCompetitor {
+  domain: string;
+  visibility_index: number;
+  keyword_overlap_count: number;
+  example_pages: string[];
+  notes: string;
+}
+
+export interface FreeReportCompetitors {
+  items: FreeReportCompetitor[];
+  insight: string;
+}
+
+export interface FreeReportKeywordTarget {
+  keyword: string;
+  intent: "high_intent" | "informational";
+  volume_range: { min: number; max: number } | null;
+  current_bucket: "top_3" | "4_10" | "11_30" | "not_ranking";
+  winner_domain: string | null;
+}
+
+export interface FreeReportKeywords {
+  targets: FreeReportKeywordTarget[];
+  bucket_counts: {
+    top_3: number;
+    "4_10": number;
+    "11_30": number;
+    not_ranking: number;
+  };
+  insight: string;
+}
+
+export interface FreeReportTechnicalFinding {
+  title: string;
+  detail: string;
+  severity: "low" | "medium" | "high";
+  impact: "traffic" | "conversion" | "both";
+  example_urls: string[];
+}
+
+export interface FreeReportTechnicalBucket {
+  name: "Indexing & Crawlability" | "Site Structure & Internal Links" | "On-page Basics" | "Errors & Warnings";
+  status: "good" | "needs_attention" | "critical";
+  findings: FreeReportTechnicalFinding[];
+}
+
+export interface FreeReportTechnical {
+  buckets: FreeReportTechnicalBucket[];
+}
+
+export interface FreeReportPerformanceUrl {
+  url: string;
+  lcp_status: "good" | "needs_work" | "poor";
+  cls_status: "good" | "needs_work" | "poor";
+  inp_status: "good" | "needs_work" | "poor" | "not_available";
+  overall: "good" | "needs_attention" | "critical";
+}
+
+export interface FreeReportPerformance {
+  urls: FreeReportPerformanceUrl[];
+  global_insight: string;
+}
+
+export interface FreeReportNextSteps {
+  if_do_nothing: string[];
+  if_you_fix_this: string[];
+  ctas: Array<{
+    id: "view_full_report" | "deploy_fixes" | "send_to_dev";
+    label: string;
+    action: "route" | "modal";
+    target: string;
+  }>;
+  implementation_plan: Array<{
+    priority: number;
+    title: string;
+    what_to_change: string;
+    where_to_change: string;
+    expected_impact: string;
+    acceptance_check: string;
+  }>;
+}
+
+export interface FreeReportMeta {
+  generation_status: "complete" | "partial" | "failed";
+  missing: {
+    competitors_reason?: string;
+    keywords_reason?: string;
+    rank_reason?: string;
+    technical_reason?: string;
+    performance_reason?: string;
+  };
+  raw_metrics?: Record<string, unknown>;
+}
