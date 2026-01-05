@@ -17546,46 +17546,267 @@ Return JSON in this exact format:
             WHERE scan_id = ${scanId}
           `);
 
-          await new Promise(resolve => setTimeout(resolve, 3000));
-
-          const mockFindings = [
-            {
-              id: "finding_1",
+          const WORKER_TIMEOUT = 30000;
+          
+          const crawlerConfig = await resolveWorkerConfig("crawl_render");
+          const cwvConfig = await resolveWorkerConfig("core_web_vitals");
+          
+          interface CrawlerPage {
+            url: string;
+            title?: string;
+            description?: string;
+            h1?: string;
+            statusCode?: number;
+            issues?: Array<{ type: string; message: string; severity?: string }>;
+          }
+          
+          interface CrawlerResponse {
+            ok: boolean;
+            pages?: CrawlerPage[];
+            error?: string;
+          }
+          
+          interface CWVResponse {
+            ok: boolean;
+            lcp?: number;
+            cls?: number;
+            inp?: number;
+            ttfb?: number;
+            fcp?: number;
+            error?: string;
+          }
+          
+          const callWorker = async <T>(
+            config: typeof crawlerConfig,
+            endpoint: string,
+            body: any,
+            workerName: string
+          ): Promise<{ ok: boolean; data: T | null; error: string | null }> => {
+            if (!config.valid || !config.base_url) {
+              logger.warn("Scan", `${workerName} worker not configured`, { error: config.error });
+              return { ok: false, data: null, error: config.error || "Worker not configured" };
+            }
+            
+            const workerUrl = `${config.base_url}${endpoint}`;
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), WORKER_TIMEOUT);
+            
+            try {
+              const headers: Record<string, string> = { "Content-Type": "application/json" };
+              if (config.api_key) {
+                headers["X-API-Key"] = config.api_key;
+              }
+              
+              const response = await fetch(workerUrl, {
+                method: "POST",
+                headers,
+                body: JSON.stringify(body),
+                signal: controller.signal,
+              });
+              
+              clearTimeout(timeoutId);
+              
+              if (!response.ok) {
+                const errorText = await response.text().catch(() => "Unknown error");
+                logger.warn("Scan", `${workerName} returned ${response.status}`, { errorText });
+                return { ok: false, data: null, error: `HTTP ${response.status}: ${errorText}` };
+              }
+              
+              const data = await response.json() as T;
+              return { ok: true, data, error: null };
+            } catch (err: any) {
+              clearTimeout(timeoutId);
+              const errorMsg = err.name === "AbortError" ? "Timeout after 30s" : err.message;
+              logger.warn("Scan", `${workerName} call failed`, { error: errorMsg });
+              return { ok: false, data: null, error: errorMsg };
+            }
+          };
+          
+          const [crawlerResult, cwvResult] = await Promise.allSettled([
+            callWorker<CrawlerResponse>(
+              crawlerConfig,
+              "/api/crawl",
+              { url: normalizedUrl, maxPages: 10 },
+              "Technical Crawler"
+            ),
+            callWorker<CWVResponse>(
+              cwvConfig,
+              "/api/run",
+              { url: normalizedUrl },
+              "Core Web Vitals"
+            ),
+          ]);
+          
+          const crawlerData = crawlerResult.status === "fulfilled" ? crawlerResult.value : { ok: false, data: null, error: "Promise rejected" };
+          const cwvData = cwvResult.status === "fulfilled" ? cwvResult.value : { ok: false, data: null, error: "Promise rejected" };
+          
+          interface Finding {
+            id: string;
+            title: string;
+            severity: "high" | "medium" | "low";
+            impact: "High" | "Medium" | "Low";
+            effort: "High" | "Medium" | "Low";
+            summary: string;
+          }
+          
+          const findings: Finding[] = [];
+          let findingIndex = 1;
+          
+          let technicalIssueCount = 0;
+          let contentIssueCount = 0;
+          let missingMetaCount = 0;
+          let missingH1Count = 0;
+          let brokenLinksCount = 0;
+          
+          if (crawlerData.ok && crawlerData.data?.pages) {
+            const pages = crawlerData.data.pages;
+            
+            for (const page of pages) {
+              if (!page.description) missingMetaCount++;
+              if (!page.h1) missingH1Count++;
+              if (page.statusCode && page.statusCode >= 400) brokenLinksCount++;
+              
+              if (page.issues) {
+                for (const issue of page.issues) {
+                  technicalIssueCount++;
+                  if (issue.type === "meta" || issue.type === "content") {
+                    contentIssueCount++;
+                  }
+                }
+              }
+            }
+            
+            if (missingMetaCount > 0) {
+              findings.push({
+                id: `finding_${findingIndex++}`,
+                title: "Missing Meta Descriptions",
+                severity: missingMetaCount > 5 ? "high" : "medium",
+                impact: missingMetaCount > 5 ? "High" : "Medium",
+                effort: "Low",
+                summary: `${missingMetaCount} page${missingMetaCount > 1 ? "s are" : " is"} missing meta descriptions, hurting click-through rates from search results.`,
+              });
+            }
+            
+            if (missingH1Count > 0) {
+              findings.push({
+                id: `finding_${findingIndex++}`,
+                title: "Missing H1 Tags",
+                severity: missingH1Count > 3 ? "high" : "medium",
+                impact: missingH1Count > 3 ? "High" : "Medium",
+                effort: "Low",
+                summary: `${missingH1Count} page${missingH1Count > 1 ? "s are" : " is"} missing H1 tags, which are important for SEO and accessibility.`,
+              });
+            }
+            
+            if (brokenLinksCount > 0) {
+              findings.push({
+                id: `finding_${findingIndex++}`,
+                title: "Broken Links Detected",
+                severity: brokenLinksCount > 3 ? "high" : "medium",
+                impact: brokenLinksCount > 3 ? "High" : "Medium",
+                effort: "Medium",
+                summary: `${brokenLinksCount} page${brokenLinksCount > 1 ? "s return" : " returns"} error status codes (4xx/5xx), potentially hurting user experience and crawl efficiency.`,
+              });
+            }
+          } else {
+            missingMetaCount = 5;
+            missingH1Count = 2;
+            findings.push({
+              id: `finding_${findingIndex++}`,
               title: "Missing Meta Descriptions",
               severity: "high",
               impact: "High",
               effort: "Low",
-              summary: "12 pages are missing meta descriptions, hurting click-through rates from search results."
-            },
-            {
-              id: "finding_2", 
-              title: "Slow Page Speed",
-              severity: "medium",
-              impact: "Medium",
-              effort: "Medium",
-              summary: "LCP is 4.2s on mobile. Optimizing images could improve this significantly."
-            },
-            {
-              id: "finding_3",
-              title: "Missing Alt Text",
-              severity: "low",
-              impact: "Low",
-              effort: "Low",
-              summary: "8 images are missing alt text, reducing accessibility and SEO value."
+              summary: "Unable to analyze all pages. Based on initial scan, some pages may be missing meta descriptions.",
+            });
+          }
+          
+          let performanceScore = 85;
+          let lcpValue: number | null = null;
+          let clsValue: number | null = null;
+          
+          if (cwvData.ok && cwvData.data) {
+            const cwv = cwvData.data;
+            lcpValue = cwv.lcp || null;
+            clsValue = cwv.cls || null;
+            
+            let lcpScore = 100;
+            if (lcpValue) {
+              if (lcpValue > 4000) lcpScore = 30;
+              else if (lcpValue > 2500) lcpScore = 60;
+              else lcpScore = 90;
             }
-          ];
-
+            
+            let clsScore = 100;
+            if (clsValue !== null) {
+              if (clsValue > 0.25) clsScore = 30;
+              else if (clsValue > 0.1) clsScore = 60;
+              else clsScore = 90;
+            }
+            
+            performanceScore = Math.round((lcpScore * 0.6 + clsScore * 0.4));
+            
+            if (lcpValue && lcpValue > 2500) {
+              findings.push({
+                id: `finding_${findingIndex++}`,
+                title: "Slow Page Speed",
+                severity: lcpValue > 4000 ? "high" : "medium",
+                impact: lcpValue > 4000 ? "High" : "Medium",
+                effort: "Medium",
+                summary: `LCP is ${(lcpValue / 1000).toFixed(1)}s on mobile. ${lcpValue > 4000 ? "This significantly impacts user experience and SEO." : "Optimizing images could improve this."}`,
+              });
+            }
+            
+            if (clsValue !== null && clsValue > 0.1) {
+              findings.push({
+                id: `finding_${findingIndex++}`,
+                title: "Layout Shifts Detected",
+                severity: clsValue > 0.25 ? "high" : "medium",
+                impact: clsValue > 0.25 ? "High" : "Medium",
+                effort: "Medium",
+                summary: `CLS is ${clsValue.toFixed(2)}, indicating layout instability. Reserve space for images and ads to reduce shifts.`,
+              });
+            }
+          } else {
+            performanceScore = 70;
+            findings.push({
+              id: `finding_${findingIndex++}`,
+              title: "Performance Analysis Limited",
+              severity: "low",
+              impact: "Medium",
+              effort: "Low",
+              summary: "Core Web Vitals analysis was limited. Consider running a full performance audit.",
+            });
+          }
+          
+          const totalPages = crawlerData.data?.pages?.length || 10;
+          const technicalScore = Math.max(20, 100 - (technicalIssueCount * 5) - (brokenLinksCount * 10));
+          const contentScore = Math.max(20, 100 - (missingMetaCount * 8) - (missingH1Count * 6) - (contentIssueCount * 3));
+          
+          const overallScore = Math.round(
+            technicalScore * 0.35 +
+            performanceScore * 0.35 +
+            contentScore * 0.30
+          );
+          
           const scoreSummary = {
-            overall: 67,
-            technical: 72,
-            content: 65,
-            performance: 58
+            overall: Math.min(100, Math.max(0, overallScore)),
+            technical: Math.min(100, Math.max(0, technicalScore)),
+            content: Math.min(100, Math.max(0, contentScore)),
+            performance: Math.min(100, Math.max(0, performanceScore)),
           };
+
+          logger.info("Scan", `Scan ${scanId} completed`, {
+            findingsCount: findings.length,
+            scores: scoreSummary,
+            crawlerOk: crawlerData.ok,
+            cwvOk: cwvData.ok,
+          });
 
           await db.execute(sql`
             UPDATE scan_requests 
             SET status = 'preview_ready',
-                preview_findings = ${JSON.stringify(mockFindings)}::jsonb,
+                preview_findings = ${JSON.stringify(findings)}::jsonb,
                 score_summary = ${JSON.stringify(scoreSummary)}::jsonb,
                 completed_at = NOW(),
                 updated_at = NOW()
@@ -17681,7 +17902,7 @@ Return JSON in this exact format:
       res.json({
         findings: findings.slice(0, 3),
         scoreSummary,
-        totalFindings: findings.length + 8,
+        totalFindings: findings.length,
         targetUrl: scan.normalized_url || scan.target_url,
       });
     } catch (error: any) {
@@ -17709,62 +17930,14 @@ Return JSON in this exact format:
         return res.status(400).json({ ok: false, message: "Scan not ready yet" });
       }
 
-      const baseFindings = scan.preview_findings || [];
+      const allFindings = scan.preview_findings || [];
       const scoreSummary = scan.score_summary || { overall: 0, technical: 0, content: 0, performance: 0 };
       const isUnlocked = !!scan.email;
 
-      const additionalFindings = [
-        {
-          id: "finding_4",
-          title: "Broken Internal Links",
-          severity: "medium",
-          impact: "Medium",
-          effort: "Low",
-          summary: "5 internal links return 404 errors, potentially hurting user experience and crawl efficiency.",
-          recommendation: "Update or remove broken links to improve site navigation and SEO signals."
-        },
-        {
-          id: "finding_5",
-          title: "Duplicate Title Tags",
-          severity: "medium",
-          impact: "Medium",
-          effort: "Low",
-          summary: "3 pages share identical title tags, making it harder for search engines to differentiate content.",
-          recommendation: "Create unique, descriptive titles for each page targeting different keywords."
-        },
-        {
-          id: "finding_6",
-          title: "Missing Structured Data",
-          severity: "low",
-          impact: "Medium",
-          effort: "Medium",
-          summary: "No schema markup detected. Adding structured data can enhance rich snippets in search results.",
-          recommendation: "Implement Organization, Article, or Product schema based on your content type."
-        },
-        {
-          id: "finding_7",
-          title: "Low Text-to-HTML Ratio",
-          severity: "low",
-          impact: "Low",
-          effort: "Medium",
-          summary: "Several pages have less than 10% visible text content relative to HTML code.",
-          recommendation: "Add more substantive content or reduce unnecessary HTML markup."
-        },
-        {
-          id: "finding_8",
-          title: "Missing H1 Tags",
-          severity: "medium",
-          impact: "Medium",
-          effort: "Low",
-          summary: "4 pages are missing H1 headings, which are important for SEO and accessibility.",
-          recommendation: "Add a single, descriptive H1 tag to each page summarizing its main topic."
-        }
-      ];
-
       const returnedFindings = isUnlocked 
-        ? [...baseFindings, ...additionalFindings]
-        : baseFindings.slice(0, 3);
-      const totalCount = baseFindings.length + additionalFindings.length;
+        ? allFindings
+        : allFindings.slice(0, 3);
+      const totalCount = allFindings.length;
 
       res.json({
         findings: returnedFindings,
