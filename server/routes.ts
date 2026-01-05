@@ -14204,84 +14204,102 @@ When answering:
     try {
       const siteId = (req.query.siteId as string) || "site_empathy_health_clinic";
       
-      // Get Core Web Vitals from worker results - use getLatestWorkerResultByKey
-      // to get the latest core_web_vitals result regardless of run
-      // (getLatestSeoWorkerResults gets latest RUN which may not include CWV)
+      // PRIMARY SOURCE: Read from core_web_vitals_daily table
+      const cwvDaily = await storage.getLatestCoreWebVitals(siteId);
+      
+      // FALLBACK: Get Core Web Vitals from worker results
       const cwvResult = await storage.getLatestWorkerResultByKey(siteId, 'core_web_vitals');
       const metricsJson = cwvResult?.metricsJson as Record<string, any> | null;
-      
-      logger.info("Speedster", `Loading CWV data for ${siteId}`, { 
-        hasCwvResult: !!cwvResult, 
-        metricsKeys: metricsJson ? Object.keys(metricsJson) : [],
-        lcp: metricsJson?.lcp,
-        cls: metricsJson?.cls,
-        inp: metricsJson?.inp,
-      });
       
       // Also check dashboard snapshot for fallback (uses canonical keys)
       const snapshot = await storage.getDashboardMetricSnapshot(siteId);
       const snapshotMetrics = (snapshot?.metricsJson as Record<string, any>) || {};
       
-      // Helper to get value from worker (non-canonical) or snapshot (canonical)
-      const getMetric = (workerKey: string, canonicalKey: string) => {
-        // Worker may use lcp, lcp_ms, or canonical key
+      // Determine the source of data
+      const dataSource = cwvDaily ? 'core_web_vitals_daily' : 
+                        cwvResult ? 'Core Web Vitals Worker' : 
+                        snapshot ? 'Cached Snapshot' : 'No Data';
+      
+      logger.info("Speedster", `Loading CWV data for ${siteId}`, { 
+        hasCwvDaily: !!cwvDaily,
+        hasCwvResult: !!cwvResult, 
+        dataSource,
+        lcpFromDaily: cwvDaily?.lcp,
+        clsFromDaily: cwvDaily?.cls,
+        inpFromDaily: cwvDaily?.inp,
+      });
+      
+      // Helper to get value: daily table > worker > snapshot
+      const getMetric = (dailyValue: number | null | undefined, workerKey: string, canonicalKey: string) => {
+        if (dailyValue !== null && dailyValue !== undefined) return dailyValue;
         const workerVal = metricsJson?.[workerKey] ?? metricsJson?.[canonicalKey] ?? null;
         const snapshotVal = snapshotMetrics?.[canonicalKey] ?? null;
         return workerVal ?? snapshotVal ?? null;
       };
       
-      // Build metrics using canonical keys
-      // Worker returns lcp_ms in milliseconds, convert to seconds for consistency
-      let lcpValue = getMetric('lcp', 'vitals.lcp');
+      // Build metrics using daily table as primary source
+      let lcpValue = getMetric(cwvDaily?.lcp, 'lcp', 'vitals.lcp');
       if (lcpValue === null && metricsJson?.lcp_ms) {
         lcpValue = metricsJson.lcp_ms / 1000;
       }
       
       // FCP: convert from ms to seconds if needed
-      let fcpValue = getMetric('fcp', 'vitals.fcp');
+      let fcpValue = getMetric(cwvDaily?.fcp, 'fcp', 'vitals.fcp');
       if (fcpValue === null && metricsJson?.fcp_ms) {
         fcpValue = metricsJson.fcp_ms / 1000;
       }
       
       // TTFB: keep in ms (UI expects ms)
-      let ttfbValue = getMetric('ttfb', 'vitals.ttfb');
+      let ttfbValue = getMetric(cwvDaily?.ttfb, 'ttfb', 'vitals.ttfb');
       if (ttfbValue === null && metricsJson?.ttfb_ms) {
         ttfbValue = metricsJson.ttfb_ms;
       }
       
-      // TBT: keep in ms (UI expects ms)
-      let tbtValue = getMetric('tbt', 'vitals.tbt') ?? getMetric('total_blocking_time', 'vitals.tbt');
+      // TBT: not in daily table, use worker/snapshot
+      let tbtValue = metricsJson?.tbt ?? metricsJson?.['vitals.tbt'] ?? metricsJson?.total_blocking_time ?? null;
       if (tbtValue === null && metricsJson?.tbt_ms) {
         tbtValue = metricsJson.tbt_ms;
       }
       
-      // Speed Index: keep in ms (UI expects ms)
-      let speedIndexValue = getMetric('speed_index', 'vitals.speed_index') ?? getMetric('speedIndex', 'vitals.speed_index');
+      // Speed Index: not in daily table, use worker/snapshot
+      let speedIndexValue = metricsJson?.speed_index ?? metricsJson?.['vitals.speed_index'] ?? metricsJson?.speedIndex ?? null;
       if (speedIndexValue === null && metricsJson?.speed_index_ms) {
         speedIndexValue = metricsJson.speed_index_ms;
       }
       
       // INP: handle _ms suffix
-      let inpValue = getMetric('inp', 'vitals.inp');
+      let inpValue = getMetric(cwvDaily?.inp, 'inp', 'vitals.inp');
       if (inpValue === null && metricsJson?.inp_ms) {
         inpValue = metricsJson.inp_ms;
       }
       
-      // Get raw data early for use in metrics and distributions
-      const rawData = cwvResult?.rawData as Record<string, any> | null;
+      // CLS value
+      let clsValue = getMetric(cwvDaily?.cls, 'cls', 'vitals.cls');
+      
+      // Performance score
+      let performanceScore = cwvDaily?.overallScore ?? metricsJson?.score ?? metricsJson?.performance_score ?? snapshotMetrics?.['vitals.performance_score'] ?? null;
+      
+      // Get raw data from daily table or worker result
+      const rawData = (cwvDaily?.rawJson as Record<string, any> | null) ?? (cwvResult?.rawData as Record<string, any> | null);
       
       const metrics = {
         'vitals.lcp': lcpValue,
-        'vitals.cls': getMetric('cls', 'vitals.cls'),
+        'vitals.cls': clsValue,
         'vitals.inp': inpValue,
         'vitals.fcp': fcpValue,
         'vitals.ttfb': ttfbValue,
         'vitals.tbt': tbtValue,
         'vitals.speed_index': speedIndexValue,
-        'vitals.performance_score': getMetric('score', 'vitals.performance_score') ?? getMetric('performance_score', 'vitals.performance_score'),
+        'vitals.performance_score': performanceScore,
         'vitals.lcp.trend': metricsJson?.lcpTrend ?? null,
         'vitals.cls.trend': metricsJson?.clsTrend ?? null,
         'vitals.inp.trend': metricsJson?.inpTrend ?? null,
+        // Include status from daily table
+        'vitals.lcp.status': cwvDaily?.lcpStatus ?? null,
+        'vitals.cls.status': cwvDaily?.clsStatus ?? null,
+        'vitals.inp.status': cwvDaily?.inpStatus ?? null,
+        'vitals.ttfb.status': cwvDaily?.ttfbStatus ?? null,
+        'vitals.fcp.status': cwvDaily?.fcpStatus ?? null,
       };
       
       // Extract distribution data if available
@@ -14357,8 +14375,8 @@ When answering:
         ok: true,
         siteId,
         industry,
-        capturedAt: cwvResult?.createdAt || snapshot?.capturedAt || null,
-        source: cwvResult ? 'Core Web Vitals Worker' : (snapshot ? 'Cached Snapshot' : 'No Data'),
+        capturedAt: cwvDaily?.collectedAt || cwvResult?.createdAt || snapshot?.capturedAt || null,
+        source: dataSource,
         sampleCount: rawData?.urlsChecked || rawData?.sampleCount || null,
         metrics,
         benchmarks: cwvBenchmarks,
@@ -14367,9 +14385,72 @@ When answering:
         topUrls: topUrls.slice(0, 5),
         workerRunId: cwvResult?.runId || null,
         lastRefreshStatus: snapshot?.lastRefreshStatus,
+        deviceType: cwvDaily?.deviceType || 'mobile',
+        url: cwvDaily?.url || null,
       });
     } catch (error: any) {
       logger.error("API", "Failed to get speedster summary", { error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+  
+  // Get Core Web Vitals history for trend charts
+  app.get("/api/crew/speedster/history", async (req, res) => {
+    try {
+      const siteId = (req.query.siteId as string) || "site_empathy_health_clinic";
+      const days = parseInt(req.query.days as string) || 30;
+      
+      // Cap at 90 days max
+      const effectiveDays = Math.min(days, 90);
+      
+      const history = await storage.getCoreWebVitalsHistory(siteId, effectiveDays);
+      
+      // Transform to a simpler format for trend charts
+      const trends = history.map(record => ({
+        date: record.collectedAt.toISOString(),
+        lcp: record.lcp,
+        cls: record.cls,
+        inp: record.inp,
+        ttfb: record.ttfb,
+        fcp: record.fcp,
+        overallScore: record.overallScore,
+        lcpStatus: record.lcpStatus,
+        clsStatus: record.clsStatus,
+        inpStatus: record.inpStatus,
+        ttfbStatus: record.ttfbStatus,
+        fcpStatus: record.fcpStatus,
+        source: record.source,
+        deviceType: record.deviceType,
+      }));
+      
+      // Compute simple trend direction for key metrics
+      const computeTrend = (metric: 'lcp' | 'cls' | 'inp' | 'ttfb' | 'fcp') => {
+        const values = history.map(r => r[metric]).filter((v): v is number => v !== null);
+        if (values.length < 2) return 'stable';
+        const recent = values.slice(-3).reduce((a, b) => a + b, 0) / Math.min(3, values.length);
+        const older = values.slice(0, 3).reduce((a, b) => a + b, 0) / Math.min(3, values.length);
+        const change = ((recent - older) / older) * 100;
+        if (Math.abs(change) < 5) return 'stable';
+        // For CWV metrics, lower is better
+        return change < 0 ? 'improving' : 'declining';
+      };
+      
+      res.json({
+        ok: true,
+        siteId,
+        days: effectiveDays,
+        recordCount: history.length,
+        trends,
+        summary: {
+          lcpTrend: computeTrend('lcp'),
+          clsTrend: computeTrend('cls'),
+          inpTrend: computeTrend('inp'),
+          ttfbTrend: computeTrend('ttfb'),
+          fcpTrend: computeTrend('fcp'),
+        },
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to get speedster history", { error: error.message });
       res.status(500).json({ ok: false, error: error.message });
     }
   });
@@ -14454,6 +14535,9 @@ Current metrics for the site: ${metricsContext}`;
       const workerData = await workerResponse.json();
       
       if (workerData.data?.metrics) {
+        const metrics = workerData.data.metrics;
+        
+        // Store in seoWorkerResults (existing behavior)
         await storage.upsertSeoWorkerResult({
           runId: requestId,
           siteId,
@@ -14462,8 +14546,69 @@ Current metrics for the site: ${metricsContext}`;
           status: 'success',
           startedAt: new Date(),
           finishedAt: new Date(),
-          metricsJson: workerData.data.metrics,
+          metricsJson: metrics,
           rawData: workerData.data,
+        });
+        
+        // Helper to determine status based on thresholds
+        const getStatus = (value: number | null, good: number, poor: number, lowerIsBetter = true): string | null => {
+          if (value === null || value === undefined) return null;
+          if (lowerIsBetter) {
+            if (value <= good) return 'good';
+            if (value <= poor) return 'needs-improvement';
+            return 'poor';
+          } else {
+            if (value >= good) return 'good';
+            if (value >= poor) return 'needs-improvement';
+            return 'poor';
+          }
+        };
+        
+        // Extract and normalize CWV metrics
+        // LCP: in seconds (good <= 2.5s, poor > 4s)
+        let lcpValue = metrics.lcp ?? metrics.lcp_s ?? (metrics.lcp_ms ? metrics.lcp_ms / 1000 : null);
+        // CLS: unitless (good <= 0.1, poor > 0.25)
+        let clsValue = metrics.cls ?? null;
+        // INP: in ms (good <= 200ms, poor > 500ms)
+        let inpValue = metrics.inp ?? metrics.inp_ms ?? null;
+        // TTFB: in ms (good <= 800ms, poor > 1800ms)
+        let ttfbValue = metrics.ttfb ?? metrics.ttfb_ms ?? null;
+        // FCP: in seconds (good <= 1.8s, poor > 3s)
+        let fcpValue = metrics.fcp ?? metrics.fcp_s ?? (metrics.fcp_ms ? metrics.fcp_ms / 1000 : null);
+        
+        // Calculate statuses
+        const lcpStatus = getStatus(lcpValue, 2.5, 4);
+        const clsStatus = getStatus(clsValue, 0.1, 0.25);
+        const inpStatus = getStatus(inpValue, 200, 500);
+        const ttfbStatus = getStatus(ttfbValue, 800, 1800);
+        const fcpStatus = getStatus(fcpValue, 1.8, 3);
+        
+        // Overall score from worker or calculate
+        const overallScore = metrics.score ?? metrics.performance_score ?? null;
+        
+        // Store in core_web_vitals_daily table
+        await storage.insertCoreWebVitalsDaily({
+          siteId,
+          collectedAt: new Date(),
+          lcp: lcpValue,
+          cls: clsValue,
+          inp: inpValue,
+          ttfb: ttfbValue,
+          fcp: fcpValue,
+          lcpStatus,
+          clsStatus,
+          inpStatus,
+          ttfbStatus,
+          fcpStatus,
+          overallScore: overallScore !== null ? Math.round(overallScore) : null,
+          source: 'worker',
+          url: workerData.data.url || null,
+          deviceType: workerData.data.deviceType || 'mobile',
+          rawJson: workerData.data,
+        });
+        
+        logger.info("Speedster", `Stored CWV data for ${siteId}`, { 
+          lcp: lcpValue, cls: clsValue, inp: inpValue, ttfb: ttfbValue, fcp: fcpValue 
         });
       }
       

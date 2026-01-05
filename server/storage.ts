@@ -182,6 +182,9 @@ import {
   websiteIntegrations,
   type WebsiteIntegration,
   type InsertWebsiteIntegration,
+  coreWebVitalsDaily,
+  type CoreWebVitalsDaily,
+  type InsertCoreWebVitalsDaily,
 } from "@shared/schema";
 import { eq, desc, and, gte, sql, asc, or, isNull, arrayContains } from "drizzle-orm";
 
@@ -528,6 +531,11 @@ export interface IStorage {
   createDraperAction(action: InsertDraperAction): Promise<DraperAction>;
   updateDraperActionStatus(id: number, status: string, result?: any): Promise<void>;
   cancelDraperAction(id: number): Promise<void>;
+  
+  // Core Web Vitals Daily
+  insertCoreWebVitalsDaily(data: InsertCoreWebVitalsDaily): Promise<CoreWebVitalsDaily>;
+  getLatestCoreWebVitals(siteId: string): Promise<CoreWebVitalsDaily | undefined>;
+  getCoreWebVitalsHistory(siteId: string, days: number): Promise<CoreWebVitalsDaily[]>;
 }
 
 class DBStorage implements IStorage {
@@ -3172,6 +3180,39 @@ class DBStorage implements IStorage {
         eq(websiteIntegrations.siteId, siteId),
         eq(websiteIntegrations.integrationType, integrationType)
       ));
+  }
+
+  // Core Web Vitals Daily
+  async insertCoreWebVitalsDaily(data: InsertCoreWebVitalsDaily): Promise<CoreWebVitalsDaily> {
+    const [result] = await db
+      .insert(coreWebVitalsDaily)
+      .values(data)
+      .returning();
+    return result;
+  }
+
+  async getLatestCoreWebVitals(siteId: string): Promise<CoreWebVitalsDaily | undefined> {
+    const [result] = await db
+      .select()
+      .from(coreWebVitalsDaily)
+      .where(eq(coreWebVitalsDaily.siteId, siteId))
+      .orderBy(desc(coreWebVitalsDaily.collectedAt))
+      .limit(1);
+    return result;
+  }
+
+  async getCoreWebVitalsHistory(siteId: string, days: number): Promise<CoreWebVitalsDaily[]> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    
+    return db
+      .select()
+      .from(coreWebVitalsDaily)
+      .where(and(
+        eq(coreWebVitalsDaily.siteId, siteId),
+        gte(coreWebVitalsDaily.collectedAt, cutoffDate)
+      ))
+      .orderBy(asc(coreWebVitalsDaily.collectedAt));
   }
 }
 

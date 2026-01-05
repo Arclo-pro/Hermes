@@ -2335,3 +2335,48 @@ export interface CrawlerConfig {
 export interface EmpathyConfig {
   baseUrl: string;
 }
+
+// =============================================================================
+// CORE WEB VITALS DAILY TABLE
+// Structured storage for Core Web Vitals metrics with individual columns
+// =============================================================================
+
+export const coreWebVitalsDaily = pgTable("core_web_vitals_daily", {
+  id: serial("id").primaryKey(),
+  siteId: text("site_id").notNull(),
+  collectedAt: timestamp("collected_at").defaultNow().notNull(),
+  
+  // Core Web Vitals metrics (p75 values)
+  lcp: real("lcp"), // Largest Contentful Paint in seconds
+  cls: real("cls"), // Cumulative Layout Shift (unitless)
+  inp: real("inp"), // Interaction to Next Paint in milliseconds
+  ttfb: real("ttfb"), // Time to First Byte in milliseconds
+  fcp: real("fcp"), // First Contentful Paint in seconds
+  
+  // Status indicators (good, needs-improvement, poor)
+  lcpStatus: text("lcp_status"),
+  clsStatus: text("cls_status"),
+  inpStatus: text("inp_status"),
+  ttfbStatus: text("ttfb_status"),
+  fcpStatus: text("fcp_status"),
+  
+  // Overall score (0-100)
+  overallScore: integer("overall_score"),
+  
+  // Source of the data
+  source: text("source"), // "crux", "lighthouse", "worker"
+  url: text("url"), // The specific URL measured
+  deviceType: text("device_type").default("mobile"), // mobile, desktop
+  
+  // Raw data for debugging
+  rawJson: jsonb("raw_json"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertCoreWebVitalsDailySchema = createInsertSchema(coreWebVitalsDaily).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertCoreWebVitalsDaily = z.infer<typeof insertCoreWebVitalsDailySchema>;
+export type CoreWebVitalsDaily = typeof coreWebVitalsDaily.$inferSelect;
