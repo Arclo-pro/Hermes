@@ -22,6 +22,48 @@ export const insertOAuthTokenSchema = createInsertSchema(oauthTokens).omit({
 export type InsertOAuthToken = z.infer<typeof insertOAuthTokenSchema>;
 export type OAuthToken = typeof oauthTokens.$inferSelect;
 
+// Users for email/password authentication
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  displayName: text("display_name"),
+  role: text("role").default("user").notNull(), // user, admin
+  defaultWebsiteId: text("default_website_id"),
+  plan: text("plan").default("free").notNull(), // free, core
+  addons: jsonb("addons").$type<{
+    content_growth?: boolean;
+    competitive_intel?: boolean;
+    authority_signals?: boolean;
+  }>(),
+  lastLoginAt: timestamp("last_login_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type User = typeof users.$inferSelect;
+
+// Session object returned by /api/auth/session
+export interface SessionUser {
+  user_id: number;
+  email: string;
+  display_name: string | null;
+  websites: string[];
+  default_website_id: string | null;
+  plan: string;
+  addons: {
+    content_growth: boolean;
+    competitive_intel: boolean;
+    authority_signals: boolean;
+  };
+}
+
 // Scan Requests for marketing funnel
 export const scanRequests = pgTable("scan_requests", {
   id: serial("id").primaryKey(),

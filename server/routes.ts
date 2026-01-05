@@ -4,6 +4,8 @@ import { storage } from "./storage";
 import { db } from "./db";
 import { sql } from "drizzle-orm";
 import { googleAuth } from "./auth/google-oauth";
+import { setupSession } from "./auth/session";
+import { registerAuthRoutes } from "./auth/routes";
 import { ga4Connector } from "./connectors/ga4";
 import { gscConnector } from "./connectors/gsc";
 import { adsConnector } from "./connectors/ads";
@@ -220,6 +222,12 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+
+  // ============================================================
+  // Session and Authentication Setup
+  // ============================================================
+  setupSession(app);
+  registerAuthRoutes(app);
 
   // ============================================================
   // Lead Capture Endpoints (Marketing)

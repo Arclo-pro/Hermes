@@ -7,6 +7,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SiteProvider } from "@/hooks/useSiteContext";
+import { AuthProvider } from "@/hooks/useAuth";
+import AppShell from "@/components/AppShell";
 import NotFound from "@/pages/not-found";
 import MissionControl from "@/pages/MissionControl";
 import Tickets from "@/pages/Tickets";
@@ -37,11 +39,13 @@ import Privacy from "@/pages/Privacy";
 import Landing from "@/pages/Landing";
 import ScanPreview from "@/pages/ScanPreview";
 import Signup from "@/pages/Signup";
+import Login from "@/pages/Login";
 import HowItWorks from "@/pages/HowItWorks";
 import UseCases from "@/pages/UseCases";
 import Report from "@/pages/Report";
 import FreeReport from "@/pages/FreeReport";
 import ManagedSite from "@/pages/ManagedSite";
+import SelectSite from "@/pages/SelectSite";
 import { ROUTES, buildRoute, resolveAgentSlug } from "@shared/routes";
 import { useRoute } from "wouter";
 import { useEffect } from "react";
@@ -80,6 +84,14 @@ function LegacyRedirect({ to }: { to: string }) {
   return null;
 }
 
+function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
+  return (
+    <AppShell>
+      <Component />
+    </AppShell>
+  );
+}
+
 function Router() {
   return (
     <Switch>
@@ -87,6 +99,7 @@ function Router() {
       {/* MARKETING ROUTES - Public funnel pages */}
       {/* ============================================ */}
       <Route path={ROUTES.LANDING} component={Landing} />
+      <Route path={ROUTES.LOGIN} component={Login} />
       <Route path={ROUTES.SCAN_PREVIEW} component={ScanPreview} />
       <Route path={ROUTES.SIGNUP} component={Signup} />
       <Route path={ROUTES.HOW_IT_WORKS} component={HowItWorks} />
@@ -101,34 +114,35 @@ function Router() {
       {/* ============================================ */}
       {/* APP ROUTES - Authenticated application pages */}
       {/* ============================================ */}
-      <Route path={ROUTES.DASHBOARD} component={MissionControl} />
-      <Route path={ROUTES.MISSION_CONTROL} component={MissionControl} />
-      <Route path={ROUTES.CREW} component={MyCrew} />
-      <Route path={ROUTES.AGENTS} component={Crew} />
-      <Route path={ROUTES.AGENT_DETAIL} component={AgentDetail} />
-      <Route path={ROUTES.KEYWORDS} component={KeywordRankings} />
-      <Route path={ROUTES.AUTHORITY} component={Authority} />
-      <Route path={ROUTES.SPEEDSTER} component={Speedster} />
-      <Route path={ROUTES.SOCRATES} component={Socrates} />
-      <Route path={ROUTES.TICKETS} component={Tickets} />
-      <Route path={ROUTES.CHANGES} component={SuggestedChanges} />
-      <Route path={ROUTES.RUNS} component={Runs} />
-      <Route path={ROUTES.RUN_DETAIL} component={RunDetail} />
-      <Route path={ROUTES.AUDIT} component={Audit} />
-      <Route path={ROUTES.BENCHMARKS} component={Benchmarks} />
-      <Route path={ROUTES.ACHIEVEMENTS} component={Achievements} />
-      <Route path={ROUTES.INTEGRATIONS} component={Integrations} />
-      <Route path={ROUTES.SETTINGS} component={Settings} />
-      <Route path={ROUTES.SETTINGS_WEBSITES} component={WebsitesSettings} />
-      <Route path={ROUTES.SETTINGS_WEBSITE_DETAIL} component={WebsiteDetail} />
+      <Route path={ROUTES.DASHBOARD}><ProtectedRoute component={MissionControl} /></Route>
+      <Route path={ROUTES.MISSION_CONTROL}><ProtectedRoute component={MissionControl} /></Route>
+      <Route path={ROUTES.SELECT_SITE} component={SelectSite} />
+      <Route path={ROUTES.CREW}><ProtectedRoute component={MyCrew} /></Route>
+      <Route path={ROUTES.AGENTS}><ProtectedRoute component={Crew} /></Route>
+      <Route path={ROUTES.AGENT_DETAIL}><ProtectedRoute component={AgentDetail} /></Route>
+      <Route path={ROUTES.KEYWORDS}><ProtectedRoute component={KeywordRankings} /></Route>
+      <Route path={ROUTES.AUTHORITY}><ProtectedRoute component={Authority} /></Route>
+      <Route path={ROUTES.SPEEDSTER}><ProtectedRoute component={Speedster} /></Route>
+      <Route path={ROUTES.SOCRATES}><ProtectedRoute component={Socrates} /></Route>
+      <Route path={ROUTES.TICKETS}><ProtectedRoute component={Tickets} /></Route>
+      <Route path={ROUTES.CHANGES}><ProtectedRoute component={SuggestedChanges} /></Route>
+      <Route path={ROUTES.RUNS}><ProtectedRoute component={Runs} /></Route>
+      <Route path={ROUTES.RUN_DETAIL}><ProtectedRoute component={RunDetail} /></Route>
+      <Route path={ROUTES.AUDIT}><ProtectedRoute component={Audit} /></Route>
+      <Route path={ROUTES.BENCHMARKS}><ProtectedRoute component={Benchmarks} /></Route>
+      <Route path={ROUTES.ACHIEVEMENTS}><ProtectedRoute component={Achievements} /></Route>
+      <Route path={ROUTES.INTEGRATIONS}><ProtectedRoute component={Integrations} /></Route>
+      <Route path={ROUTES.SETTINGS}><ProtectedRoute component={Settings} /></Route>
+      <Route path={ROUTES.SETTINGS_WEBSITES}><ProtectedRoute component={WebsitesSettings} /></Route>
+      <Route path={ROUTES.SETTINGS_WEBSITE_DETAIL}><ProtectedRoute component={WebsiteDetail} /></Route>
       <Route path={ROUTES.SITES}>
         <Redirect to={buildRoute.settingsTab("sites")} />
       </Route>
-      <Route path={ROUTES.SITE_NEW} component={SiteDetail} />
-      <Route path={ROUTES.SITE_DETAIL} component={SiteDetail} />
-      <Route path={ROUTES.HELP} component={Help} />
-      <Route path={ROUTES.DEV_PALETTE} component={CrewPalette} />
-      <Route path={ROUTES.DEV_LINEAGE} component={DevLineage} />
+      <Route path={ROUTES.SITE_NEW}><ProtectedRoute component={SiteDetail} /></Route>
+      <Route path={ROUTES.SITE_DETAIL}><ProtectedRoute component={SiteDetail} /></Route>
+      <Route path={ROUTES.HELP}><ProtectedRoute component={Help} /></Route>
+      <Route path={ROUTES.DEV_PALETTE}><ProtectedRoute component={CrewPalette} /></Route>
+      <Route path={ROUTES.DEV_LINEAGE}><ProtectedRoute component={DevLineage} /></Route>
       
       {/* App home redirect */}
       <Route path={ROUTES.HOME}>
@@ -205,11 +219,13 @@ function App() {
     return (
       <QueryClientProvider client={queryClient}>
         <SiteProvider>
-          <TooltipProvider>
-            <Toaster />
-            <SonnerToaster position="top-right" richColors />
-            <Router />
-          </TooltipProvider>
+          <AuthProvider>
+            <TooltipProvider>
+              <Toaster />
+              <SonnerToaster position="top-right" richColors />
+              <Router />
+            </TooltipProvider>
+          </AuthProvider>
         </SiteProvider>
       </QueryClientProvider>
     );
@@ -239,11 +255,13 @@ function App() {
       }}
     >
       <SiteProvider>
-        <TooltipProvider>
-          <Toaster />
-          <SonnerToaster position="top-right" richColors />
-          <Router />
-        </TooltipProvider>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <SonnerToaster position="top-right" richColors />
+            <Router />
+          </TooltipProvider>
+        </AuthProvider>
       </SiteProvider>
     </PersistQueryClientProvider>
   );

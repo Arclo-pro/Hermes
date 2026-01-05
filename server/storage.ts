@@ -1,7 +1,8 @@
 import { db } from "./db";
 import crypto from "crypto";
 import { 
-  oauthTokens, 
+  oauthTokens,
+  users,
   ga4Daily, 
   gscDaily, 
   adsDaily, 
@@ -60,6 +61,8 @@ import {
   type InsertSeoAgentCompetitor,
   type OAuthToken,
   type InsertOAuthToken,
+  type User,
+  type InsertUser,
   type GA4Daily,
   type InsertGA4Daily,
   type GSCDaily,
@@ -3277,6 +3280,56 @@ class DBStorage implements IStorage {
       .where(eq(freeReports.reportId, reportId));
     
     return rawToken;
+  }
+
+  // User Authentication
+  async getUserByEmail(email: string): Promise<User | null> {
+    const [result] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email.toLowerCase()))
+      .limit(1);
+    return result || null;
+  }
+
+  async getUserById(id: number): Promise<User | null> {
+    const [result] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, id))
+      .limit(1);
+    return result || null;
+  }
+
+  async createUser(data: InsertUser): Promise<User> {
+    const [result] = await db
+      .insert(users)
+      .values({
+        ...data,
+        email: data.email.toLowerCase(),
+      })
+      .returning();
+    return result;
+  }
+
+  async updateUserLogin(userId: number): Promise<void> {
+    await db
+      .update(users)
+      .set({ lastLoginAt: new Date(), updatedAt: new Date() })
+      .where(eq(users.id, userId));
+  }
+
+  async updateUserDefaultWebsite(userId: number, websiteId: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ defaultWebsiteId: websiteId, updatedAt: new Date() })
+      .where(eq(users.id, userId));
+  }
+
+  async getUserWebsites(userId: number): Promise<string[]> {
+    // For now, return all sites. In a multi-tenant setup, this would filter by user ownership
+    const allSites = await db.select({ siteId: sites.siteId }).from(sites);
+    return allSites.map(s => s.siteId);
   }
 }
 

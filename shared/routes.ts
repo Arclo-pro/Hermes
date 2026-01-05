@@ -28,6 +28,7 @@
 export const ROUTES = {
   // Marketing pages (public)
   LANDING: "/",
+  LOGIN: "/login",
   SCAN: "/scan",
   SCAN_PREVIEW: "/scan/preview/:scanId",
   SIGNUP: "/signup",
@@ -42,6 +43,7 @@ export const ROUTES = {
   HOME: "/app",
   DASHBOARD: "/app/dashboard",
   MISSION_CONTROL: "/app/mission-control",
+  SELECT_SITE: "/app/select-site",
   
   // Crew system
   CREW: "/app/crew",
@@ -209,6 +211,7 @@ const ALL_STATIC_ROUTES = new Set([
   ROUTES.HOME,
   ROUTES.DASHBOARD,
   ROUTES.MISSION_CONTROL,
+  ROUTES.SELECT_SITE,
   ROUTES.CREW,
   ROUTES.AGENTS,
   ROUTES.KEYWORDS,
