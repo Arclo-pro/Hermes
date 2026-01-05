@@ -39,6 +39,7 @@ import ScanPreview from "@/pages/ScanPreview";
 import Signup from "@/pages/Signup";
 import HowItWorks from "@/pages/HowItWorks";
 import UseCases from "@/pages/UseCases";
+import Report from "@/pages/Report";
 import { ROUTES, buildRoute, resolveAgentSlug } from "@shared/routes";
 import { useRoute } from "wouter";
 import { useEffect } from "react";
@@ -90,6 +91,7 @@ function Router() {
       <Route path={ROUTES.USE_CASES} component={UseCases} />
       <Route path={ROUTES.TERMS} component={Terms} />
       <Route path={ROUTES.PRIVACY} component={Privacy} />
+      <Route path={ROUTES.REPORT} component={Report} />
       
       {/* ============================================ */}
       {/* APP ROUTES - Authenticated application pages */}

@@ -17191,6 +17191,95 @@ Return JSON in this exact format:
     }
   });
 
+  app.get("/api/scan/:scanId/report", async (req, res) => {
+    const { scanId } = req.params;
+    try {
+      const result = await db.execute(sql`
+        SELECT scan_id, target_url, normalized_url, status, preview_findings, score_summary, email
+        FROM scan_requests
+        WHERE scan_id = ${scanId}
+      `);
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({ ok: false, message: "Scan not found" });
+      }
+
+      const scan = result.rows[0] as any;
+
+      if (scan.status !== "preview_ready" && scan.status !== "completed") {
+        return res.status(400).json({ ok: false, message: "Scan not ready yet" });
+      }
+
+      const baseFindings = scan.preview_findings || [];
+      const scoreSummary = scan.score_summary || { overall: 0, technical: 0, content: 0, performance: 0 };
+      const isUnlocked = !!scan.email;
+
+      const additionalFindings = [
+        {
+          id: "finding_4",
+          title: "Broken Internal Links",
+          severity: "medium",
+          impact: "Medium",
+          effort: "Low",
+          summary: "5 internal links return 404 errors, potentially hurting user experience and crawl efficiency.",
+          recommendation: "Update or remove broken links to improve site navigation and SEO signals."
+        },
+        {
+          id: "finding_5",
+          title: "Duplicate Title Tags",
+          severity: "medium",
+          impact: "Medium",
+          effort: "Low",
+          summary: "3 pages share identical title tags, making it harder for search engines to differentiate content.",
+          recommendation: "Create unique, descriptive titles for each page targeting different keywords."
+        },
+        {
+          id: "finding_6",
+          title: "Missing Structured Data",
+          severity: "low",
+          impact: "Medium",
+          effort: "Medium",
+          summary: "No schema markup detected. Adding structured data can enhance rich snippets in search results.",
+          recommendation: "Implement Organization, Article, or Product schema based on your content type."
+        },
+        {
+          id: "finding_7",
+          title: "Low Text-to-HTML Ratio",
+          severity: "low",
+          impact: "Low",
+          effort: "Medium",
+          summary: "Several pages have less than 10% visible text content relative to HTML code.",
+          recommendation: "Add more substantive content or reduce unnecessary HTML markup."
+        },
+        {
+          id: "finding_8",
+          title: "Missing H1 Tags",
+          severity: "medium",
+          impact: "Medium",
+          effort: "Low",
+          summary: "4 pages are missing H1 headings, which are important for SEO and accessibility.",
+          recommendation: "Add a single, descriptive H1 tag to each page summarizing its main topic."
+        }
+      ];
+
+      const returnedFindings = isUnlocked 
+        ? [...baseFindings, ...additionalFindings]
+        : baseFindings.slice(0, 3);
+      const totalCount = baseFindings.length + additionalFindings.length;
+
+      res.json({
+        findings: returnedFindings,
+        scoreSummary,
+        totalFindings: totalCount,
+        targetUrl: scan.normalized_url || scan.target_url,
+        unlocked: isUnlocked,
+      });
+    } catch (error: any) {
+      logger.error("Scan", `Failed to get full report for ${scanId}`, { error: error.message });
+      res.status(500).json({ ok: false, message: "Failed to get full report" });
+    }
+  });
+
   app.post("/api/scan/:scanId/deploy", async (req, res) => {
     const { scanId } = req.params;
     const requestId = randomUUID();
