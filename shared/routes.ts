@@ -32,6 +32,8 @@ export const ROUTES = {
   SCAN_PREVIEW: "/scan/preview/:scanId",
   SIGNUP: "/signup",
   REPORT: "/report/:scanId",
+  FREE_REPORT: "/report/free/:reportId",
+  FREE_REPORT_SHARE: "/report/free/:reportId/share/:shareToken",
   HOW_IT_WORKS: "/how-it-works",
   USE_CASES: "/use-cases",
   MANAGED_SITE: "/managed-site",
@@ -88,6 +90,8 @@ export const buildRoute = {
   // Marketing route builders
   scanPreview: (scanId: string) => `/scan/preview/${scanId}`,
   report: (scanId: string) => `/report/${scanId}`,
+  freeReport: (reportId: string) => `/report/free/${reportId}`,
+  freeReportShare: (reportId: string, shareToken: string) => `/report/free/${reportId}/share/${shareToken}`,
   
   // App route builders
   agent: (agentId: string) => `/app/agents/${agentId}`,
@@ -235,6 +239,8 @@ const DYNAMIC_ROUTE_PATTERNS = [
   // Marketing dynamic routes
   /^\/scan\/preview\/[a-zA-Z0-9_-]+$/,
   /^\/report\/[a-zA-Z0-9_-]+$/,
+  /^\/report\/free\/[a-zA-Z0-9_-]+$/,
+  /^\/report\/free\/[a-zA-Z0-9_-]+\/share\/[a-zA-Z0-9_-]+$/,
   
   // App dynamic routes
   /^\/app\/agents\/[a-zA-Z0-9_-]+$/,

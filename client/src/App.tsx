@@ -40,6 +40,7 @@ import Signup from "@/pages/Signup";
 import HowItWorks from "@/pages/HowItWorks";
 import UseCases from "@/pages/UseCases";
 import Report from "@/pages/Report";
+import FreeReport from "@/pages/FreeReport";
 import ManagedSite from "@/pages/ManagedSite";
 import { ROUTES, buildRoute, resolveAgentSlug } from "@shared/routes";
 import { useRoute } from "wouter";
@@ -93,6 +94,8 @@ function Router() {
       <Route path={ROUTES.TERMS} component={Terms} />
       <Route path={ROUTES.PRIVACY} component={Privacy} />
       <Route path={ROUTES.REPORT} component={Report} />
+      <Route path={ROUTES.FREE_REPORT_SHARE} component={FreeReport} />
+      <Route path={ROUTES.FREE_REPORT} component={FreeReport} />
       <Route path={ROUTES.MANAGED_SITE} component={ManagedSite} />
       
       {/* ============================================ */}

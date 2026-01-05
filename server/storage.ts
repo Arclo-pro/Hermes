@@ -1,4 +1,5 @@
 import { db } from "./db";
+import crypto from "crypto";
 import { 
   oauthTokens, 
   ga4Daily, 
@@ -185,6 +186,9 @@ import {
   coreWebVitalsDaily,
   type CoreWebVitalsDaily,
   type InsertCoreWebVitalsDaily,
+  freeReports,
+  type FreeReport,
+  type InsertFreeReport,
 } from "@shared/schema";
 import { eq, desc, and, gte, sql, asc, or, isNull, arrayContains } from "drizzle-orm";
 
@@ -536,6 +540,13 @@ export interface IStorage {
   insertCoreWebVitalsDaily(data: InsertCoreWebVitalsDaily): Promise<CoreWebVitalsDaily>;
   getLatestCoreWebVitals(siteId: string): Promise<CoreWebVitalsDaily | undefined>;
   getCoreWebVitalsHistory(siteId: string, days: number): Promise<CoreWebVitalsDaily[]>;
+  
+  // Free Reports
+  createFreeReport(data: InsertFreeReport): Promise<FreeReport>;
+  getFreeReportById(reportId: string): Promise<FreeReport | null>;
+  getFreeReportByShareToken(token: string): Promise<FreeReport | null>;
+  updateFreeReport(reportId: string, updates: Partial<FreeReport>): Promise<void>;
+  createShareToken(reportId: string): Promise<string>;
 }
 
 class DBStorage implements IStorage {
@@ -3213,6 +3224,59 @@ class DBStorage implements IStorage {
         gte(coreWebVitalsDaily.collectedAt, cutoffDate)
       ))
       .orderBy(asc(coreWebVitalsDaily.collectedAt));
+  }
+
+  // Free Reports
+  async createFreeReport(data: InsertFreeReport): Promise<FreeReport> {
+    const [result] = await db
+      .insert(freeReports)
+      .values(data)
+      .returning();
+    return result;
+  }
+
+  async getFreeReportById(reportId: string): Promise<FreeReport | null> {
+    const [result] = await db
+      .select()
+      .from(freeReports)
+      .where(eq(freeReports.reportId, reportId))
+      .limit(1);
+    return result || null;
+  }
+
+  async getFreeReportByShareToken(token: string): Promise<FreeReport | null> {
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+    const [result] = await db
+      .select()
+      .from(freeReports)
+      .where(eq(freeReports.shareToken, hashedToken))
+      .limit(1);
+    return result || null;
+  }
+
+  async updateFreeReport(reportId: string, updates: Partial<FreeReport>): Promise<void> {
+    await db
+      .update(freeReports)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(freeReports.reportId, reportId));
+  }
+
+  async createShareToken(reportId: string): Promise<string> {
+    const rawToken = crypto.randomUUID();
+    const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+    
+    await db
+      .update(freeReports)
+      .set({ 
+        shareToken: hashedToken, 
+        shareTokenExpiresAt: expiresAt,
+        updatedAt: new Date() 
+      })
+      .where(eq(freeReports.reportId, reportId));
+    
+    return rawToken;
   }
 }
 
