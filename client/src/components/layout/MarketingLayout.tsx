@@ -1,5 +1,7 @@
 import { Link } from "wouter";
 import { ROUTES } from "@shared/routes";
+import { Button } from "@/components/ui/button";
+import { LogIn } from "lucide-react";
 
 interface MarketingLayoutProps {
   children: React.ReactNode;
@@ -19,21 +21,22 @@ export function MarketingLayout({ children }: MarketingLayoutProps) {
             </div>
           </Link>
           
-          <nav className="hidden md:flex items-center gap-6">
-            <Link href={ROUTES.HOW_IT_WORKS}>
+          <nav className="flex items-center gap-4 md:gap-6">
+            <Link href={ROUTES.HOW_IT_WORKS} className="hidden md:block">
               <span className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer" data-testid="link-how-it-works">
                 How It Works
               </span>
             </Link>
-            <Link href={ROUTES.USE_CASES}>
+            <Link href={ROUTES.USE_CASES} className="hidden md:block">
               <span className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer" data-testid="link-use-cases">
                 Use Cases
               </span>
             </Link>
-            <Link href={ROUTES.HOME}>
-              <span className="text-sm font-medium text-primary hover:text-primary/80 transition-colors cursor-pointer" data-testid="link-login">
-                Log In
-              </span>
+            <Link href="/login">
+              <Button variant="default" size="sm" className="gap-2" data-testid="button-login">
+                <LogIn className="h-4 w-4" />
+                <span>Log In</span>
+              </Button>
             </Link>
           </nav>
         </div>
