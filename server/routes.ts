@@ -50,6 +50,7 @@ import {
   computeAllCrewStatuses,
   type CrewStatus 
 } from "./services/crewStatus";
+import governanceRoutes from './routes/governance';
 
 const createSiteSchema = z.object({
   displayName: z.string().min(1, "Display name is required"),
@@ -18434,6 +18435,8 @@ Return JSON in this exact format:
 
     res.json({ ok: true, message: "Account created successfully" });
   });
+
+  app.use('/api', governanceRoutes);
 
   return httpServer;
 }
