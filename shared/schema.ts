@@ -22,6 +22,32 @@ export const insertOAuthTokenSchema = createInsertSchema(oauthTokens).omit({
 export type InsertOAuthToken = z.infer<typeof insertOAuthTokenSchema>;
 export type OAuthToken = typeof oauthTokens.$inferSelect;
 
+// Scan Requests for marketing funnel
+export const scanRequests = pgTable("scan_requests", {
+  id: serial("id").primaryKey(),
+  scanId: text("scan_id").notNull().unique(), // UUID for URL-safe identifier
+  targetUrl: text("target_url").notNull(),
+  normalizedUrl: text("normalized_url").notNull(), // https://domain.com format
+  status: text("status").notNull().default("queued"), // queued, running, preview_ready, completed, failed
+  email: text("email"), // Optional until signup
+  previewFindings: jsonb("preview_findings"), // Limited findings shown before signup
+  fullReport: jsonb("full_report"), // Complete report data
+  scoreSummary: jsonb("score_summary"), // Overall scores
+  errorMessage: text("error_message"),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertScanRequestSchema = createInsertSchema(scanRequests).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertScanRequest = z.infer<typeof insertScanRequestSchema>;
+export type ScanRequest = typeof scanRequests.$inferSelect;
+
 // GA4 Daily Snapshots
 export const ga4Daily = pgTable("ga4_daily", {
   id: serial("id").primaryKey(),

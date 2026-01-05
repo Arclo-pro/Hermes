@@ -4,64 +4,77 @@
  * This is the single source of truth for all routes in the application.
  * All navigation should use these constants/builders instead of hardcoded strings.
  * 
+ * ROUTE STRUCTURE:
+ * - Marketing routes: Public-facing funnel pages (/, /scan, /signup, etc.)
+ * - App routes: Authenticated application pages (all under /app/*)
+ * 
  * ROUTING DECISIONS:
- * - /agents/:agentId - Canonical route for individual crew member pages
- * - /crew - Crew hiring/discovery page
- * - /dashboard - Main mission control (aliases: /mission-control, /)
- * - All crew member pages accessible via /agents/{service_id}
+ * - /app/agents/:agentId - Canonical route for individual crew member pages
+ * - /app/crew - Crew hiring/discovery page
+ * - /app/dashboard - Main mission control (aliases: /app/mission-control)
+ * - All crew member pages accessible via /app/agents/{service_id}
  * 
  * DEPRECATED ROUTES (with redirects):
- * - /crew/:agentId → /agents/:agentId (server-side + client-side redirect)
- * - /mission-control → /dashboard (alias, both work)
- * - /crew/speedster → /speedster (redirect)
- * - /crew/socrates → /socrates (redirect)
+ * - /crew/:agentId → /app/agents/:agentId (server-side + client-side redirect)
+ * - /mission-control → /app/mission-control (redirect)
+ * - /dashboard → /app/dashboard (redirect)
+ * - All old root-level app routes → /app/* equivalents
  */
 
 // ============================================
-// CANONICAL ROUTES
+// MARKETING ROUTES (Public Funnel)
 // ============================================
 
 export const ROUTES = {
-  // Core pages
-  HOME: "/",
-  DASHBOARD: "/dashboard",
-  MISSION_CONTROL: "/mission-control", // Alias for dashboard
+  // Marketing pages (public)
+  LANDING: "/",
+  SCAN: "/scan",
+  SCAN_PREVIEW: "/scan/preview/:scanId",
+  SIGNUP: "/signup",
+  REPORT: "/report/:scanId",
+  HOW_IT_WORKS: "/how-it-works",
+  USE_CASES: "/use-cases",
+  
+  // App core pages (authenticated)
+  HOME: "/app",
+  DASHBOARD: "/app/dashboard",
+  MISSION_CONTROL: "/app/mission-control",
   
   // Crew system
-  CREW: "/crew", // Crew hiring/discovery page
-  AGENTS: "/agents", // List of all agents
-  AGENT_DETAIL: "/agents/:agentId", // Individual crew member page
+  CREW: "/app/crew",
+  AGENTS: "/app/agents",
+  AGENT_DETAIL: "/app/agents/:agentId",
   
   // Feature pages (crew-specific tools that have dedicated routes)
-  KEYWORDS: "/keywords", // Lookout SERP tracking
-  AUTHORITY: "/authority", // Authority/backlink analysis
-  SPEEDSTER: "/speedster", // Core Web Vitals
-  SOCRATES: "/socrates", // Knowledge base
+  KEYWORDS: "/app/keywords",
+  AUTHORITY: "/app/authority",
+  SPEEDSTER: "/app/speedster",
+  SOCRATES: "/app/socrates",
   
   // System pages
-  TICKETS: "/tickets",
-  CHANGES: "/changes",
-  RUNS: "/runs",
-  RUN_DETAIL: "/runs/:runId",
-  AUDIT: "/audit",
-  BENCHMARKS: "/benchmarks",
-  ACHIEVEMENTS: "/achievements",
+  TICKETS: "/app/tickets",
+  CHANGES: "/app/changes",
+  RUNS: "/app/runs",
+  RUN_DETAIL: "/app/runs/:runId",
+  AUDIT: "/app/audit",
+  BENCHMARKS: "/app/benchmarks",
+  ACHIEVEMENTS: "/app/achievements",
   
   // Settings & Configuration
-  INTEGRATIONS: "/integrations",
-  SETTINGS: "/settings",
-  SETTINGS_WEBSITES: "/settings/websites",
-  SETTINGS_WEBSITE_DETAIL: "/settings/websites/:siteId",
-  SITES: "/sites",
-  SITE_DETAIL: "/sites/:siteId",
-  SITE_NEW: "/sites/new",
-  HELP: "/help",
+  INTEGRATIONS: "/app/integrations",
+  SETTINGS: "/app/settings",
+  SETTINGS_WEBSITES: "/app/settings/websites",
+  SETTINGS_WEBSITE_DETAIL: "/app/settings/websites/:siteId",
+  SITES: "/app/sites",
+  SITE_DETAIL: "/app/sites/:siteId",
+  SITE_NEW: "/app/sites/new",
+  HELP: "/app/help",
   
   // Developer pages
-  DEV_PALETTE: "/dev/palette",
-  DEV_LINEAGE: "/dev/lineage",
+  DEV_PALETTE: "/app/dev/palette",
+  DEV_LINEAGE: "/app/dev/lineage",
   
-  // Legal pages
+  // Legal pages (public)
   TERMS: "/terms",
   PRIVACY: "/privacy",
 } as const;
@@ -71,18 +84,48 @@ export const ROUTES = {
 // ============================================
 
 export const buildRoute = {
-  agent: (agentId: string) => `/agents/${agentId}`,
-  run: (runId: string) => `/runs/${runId}`,
-  site: (siteId: string) => `/sites/${siteId}`,
-  settingsTab: (tab: string) => `/settings?tab=${tab}`,
-  settingsWebsite: (siteId: string) => `/settings/websites/${siteId}`,
+  // Marketing route builders
+  scanPreview: (scanId: string) => `/scan/preview/${scanId}`,
+  report: (scanId: string) => `/report/${scanId}`,
+  
+  // App route builders
+  agent: (agentId: string) => `/app/agents/${agentId}`,
+  run: (runId: string) => `/app/runs/${runId}`,
+  site: (siteId: string) => `/app/sites/${siteId}`,
+  settingsTab: (tab: string) => `/app/settings?tab=${tab}`,
+  settingsWebsite: (siteId: string) => `/app/settings/websites/${siteId}`,
 } as const;
 
 // ============================================
 // DEPRECATED ROUTES → REDIRECT TARGETS
+// These are old routes that should redirect to new /app/* paths
 // ============================================
 
 export const DEPRECATED_ROUTES: Record<string, string | ((params: Record<string, string>) => string)> = {
+  // Old root-level app routes → new /app/* routes
+  "/dashboard": ROUTES.DASHBOARD,
+  "/mission-control": ROUTES.MISSION_CONTROL,
+  "/crew": ROUTES.CREW,
+  "/agents": ROUTES.AGENTS,
+  "/keywords": ROUTES.KEYWORDS,
+  "/authority": ROUTES.AUTHORITY,
+  "/speedster": ROUTES.SPEEDSTER,
+  "/socrates": ROUTES.SOCRATES,
+  "/tickets": ROUTES.TICKETS,
+  "/changes": ROUTES.CHANGES,
+  "/runs": ROUTES.RUNS,
+  "/audit": ROUTES.AUDIT,
+  "/benchmarks": ROUTES.BENCHMARKS,
+  "/achievements": ROUTES.ACHIEVEMENTS,
+  "/integrations": ROUTES.INTEGRATIONS,
+  "/settings": ROUTES.SETTINGS,
+  "/settings/websites": ROUTES.SETTINGS_WEBSITES,
+  "/sites": ROUTES.SITES,
+  "/sites/new": ROUTES.SITE_NEW,
+  "/help": ROUTES.HELP,
+  "/dev/palette": ROUTES.DEV_PALETTE,
+  "/dev/lineage": ROUTES.DEV_LINEAGE,
+  
   // Old crew-based agent routes
   "/crew/:agentId": (params) => buildRoute.agent(params.agentId),
   "/crew/speedster": ROUTES.SPEEDSTER,
@@ -96,6 +139,14 @@ export const DEPRECATED_ROUTES: Record<string, string | ((params: Record<string,
   "/crew/popular": buildRoute.agent("popular"),
   "/crew/authority": ROUTES.AUTHORITY,
   
+  // Old agent routes without /app prefix
+  "/agents/:agentId": (params) => buildRoute.agent(params.agentId),
+  
+  // Old run/site routes without /app prefix
+  "/runs/:runId": (params) => buildRoute.run(params.runId),
+  "/sites/:siteId": (params) => buildRoute.site(params.siteId),
+  "/settings/websites/:siteId": (params) => buildRoute.settingsWebsite(params.siteId),
+  
   // Ensure consistent casing
   "/Agents": ROUTES.AGENTS,
   "/Dashboard": ROUTES.DASHBOARD,
@@ -108,14 +159,31 @@ export const DEPRECATED_PATTERNS = [
     pattern: /^\/crew\/([a-zA-Z0-9_-]+)$/,
     resolve: (match: RegExpMatchArray) => {
       const agentId = match[1];
-      // If it's a known standalone route, redirect there
       if (agentId === "speedster") return ROUTES.SPEEDSTER;
       if (agentId === "socrates") return ROUTES.SOCRATES;
       if (agentId === "lookout") return ROUTES.KEYWORDS;
       if (agentId === "authority") return ROUTES.AUTHORITY;
-      // Otherwise redirect to agent detail
       return buildRoute.agent(agentId);
     },
+  },
+  {
+    pattern: /^\/agents\/([a-zA-Z0-9_-]+)$/,
+    resolve: (match: RegExpMatchArray) => buildRoute.agent(match[1]),
+  },
+  {
+    pattern: /^\/runs\/([a-zA-Z0-9_-]+)$/,
+    resolve: (match: RegExpMatchArray) => buildRoute.run(match[1]),
+  },
+  {
+    pattern: /^\/sites\/([a-zA-Z0-9_-]+)$/,
+    resolve: (match: RegExpMatchArray) => {
+      if (match[1] === "new") return ROUTES.SITE_NEW;
+      return buildRoute.site(match[1]);
+    },
+  },
+  {
+    pattern: /^\/settings\/websites\/([a-zA-Z0-9_-]+)$/,
+    resolve: (match: RegExpMatchArray) => buildRoute.settingsWebsite(match[1]),
   },
 ];
 
@@ -124,6 +192,14 @@ export const DEPRECATED_PATTERNS = [
 // ============================================
 
 const ALL_STATIC_ROUTES = new Set([
+  // Marketing routes
+  ROUTES.LANDING,
+  ROUTES.SCAN,
+  ROUTES.SIGNUP,
+  ROUTES.HOW_IT_WORKS,
+  ROUTES.USE_CASES,
+  
+  // App routes
   ROUTES.HOME,
   ROUTES.DASHBOARD,
   ROUTES.MISSION_CONTROL,
@@ -141,29 +217,35 @@ const ALL_STATIC_ROUTES = new Set([
   ROUTES.ACHIEVEMENTS,
   ROUTES.INTEGRATIONS,
   ROUTES.SETTINGS,
+  ROUTES.SETTINGS_WEBSITES,
   ROUTES.SITES,
   ROUTES.SITE_NEW,
   ROUTES.HELP,
   ROUTES.DEV_PALETTE,
   ROUTES.DEV_LINEAGE,
+  
+  // Legal routes
   ROUTES.TERMS,
   ROUTES.PRIVACY,
 ]);
 
 const DYNAMIC_ROUTE_PATTERNS = [
-  /^\/agents\/[a-zA-Z0-9_-]+$/,
-  /^\/runs\/[a-zA-Z0-9_-]+$/,
-  /^\/sites\/[a-zA-Z0-9_-]+$/,
+  // Marketing dynamic routes
+  /^\/scan\/preview\/[a-zA-Z0-9_-]+$/,
+  /^\/report\/[a-zA-Z0-9_-]+$/,
+  
+  // App dynamic routes
+  /^\/app\/agents\/[a-zA-Z0-9_-]+$/,
+  /^\/app\/runs\/[a-zA-Z0-9_-]+$/,
+  /^\/app\/sites\/[a-zA-Z0-9_-]+$/,
+  /^\/app\/settings\/websites\/[a-zA-Z0-9_-]+$/,
 ];
 
 export function isValidRoute(path: string): boolean {
-  // Check query params and hash stripped
   const basePath = path.split("?")[0].split("#")[0];
   
-  // Check static routes
   if (ALL_STATIC_ROUTES.has(basePath)) return true;
   
-  // Check dynamic patterns
   for (const pattern of DYNAMIC_ROUTE_PATTERNS) {
     if (pattern.test(basePath)) return true;
   }
@@ -172,14 +254,11 @@ export function isValidRoute(path: string): boolean {
 }
 
 export function resolveDeprecatedRoute(path: string): string | null {
-  // Check static deprecated routes
   if (DEPRECATED_ROUTES[path]) {
     const target = DEPRECATED_ROUTES[path];
     if (typeof target === "string") return target;
-    // For pattern-based, we need params - handled by DEPRECATED_PATTERNS
   }
   
-  // Check pattern-based redirects
   for (const { pattern, resolve } of DEPRECATED_PATTERNS) {
     const match = path.match(pattern);
     if (match) {
@@ -194,45 +273,60 @@ export function resolveDeprecatedRoute(path: string): string | null {
 // NAVIGATION HELPERS
 // ============================================
 
-/**
- * Safe navigation helper - ensures we never navigate to invalid routes
- */
 export function getSafeRoute(
   targetRoute: string,
   fallbackRoute: string = ROUTES.DASHBOARD
 ): string {
-  // First check if it's a deprecated route that should be redirected
   const redirected = resolveDeprecatedRoute(targetRoute);
   if (redirected) return redirected;
   
-  // Check if the route is valid
   if (isValidRoute(targetRoute)) return targetRoute;
   
-  // Fall back to dashboard
   console.warn(`[Routes] Invalid route "${targetRoute}", falling back to "${fallbackRoute}"`);
   return fallbackRoute;
 }
 
-/**
- * Post-action navigation helper
- * Returns to the best available page after an action completes
- */
 export function getPostActionRoute(
   currentRoute: string,
   preferredRoute?: string
 ): string {
-  // If a preferred route is given and valid, use it
   if (preferredRoute && isValidRoute(preferredRoute)) {
     return preferredRoute;
   }
   
-  // Stay on current page if it's valid
   if (isValidRoute(currentRoute)) {
     return currentRoute;
   }
   
-  // Fall back to dashboard
   return ROUTES.DASHBOARD;
+}
+
+// ============================================
+// ROUTE TYPE HELPERS
+// ============================================
+
+export function isMarketingRoute(path: string): boolean {
+  const basePath = path.split("?")[0].split("#")[0];
+  const marketingPaths = [
+    ROUTES.LANDING,
+    ROUTES.SCAN,
+    ROUTES.SIGNUP,
+    ROUTES.HOW_IT_WORKS,
+    ROUTES.USE_CASES,
+    ROUTES.TERMS,
+    ROUTES.PRIVACY,
+  ];
+  
+  if (marketingPaths.includes(basePath as typeof marketingPaths[number])) return true;
+  if (/^\/scan\/preview\/[a-zA-Z0-9_-]+$/.test(basePath)) return true;
+  if (/^\/report\/[a-zA-Z0-9_-]+$/.test(basePath)) return true;
+  
+  return false;
+}
+
+export function isAppRoute(path: string): boolean {
+  const basePath = path.split("?")[0].split("#")[0];
+  return basePath.startsWith("/app");
 }
 
 // ============================================
@@ -241,17 +335,17 @@ export function getPostActionRoute(
 // ============================================
 
 export const KNOWN_AGENT_IDS = [
-  "competitive_snapshot",   // Natasha - Competitive Intelligence
-  "serp_intel",             // Lookout - SERP Tracking
-  "google_data_connector",  // Popular - Analytics & Signals
-  "crawl_render",           // Scotty - Technical SEO
-  "core_web_vitals",        // Speedster - Performance Monitoring
-  "content_decay",          // Sentinel - Content Decay
-  "content_generator",      // Hemingway - Content Strategy
-  "backlink_authority",     // Beacon - Domain Authority
-  "seo_kbase",              // Socrates - Knowledge Base
-  "ai_optimization",        // Atlas - AI Optimization
-  "google_ads_connector",   // Draper - Paid Ads
+  "competitive_snapshot",
+  "serp_intel",
+  "google_data_connector",
+  "crawl_render",
+  "core_web_vitals",
+  "content_decay",
+  "content_generator",
+  "backlink_authority",
+  "seo_kbase",
+  "ai_optimization",
+  "google_ads_connector",
 ] as const;
 
 export type AgentId = typeof KNOWN_AGENT_IDS[number];
@@ -277,7 +371,6 @@ export const SLUG_TO_SERVICE_ID: Record<string, string> = {
   "socrates": "seo_kbase",
   "atlas": "ai_optimization",
   "draper": "google_ads_connector",
-  // Direct service_id mappings (identity)
   "competitive_snapshot": "competitive_snapshot",
   "serp_intel": "serp_intel",
   "google_data_connector": "google_data_connector",

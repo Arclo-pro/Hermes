@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+Allow: /how-it-works
+Allow: /use-cases
+Allow: /terms
+Allow: /privacy
+
+Disallow: /app
+Disallow: /app/*
+Disallow: /report
+Disallow: /report/*
+Disallow: /api
+
+Sitemap: https://arclo.io/sitemap.xml

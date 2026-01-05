@@ -34,6 +34,11 @@ import WebsitesSettings from "@/pages/WebsitesSettings";
 import WebsiteDetail from "@/pages/WebsiteDetail";
 import Terms from "@/pages/Terms";
 import Privacy from "@/pages/Privacy";
+import Landing from "@/pages/Landing";
+import ScanPreview from "@/pages/ScanPreview";
+import Signup from "@/pages/Signup";
+import HowItWorks from "@/pages/HowItWorks";
+import UseCases from "@/pages/UseCases";
 import { ROUTES, buildRoute, resolveAgentSlug } from "@shared/routes";
 import { useRoute } from "wouter";
 import { useEffect } from "react";
@@ -54,7 +59,6 @@ function CrewRedirect() {
   useEffect(() => {
     if (params?.agentId) {
       const slug = params.agentId;
-      // Resolve slug to service ID and redirect to canonical agent route
       const serviceId = resolveAgentSlug(slug);
       navigate(buildRoute.agent(serviceId), { replace: true });
     }
@@ -63,11 +67,32 @@ function CrewRedirect() {
   return null;
 }
 
+function LegacyRedirect({ to }: { to: string }) {
+  const [, navigate] = useLocation();
+  
+  useEffect(() => {
+    navigate(to, { replace: true });
+  }, [to, navigate]);
+  
+  return null;
+}
+
 function Router() {
   return (
     <Switch>
       {/* ============================================ */}
-      {/* CANONICAL ROUTES - Primary pages */}
+      {/* MARKETING ROUTES - Public funnel pages */}
+      {/* ============================================ */}
+      <Route path={ROUTES.LANDING} component={Landing} />
+      <Route path={ROUTES.SCAN_PREVIEW} component={ScanPreview} />
+      <Route path={ROUTES.SIGNUP} component={Signup} />
+      <Route path={ROUTES.HOW_IT_WORKS} component={HowItWorks} />
+      <Route path={ROUTES.USE_CASES} component={UseCases} />
+      <Route path={ROUTES.TERMS} component={Terms} />
+      <Route path={ROUTES.PRIVACY} component={Privacy} />
+      
+      {/* ============================================ */}
+      {/* APP ROUTES - Authenticated application pages */}
       {/* ============================================ */}
       <Route path={ROUTES.DASHBOARD} component={MissionControl} />
       <Route path={ROUTES.MISSION_CONTROL} component={MissionControl} />
@@ -97,18 +122,69 @@ function Router() {
       <Route path={ROUTES.HELP} component={Help} />
       <Route path={ROUTES.DEV_PALETTE} component={CrewPalette} />
       <Route path={ROUTES.DEV_LINEAGE} component={DevLineage} />
-      <Route path={ROUTES.TERMS} component={Terms} />
-      <Route path={ROUTES.PRIVACY} component={Privacy} />
       
-      {/* ============================================ */}
-      {/* LEGACY REDIRECTS - Old /crew/* routes to canonical /agents/* */}
-      {/* Uses CrewRedirect to resolve slugs to service IDs */}
-      {/* ============================================ */}
-      <Route path="/crew/:agentId" component={CrewRedirect} />
-      
-      {/* Home redirect */}
+      {/* App home redirect */}
       <Route path={ROUTES.HOME}>
         <Redirect to={ROUTES.DASHBOARD} />
+      </Route>
+      
+      {/* ============================================ */}
+      {/* LEGACY REDIRECTS - Old routes to new /app/* */}
+      {/* ============================================ */}
+      <Route path="/dashboard">
+        <LegacyRedirect to={ROUTES.DASHBOARD} />
+      </Route>
+      <Route path="/mission-control">
+        <LegacyRedirect to={ROUTES.MISSION_CONTROL} />
+      </Route>
+      <Route path="/crew/:agentId" component={CrewRedirect} />
+      <Route path="/crew">
+        <LegacyRedirect to={ROUTES.CREW} />
+      </Route>
+      <Route path="/agents">
+        <LegacyRedirect to={ROUTES.AGENTS} />
+      </Route>
+      <Route path="/keywords">
+        <LegacyRedirect to={ROUTES.KEYWORDS} />
+      </Route>
+      <Route path="/authority">
+        <LegacyRedirect to={ROUTES.AUTHORITY} />
+      </Route>
+      <Route path="/speedster">
+        <LegacyRedirect to={ROUTES.SPEEDSTER} />
+      </Route>
+      <Route path="/socrates">
+        <LegacyRedirect to={ROUTES.SOCRATES} />
+      </Route>
+      <Route path="/tickets">
+        <LegacyRedirect to={ROUTES.TICKETS} />
+      </Route>
+      <Route path="/changes">
+        <LegacyRedirect to={ROUTES.CHANGES} />
+      </Route>
+      <Route path="/runs">
+        <LegacyRedirect to={ROUTES.RUNS} />
+      </Route>
+      <Route path="/audit">
+        <LegacyRedirect to={ROUTES.AUDIT} />
+      </Route>
+      <Route path="/benchmarks">
+        <LegacyRedirect to={ROUTES.BENCHMARKS} />
+      </Route>
+      <Route path="/achievements">
+        <LegacyRedirect to={ROUTES.ACHIEVEMENTS} />
+      </Route>
+      <Route path="/integrations">
+        <LegacyRedirect to={ROUTES.INTEGRATIONS} />
+      </Route>
+      <Route path="/settings">
+        <LegacyRedirect to={ROUTES.SETTINGS} />
+      </Route>
+      <Route path="/sites">
+        <LegacyRedirect to={ROUTES.SITES} />
+      </Route>
+      <Route path="/help">
+        <LegacyRedirect to={ROUTES.HELP} />
       </Route>
       
       {/* 404 catch-all */}

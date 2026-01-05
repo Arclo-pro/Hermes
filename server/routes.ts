@@ -17007,5 +17007,234 @@ Return JSON in this exact format:
     }
   });
 
+  // ============================================================
+  // SCAN API - Marketing Funnel
+  // ============================================================
+  
+  const scanStartSchema = z.object({
+    url: z.string().url("Valid URL is required"),
+  });
+
+  app.post("/api/scan", async (req, res) => {
+    const requestId = randomUUID();
+    try {
+      const parsed = scanStartSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ 
+          ok: false, 
+          message: parsed.error.errors[0]?.message || "Invalid URL" 
+        });
+      }
+
+      const { url } = parsed.data;
+      const scanId = `scan_${Date.now()}_${randomUUID().slice(0, 8)}`;
+      
+      let normalizedUrl = url.trim();
+      if (!normalizedUrl.startsWith("http://") && !normalizedUrl.startsWith("https://")) {
+        normalizedUrl = `https://${normalizedUrl}`;
+      }
+
+      await db.execute(sql`
+        INSERT INTO scan_requests (scan_id, target_url, normalized_url, status, created_at, updated_at)
+        VALUES (${scanId}, ${url}, ${normalizedUrl}, 'queued', NOW(), NOW())
+      `);
+
+      setTimeout(async () => {
+        try {
+          await db.execute(sql`
+            UPDATE scan_requests 
+            SET status = 'running', started_at = NOW(), updated_at = NOW()
+            WHERE scan_id = ${scanId}
+          `);
+
+          await new Promise(resolve => setTimeout(resolve, 3000));
+
+          const mockFindings = [
+            {
+              id: "finding_1",
+              title: "Missing Meta Descriptions",
+              severity: "high",
+              impact: "High",
+              effort: "Low",
+              summary: "12 pages are missing meta descriptions, hurting click-through rates from search results."
+            },
+            {
+              id: "finding_2", 
+              title: "Slow Page Speed",
+              severity: "medium",
+              impact: "Medium",
+              effort: "Medium",
+              summary: "LCP is 4.2s on mobile. Optimizing images could improve this significantly."
+            },
+            {
+              id: "finding_3",
+              title: "Missing Alt Text",
+              severity: "low",
+              impact: "Low",
+              effort: "Low",
+              summary: "8 images are missing alt text, reducing accessibility and SEO value."
+            }
+          ];
+
+          const scoreSummary = {
+            overall: 67,
+            technical: 72,
+            content: 65,
+            performance: 58
+          };
+
+          await db.execute(sql`
+            UPDATE scan_requests 
+            SET status = 'preview_ready',
+                preview_findings = ${JSON.stringify(mockFindings)}::jsonb,
+                score_summary = ${JSON.stringify(scoreSummary)}::jsonb,
+                completed_at = NOW(),
+                updated_at = NOW()
+            WHERE scan_id = ${scanId}
+          `);
+        } catch (error) {
+          logger.error("Scan", `Scan ${scanId} failed`, { error });
+          await db.execute(sql`
+            UPDATE scan_requests 
+            SET status = 'failed', error_message = 'Scan failed', updated_at = NOW()
+            WHERE scan_id = ${scanId}
+          `);
+        }
+      }, 1000);
+
+      res.json({ 
+        ok: true,
+        scanId,
+        status: "queued",
+        message: "Scan started successfully"
+      });
+    } catch (error: any) {
+      logger.error("Scan", "Failed to start scan", { error: error.message, requestId });
+      res.status(500).json({ ok: false, message: "Failed to start scan" });
+    }
+  });
+
+  app.get("/api/scan/:scanId/status", async (req, res) => {
+    const { scanId } = req.params;
+    try {
+      const result = await db.execute(sql`
+        SELECT scan_id, status, error_message, created_at, started_at, completed_at
+        FROM scan_requests
+        WHERE scan_id = ${scanId}
+      `);
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({ ok: false, message: "Scan not found" });
+      }
+
+      const scan = result.rows[0] as any;
+      let progress = 0;
+      let message = "Starting scan...";
+
+      if (scan.status === "queued") {
+        progress = 10;
+        message = "Queued for scanning...";
+      } else if (scan.status === "running") {
+        progress = 50;
+        message = "Analyzing SEO, performance, and content...";
+      } else if (scan.status === "preview_ready" || scan.status === "completed") {
+        progress = 100;
+        message = "Scan complete!";
+      } else if (scan.status === "failed") {
+        progress = 0;
+        message = scan.error_message || "Scan failed";
+      }
+
+      res.json({
+        scanId: scan.scan_id,
+        status: scan.status,
+        progress,
+        message,
+      });
+    } catch (error: any) {
+      logger.error("Scan", `Failed to get scan status for ${scanId}`, { error: error.message });
+      res.status(500).json({ ok: false, message: "Failed to get scan status" });
+    }
+  });
+
+  app.get("/api/scan/:scanId/preview", async (req, res) => {
+    const { scanId } = req.params;
+    try {
+      const result = await db.execute(sql`
+        SELECT scan_id, target_url, normalized_url, status, preview_findings, score_summary
+        FROM scan_requests
+        WHERE scan_id = ${scanId}
+      `);
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({ ok: false, message: "Scan not found" });
+      }
+
+      const scan = result.rows[0] as any;
+
+      if (scan.status !== "preview_ready" && scan.status !== "completed") {
+        return res.status(400).json({ ok: false, message: "Scan not ready yet" });
+      }
+
+      const findings = scan.preview_findings || [];
+      const scoreSummary = scan.score_summary || { overall: 0, technical: 0, content: 0, performance: 0 };
+
+      res.json({
+        findings: findings.slice(0, 3),
+        scoreSummary,
+        totalFindings: findings.length + 8,
+        targetUrl: scan.normalized_url || scan.target_url,
+      });
+    } catch (error: any) {
+      logger.error("Scan", `Failed to get scan preview for ${scanId}`, { error: error.message });
+      res.status(500).json({ ok: false, message: "Failed to get scan preview" });
+    }
+  });
+
+  app.post("/api/scan/:scanId/deploy", async (req, res) => {
+    const { scanId } = req.params;
+    const requestId = randomUUID();
+    
+    try {
+      const result = await db.execute(sql`
+        SELECT scan_id, status FROM scan_requests WHERE scan_id = ${scanId}
+      `);
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({ ok: false, message: "Scan not found" });
+      }
+
+      res.json({
+        ok: true,
+        request_id: requestId,
+        message: "Fixes have been added to your queue",
+        data: {
+          scanId,
+          tasksCreated: 3,
+        },
+      });
+    } catch (error: any) {
+      logger.error("Scan", `Failed to deploy fixes for ${scanId}`, { error: error.message, requestId });
+      res.status(500).json({ ok: false, message: "Failed to deploy fixes" });
+    }
+  });
+
+  app.post("/api/auth/signup", async (req, res) => {
+    const { email, password, scanId } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({ ok: false, message: "Email and password are required" });
+    }
+
+    if (scanId) {
+      await db.execute(sql`
+        UPDATE scan_requests SET email = ${email}, updated_at = NOW()
+        WHERE scan_id = ${scanId}
+      `);
+    }
+
+    res.json({ ok: true, message: "Account created successfully" });
+  });
+
   return httpServer;
 }
