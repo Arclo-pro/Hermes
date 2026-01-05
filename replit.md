@@ -124,6 +124,21 @@ Automated validation infrastructure (`server/validation/`) uses Zod schemas to t
 ### Authentication
 Google OAuth 2.0 for API access, with tokens stored in the database. API endpoints require `X-API-Key` or `Authorization: Bearer` headers.
 
+### Free Report v1 System
+A shareable, read-only SEO diagnosis report generated from website scans:
+- **Database**: `free_reports` table stores complete report JSON with 6 sections
+- **Scoring Service**: `server/services/freeReportScoring.ts` - deterministic penalty-based algorithm (start 100, subtract by severity)
+- **Transformers**: `server/services/freeReportTransformers.ts` - 6 functions to compose sections from worker data
+- **API Endpoints**:
+  - `POST /api/report/free` - creates report from scan data
+  - `GET /api/report/free/:reportId` - returns full report JSON
+  - `GET /api/report/free/:reportId/share/:shareToken` - public read-only view
+  - `POST /api/report/free/:reportId/share` - creates share token (7-day expiry, SHA-256 hashed)
+- **Frontend**: `/report/free/:reportId` with 6 sections in order (Executive Summary, Competitors, Keywords, Technical, Performance, Next Steps)
+- **Implementation Plan**: Collapsible DIY section with copy/print functionality
+- **Analytics Events**: `free_scan_started`, `free_scan_completed`, `free_report_viewed`, `free_report_shared`, `implementation_plan_copied`
+- **Security**: Share tokens are SHA-256 hashed before storage
+
 ## External Dependencies
 
 ### Google APIs
