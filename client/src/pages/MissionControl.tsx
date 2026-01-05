@@ -49,6 +49,7 @@ import { MissionOverviewWidget } from "@/components/crew-dashboard/widgets/Missi
 import { useMissionsDashboard } from "@/hooks/useMissionsDashboard";
 import type { MissionItem, MissionStatusState } from "@/components/crew-dashboard/types";
 import { MissionBadge, ScorePill } from "@/components/ui/MissionBadge";
+import { useHiredCrews } from "@/hooks/useHiredCrews";
 
 const verdictColors = {
   good: { bg: "bg-semantic-success-soft", border: "border-semantic-success-border", text: "text-semantic-success", badge: "bg-semantic-success-soft text-semantic-success" },
@@ -939,13 +940,6 @@ function ConsolidatedMissionWidget({
   );
 }
 
-interface CrewStateResponse {
-  siteId: string;
-  enabledAgents: string[];
-  agentStatus: Record<string, { health: string; needsConfig: boolean; lastRun: string | null }>;
-  totalEnabled: number;
-}
-
 export default function MissionControl() {
   const { currentSite } = useSiteContext();
   const queryClient = useQueryClient();
@@ -958,15 +952,8 @@ export default function MissionControl() {
     siteId: currentSite?.siteId,
   });
 
-  const { data: crewState } = useQuery<CrewStateResponse>({
-    queryKey: ["/api/crew/state", currentSite?.siteId],
-    queryFn: async () => {
-      const res = await fetch(`/api/crew/state?siteId=${currentSite?.siteId || "default"}`);
-      if (!res.ok) throw new Error("Failed to fetch crew state");
-      return res.json();
-    },
-    enabled: !!currentSite,
-  });
+  // Use the shared hired crews hook for consistency across the app
+  const { hiredCrewIds, agentStatus } = useHiredCrews();
 
   const handleReviewMission = (mission: any) => {
     setSelectedMission(mission);
@@ -1046,7 +1033,7 @@ export default function MissionControl() {
   });
 
   // Filter to only show hired (enabled) crew members
-  const enabledAgentIds = new Set(crewState?.enabledAgents || []);
+  const enabledAgentIds = new Set(hiredCrewIds);
   
   const userAgents = USER_FACING_AGENTS
     .filter(serviceId => enabledAgentIds.has(serviceId))
