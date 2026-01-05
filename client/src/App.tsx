@@ -32,6 +32,8 @@ import Socrates from "@/pages/Socrates";
 import Achievements from "@/pages/Achievements";
 import WebsitesSettings from "@/pages/WebsitesSettings";
 import WebsiteDetail from "@/pages/WebsiteDetail";
+import Terms from "@/pages/Terms";
+import Privacy from "@/pages/Privacy";
 import { ROUTES, buildRoute, resolveAgentSlug } from "@shared/routes";
 import { useRoute } from "wouter";
 import { useEffect } from "react";
@@ -95,6 +97,8 @@ function Router() {
       <Route path={ROUTES.HELP} component={Help} />
       <Route path={ROUTES.DEV_PALETTE} component={CrewPalette} />
       <Route path={ROUTES.DEV_LINEAGE} component={DevLineage} />
+      <Route path={ROUTES.TERMS} component={Terms} />
+      <Route path={ROUTES.PRIVACY} component={Privacy} />
       
       {/* ============================================ */}
       {/* LEGACY REDIRECTS - Old /crew/* routes to canonical /agents/* */}

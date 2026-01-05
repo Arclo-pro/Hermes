@@ -45,6 +45,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import logoImage from "@assets/image_1766866825580.png";
 import { ROUTES, buildRoute } from "@shared/routes";
+import { Footer } from "./Footer";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -344,6 +345,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="flex-1 p-4 lg:p-8 overflow-y-auto">
           {children}
         </div>
+        
+        <Footer />
       </main>
 
       {/* Add Site Dialog */}

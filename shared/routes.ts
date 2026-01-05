@@ -60,6 +60,10 @@ export const ROUTES = {
   // Developer pages
   DEV_PALETTE: "/dev/palette",
   DEV_LINEAGE: "/dev/lineage",
+  
+  // Legal pages
+  TERMS: "/terms",
+  PRIVACY: "/privacy",
 } as const;
 
 // ============================================
@@ -142,6 +146,8 @@ const ALL_STATIC_ROUTES = new Set([
   ROUTES.HELP,
   ROUTES.DEV_PALETTE,
   ROUTES.DEV_LINEAGE,
+  ROUTES.TERMS,
+  ROUTES.PRIVACY,
 ]);
 
 const DYNAMIC_ROUTE_PATTERNS = [
