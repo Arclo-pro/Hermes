@@ -50,6 +50,7 @@ import { useMissionsDashboard } from "@/hooks/useMissionsDashboard";
 import type { MissionItem, MissionStatusState } from "@/components/crew-dashboard/types";
 import { MissionBadge, ScorePill } from "@/components/ui/MissionBadge";
 import { useHiredCrews } from "@/hooks/useHiredCrews";
+import { GovernancePanels } from "@/components/governance/GovernancePanels";
 
 const verdictColors = {
   good: { bg: "bg-semantic-success-soft", border: "border-semantic-success-border", text: "text-semantic-success", badge: "bg-semantic-success-soft text-semantic-success" },
@@ -1386,6 +1387,8 @@ export default function MissionControl() {
         />
 
         <SocratesMemoryCard />
+
+        <GovernancePanels />
       </div>
 
       <ExportFixPackModal 

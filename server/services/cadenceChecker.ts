@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { changes, websiteCadenceSettings, deployWindows, type Change, type WebsiteCadenceSettings } from '@shared/schema';
-import { eq, and, gte, or } from 'drizzle-orm';
+import { eq, and, gte, or, desc } from 'drizzle-orm';
 
 export interface CadenceCheckResult {
   pass: boolean;
@@ -74,10 +74,12 @@ export class CadenceCheckerService {
             eq(changes.status, 'queued')
           ),
           gte(changes.createdAt, cooldownDate)
-        ));
+        ))
+        .orderBy(desc(changes.createdAt))
+        .limit(1);
 
       if (recentChanges.length > 0) {
-        const lastChange = recentChanges[0];
+        const lastChange = recentChanges[0]; // Most recent change due to DESC ordering
         const nextEligibleAt = new Date(lastChange.createdAt);
         nextEligibleAt.setDate(nextEligibleAt.getDate() + cooldownDays);
         
