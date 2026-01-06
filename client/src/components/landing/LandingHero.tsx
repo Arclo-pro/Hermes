@@ -72,10 +72,9 @@ export function LandingHero() {
             aria-label="Website URL"
             data-testid="input-url"
           />
-          <Button 
+          <button 
             type="submit" 
-            size="lg" 
-            className="h-12 md:h-14 px-8 text-base font-semibold"
+            className="h-12 md:h-14 px-8 text-base font-semibold rounded-lg bg-gradient-to-r from-emerald-400 to-cyan-500 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center"
             disabled={loading}
             data-testid="button-scan"
           >
@@ -87,7 +86,7 @@ export function LandingHero() {
             ) : (
               "Free Health Check"
             )}
-          </Button>
+          </button>
         </form>
         
         {error && (

@@ -53,9 +53,12 @@ export function AISpecialists() {
         
         <div className="text-center mt-8">
           <Link href="/app/crew">
-            <Button variant="outline" data-testid="button-staff-crew">
+            <button 
+              className="h-10 px-6 text-sm font-medium rounded-lg bg-gradient-to-r from-emerald-400 to-cyan-500 text-white shadow-md shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:scale-[1.01] transition-all duration-200"
+              data-testid="button-staff-crew"
+            >
               Staff your AI crew
-            </Button>
+            </button>
           </Link>
         </div>
       </div>

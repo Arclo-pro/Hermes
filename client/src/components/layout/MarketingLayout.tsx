@@ -13,11 +13,11 @@ export function MarketingLayout({ children }: MarketingLayoutProps) {
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
           <Link href={ROUTES.LANDING}>
-            <div className="flex items-center gap-2 cursor-pointer" data-testid="link-home">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-lg">A</span>
+            <div className="flex items-center gap-2.5 cursor-pointer" data-testid="link-home">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                <span className="text-white font-bold text-lg">A</span>
               </div>
-              <span className="font-semibold text-xl text-foreground">Arclo</span>
+              <span className="font-semibold text-xl bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">Arclo</span>
             </div>
           </Link>
           
@@ -33,7 +33,12 @@ export function MarketingLayout({ children }: MarketingLayoutProps) {
               </span>
             </Link>
             <Link href="/login">
-              <Button variant="default" size="sm" className="gap-2" data-testid="button-login">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="gap-2 text-muted-foreground hover:text-foreground" 
+                data-testid="button-login"
+              >
                 <LogIn className="h-4 w-4" />
                 <span>Log In</span>
               </Button>
@@ -51,10 +56,10 @@ export function MarketingLayout({ children }: MarketingLayoutProps) {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
-                  <span className="text-primary-foreground font-bold text-sm">A</span>
+                <div className="w-6 h-6 rounded bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">A</span>
                 </div>
-                <span className="font-semibold text-foreground">Arclo</span>
+                <span className="font-semibold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">Arclo</span>
               </div>
               <p className="text-sm text-muted-foreground">
                 Fully automated SEO from audit to execution.

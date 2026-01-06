@@ -44,28 +44,40 @@ export function ThreeWaysCards() {
           {WAYS.map((way) => (
             <Card 
               key={way.title} 
-              className={`bg-card/50 border-border/50 ${way.highlighted ? 'ring-2 ring-primary' : ''}`}
+              className={`bg-card/50 border-border/50 ${way.highlighted ? 'ring-2 ring-emerald-400/50' : ''}`}
             >
               <CardContent className="p-6 flex flex-col h-full">
                 <div className="flex items-center gap-2 mb-4">
                   <way.icon className="h-5 w-5 text-primary" />
                   <h3 className="font-semibold text-foreground">{way.title}</h3>
                   {way.badge && (
-                    <Badge variant={way.highlighted ? "default" : "secondary"} className="ml-auto text-xs">
+                    <Badge 
+                      variant="secondary" 
+                      className={`ml-auto text-xs ${way.highlighted ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : ''}`}
+                    >
                       {way.badge}
                     </Badge>
                   )}
                 </div>
                 <p className="text-sm text-muted-foreground mb-6 flex-1">{way.description}</p>
                 <Link href={way.href}>
-                  <Button 
-                    variant={way.highlighted ? "default" : "outline"} 
-                    size="sm" 
-                    className="w-full"
-                    data-testid={`button-${way.title.toLowerCase().replace(/\s+/g, '-')}`}
-                  >
-                    {way.cta}
-                  </Button>
+                  {way.highlighted ? (
+                    <button 
+                      className="w-full h-9 px-4 text-sm font-medium rounded-md bg-gradient-to-r from-emerald-400 to-cyan-500 text-white shadow-md shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:scale-[1.01] transition-all duration-200"
+                      data-testid={`button-${way.title.toLowerCase().replace(/\s+/g, '-')}`}
+                    >
+                      {way.cta}
+                    </button>
+                  ) : (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full"
+                      data-testid={`button-${way.title.toLowerCase().replace(/\s+/g, '-')}`}
+                    >
+                      {way.cta}
+                    </Button>
+                  )}
                 </Link>
               </CardContent>
             </Card>
