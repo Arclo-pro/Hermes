@@ -5,33 +5,33 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0" +
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0" +
 " hover-elevate active-elevate-2",
   {
     variants: {
       variant: {
         default:
-           "bg-primary text-primary-foreground border border-primary-border",
+          "bg-gradient-to-r from-emerald-500 to-cyan-500 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:from-emerald-400 hover:to-cyan-400 border-0",
         destructive:
-          "bg-destructive text-destructive-foreground shadow-sm border-destructive-border",
+          "bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-lg shadow-red-500/25 hover:shadow-red-500/40 hover:from-red-400 hover:to-rose-400 border-0",
         outline:
-          " border [border-color:var(--button-outline)] shadow-xs active:shadow-none ",
+          "border [border-color:var(--button-outline)] shadow-xs active:shadow-none bg-transparent hover:bg-muted/50",
         secondary:
-          "border bg-secondary text-secondary-foreground border border-secondary-border ",
-        ghost: "border border-transparent",
+          "bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-md hover:from-gray-500 hover:to-gray-600 border-0",
+        ghost: "border border-transparent hover:bg-muted/50",
         link: "text-primary underline-offset-4 hover:underline",
         success:
-          "bg-[var(--color-semantic-success)] text-white border [border-color:var(--color-semantic-success-border)] shadow-sm",
+          "bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:from-emerald-400 hover:to-green-400 border-0",
         warning:
-          "bg-[var(--color-semantic-warning)] text-black border [border-color:var(--color-semantic-warning-border)] shadow-sm",
+          "bg-gradient-to-r from-amber-500 to-yellow-500 text-black shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:from-amber-400 hover:to-yellow-400 border-0",
         danger:
-          "bg-[var(--color-semantic-danger)] text-white border [border-color:var(--color-semantic-danger-border)] shadow-sm",
+          "bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-lg shadow-red-500/25 hover:shadow-red-500/40 hover:from-red-400 hover:to-rose-400 border-0",
         info:
-          "bg-[var(--color-semantic-info)] text-white border [border-color:var(--color-semantic-info-border)] shadow-sm",
+          "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:from-blue-400 hover:to-indigo-400 border-0",
         gold:
-          "bg-[var(--color-gold)] text-black border [border-color:var(--color-gold-border)] shadow-gold",
+          "bg-gradient-to-r from-amber-500 to-yellow-500 text-black shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:from-amber-400 hover:to-yellow-400 border-0",
         purple:
-          "bg-[var(--color-purple)] text-white border [border-color:var(--color-purple-border)] shadow-purple",
+          "bg-gradient-to-r from-purple-500 to-violet-500 text-white shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 hover:from-purple-400 hover:to-violet-400 border-0",
       },
       size: {
         // @replit changed sizes
