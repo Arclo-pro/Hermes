@@ -50,12 +50,12 @@ export default function VerifyEmail() {
     <MarketingLayout>
       <div className="container mx-auto px-4 md:px-6 py-12 md:py-20">
         <div className="max-w-md mx-auto">
-          <Card className="bg-white border-[#E2E8F0] shadow-[0_8px_24px_rgba(15,23,42,0.06)] rounded-2xl">
+          <Card className="bg-white border border-[#CBD5E1] shadow-[0_8px_24px_rgba(15,23,42,0.08)] rounded-2xl">
             <CardHeader className="text-center">
               <div className="flex justify-center mb-4">
                 <img src={arcloLogo} alt="Arclo" className="h-16 w-auto" />
               </div>
-              <CardTitle className="text-2xl text-[#0F172A]">
+              <CardTitle className="text-2xl text-[#020617]">
                 {status === "loading" && "Verifying..."}
                 {status === "success" && "Email Verified!"}
                 {status === "error" && "Verification Failed"}
@@ -68,7 +68,7 @@ export default function VerifyEmail() {
               {status === "error" && (
                 <p className="text-[#64748B] text-sm">
                   Need a new verification link?{" "}
-                  <a href="/resend-verification" className="text-[#22C55E] hover:text-[#16A34A] hover:underline font-medium">
+                  <a href="/resend-verification" className="text-[#15803D] hover:text-[#166534] hover:underline font-medium">
                     Request one here
                   </a>
                 </p>

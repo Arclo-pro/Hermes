@@ -5,29 +5,28 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0" +
-" hover-elevate active-elevate-2",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
         default:
-          "bg-gradient-to-r from-emerald-500 to-cyan-500 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:from-emerald-400 hover:to-cyan-400 border-0",
+          "bg-[linear-gradient(135deg,#22C55E_0%,#16A34A_100%)] text-white shadow-[0_10px_20px_rgba(22,163,74,0.25)] hover:shadow-[0_10px_20px_rgba(22,163,74,0.40)] hover:brightness-110 focus-visible:ring-[#16A34A] border-0",
         destructive:
-          "bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-lg shadow-red-500/25 hover:shadow-red-500/40 hover:from-red-400 hover:to-rose-400 border-0",
+          "bg-[#DC2626] text-white shadow-lg hover:bg-[#B91C1C] focus-visible:ring-[#DC2626] border-0",
         outline:
-          "border [border-color:var(--button-outline)] shadow-xs active:shadow-none bg-transparent hover:bg-muted/50",
+          "border border-[#CBD5E1] shadow-sm bg-transparent hover:bg-[#F1F5F9] text-[#334155] focus-visible:ring-[#16A34A]",
         secondary:
-          "bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-md hover:from-gray-500 hover:to-gray-600 border-0",
-        ghost: "border border-transparent hover:bg-muted/50",
-        link: "text-primary underline-offset-4 hover:underline",
+          "bg-[#F1F5F9] text-[#334155] shadow-sm hover:bg-[#E2E8F0] focus-visible:ring-[#16A34A] border border-[#E2E8F0]",
+        ghost: "border border-transparent hover:bg-[#F1F5F9] text-[#334155]",
+        link: "text-[#2563EB] underline-offset-4 hover:underline hover:text-[#1D4ED8]",
         success:
-          "bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:from-emerald-400 hover:to-green-400 border-0",
+          "bg-[#16A34A] text-white shadow-lg hover:bg-[#15803D] focus-visible:ring-[#16A34A] border-0",
         warning:
-          "bg-gradient-to-r from-amber-500 to-yellow-500 text-black shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:from-amber-400 hover:to-yellow-400 border-0",
+          "bg-[#F59E0B] text-black shadow-lg hover:bg-[#D97706] focus-visible:ring-[#F59E0B] border-0",
         danger:
-          "bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-lg shadow-red-500/25 hover:shadow-red-500/40 hover:from-red-400 hover:to-rose-400 border-0",
+          "bg-[#DC2626] text-white shadow-lg hover:bg-[#B91C1C] focus-visible:ring-[#DC2626] border-0",
         info:
-          "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:from-blue-400 hover:to-indigo-400 border-0",
+          "bg-[#2563EB] text-white shadow-lg hover:bg-[#1D4ED8] focus-visible:ring-[#2563EB] border-0",
         gold:
           "bg-gradient-to-r from-amber-500 to-yellow-500 text-black shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:from-amber-400 hover:to-yellow-400 border-0",
         purple:

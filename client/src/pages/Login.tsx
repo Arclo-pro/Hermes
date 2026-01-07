@@ -48,12 +48,12 @@ export default function Login() {
     <MarketingLayout>
       <div className="container mx-auto px-4 md:px-6 py-12 md:py-20">
         <div className="max-w-md mx-auto">
-          <Card className="bg-white border-[#E2E8F0] shadow-[0_8px_24px_rgba(15,23,42,0.06)] rounded-2xl">
+          <Card className="bg-white border border-[#CBD5E1] shadow-[0_8px_24px_rgba(15,23,42,0.08)] rounded-2xl">
             <CardHeader className="space-y-1 text-center">
               <div className="flex justify-center mb-4">
                 <img src={arcloLogo} alt="Arclo" className="h-16 w-auto" />
               </div>
-              <CardTitle className="text-2xl font-bold text-[#0F172A]">Welcome to Arclo</CardTitle>
+              <CardTitle className="text-2xl font-bold text-[#020617]">Welcome to Arclo</CardTitle>
               <CardDescription className="text-[#64748B]">
                 Sign in to access your SEO dashboard
               </CardDescription>
@@ -129,7 +129,7 @@ export default function Login() {
                 <div className="space-y-2 text-center">
                   <p className="text-sm text-[#64748B]">
                     Need an account?{" "}
-                    <a href="/signup" className="text-[#22C55E] hover:text-[#16A34A] hover:underline font-medium">
+                    <a href="/signup" className="text-[#15803D] hover:text-[#166534] hover:underline font-medium">
                       Create one
                     </a>
                   </p>

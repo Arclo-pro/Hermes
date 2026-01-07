@@ -260,3 +260,49 @@
     opacity: 0.6;
   }
 }
+
+/* ========================================
+   MARKETING/AUTH LIGHT THEME TOKENS
+   High-contrast, conversion-focused palette
+   ======================================== */
+
+.marketing-theme {
+  /* Backgrounds */
+  --marketing-bg: #F9FAFB;
+  --marketing-bg-alt: #F1F5F9;
+  --marketing-surface: #FFFFFF;
+  
+  /* Typography - High contrast hierarchy */
+  --marketing-headline: #020617;
+  --marketing-heading: #0F172A;
+  --marketing-body: #334155;
+  --marketing-secondary: #64748B;
+  --marketing-disabled: #94A3B8;
+  
+  /* Primary CTA (Green) */
+  --marketing-primary: #15803D;
+  --marketing-primary-hover: #166534;
+  --marketing-primary-light: #22C55E;
+  --marketing-primary-gradient: linear-gradient(135deg, #22C55E 0%, #16A34A 100%);
+  --marketing-primary-shadow: rgba(22, 163, 74, 0.25);
+  
+  /* Accent (Blue) */
+  --marketing-accent: #2563EB;
+  --marketing-accent-hover: #1D4ED8;
+  
+  /* Borders & Inputs */
+  --marketing-border: #CBD5E1;
+  --marketing-border-strong: #E2E8F0;
+  --marketing-focus: #16A34A;
+  --marketing-error: #DC2626;
+  
+  /* Status */
+  --marketing-success: #16A34A;
+  --marketing-warning: #F59E0B;
+  --marketing-info: #2563EB;
+  
+  /* Footer */
+  --marketing-footer-bg: #020617;
+  --marketing-footer-text: #CBD5E1;
+  --marketing-footer-link-hover: #22C55E;
+}

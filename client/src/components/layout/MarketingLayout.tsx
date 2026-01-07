@@ -10,8 +10,8 @@ interface MarketingLayoutProps {
 
 export function MarketingLayout({ children }: MarketingLayoutProps) {
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex flex-col text-[#334155]">
-      <header className="sticky top-0 z-50 w-full border-b border-[#E5E7EB] bg-white/85 backdrop-blur supports-[backdrop-filter]:bg-white/85">
+    <div className="marketing-theme min-h-screen bg-[#F9FAFB] flex flex-col text-[#334155]">
+      <header className="sticky top-0 z-50 w-full border-b border-[#CBD5E1] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90">
         <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
           <Link href={ROUTES.LANDING}>
             <div className="flex items-center cursor-pointer" data-testid="link-home">
@@ -21,12 +21,12 @@ export function MarketingLayout({ children }: MarketingLayoutProps) {
           
           <nav className="flex items-center gap-4 md:gap-6">
             <Link href={ROUTES.HOW_IT_WORKS} className="hidden md:block">
-              <span className="text-sm text-[#64748B] hover:text-[#0F172A] transition-colors cursor-pointer" data-testid="link-how-it-works">
+              <span className="text-sm text-[#334155] hover:text-[#020617] transition-colors cursor-pointer font-medium" data-testid="link-how-it-works">
                 How It Works
               </span>
             </Link>
             <Link href={ROUTES.USE_CASES} className="hidden md:block">
-              <span className="text-sm text-[#64748B] hover:text-[#0F172A] transition-colors cursor-pointer" data-testid="link-use-cases">
+              <span className="text-sm text-[#334155] hover:text-[#020617] transition-colors cursor-pointer font-medium" data-testid="link-use-cases">
                 Use Cases
               </span>
             </Link>
@@ -34,7 +34,7 @@ export function MarketingLayout({ children }: MarketingLayoutProps) {
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="gap-2 text-[#64748B] hover:text-[#0F172A] hover:bg-[#F1F5F9]" 
+                className="gap-2 text-[#334155] hover:text-[#020617] hover:bg-[#F1F5F9] font-medium" 
                 data-testid="button-login"
               >
                 <LogIn className="h-4 w-4" />

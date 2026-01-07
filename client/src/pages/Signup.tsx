@@ -76,14 +76,14 @@ export default function Signup() {
       <MarketingLayout>
         <div className="container mx-auto px-4 md:px-6 py-12 md:py-20">
           <div className="max-w-md mx-auto">
-            <Card className="bg-white border-[#E2E8F0] shadow-[0_8px_24px_rgba(15,23,42,0.06)] rounded-2xl">
+            <Card className="bg-white border border-[#CBD5E1] shadow-[0_8px_24px_rgba(15,23,42,0.08)] rounded-2xl">
               <CardHeader className="text-center">
                 <div className="flex justify-center mb-4">
                   <img src={arcloLogo} alt="Arclo" className="h-16 w-auto" />
                 </div>
-                <CardTitle className="text-2xl text-[#0F172A]">Check your email</CardTitle>
+                <CardTitle className="text-2xl text-[#020617]">Check your email</CardTitle>
                 <CardDescription className="text-[#64748B]">
-                  We sent a verification link to <span className="text-[#22C55E] font-medium">{email}</span>
+                  We sent a verification link to <span className="text-[#15803D] font-medium">{email}</span>
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4 text-center">
@@ -92,7 +92,7 @@ export default function Signup() {
                 </p>
                 <p className="text-[#64748B] text-xs">
                   Didn't receive the email? Check your spam folder or{" "}
-                  <a href="/resend-verification" className="text-[#22C55E] hover:text-[#16A34A] hover:underline font-medium">
+                  <a href="/resend-verification" className="text-[#15803D] hover:text-[#166534] hover:underline font-medium">
                     request a new link
                   </a>
                 </p>
@@ -118,12 +118,12 @@ export default function Signup() {
     <MarketingLayout>
       <div className="container mx-auto px-4 md:px-6 py-12 md:py-20">
         <div className="max-w-md mx-auto">
-          <Card className="bg-white border-[#E2E8F0] shadow-[0_8px_24px_rgba(15,23,42,0.06)] rounded-2xl">
+          <Card className="bg-white border border-[#CBD5E1] shadow-[0_8px_24px_rgba(15,23,42,0.08)] rounded-2xl">
             <CardHeader className="text-center">
               <div className="flex justify-center mb-4">
                 <img src={arcloLogo} alt="Arclo" className="h-16 w-auto" />
               </div>
-              <CardTitle className="text-2xl text-[#0F172A]">Create Your Free Account</CardTitle>
+              <CardTitle className="text-2xl text-[#020617]">Create Your Free Account</CardTitle>
               <CardDescription className="text-[#64748B]">
                 {scanId 
                   ? "Unlock your full SEO report and start deploying fixes"
@@ -217,22 +217,22 @@ export default function Signup() {
 
               <div className="mt-6 space-y-3">
                 <div className="flex items-center gap-2 text-sm text-[#64748B]">
-                  <CheckCircle2 className="w-4 h-4 text-[#22C55E]" />
+                  <CheckCircle2 className="w-4 h-4 text-[#16A34A]" />
                   <span>Free forever for basic features</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-[#64748B]">
-                  <CheckCircle2 className="w-4 h-4 text-[#22C55E]" />
+                  <CheckCircle2 className="w-4 h-4 text-[#16A34A]" />
                   <span>No credit card required</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-[#64748B]">
-                  <CheckCircle2 className="w-4 h-4 text-[#22C55E]" />
+                  <CheckCircle2 className="w-4 h-4 text-[#16A34A]" />
                   <span>Cancel anytime</span>
                 </div>
               </div>
 
               <p className="text-center text-sm text-[#64748B] mt-6">
                 Already have an account?{" "}
-                <a href="/login" className="text-[#22C55E] hover:text-[#16A34A] hover:underline font-medium">
+                <a href="/login" className="text-[#15803D] hover:text-[#166534] hover:underline font-medium">
                   Sign in
                 </a>
               </p>
