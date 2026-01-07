@@ -1,15 +1,16 @@
-import { AlertTriangle, Target, Users, ArrowRight } from "lucide-react";
+import { AlertTriangle, Target, Users, Sparkles, Eye } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Link } from "wouter";
 
 export function ReportPreview() {
   return (
     <section className="px-5 md:px-6 py-12 md:py-16 bg-[#F1F5F9]">
       <div className="max-w-4xl mx-auto">
         <h2 className="text-2xl md:text-3xl font-bold text-center text-[#020617] mb-3">
-          A report you can actually use.
+          Your SEO, fixed automatically.
         </h2>
         <p className="text-center text-[#334155] mb-10 max-w-xl mx-auto">
-          Clear explanations, plain language, and a prioritized plan — not a wall of charts.
+          Hermes finds issues and fixes them for you. No reports to review. No agencies. No waiting.
         </p>
         
         <Card className="bg-white border border-[#CBD5E1] overflow-hidden shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
@@ -53,18 +54,34 @@ export function ReportPreview() {
               
               <div className="flex items-center gap-4 p-4 rounded-lg bg-[#ECFDF5] border border-[#A7F3D0]">
                 <div className="w-10 h-10 rounded-full bg-[#D1FAE5] flex items-center justify-center shrink-0">
-                  <ArrowRight className="h-5 w-5 text-[#15803D]" />
+                  <Sparkles className="h-5 w-5 text-[#15803D]" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-[#0F172A]">Priority Actions</p>
-                  <p className="text-sm text-[#15803D] font-medium">View Plan →</p>
+                  <p className="text-sm font-medium text-[#0F172A]">Ready to fix</p>
+                  <p className="text-sm text-[#15803D] font-medium">44 improvements queued</p>
                 </div>
               </div>
             </div>
             
-            <div className="text-center pt-4 border-t border-[#E2E8F0]">
-              <p className="text-sm text-[#64748B] italic">
-                Sample report layout — your report will be specific to your site.
+            <div className="pt-6 border-t border-[#E2E8F0]">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <button 
+                  className="h-12 px-8 text-base font-semibold rounded-lg bg-[linear-gradient(135deg,#22C55E_0%,#16A34A_100%)] text-white shadow-[0_10px_20px_rgba(22,163,74,0.25)] hover:shadow-[0_10px_20px_rgba(22,163,74,0.40)] hover:brightness-110 hover:scale-[1.02] transition-all duration-200 flex items-center gap-2"
+                  data-testid="button-fix-it"
+                >
+                  <Sparkles className="h-5 w-5" />
+                  Fix it
+                </button>
+                <button 
+                  className="h-10 px-6 text-sm font-medium text-[#64748B] hover:text-[#334155] flex items-center gap-2 transition-colors"
+                  data-testid="button-view-details"
+                >
+                  <Eye className="h-4 w-4" />
+                  View details
+                </button>
+              </div>
+              <p className="text-center text-xs text-[#64748B] mt-4">
+                Review changes before they go live, or let Hermes handle everything automatically.
               </p>
             </div>
           </CardContent>
