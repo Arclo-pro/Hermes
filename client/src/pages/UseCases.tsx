@@ -74,10 +74,10 @@ export default function UseCases() {
       <div className="container mx-auto px-4 md:px-6 py-12 md:py-20">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
-            <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
+            <h1 className="text-4xl md:text-5xl font-bold text-[#020617] mb-6">
               Use Cases
             </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-xl text-[#334155] max-w-2xl mx-auto">
               Arclo helps teams of all sizes automate their SEO. See how different organizations use the platform.
             </p>
           </div>
@@ -86,17 +86,17 @@ export default function UseCases() {
             {useCases.map((useCase) => {
               const Icon = useCase.icon;
               return (
-                <Card key={useCase.title} className="bg-card/50 hover:bg-card transition-colors">
+                <Card key={useCase.title} className="bg-white border border-[#CBD5E1] hover:shadow-[0_8px_24px_rgba(15,23,42,0.08)] transition-shadow">
                   <CardContent className="p-6">
-                    <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-                      <Icon className="w-6 h-6 text-primary" />
+                    <div className="w-12 h-12 rounded-lg bg-[#ECFDF5] flex items-center justify-center mb-4">
+                      <Icon className="w-6 h-6 text-[#15803D]" />
                     </div>
-                    <h3 className="text-xl font-semibold text-foreground mb-2">{useCase.title}</h3>
-                    <p className="text-muted-foreground mb-4">{useCase.description}</p>
+                    <h3 className="text-xl font-semibold text-[#0F172A] mb-2">{useCase.title}</h3>
+                    <p className="text-[#64748B] mb-4">{useCase.description}</p>
                     <ul className="space-y-2">
                       {useCase.benefits.map((benefit, idx) => (
-                        <li key={idx} className="flex items-start gap-2 text-sm text-muted-foreground">
-                          <span className="text-primary mt-1">•</span>
+                        <li key={idx} className="flex items-start gap-2 text-sm text-[#334155]">
+                          <span className="text-[#16A34A] mt-1">•</span>
                           <span>{benefit}</span>
                         </li>
                       ))}

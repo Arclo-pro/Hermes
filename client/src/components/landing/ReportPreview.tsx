@@ -3,67 +3,67 @@ import { Card, CardContent } from "@/components/ui/card";
 
 export function ReportPreview() {
   return (
-    <section className="px-5 md:px-6 py-12 md:py-16 bg-muted/20">
+    <section className="px-5 md:px-6 py-12 md:py-16 bg-[#F1F5F9]">
       <div className="max-w-4xl mx-auto">
-        <h2 className="text-2xl md:text-3xl font-bold text-center text-foreground mb-3">
+        <h2 className="text-2xl md:text-3xl font-bold text-center text-[#020617] mb-3">
           A report you can actually use.
         </h2>
-        <p className="text-center text-muted-foreground mb-10 max-w-xl mx-auto">
+        <p className="text-center text-[#334155] mb-10 max-w-xl mx-auto">
           Clear explanations, plain language, and a prioritized plan — not a wall of charts.
         </p>
         
-        <Card className="bg-card border-border overflow-hidden">
-          <div className="bg-muted/50 px-6 py-4 border-b border-border">
+        <Card className="bg-white border border-[#CBD5E1] overflow-hidden shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
+          <div className="bg-[#F1F5F9] px-6 py-4 border-b border-[#E2E8F0]">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">SEO Report</span>
-              <span className="text-sm font-medium text-foreground">yoursite.com</span>
+              <span className="text-sm text-[#64748B]">SEO Report</span>
+              <span className="text-sm font-medium text-[#0F172A]">yoursite.com</span>
             </div>
           </div>
           <CardContent className="p-6">
             <div className="grid md:grid-cols-2 gap-4 mb-6">
-              <div className="flex items-center gap-4 p-4 rounded-lg bg-semantic-danger-soft/30 border border-semantic-danger/20">
-                <div className="w-10 h-10 rounded-full bg-semantic-danger/20 flex items-center justify-center shrink-0">
-                  <AlertTriangle className="h-5 w-5 text-semantic-danger" />
+              <div className="flex items-center gap-4 p-4 rounded-lg bg-[#FEF2F2] border border-[#FECACA]">
+                <div className="w-10 h-10 rounded-full bg-[#FEE2E2] flex items-center justify-center shrink-0">
+                  <AlertTriangle className="h-5 w-5 text-[#DC2626]" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">12</p>
-                  <p className="text-sm text-muted-foreground">Technical Issues found</p>
+                  <p className="text-2xl font-bold text-[#0F172A]">12</p>
+                  <p className="text-sm text-[#64748B]">Technical Issues found</p>
                 </div>
               </div>
               
-              <div className="flex items-center gap-4 p-4 rounded-lg bg-semantic-success-soft/30 border border-semantic-success/20">
-                <div className="w-10 h-10 rounded-full bg-semantic-success/20 flex items-center justify-center shrink-0">
-                  <Target className="h-5 w-5 text-semantic-success" />
+              <div className="flex items-center gap-4 p-4 rounded-lg bg-[#F0FDF4] border border-[#BBF7D0]">
+                <div className="w-10 h-10 rounded-full bg-[#DCFCE7] flex items-center justify-center shrink-0">
+                  <Target className="h-5 w-5 text-[#16A34A]" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">24</p>
-                  <p className="text-sm text-muted-foreground">Keyword Opportunities found</p>
+                  <p className="text-2xl font-bold text-[#0F172A]">24</p>
+                  <p className="text-sm text-[#64748B]">Keyword Opportunities found</p>
                 </div>
               </div>
               
-              <div className="flex items-center gap-4 p-4 rounded-lg bg-semantic-warning-soft/30 border border-semantic-warning/20">
-                <div className="w-10 h-10 rounded-full bg-semantic-warning/20 flex items-center justify-center shrink-0">
-                  <Users className="h-5 w-5 text-semantic-warning" />
+              <div className="flex items-center gap-4 p-4 rounded-lg bg-[#FFFBEB] border border-[#FDE68A]">
+                <div className="w-10 h-10 rounded-full bg-[#FEF3C7] flex items-center justify-center shrink-0">
+                  <Users className="h-5 w-5 text-[#F59E0B]" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">8</p>
-                  <p className="text-sm text-muted-foreground">Competitor Gaps found</p>
+                  <p className="text-2xl font-bold text-[#0F172A]">8</p>
+                  <p className="text-sm text-[#64748B]">Competitor Gaps found</p>
                 </div>
               </div>
               
-              <div className="flex items-center gap-4 p-4 rounded-lg bg-primary/10 border border-primary/20">
-                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                  <ArrowRight className="h-5 w-5 text-primary" />
+              <div className="flex items-center gap-4 p-4 rounded-lg bg-[#ECFDF5] border border-[#A7F3D0]">
+                <div className="w-10 h-10 rounded-full bg-[#D1FAE5] flex items-center justify-center shrink-0">
+                  <ArrowRight className="h-5 w-5 text-[#15803D]" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-foreground">Priority Actions</p>
-                  <p className="text-sm text-primary">View Plan →</p>
+                  <p className="text-sm font-medium text-[#0F172A]">Priority Actions</p>
+                  <p className="text-sm text-[#15803D] font-medium">View Plan →</p>
                 </div>
               </div>
             </div>
             
-            <div className="text-center pt-4 border-t border-border/50">
-              <p className="text-sm text-muted-foreground italic">
+            <div className="text-center pt-4 border-t border-[#E2E8F0]">
+              <p className="text-sm text-[#64748B] italic">
                 Sample report layout — your report will be specific to your site.
               </p>
             </div>

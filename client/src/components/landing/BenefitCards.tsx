@@ -32,21 +32,21 @@ export function BenefitCards() {
   return (
     <section className="px-5 md:px-6 py-12 md:py-16">
       <div className="max-w-5xl mx-auto">
-        <h2 className="text-2xl md:text-3xl font-bold text-center text-foreground mb-10">
+        <h2 className="text-2xl md:text-3xl font-bold text-center text-[#020617] mb-10">
           What the Free Scan Includes
         </h2>
         <div className="grid md:grid-cols-2 gap-6">
           {BENEFITS.map((benefit) => (
-            <Card key={benefit.title} className="bg-card/50 border-border/50">
+            <Card key={benefit.title} className="bg-white border border-[#CBD5E1] shadow-[0_4px_12px_rgba(15,23,42,0.06)]">
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <benefit.icon className="h-5 w-5 text-primary" />
+                  <div className="w-10 h-10 rounded-lg bg-[#ECFDF5] flex items-center justify-center shrink-0">
+                    <benefit.icon className="h-5 w-5 text-[#15803D]" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-foreground mb-2">{benefit.title}</h3>
-                    <p className="text-sm text-muted-foreground mb-3">{benefit.description}</p>
-                    <p className="text-sm text-primary/80 italic">{benefit.example}</p>
+                    <h3 className="font-semibold text-[#0F172A] mb-2">{benefit.title}</h3>
+                    <p className="text-sm text-[#64748B] mb-3">{benefit.description}</p>
+                    <p className="text-sm text-[#15803D] italic">{benefit.example}</p>
                   </div>
                 </div>
               </CardContent>

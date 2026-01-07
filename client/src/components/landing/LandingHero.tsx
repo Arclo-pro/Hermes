@@ -52,14 +52,14 @@ export function LandingHero() {
   return (
     <section className="px-5 md:px-6 pt-12 pb-8 md:pt-20 md:pb-16">
       <div className="max-w-2xl mx-auto text-center">
-        <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-foreground tracking-tight mb-4 leading-tight">
+        <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-[#020617] tracking-tight mb-4 leading-tight">
           Get a complete SEO action plan — no setup required.
         </h1>
-        <p className="text-base md:text-lg text-muted-foreground mb-6 max-w-lg mx-auto">
+        <p className="text-base md:text-lg text-[#334155] mb-6 max-w-lg mx-auto">
           See exactly what's holding your site back and what to fix first.
         </p>
         
-        <p className="text-sm text-muted-foreground/70 mb-4">
+        <p className="text-sm text-[#64748B] mb-4">
           Built for people who don't want to think about SEO
         </p>
         
@@ -75,7 +75,7 @@ export function LandingHero() {
           />
           <button 
             type="submit" 
-            className="h-12 md:h-14 px-8 text-base font-semibold rounded-lg bg-gradient-to-r from-emerald-400 to-cyan-500 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center whitespace-nowrap"
+            className="h-12 md:h-14 px-8 text-base font-semibold rounded-lg bg-[linear-gradient(135deg,#22C55E_0%,#16A34A_100%)] text-white shadow-[0_10px_20px_rgba(22,163,74,0.25)] hover:shadow-[0_10px_20px_rgba(22,163,74,0.40)] hover:brightness-110 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:brightness-100 flex items-center justify-center whitespace-nowrap"
             disabled={loading}
             data-testid="button-scan"
           >
@@ -91,10 +91,10 @@ export function LandingHero() {
         </form>
         
         {error && (
-          <p className="text-sm text-destructive mb-3" data-testid="text-error">{error}</p>
+          <p className="text-sm text-[#DC2626] mb-3" data-testid="text-error">{error}</p>
         )}
         
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-[#64748B]">
           No logins • No integrations • Takes ~60 seconds
         </p>
       </div>
