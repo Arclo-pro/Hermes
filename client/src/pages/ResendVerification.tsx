@@ -47,18 +47,18 @@ export default function ResendVerification() {
       <MarketingLayout>
         <div className="container mx-auto px-4 md:px-6 py-12 md:py-20">
           <div className="max-w-md mx-auto">
-            <Card className="bg-card border-border">
+            <Card className="bg-white border-[#E2E8F0] shadow-[0_8px_24px_rgba(15,23,42,0.06)] rounded-2xl">
               <CardHeader className="text-center">
                 <div className="flex justify-center mb-4">
                   <img src={arcloLogo} alt="Arclo" className="h-16 w-auto" />
                 </div>
-                <CardTitle className="text-2xl">Check your email</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-2xl text-[#0F172A]">Check your email</CardTitle>
+                <CardDescription className="text-[#64748B]">
                   If an unverified account exists with this email, you will receive a new verification link.
                 </CardDescription>
               </CardHeader>
               <CardContent className="text-center">
-                <p className="text-muted-foreground text-sm">
+                <p className="text-[#64748B] text-sm">
                   The link expires in 24 hours. Check your spam folder if you don't see it.
                 </p>
               </CardContent>
@@ -83,13 +83,13 @@ export default function ResendVerification() {
     <MarketingLayout>
       <div className="container mx-auto px-4 md:px-6 py-12 md:py-20">
         <div className="max-w-md mx-auto">
-          <Card className="bg-card border-border">
+          <Card className="bg-white border-[#E2E8F0] shadow-[0_8px_24px_rgba(15,23,42,0.06)] rounded-2xl">
             <CardHeader className="text-center">
               <div className="flex justify-center mb-4">
                 <img src={arcloLogo} alt="Arclo" className="h-16 w-auto" />
               </div>
-              <CardTitle className="text-2xl">Resend Verification Email</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-2xl text-[#0F172A]">Resend Verification Email</CardTitle>
+              <CardDescription className="text-[#64748B]">
                 Enter your email to receive a new verification link
               </CardDescription>
             </CardHeader>
@@ -103,7 +103,7 @@ export default function ResendVerification() {
                 )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email" className="text-[#334155]">Email</Label>
                   <Input
                     id="email"
                     type="email"
@@ -133,9 +133,9 @@ export default function ResendVerification() {
                 </Button>
               </form>
 
-              <p className="text-center text-sm text-muted-foreground mt-6">
+              <p className="text-center text-sm text-[#64748B] mt-6">
                 Remember your password?{" "}
-                <a href="/login" className="text-primary hover:underline">
+                <a href="/login" className="text-[#22C55E] hover:text-[#16A34A] hover:underline font-medium">
                   Sign in
                 </a>
               </p>

@@ -67,18 +67,18 @@ export default function ResetPassword() {
       <MarketingLayout>
         <div className="container mx-auto px-4 md:px-6 py-12 md:py-20">
           <div className="max-w-md mx-auto">
-            <Card className="bg-card border-border">
+            <Card className="bg-white border-[#E2E8F0] shadow-[0_8px_24px_rgba(15,23,42,0.06)] rounded-2xl">
               <CardHeader className="text-center">
                 <div className="flex justify-center mb-4">
                   <img src={arcloLogo} alt="Arclo" className="h-16 w-auto" />
                 </div>
-                <CardTitle className="text-2xl">Invalid Reset Link</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-2xl text-[#0F172A]">Invalid Reset Link</CardTitle>
+                <CardDescription className="text-[#64748B]">
                   This password reset link is invalid or has expired.
                 </CardDescription>
               </CardHeader>
               <CardContent className="text-center">
-                <p className="text-muted-foreground text-sm">
+                <p className="text-[#64748B] text-sm">
                   Please request a new password reset link.
                 </p>
               </CardContent>
@@ -103,18 +103,18 @@ export default function ResetPassword() {
       <MarketingLayout>
         <div className="container mx-auto px-4 md:px-6 py-12 md:py-20">
           <div className="max-w-md mx-auto">
-            <Card className="bg-card border-border">
+            <Card className="bg-white border-[#E2E8F0] shadow-[0_8px_24px_rgba(15,23,42,0.06)] rounded-2xl">
               <CardHeader className="text-center">
                 <div className="flex justify-center mb-4">
                   <img src={arcloLogo} alt="Arclo" className="h-16 w-auto" />
                 </div>
-                <CardTitle className="text-2xl">Password Reset!</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-2xl text-[#0F172A]">Password Reset!</CardTitle>
+                <CardDescription className="text-[#64748B]">
                   Your password has been reset successfully.
                 </CardDescription>
               </CardHeader>
               <CardContent className="text-center">
-                <p className="text-muted-foreground text-sm">
+                <p className="text-[#64748B] text-sm">
                   You can now sign in with your new password.
                 </p>
               </CardContent>
@@ -138,13 +138,13 @@ export default function ResetPassword() {
     <MarketingLayout>
       <div className="container mx-auto px-4 md:px-6 py-12 md:py-20">
         <div className="max-w-md mx-auto">
-          <Card className="bg-card border-border">
+          <Card className="bg-white border-[#E2E8F0] shadow-[0_8px_24px_rgba(15,23,42,0.06)] rounded-2xl">
             <CardHeader className="text-center">
               <div className="flex justify-center mb-4">
                 <img src={arcloLogo} alt="Arclo" className="h-16 w-auto" />
               </div>
-              <CardTitle className="text-2xl">Set New Password</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-2xl text-[#0F172A]">Set New Password</CardTitle>
+              <CardDescription className="text-[#64748B]">
                 Enter your new password below
               </CardDescription>
             </CardHeader>
@@ -158,7 +158,7 @@ export default function ResetPassword() {
                 )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="password">New Password</Label>
+                  <Label htmlFor="password" className="text-[#334155]">New Password</Label>
                   <Input
                     id="password"
                     type="password"
@@ -172,7 +172,7 @@ export default function ResetPassword() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                  <Label htmlFor="confirmPassword" className="text-[#334155]">Confirm New Password</Label>
                   <Input
                     id="confirmPassword"
                     type="password"

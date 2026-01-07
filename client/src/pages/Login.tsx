@@ -48,13 +48,13 @@ export default function Login() {
     <MarketingLayout>
       <div className="container mx-auto px-4 md:px-6 py-12 md:py-20">
         <div className="max-w-md mx-auto">
-          <Card className="bg-card border-border">
+          <Card className="bg-white border-[#E2E8F0] shadow-[0_8px_24px_rgba(15,23,42,0.06)] rounded-2xl">
             <CardHeader className="space-y-1 text-center">
               <div className="flex justify-center mb-4">
                 <img src={arcloLogo} alt="Arclo" className="h-16 w-auto" />
               </div>
-              <CardTitle className="text-2xl font-bold">Welcome to Arclo</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-2xl font-bold text-[#0F172A]">Welcome to Arclo</CardTitle>
+              <CardDescription className="text-[#64748B]">
                 Sign in to access your SEO dashboard
               </CardDescription>
             </CardHeader>
@@ -78,7 +78,7 @@ export default function Login() {
                 )}
                 
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email" className="text-[#334155]">Email</Label>
                   <Input
                     id="email"
                     type="email"
@@ -92,7 +92,7 @@ export default function Login() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password" className="text-[#334155]">Password</Label>
                   <Input
                     id="password"
                     type="password"
@@ -127,14 +127,14 @@ export default function Login() {
                 </Button>
                 
                 <div className="space-y-2 text-center">
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-[#64748B]">
                     Need an account?{" "}
-                    <a href="/signup" className="text-primary hover:underline">
+                    <a href="/signup" className="text-[#22C55E] hover:text-[#16A34A] hover:underline font-medium">
                       Create one
                     </a>
                   </p>
-                  <p className="text-sm text-muted-foreground">
-                    <a href="/forgot-password" className="hover:underline">
+                  <p className="text-sm text-[#64748B]">
+                    <a href="/forgot-password" className="hover:underline hover:text-[#0F172A]">
                       Forgot your password?
                     </a>
                   </p>
