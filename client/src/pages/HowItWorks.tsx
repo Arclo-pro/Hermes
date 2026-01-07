@@ -1,129 +1,120 @@
 import { MarketingLayout } from "@/components/layout/MarketingLayout";
 import { IconBadge } from "@/components/marketing/IconBadge";
-import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { ROUTES } from "@shared/routes";
-import { SearchCheck, Target, Rocket, ArrowRight, CheckCircle2, Zap, Clock, Shield } from "lucide-react";
+import { Search, Sparkles, TrendingUp, Shield, CheckCircle2, Bell } from "lucide-react";
 
 export default function HowItWorks() {
   return (
     <MarketingLayout>
       <div className="container mx-auto px-4 md:px-6 py-12 md:py-20">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-3xl mx-auto">
           <div className="text-center mb-16">
             <h1 className="text-4xl md:text-5xl font-bold text-[#020617] mb-6">
-              How Arclo Works
+              SEO that runs on autopilot
             </h1>
             <p className="text-xl text-[#334155] max-w-2xl mx-auto">
-              From diagnosis to deployment in three simple steps. No agencies, no waiting, no complexity.
+              We find issues, fix them, and keep your site optimized — without you lifting a finger.
             </p>
           </div>
 
-          <div className="space-y-16">
-            {/* Step 1 */}
-            <div className="grid md:grid-cols-2 gap-8 items-center">
+          <div className="bg-[#ECFDF5] border border-[#A7F3D0] rounded-xl p-6 mb-16">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-full bg-[#15803D] flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-5 h-5 text-white" />
+              </div>
               <div>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-[#15803D] flex items-center justify-center text-white font-bold text-xl">
-                    1
-                  </div>
-                  <h2 className="text-2xl font-bold text-[#0F172A]">Diagnose</h2>
-                </div>
-                <p className="text-lg text-[#334155] mb-6">
-                  Arclo runs the same comprehensive checks that experienced SEO professionals use. We analyze your technical SEO, content quality, performance metrics, and competitive positioning.
+                <h3 className="font-semibold text-[#0F172A] text-lg mb-1">No work required</h3>
+                <p className="text-[#334155]">
+                  Arclo runs automatically in the background. You'll only hear from us when something improves — or if action is needed.
                 </p>
-                <ul className="space-y-3">
-                  <li className="flex items-center gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-[#16A34A]" />
-                    <span className="text-[#334155]">100+ technical SEO checks</span>
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-[#16A34A]" />
-                    <span className="text-[#334155]">Content quality analysis</span>
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-[#16A34A]" />
-                    <span className="text-[#334155]">Core Web Vitals monitoring</span>
-                  </li>
-                </ul>
-              </div>
-              <div className="flex items-center justify-center p-8">
-                <IconBadge icon={SearchCheck} size="lg" />
-              </div>
-            </div>
-
-            {/* Step 2 */}
-            <div className="grid md:grid-cols-2 gap-8 items-center">
-              <div className="flex items-center justify-center p-8 md:order-1">
-                <IconBadge icon={Target} size="lg" />
-              </div>
-              <div className="md:order-2">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-[#15803D] flex items-center justify-center text-white font-bold text-xl">
-                    2
-                  </div>
-                  <h2 className="text-2xl font-bold text-[#0F172A]">Decide</h2>
-                </div>
-                <p className="text-lg text-[#334155] mb-6">
-                  Issues are automatically prioritized by impact and effort. You see what matters most, not a 200-page audit you'll never read. Each issue comes with a clear recommendation and expected outcome.
-                </p>
-                <ul className="space-y-3">
-                  <li className="flex items-center gap-3">
-                    <Zap className="w-5 h-5 text-[#F59E0B]" />
-                    <span className="text-[#334155]">Impact-based prioritization</span>
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <Clock className="w-5 h-5 text-[#F59E0B]" />
-                    <span className="text-[#334155]">Effort estimation</span>
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <Shield className="w-5 h-5 text-[#F59E0B]" />
-                    <span className="text-[#334155]">Risk assessment</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            {/* Step 3 */}
-            <div className="grid md:grid-cols-2 gap-8 items-center">
-              <div>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-[#15803D] flex items-center justify-center text-white font-bold text-xl">
-                    3
-                  </div>
-                  <h2 className="text-2xl font-bold text-[#0F172A]">Deploy</h2>
-                </div>
-                <p className="text-lg text-[#334155] mb-6">
-                  One click deploys fixes directly to your site. No developer tickets. No waiting weeks for changes. Just results. Arclo handles the implementation so you can focus on your business.
-                </p>
-                <ul className="space-y-3">
-                  <li className="flex items-center gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-[#16A34A]" />
-                    <span className="text-[#334155]">One-click deployment</span>
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-[#16A34A]" />
-                    <span className="text-[#334155]">Safe rollback capability</span>
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-[#16A34A]" />
-                    <span className="text-[#334155]">Continuous monitoring</span>
-                  </li>
-                </ul>
-              </div>
-              <div className="flex items-center justify-center p-8">
-                <IconBadge icon={Rocket} size="lg" />
               </div>
             </div>
           </div>
 
-          {/* CTA */}
-          <div className="text-center mt-20">
+          <div className="space-y-20">
+            <div className="text-center">
+              <div className="flex justify-center mb-6">
+                <IconBadge icon={Search} size="md" />
+              </div>
+              <h2 className="text-2xl font-bold text-[#020617] mb-3">
+                We find what's broken
+              </h2>
+              <p className="text-lg text-[#334155] max-w-lg mx-auto">
+                Arclo continuously scans your site for technical issues, content gaps, and missed opportunities — the same checks a senior SEO professional would run.
+              </p>
+            </div>
+
+            <div className="text-center">
+              <div className="flex justify-center mb-6">
+                <IconBadge icon={Sparkles} size="md" />
+              </div>
+              <h2 className="text-2xl font-bold text-[#020617] mb-3">
+                We fix it automatically
+              </h2>
+              <p className="text-lg text-[#334155] max-w-lg mx-auto">
+                You never have to read reports or make decisions. Arclo applies fixes in the background — safely and with rollback protection.
+              </p>
+            </div>
+
+            <div className="text-center">
+              <div className="flex justify-center mb-6">
+                <IconBadge icon={TrendingUp} size="md" />
+              </div>
+              <h2 className="text-2xl font-bold text-[#020617] mb-3">
+                Your traffic improves
+              </h2>
+              <p className="text-lg text-[#334155] max-w-lg mx-auto">
+                As issues get fixed and content gets optimized, your organic visibility grows. You focus on your business — we handle the SEO.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-20 bg-white border border-[#CBD5E1] rounded-xl p-8 shadow-[0_4px_12px_rgba(15,23,42,0.06)]">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-full bg-[#DBEAFE] flex items-center justify-center shrink-0">
+                <Shield className="w-5 h-5 text-[#2563EB]" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-[#0F172A] text-lg mb-1">You stay in control (if you want)</h3>
+                <p className="text-[#334155]">
+                  Every fix can be reviewed before it goes live. You can enable full automation, or approve changes one by one. The choice is yours — but you don't have to choose.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-12 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-6">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-full bg-[#FEF3C7] flex items-center justify-center shrink-0">
+                <Bell className="w-5 h-5 text-[#F59E0B]" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-[#0F172A] text-lg mb-1">We only notify you when it matters</h3>
+                <p className="text-[#334155]">
+                  No weekly reports. No dashboards to check. We'll reach out when something significant happens — like a traffic spike or a problem we can't fix automatically.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="text-center mt-16">
             <Link href={ROUTES.LANDING}>
-              <Button size="lg" className="h-14 px-10 text-lg">
-                Run Free SEO Scan
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
+              <button 
+                className="h-14 px-10 text-lg font-semibold rounded-lg bg-[linear-gradient(135deg,#22C55E_0%,#16A34A_100%)] text-white shadow-[0_10px_20px_rgba(22,163,74,0.25)] hover:shadow-[0_10px_20px_rgba(22,163,74,0.40)] hover:brightness-110 hover:scale-[1.02] transition-all duration-200 flex items-center gap-2 mx-auto"
+                data-testid="button-fix-my-seo"
+              >
+                <Sparkles className="w-5 h-5" />
+                Fix my SEO automatically
+              </button>
+            </Link>
+            <Link href={ROUTES.FREE_REPORT}>
+              <button 
+                className="mt-4 text-[#64748B] hover:text-[#334155] text-sm font-medium transition-colors"
+                data-testid="link-see-example"
+              >
+                See an example report
+              </button>
             </Link>
           </div>
         </div>
