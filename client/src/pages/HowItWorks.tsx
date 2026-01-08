@@ -146,16 +146,20 @@ export default function HowItWorks() {
               </h2>
               <Link href={ROUTES.LANDING}>
                 <button 
-                  className="inline-flex items-center justify-center h-14 px-12 text-lg font-semibold rounded-xl text-white bg-gradient-to-r from-violet-500 via-pink-500 to-amber-400 shadow-[0_14px_30px_rgba(139,92,246,0.20)] hover:shadow-[0_18px_40px_rgba(236,72,153,0.22)] hover:-translate-y-0.5 transition-all duration-200 gap-3 mx-auto focus:outline-none focus:ring-4 focus:ring-violet-200"
+                  className="inline-flex items-center justify-center h-14 px-12 text-lg font-semibold rounded-xl text-white bg-gradient-to-r from-violet-500 via-pink-500 to-amber-500 shadow-[0_14px_30px_rgba(139,92,246,0.20)] hover:shadow-[0_18px_40px_rgba(236,72,153,0.22)] hover:-translate-y-0.5 transition-all duration-200 gap-3 mx-auto focus:outline-none focus:ring-4 focus:ring-violet-200"
+                  style={{ textShadow: "0 1px 2px rgba(0,0,0,0.15)" }}
                   data-testid="button-fix-my-seo"
                 >
                   <Sparkles className="w-5 h-5" />
                   Fix my SEO automatically
                 </button>
               </Link>
+              <p className="mt-4 text-xs text-slate-400">
+                No credit card • Runs in the background • Cancel anytime
+              </p>
               <Link href={ROUTES.FREE_REPORT}>
                 <button 
-                  className="mt-5 text-violet-600 hover:text-pink-600 font-medium transition-colors"
+                  className="mt-6 text-sm text-slate-500 hover:text-slate-700 transition-colors"
                   data-testid="link-see-what-changes"
                 >
                   See what will change →

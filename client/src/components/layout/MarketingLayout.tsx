@@ -21,12 +21,12 @@ export function MarketingLayout({ children }: MarketingLayoutProps) {
           
           <nav className="flex items-center gap-4 md:gap-6">
             <Link href={ROUTES.HOW_IT_WORKS} className="hidden md:block">
-              <span className="text-sm text-[#334155] hover:text-[#020617] transition-colors cursor-pointer font-medium" data-testid="link-how-it-works">
+              <span className="text-sm text-slate-700 hover:text-slate-950 transition-colors cursor-pointer font-medium" data-testid="link-how-it-works">
                 How It Works
               </span>
             </Link>
             <Link href={ROUTES.USE_CASES} className="hidden md:block">
-              <span className="text-sm text-[#334155] hover:text-[#020617] transition-colors cursor-pointer font-medium" data-testid="link-use-cases">
+              <span className="text-sm text-slate-700 hover:text-slate-950 transition-colors cursor-pointer font-medium" data-testid="link-use-cases">
                 Use Cases
               </span>
             </Link>
@@ -34,7 +34,7 @@ export function MarketingLayout({ children }: MarketingLayoutProps) {
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="gap-2 text-[#334155] hover:text-[#020617] hover:bg-[#F1F5F9] font-medium" 
+                className="gap-2 text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-medium" 
                 data-testid="button-login"
               >
                 <LogIn className="h-4 w-4" />
@@ -49,7 +49,8 @@ export function MarketingLayout({ children }: MarketingLayoutProps) {
         {children}
       </main>
 
-      <footer className="border-t border-[#1E293B] bg-[#020617]">
+      <footer className="bg-[#020617] relative">
+        <div className="absolute top-0 left-0 right-0 h-1" style={{ background: "linear-gradient(90deg, #8B5CF6, #EC4899, #F59E0B)" }} />
         <div className="container mx-auto px-4 md:px-6 py-12">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="space-y-4">
