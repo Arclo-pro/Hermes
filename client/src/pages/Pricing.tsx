@@ -2,7 +2,8 @@ import { MarketingLayout } from "@/components/layout/MarketingLayout";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { ROUTES } from "@shared/routes";
-import { Check, Zap, Building2, Rocket, Sparkles } from "lucide-react";
+import { Check, Zap, Building2, Rocket, Sparkles, HelpCircle, ChevronDown } from "lucide-react";
+import { useState } from "react";
 import { BrandButton } from "@/components/marketing/BrandButton";
 
 const plans = [
@@ -28,10 +29,10 @@ const plans = [
     popular: false,
   },
   {
-    name: "Professional",
+    name: "Autopilot",
     price: "$299",
     period: "/month",
-    description: "For growing businesses that need comprehensive SEO",
+    description: "Everything runs automatically. Just answer a few questions and we handle the rest.",
     icon: Rocket,
     bgColor: "bg-violet-50",
     borderColor: "border-violet-200",
@@ -39,13 +40,12 @@ const plans = [
     iconColor: "text-white",
     accentColor: "text-violet-600",
     features: [
-      "Up to 5 websites",
-      "Daily automated scans",
-      "Advanced issue detection & auto-fix",
+      "Professional website in 60 seconds",
+      "Daily automated SEO improvements",
+      "Weekly content updates",
+      "Activity log shows every change",
+      "Cancel anytime",
       "Priority support",
-      "Competitor tracking",
-      "Content optimization",
-      "Backlink monitoring",
     ],
     cta: "Start Free Trial",
     popular: true,
@@ -75,7 +75,35 @@ const plans = [
   },
 ];
 
+const faqs = [
+  {
+    question: "Can I cancel anytime?",
+    answer: "Yes, no contracts. Cancel from your dashboard."
+  },
+  {
+    question: "Do I need my own domain?",
+    answer: "We provide a free subdomain. You can connect your own domain anytime."
+  },
+  {
+    question: "Is there a free trial?",
+    answer: "You can preview your site for free before paying."
+  },
+  {
+    question: "What if I need help?",
+    answer: "We offer email support and live chat during business hours."
+  },
+  {
+    question: "Can I edit my own content?",
+    answer: "Yes, you have full control to edit anything."
+  },
+  {
+    question: "How long until I see results?",
+    answer: "SEO compounds over time. Most see meaningful improvements in 60-90 days."
+  }
+];
+
 export default function Pricing() {
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
   return (
     <MarketingLayout>
       <div 
@@ -211,6 +239,50 @@ export default function Pricing() {
                     Talk to Sales
                   </Button>
                 </Link>
+              </div>
+            </div>
+
+            <div className="mt-20">
+              <div className="text-center mb-12">
+                <div className="flex items-center justify-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
+                    <HelpCircle className="w-5 h-5 text-slate-600" />
+                  </div>
+                  <h2 className="text-2xl md:text-3xl font-bold text-slate-900">
+                    Frequently Asked Questions
+                  </h2>
+                </div>
+                <p className="text-slate-600 max-w-xl mx-auto">
+                  Everything you need to know about getting started
+                </p>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4 max-w-4xl mx-auto">
+                {faqs.map((faq, index) => (
+                  <div
+                    key={index}
+                    className="rounded-lg border border-slate-200 bg-white overflow-hidden"
+                    data-testid={`faq-item-${index}`}
+                  >
+                    <button
+                      onClick={() => setOpenFaq(openFaq === index ? null : index)}
+                      className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-slate-50 transition-colors"
+                      data-testid={`faq-button-${index}`}
+                    >
+                      <span className="font-medium text-slate-900">{faq.question}</span>
+                      <ChevronDown 
+                        className={`w-5 h-5 text-slate-400 transition-transform ${
+                          openFaq === index ? "rotate-180" : ""
+                        }`}
+                      />
+                    </button>
+                    {openFaq === index && (
+                      <div className="px-5 pb-4 text-slate-600 text-sm">
+                        {faq.answer}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           </div>

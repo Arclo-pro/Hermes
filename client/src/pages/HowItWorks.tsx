@@ -2,7 +2,21 @@ import { MarketingLayout } from "@/components/layout/MarketingLayout";
 import { IconBadge } from "@/components/marketing/IconBadge";
 import { Link } from "wouter";
 import { ROUTES } from "@shared/routes";
-import { Search, Sparkles, TrendingUp, CheckCircle2, FileX } from "lucide-react";
+import { 
+  Search, 
+  Sparkles, 
+  TrendingUp, 
+  CheckCircle2, 
+  FileX,
+  Zap,
+  Edit3,
+  Pause,
+  MessageSquare,
+  PlusCircle,
+  Clock,
+  Eye,
+  ShieldCheck
+} from "lucide-react";
 
 export default function HowItWorks() {
   return (
@@ -129,6 +143,153 @@ export default function HowItWorks() {
                   <p className="text-[#334155] text-lg">
                     Arclo generates reports for transparency — not for decision-making. You can ignore them completely and let everything run automatically.
                   </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-20">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center bg-gradient-to-br from-violet-500 to-pink-500">
+                  <Zap className="w-6 h-6 text-white" />
+                </div>
+                <h2 className="text-2xl md:text-3xl font-bold text-[#020617]">What Arclo does automatically</h2>
+              </div>
+              <div 
+                className="rounded-2xl p-8"
+                style={{
+                  background: "linear-gradient(180deg, #FFFFFF, #F8FAFC)",
+                  border: "1px solid rgba(15, 23, 42, 0.06)",
+                  boxShadow: "0 16px 32px rgba(15, 23, 42, 0.06)"
+                }}
+              >
+                <ul className="space-y-4">
+                  {[
+                    "Monitors your website for technical issues daily",
+                    "Fixes broken links and redirect chains",
+                    "Optimizes page titles and meta descriptions",
+                    "Improves page speed and Core Web Vitals",
+                    "Creates and updates service pages for your area",
+                    "Writes and publishes blog content weekly",
+                    "Tracks your rankings and adjusts strategy",
+                    "Submits your sitemap to search engines"
+                  ].map((item, index) => (
+                    <li key={index} className="flex items-start gap-3">
+                      <CheckCircle2 className="w-5 h-5 text-violet-500 mt-0.5 shrink-0" />
+                      <span className="text-[#334155] text-lg">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            <div className="mb-20">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center bg-gradient-to-br from-pink-500 to-amber-500">
+                  <ShieldCheck className="w-6 h-6 text-white" />
+                </div>
+                <h2 className="text-2xl md:text-3xl font-bold text-[#020617]">What you control</h2>
+              </div>
+              <div 
+                className="rounded-2xl p-8"
+                style={{
+                  background: "linear-gradient(180deg, #FFFFFF, #F8FAFC)",
+                  border: "1px solid rgba(15, 23, 42, 0.06)",
+                  boxShadow: "0 16px 32px rgba(15, 23, 42, 0.06)"
+                }}
+              >
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="flex items-start gap-3">
+                    <Edit3 className="w-5 h-5 text-pink-500 mt-0.5 shrink-0" />
+                    <span className="text-[#334155]">Edit any page content anytime</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Eye className="w-5 h-5 text-pink-500 mt-0.5 shrink-0" />
+                    <span className="text-[#334155]">Approve major changes before they go live <span className="text-slate-400">(optional)</span></span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Pause className="w-5 h-5 text-pink-500 mt-0.5 shrink-0" />
+                    <span className="text-[#334155]">Pause automation at any time</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <MessageSquare className="w-5 h-5 text-pink-500 mt-0.5 shrink-0" />
+                    <span className="text-[#334155]">Request specific content topics</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <PlusCircle className="w-5 h-5 text-pink-500 mt-0.5 shrink-0" />
+                    <span className="text-[#334155]">Add your own pages or blog posts</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-20">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center bg-gradient-to-br from-amber-500 to-orange-500">
+                  <Clock className="w-6 h-6 text-white" />
+                </div>
+                <h2 className="text-2xl md:text-3xl font-bold text-[#020617]">What results to expect</h2>
+              </div>
+              <div 
+                className="rounded-2xl p-8"
+                style={{
+                  background: "linear-gradient(180deg, #FFFFFF, #F8FAFC)",
+                  border: "1px solid rgba(15, 23, 42, 0.06)",
+                  boxShadow: "0 16px 32px rgba(15, 23, 42, 0.06)"
+                }}
+              >
+                <div className="mb-6">
+                  <h3 
+                    className="text-xl font-bold mb-2 bg-clip-text text-transparent"
+                    style={{
+                      backgroundImage: "linear-gradient(135deg, #8B5CF6, #EC4899, #F59E0B)"
+                    }}
+                  >
+                    SEO is compounding, not instant
+                  </h3>
+                  <p className="text-[#64748B]">
+                    Improvements happen over weeks, not hours. Real SEO takes time — but once momentum builds, results accelerate.
+                  </p>
+                </div>
+                
+                <div className="space-y-6">
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-violet-50/50 border border-violet-100">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-violet-100 shrink-0">
+                      <span className="text-sm font-bold text-violet-600">30</span>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-[#0F172A] mb-1">First 30 days</h4>
+                      <p className="text-[#64748B] text-sm">Technical fixes and foundation — crawl errors fixed, page speed optimized, sitemap submitted.</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-pink-50/50 border border-pink-100">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-pink-100 shrink-0">
+                      <span className="text-sm font-bold text-pink-600">90</span>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-[#0F172A] mb-1">60-90 days</h4>
+                      <p className="text-[#64748B] text-sm">Content building and early ranking signals — service pages live, blog posts indexed, keywords starting to climb.</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-amber-50/50 border border-amber-100">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-amber-100 shrink-0">
+                      <span className="text-sm font-bold text-amber-600">6m</span>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-[#0F172A] mb-1">3-6 months</h4>
+                      <p className="text-[#64748B] text-sm">Meaningful traffic and lead growth — sustainable organic traffic, higher rankings, and real business results.</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-6 p-4 rounded-xl bg-slate-50 border border-slate-200">
+                  <div className="flex items-start gap-3">
+                    <Eye className="w-5 h-5 text-slate-500 mt-0.5 shrink-0" />
+                    <p className="text-[#64748B] text-sm">
+                      <span className="font-medium text-[#334155]">Full transparency:</span> Your activity log shows every action Arclo takes, so you always know what's happening.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
