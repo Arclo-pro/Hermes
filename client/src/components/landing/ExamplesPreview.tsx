@@ -1,7 +1,6 @@
 import { Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { ROUTES } from "@shared/routes";
-import { BrandButton } from "@/components/marketing/BrandButton";
 import { Wrench, Wind, Stethoscope, Trees, ExternalLink } from "lucide-react";
 
 const EXAMPLES = [

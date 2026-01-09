@@ -141,21 +141,21 @@ export default function Examples() {
                   </div>
                   
                   <div className="flex flex-col gap-2">
-                    <button 
-                      className="flex items-center justify-center gap-1 text-sm font-medium text-violet-600 hover:text-violet-700 py-2 border border-violet-200 rounded-lg hover:bg-violet-50 transition-colors"
+                    <span 
+                      className="flex items-center justify-center gap-1 text-sm font-medium text-violet-600 hover:text-violet-700 py-2 border border-violet-200 rounded-lg hover:bg-violet-50 transition-colors cursor-pointer"
                       data-testid={`button-demo-${example.id}`}
                     >
                       View demo <ExternalLink className="h-3 w-3" />
-                    </button>
+                    </span>
                     <Link href={ROUTES.WEBSITE_GENERATOR}>
-                      <button 
-                        className="w-full flex items-center justify-center gap-1 text-sm font-medium text-white py-2 rounded-lg transition-colors"
+                      <span 
+                        className="w-full flex items-center justify-center gap-1 text-sm font-medium text-white py-2 rounded-lg transition-colors cursor-pointer"
                         style={{ background: "linear-gradient(135deg, #8B5CF6, #EC4899, #F59E0B)" }}
                         data-testid={`button-generate-like-${example.id}`}
                       >
                         <Sparkles className="h-3 w-3" />
                         Generate like this
-                      </button>
+                      </span>
                     </Link>
                   </div>
                 </CardContent>
