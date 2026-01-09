@@ -75,27 +75,27 @@ export default function ScanPreview() {
     switch (severity) {
       case "high":
         return {
-          bg: "bg-semantic-danger-soft/30",
-          border: "border-semantic-danger/20",
-          iconBg: "bg-semantic-danger/20",
-          iconColor: "text-semantic-danger",
-          badge: "bg-semantic-danger/20 text-semantic-danger",
+          bg: "bg-red-50",
+          border: "border-red-200",
+          iconBg: "bg-red-100",
+          iconColor: "text-red-600",
+          badge: "bg-red-100 text-red-700",
         };
       case "medium":
         return {
-          bg: "bg-semantic-warning-soft/30",
-          border: "border-semantic-warning/20",
-          iconBg: "bg-semantic-warning/20",
-          iconColor: "text-semantic-warning",
-          badge: "bg-semantic-warning/20 text-semantic-warning",
+          bg: "bg-amber-50",
+          border: "border-amber-200",
+          iconBg: "bg-amber-100",
+          iconColor: "text-amber-600",
+          badge: "bg-amber-100 text-amber-700",
         };
       default:
         return {
-          bg: "bg-muted/50",
-          border: "border-border",
-          iconBg: "bg-muted",
-          iconColor: "text-muted-foreground",
-          badge: "bg-muted text-muted-foreground",
+          bg: "bg-slate-50",
+          border: "border-slate-200",
+          iconBg: "bg-slate-100",
+          iconColor: "text-slate-500",
+          badge: "bg-slate-100 text-slate-600",
         };
     }
   };
@@ -115,20 +115,20 @@ export default function ScanPreview() {
           {/* Scanning State */}
           {isScanning && (
             <div className="text-center space-y-8">
-              <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-                <Loader2 className="w-10 h-10 text-primary animate-spin" />
+              <div className="w-20 h-20 rounded-full bg-violet-100 flex items-center justify-center mx-auto">
+                <Loader2 className="w-10 h-10 text-violet-600 animate-spin" />
               </div>
               <div className="space-y-4">
-                <h1 className="text-3xl md:text-4xl font-bold text-foreground">
+                <h1 className="text-3xl md:text-4xl font-bold text-slate-900">
                   Analyzing Your Site
                 </h1>
-                <p className="text-xl text-muted-foreground">
+                <p className="text-xl text-slate-600">
                   {statusQuery.data?.message || "Checking SEO, performance, and content..."}
                 </p>
               </div>
               <div className="max-w-md mx-auto">
                 <Progress value={statusQuery.data?.progress || 30} className="h-2" />
-                <p className="text-sm text-muted-foreground mt-2">
+                <p className="text-sm text-slate-500 mt-2">
                   {statusQuery.data?.progress || 30}% complete
                 </p>
               </div>
@@ -138,14 +138,14 @@ export default function ScanPreview() {
           {/* Failed State */}
           {isFailed && (
             <div className="text-center space-y-8">
-              <div className="w-20 h-20 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
-                <AlertTriangle className="w-10 h-10 text-destructive" />
+              <div className="w-20 h-20 rounded-full bg-red-100 flex items-center justify-center mx-auto">
+                <AlertTriangle className="w-10 h-10 text-red-600" />
               </div>
               <div className="space-y-4">
-                <h1 className="text-3xl md:text-4xl font-bold text-foreground">
+                <h1 className="text-3xl md:text-4xl font-bold text-slate-900">
                   Scan Failed
                 </h1>
-                <p className="text-xl text-muted-foreground">
+                <p className="text-xl text-slate-600">
                   {statusQuery.data?.message || "We couldn't complete the scan. Please try again."}
                 </p>
               </div>
@@ -159,47 +159,47 @@ export default function ScanPreview() {
           {isReady && previewQuery.data && (
             <div className="space-y-8">
               <div className="text-center space-y-4">
-                <div className="w-16 h-16 rounded-full bg-semantic-success/10 flex items-center justify-center mx-auto">
-                  <CheckCircle2 className="w-8 h-8 text-semantic-success" />
+                <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto">
+                  <CheckCircle2 className="w-8 h-8 text-green-600" />
                 </div>
-                <h1 className="text-3xl md:text-4xl font-bold text-foreground">
+                <h1 className="text-3xl md:text-4xl font-bold text-slate-900">
                   Scan Complete
                 </h1>
-                <p className="text-lg text-muted-foreground">
-                  We found {previewQuery.data.totalFindings} issues on <span className="font-medium text-foreground">{previewQuery.data.targetUrl}</span>
+                <p className="text-lg text-slate-600">
+                  We found {previewQuery.data.totalFindings} issues on <span className="font-medium text-slate-900">{previewQuery.data.targetUrl}</span>
                 </p>
               </div>
 
               {/* Score Summary */}
-              <Card className="bg-card border-border">
-                <div className="bg-muted/50 px-6 py-4 border-b border-border">
+              <Card className="bg-white border-slate-200 shadow-sm">
+                <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
                   <div className="flex items-center justify-between">
-                    <h2 className="font-semibold text-foreground">SEO Health Score</h2>
-                    <span className="text-2xl font-bold text-foreground">{previewQuery.data.scoreSummary.overall}/100</span>
+                    <h2 className="font-semibold text-slate-900">SEO Health Score</h2>
+                    <span className="text-2xl font-bold text-slate-900">{previewQuery.data.scoreSummary.overall}/100</span>
                   </div>
                 </div>
                 <CardContent className="p-6">
                   <div className="grid grid-cols-3 gap-4 text-center">
                     <div>
-                      <p className="text-2xl font-bold text-foreground">{previewQuery.data.scoreSummary.technical}</p>
-                      <p className="text-sm text-muted-foreground">Technical</p>
+                      <p className="text-2xl font-bold text-slate-900">{previewQuery.data.scoreSummary.technical}</p>
+                      <p className="text-sm text-slate-500">Technical</p>
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-foreground">{previewQuery.data.scoreSummary.content}</p>
-                      <p className="text-sm text-muted-foreground">Content</p>
+                      <p className="text-2xl font-bold text-slate-900">{previewQuery.data.scoreSummary.content}</p>
+                      <p className="text-sm text-slate-500">Content</p>
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-foreground">{previewQuery.data.scoreSummary.performance}</p>
-                      <p className="text-sm text-muted-foreground">Performance</p>
+                      <p className="text-2xl font-bold text-slate-900">{previewQuery.data.scoreSummary.performance}</p>
+                      <p className="text-sm text-slate-500">Performance</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
               {/* Preview Findings */}
-              <Card className="bg-card border-border">
-                <div className="bg-muted/50 px-6 py-4 border-b border-border">
-                  <h2 className="font-semibold text-foreground">Top Issues Found</h2>
+              <Card className="bg-white border-slate-200 shadow-sm">
+                <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
+                  <h2 className="font-semibold text-slate-900">Top Issues Found</h2>
                 </div>
                 <CardContent className="p-6 space-y-4">
                   {previewQuery.data.findings.map((finding) => {
@@ -215,12 +215,12 @@ export default function ScanPreview() {
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="font-medium text-foreground">{finding.title}</span>
+                            <span className="font-medium text-slate-900">{finding.title}</span>
                             <span className={`text-xs px-2 py-0.5 rounded ${styles.badge}`}>
                               {finding.impact} Impact
                             </span>
                           </div>
-                          <p className="text-sm text-muted-foreground">{finding.summary}</p>
+                          <p className="text-sm text-slate-600">{finding.summary}</p>
                         </div>
                       </div>
                     );
@@ -228,30 +228,30 @@ export default function ScanPreview() {
 
                   {/* Locked Section */}
                   <div className="relative mt-6">
-                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/80 to-background z-10 flex items-end justify-center pb-8">
+                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/80 to-white z-10 flex items-end justify-center pb-8">
                       <div className="text-center space-y-4">
-                        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto">
-                          <Lock className="w-6 h-6 text-muted-foreground" />
+                        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto">
+                          <Lock className="w-6 h-6 text-slate-500" />
                         </div>
                         <div>
-                          <p className="font-medium text-foreground">+ {previewQuery.data.totalFindings - previewQuery.data.findings.length} more findings</p>
-                          <p className="text-sm text-muted-foreground">Create a free account to see all issues</p>
+                          <p className="font-medium text-slate-900">+ {previewQuery.data.totalFindings - previewQuery.data.findings.length} more findings</p>
+                          <p className="text-sm text-slate-600">Create a free account to see all issues</p>
                         </div>
                       </div>
                     </div>
                     <div className="space-y-4 opacity-30 blur-sm">
-                      <div className="flex items-start gap-4 p-4 rounded-lg border bg-muted/50 border-border">
-                        <div className="w-10 h-10 rounded-full bg-muted shrink-0" />
+                      <div className="flex items-start gap-4 p-4 rounded-lg border bg-slate-50 border-slate-200">
+                        <div className="w-10 h-10 rounded-full bg-slate-200 shrink-0" />
                         <div className="flex-1 space-y-2">
-                          <div className="h-4 bg-muted rounded w-3/4" />
-                          <div className="h-3 bg-muted rounded w-full" />
+                          <div className="h-4 bg-slate-200 rounded w-3/4" />
+                          <div className="h-3 bg-slate-200 rounded w-full" />
                         </div>
                       </div>
-                      <div className="flex items-start gap-4 p-4 rounded-lg border bg-muted/50 border-border">
-                        <div className="w-10 h-10 rounded-full bg-muted shrink-0" />
+                      <div className="flex items-start gap-4 p-4 rounded-lg border bg-slate-50 border-slate-200">
+                        <div className="w-10 h-10 rounded-full bg-slate-200 shrink-0" />
                         <div className="flex-1 space-y-2">
-                          <div className="h-4 bg-muted rounded w-2/3" />
-                          <div className="h-3 bg-muted rounded w-full" />
+                          <div className="h-4 bg-slate-200 rounded w-2/3" />
+                          <div className="h-3 bg-slate-200 rounded w-full" />
                         </div>
                       </div>
                     </div>
@@ -270,7 +270,7 @@ export default function ScanPreview() {
                   Create Free Account to See Full Report
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-slate-600">
                   Free forever. No credit card required.
                 </p>
               </div>
