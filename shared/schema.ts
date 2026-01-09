@@ -2766,22 +2766,33 @@ export const generatedSites = pgTable("generated_sites", {
   state: text("state"),
   phone: text("phone"),
   email: text("email").notNull(),
+  existingWebsite: text("existing_website"),
   description: text("description"),
   services: text("services").array(),
   brandPreference: text("brand_preference").default("modern"),
+  colorTheme: text("color_theme").default("violet"),
   domainPreference: text("domain_preference").default("subdomain"),
   customDomain: text("custom_domain"),
-  status: text("status").notNull().default("queued"),
-  publishedUrl: text("published_url"),
+  status: text("status").notNull().default("preview_pending"),
+  buildState: text("build_state").notNull().default("pending"),
+  previewUrl: text("preview_url"),
+  heroImageUrl: text("hero_image_url"),
+  logoUrl: text("logo_url"),
+  userProvidedLogo: boolean("user_provided_logo").default(false),
+  userProvidedHero: boolean("user_provided_hero").default(false),
+  heroImageStatus: text("hero_image_status").default("pending"),
+  previewToken: text("preview_token"),
+  configVersion: integer("config_version").default(1),
   generatedPages: jsonb("generated_pages").$type<{
-    home?: { title: string; content: string };
-    services?: { title: string; content: string };
-    about?: { title: string; content: string };
-    contact?: { title: string; content: string };
+    home?: { title: string; sections: Array<{ type: string; content: string }> };
+    services?: { title: string; sections: Array<{ type: string; content: string }> };
+    about?: { title: string; sections: Array<{ type: string; content: string }> };
+    contact?: { title: string; sections: Array<{ type: string; content: string }> };
   }>(),
   metadata: jsonb("metadata").$type<{
     schema_markup?: Record<string, unknown>;
     meta_tags?: Record<string, string>;
+    generationLog?: Array<{ step: string; timestamp: string; status: string }>;
   }>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -2794,3 +2805,49 @@ export const insertGeneratedSiteSchema = createInsertSchema(generatedSites).omit
 });
 export type InsertGeneratedSite = z.infer<typeof insertGeneratedSiteSchema>;
 export type GeneratedSite = typeof generatedSites.$inferSelect;
+
+// Background Jobs Queue for async processing
+export const siteGenerationJobs = pgTable("site_generation_jobs", {
+  id: serial("id").primaryKey(),
+  type: text("type").notNull(),
+  siteId: integer("site_id").references(() => generatedSites.id),
+  payloadJson: text("payload_json").notNull(),
+  status: text("status").notNull().default("queued"),
+  progress: integer("progress").default(0),
+  progressMessage: text("progress_message"),
+  errorMessage: text("error_message"),
+  attempts: integer("attempts").default(0),
+  maxAttempts: integer("max_attempts").default(3),
+  runAfter: timestamp("run_after").notNull().defaultNow(),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertSiteGenerationJobSchema = createInsertSchema(siteGenerationJobs).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertSiteGenerationJob = z.infer<typeof insertSiteGenerationJobSchema>;
+export type SiteGenerationJob = typeof siteGenerationJobs.$inferSelect;
+
+// Site Assets for managing logos, images, etc.
+export const siteAssets = pgTable("site_assets", {
+  id: serial("id").primaryKey(),
+  siteId: integer("site_id").references(() => generatedSites.id).notNull(),
+  assetType: text("asset_type").notNull(),
+  source: text("source").notNull(),
+  sourceAssetId: text("source_asset_id"),
+  urlOriginal: text("url_original").notNull(),
+  urlCached: text("url_cached"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertSiteAssetSchema = createInsertSchema(siteAssets).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertSiteAsset = z.infer<typeof insertSiteAssetSchema>;
+export type SiteAsset = typeof siteAssets.$inferSelect;
