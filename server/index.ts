@@ -4,6 +4,7 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import { startScheduler } from "./scheduler";
 import { initializeDatabase } from "./db";
+import { startWorker } from "./siteGeneration/worker";
 import crypto from "crypto";
 
 const app = express();
@@ -141,6 +142,8 @@ app.use((req, res, next) => {
     () => {
       log(`serving on port ${port}`);
       startScheduler();
+      startWorker();
+      log("Site generation worker started");
     },
   );
 })();

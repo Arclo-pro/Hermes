@@ -51,8 +51,9 @@ import {
   type CrewStatus 
 } from "./services/crewStatus";
 import governanceRoutes from './routes/governance';
-import { generatedSites } from "@shared/schema";
+import { generatedSites, siteGenerationJobs } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import { enqueueJob } from "./siteGeneration/worker";
 
 const createSiteSchema = z.object({
   displayName: z.string().min(1, "Display name is required"),
@@ -386,6 +387,219 @@ export async function registerRoutes(
       return res.status(500).json({ 
         success: false, 
         message: "Failed to get generated site" 
+      });
+    }
+  });
+
+  // ============================================================
+  // Intake API Endpoints (Website Generator)
+  // ============================================================
+
+  const intakeSchema = z.object({
+    email: z.string().email("Valid email is required"),
+    businessName: z.string().min(1, "Business name is required"),
+    businessCategory: z.string().min(1, "Business category is required"),
+    city: z.string().optional().nullable(),
+    phone: z.string().optional().nullable(),
+    existingWebsite: z.string().optional().nullable(),
+    description: z.string().optional().nullable(),
+    services: z.array(z.string()).optional().nullable(),
+    brandPreference: z.string().optional().default("modern"),
+    colorTheme: z.string().optional().default("violet"),
+    logoUrl: z.string().optional().nullable(),
+    heroImageUrl: z.string().optional().nullable(),
+  });
+
+  app.post("/api/intake", async (req, res) => {
+    try {
+      const parsed = intakeSchema.safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({ 
+          ok: false, 
+          message: parsed.error.errors[0]?.message || "Validation failed" 
+        });
+      }
+
+      const data = parsed.data;
+      const siteId = randomUUID();
+      const previewToken = randomUUID();
+
+      const [insertedSite] = await db.insert(generatedSites).values({
+        siteId,
+        previewToken,
+        businessName: data.businessName,
+        businessCategory: data.businessCategory,
+        city: data.city,
+        phone: data.phone,
+        email: data.email,
+        existingWebsite: data.existingWebsite,
+        description: data.description,
+        services: data.services,
+        brandPreference: data.brandPreference,
+        colorTheme: data.colorTheme,
+        logoUrl: data.logoUrl,
+        heroImageUrl: data.heroImageUrl,
+        status: "preview_pending",
+        buildState: "pending",
+        heroImageStatus: "pending",
+      }).returning({ id: generatedSites.id });
+
+      await enqueueJob("generate_preview_site", insertedSite.id, {
+        siteId,
+        businessName: data.businessName,
+        businessCategory: data.businessCategory,
+      });
+
+      logger.info("Intake", "New site intake created and job queued", { 
+        siteId, 
+        businessName: data.businessName,
+        email: data.email,
+      });
+
+      return res.json({ 
+        ok: true, 
+        siteId, 
+        previewToken 
+      });
+    } catch (error: any) {
+      logger.error("Intake", "Failed to process intake", { error: error.message });
+      return res.status(500).json({ 
+        ok: false, 
+        message: "Failed to process intake" 
+      });
+    }
+  });
+
+  app.get("/api/sites/:id/public", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const token = req.query.token as string;
+      
+      if (!id) {
+        return res.status(400).json({ 
+          ok: false, 
+          message: "Site ID is required" 
+        });
+      }
+
+      if (!token) {
+        return res.status(400).json({ 
+          ok: false, 
+          message: "Token is required" 
+        });
+      }
+
+      const result = await db
+        .select()
+        .from(generatedSites)
+        .where(eq(generatedSites.siteId, id))
+        .limit(1);
+
+      if (result.length === 0) {
+        return res.status(404).json({ 
+          ok: false, 
+          message: "Site not found" 
+        });
+      }
+
+      const site = result[0];
+
+      if (site.previewToken !== token) {
+        return res.status(404).json({ 
+          ok: false, 
+          message: "Site not found" 
+        });
+      }
+
+      return res.json({
+        siteId: site.siteId,
+        businessName: site.businessName,
+        businessCategory: site.businessCategory,
+        city: site.city,
+        phone: site.phone,
+        email: site.email,
+        description: site.description,
+        services: site.services,
+        brandPreference: site.brandPreference,
+        colorTheme: site.colorTheme,
+        logoUrl: site.logoUrl,
+        heroImageUrl: site.heroImageUrl,
+        previewUrl: site.previewUrl,
+        status: site.status,
+      });
+    } catch (error: any) {
+      logger.error("Sites", "Failed to get public site info", { error: error.message });
+      return res.status(500).json({ 
+        ok: false, 
+        message: "Failed to get site info" 
+      });
+    }
+  });
+
+  app.get("/api/sites/:id/status", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const token = req.query.token as string;
+      
+      if (!id) {
+        return res.status(400).json({ 
+          ok: false, 
+          message: "Site ID is required" 
+        });
+      }
+
+      if (!token) {
+        return res.status(400).json({ 
+          ok: false, 
+          message: "Token is required" 
+        });
+      }
+
+      const result = await db
+        .select()
+        .from(generatedSites)
+        .where(eq(generatedSites.siteId, id))
+        .limit(1);
+
+      if (result.length === 0) {
+        return res.status(404).json({ 
+          ok: false, 
+          message: "Site not found" 
+        });
+      }
+
+      const site = result[0];
+
+      if (site.previewToken !== token) {
+        return res.status(404).json({ 
+          ok: false, 
+          message: "Site not found" 
+        });
+      }
+
+      const jobResult = await db
+        .select()
+        .from(siteGenerationJobs)
+        .where(eq(siteGenerationJobs.siteId, site.id))
+        .orderBy(siteGenerationJobs.createdAt)
+        .limit(1);
+
+      const latestJob = jobResult.length > 0 ? jobResult[0] : null;
+
+      return res.json({
+        status: site.status,
+        buildState: site.buildState,
+        heroImageStatus: site.heroImageStatus,
+        previewUrl: site.previewUrl,
+        progress: latestJob?.progress ?? null,
+        progressMessage: latestJob?.progressMessage ?? null,
+      });
+    } catch (error: any) {
+      logger.error("Sites", "Failed to get site status", { error: error.message });
+      return res.status(500).json({ 
+        ok: false, 
+        message: "Failed to get site status" 
       });
     }
   });

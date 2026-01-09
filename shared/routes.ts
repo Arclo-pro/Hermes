@@ -43,6 +43,8 @@ export const ROUTES = {
   USE_CASES: "/use-cases",
   MANAGED_SITE: "/managed-site",
   CREATE_SITE: "/create-site",
+  WEBSITE_GENERATOR: "/tools/website-generator",
+  SITE_PREVIEW: "/preview/:siteId",
   
   // App core pages (authenticated)
   HOME: "/app",
@@ -99,6 +101,7 @@ export const buildRoute = {
   report: (scanId: string) => `/report/${scanId}`,
   freeReport: (reportId: string) => `/report/free/${reportId}`,
   freeReportShare: (reportId: string, shareToken: string) => `/report/free/${reportId}/share/${shareToken}`,
+  sitePreview: (siteId: string, token?: string) => token ? `/preview/${siteId}?token=${token}` : `/preview/${siteId}`,
   
   // App route builders
   agent: (agentId: string) => `/app/agents/${agentId}`,
