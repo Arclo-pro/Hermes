@@ -33,6 +33,30 @@
   --marketing-shadow-brand-hover: 0 18px 40px rgba(236, 72, 153, 0.22);
 }
 
+/* Marketing theme context - override shadcn defaults for light backgrounds */
+.marketing-theme,
+.marketing-hero-wash {
+  /* Override shadcn Card/text colors for light backgrounds */
+  --color-foreground: #0f172a;
+  --color-card-foreground: #0f172a;
+  --color-popover-foreground: #0f172a;
+  --color-muted-foreground: #64748b;
+  --color-accent-foreground: #0f172a;
+  --color-secondary-foreground: #0f172a;
+  
+  /* Light background surfaces */
+  --color-background: #ffffff;
+  --color-card: #ffffff;
+  --color-popover: #ffffff;
+  --color-muted: #f1f5f9;
+  --color-accent: #f1f5f9;
+  --color-secondary: #f1f5f9;
+  
+  /* Borders for light theme */
+  --color-border: #e2e8f0;
+  --color-input: #e2e8f0;
+}
+
 /* Hero wash background */
 .marketing-hero-wash {
   background: 
