@@ -7,7 +7,7 @@ import { BrandButton } from "@/components/marketing/BrandButton";
 import { Sparkles, Search } from "lucide-react";
 
 import plumbingImage from "@assets/stock_images/clean_modern_residen_0c759d90.jpg";
-import hvacImage from "@assets/stock_images/modern_home_interior_06285429.jpg";
+import hvacImage from "@assets/stock_images/suburban_home_exteri_7802f376.jpg";
 import dentalImage from "@assets/stock_images/modern_dental_office_c96a0813.jpg";
 import landscapingImage from "@assets/stock_images/beautiful_backyard_l_70adf2e1.jpg";
 import electricalImage from "@assets/stock_images/modern_home_exterior_c67845d3.jpg";
