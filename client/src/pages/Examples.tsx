@@ -1,9 +1,10 @@
 import { Link } from "wouter";
 import { MarketingLayout } from "@/components/layout/MarketingLayout";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { ROUTES } from "@shared/routes";
 import { BrandButton } from "@/components/marketing/BrandButton";
-import { ExternalLink, Sparkles } from "lucide-react";
+import { Sparkles, Search } from "lucide-react";
 
 import plumbingImage from "@assets/stock_images/clean_modern_residen_0c759d90.jpg";
 import hvacImage from "@assets/stock_images/modern_home_interior_06285429.jpg";
@@ -148,16 +149,19 @@ export default function Examples() {
                   </div>
                   
                   <div className="flex flex-col gap-2">
-                    <span 
-                      className="flex items-center justify-center gap-1 text-sm font-medium text-violet-600 hover:text-violet-700 py-2 border border-violet-200 rounded-lg hover:bg-violet-50 transition-colors cursor-pointer"
-                      data-testid={`button-demo-${example.id}`}
-                    >
-                      View demo <ExternalLink className="h-3 w-3" />
-                    </span>
-                    <Link href={ROUTES.WEBSITE_GENERATOR}>
+                    <Link href={ROUTES.SCAN}>
                       <span 
                         className="w-full flex items-center justify-center gap-1 text-sm font-medium text-white py-2 rounded-lg transition-colors cursor-pointer"
                         style={{ background: "linear-gradient(135deg, #8B5CF6, #EC4899, #F59E0B)" }}
+                        data-testid={`button-analyze-${example.id}`}
+                      >
+                        <Search className="h-3 w-3" />
+                        Analyze My Website
+                      </span>
+                    </Link>
+                    <Link href={ROUTES.WEBSITE_GENERATOR}>
+                      <span 
+                        className="flex items-center justify-center gap-1 text-sm font-medium text-violet-600 hover:text-violet-700 py-2 border border-violet-200 rounded-lg hover:bg-violet-50 transition-colors cursor-pointer"
                         data-testid={`button-generate-like-${example.id}`}
                       >
                         <Sparkles className="h-3 w-3" />
@@ -172,22 +176,35 @@ export default function Examples() {
           
           <div className="text-center mt-16 py-12 px-6 bg-slate-50 rounded-2xl">
             <h2 className="text-2xl md:text-3xl font-bold text-slate-950 mb-4">
-              Ready to create your own?
+              Ready to see what's holding you back?
             </h2>
             <p className="text-slate-600 mb-6 max-w-lg mx-auto">
-              Get a professional, SEO-optimized website for your business in under 60 seconds.
+              Start with a free website analysis. We'll show you exactly what to fix — or generate a better site for you.
             </p>
-            <Link href={ROUTES.WEBSITE_GENERATOR}>
-              <BrandButton 
-                variant="primary"
-                size="lg"
-                className="gap-2"
-                data-testid="button-examples-cta"
-              >
-                <Sparkles className="h-4 w-4" />
-                Generate My Site
-              </BrandButton>
-            </Link>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Link href={ROUTES.SCAN}>
+                <BrandButton 
+                  variant="primary"
+                  size="lg"
+                  className="gap-2"
+                  data-testid="button-examples-analyze"
+                >
+                  <Search className="h-4 w-4" />
+                  Analyze My Website
+                </BrandButton>
+              </Link>
+              <Link href={ROUTES.WEBSITE_GENERATOR}>
+                <Button 
+                  variant="outline"
+                  size="lg"
+                  className="gap-2 border-violet-200 text-violet-700 hover:bg-violet-50"
+                  data-testid="button-examples-generate"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Generate My Site
+                </Button>
+              </Link>
+            </div>
             <p className="text-sm text-slate-400 mt-4">
               Free preview. No credit card required.
             </p>

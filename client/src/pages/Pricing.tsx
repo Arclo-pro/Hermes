@@ -2,7 +2,7 @@ import { MarketingLayout } from "@/components/layout/MarketingLayout";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { ROUTES } from "@shared/routes";
-import { Check, Zap, Building2, Rocket, Sparkles, HelpCircle, ChevronDown } from "lucide-react";
+import { Check, Zap, Building2, Rocket, Sparkles, HelpCircle, ChevronDown, Search } from "lucide-react";
 import { useState } from "react";
 import { BrandButton } from "@/components/marketing/BrandButton";
 
@@ -188,16 +188,16 @@ export default function Pricing() {
                     ))}
                   </ul>
                   
-                  <Link href={plan.name === "Enterprise" ? "/contact" : ROUTES.SIGNUP}>
+                  <Link href={plan.name === "Enterprise" ? "/contact" : plan.popular ? ROUTES.SCAN : ROUTES.SIGNUP}>
                     {plan.popular ? (
                       <BrandButton 
                         variant="primary"
                         size="sm"
                         className="w-full"
-                        icon={Sparkles}
+                        icon={Search}
                         data-testid={`button-${plan.name.toLowerCase()}-cta`}
                       >
-                        {plan.cta}
+                        Analyze My Website
                       </BrandButton>
                     ) : (
                       <Button 
