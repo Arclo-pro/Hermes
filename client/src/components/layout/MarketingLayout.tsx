@@ -10,7 +10,7 @@ interface MarketingLayoutProps {
 
 export function MarketingLayout({ children }: MarketingLayoutProps) {
   return (
-    <div className="marketing-theme min-h-screen bg-[#F9FAFB] flex flex-col text-[#334155]">
+    <div className="marketing-theme min-h-screen flex flex-col text-slate-700 marketing-hero-wash">
       <header className="sticky top-0 z-50 w-full border-b border-[#CBD5E1] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90">
         <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
           <Link href={ROUTES.LANDING}>

@@ -1,8 +1,8 @@
 export function FounderNote() {
   return (
-    <section className="px-5 md:px-6 py-12 md:py-16 bg-[#F1F5F9]">
+    <section className="px-5 md:px-6 py-12 md:py-16 bg-slate-50/50">
       <div className="max-w-2xl mx-auto text-center">
-        <p className="text-[#334155] leading-relaxed">
+        <p className="text-slate-600 leading-relaxed">
           Arclo was built after replacing multiple SEO agencies for a real medical practice. 
           We turned the workflow that increased leads and reduced costs into automation — 
           so you can focus on your business, not SEO.

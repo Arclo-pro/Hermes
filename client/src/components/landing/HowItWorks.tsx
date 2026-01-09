@@ -20,21 +20,21 @@ const STEPS = [
 
 export function HowItWorks() {
   return (
-    <section className="px-5 md:px-6 py-12 md:py-16 bg-[#F1F5F9]">
+    <section className="px-5 md:px-6 py-12 md:py-16 bg-slate-50/50">
       <div className="max-w-4xl mx-auto">
-        <h2 className="text-2xl md:text-3xl font-bold text-center text-[#020617] mb-10">
+        <h2 className="text-2xl md:text-3xl font-bold text-center text-slate-950 mb-10 tracking-tight">
           How It Works
         </h2>
         
         <div className="grid md:grid-cols-3 gap-6">
           {STEPS.map((step) => (
-            <Card key={step.number} className="bg-white border border-[#CBD5E1] text-center shadow-[0_4px_12px_rgba(15,23,42,0.06)]">
+            <Card key={step.number} className="bg-gradient-to-b from-white to-slate-50 border border-slate-100 text-center shadow-[0_20px_40px_rgba(15,23,42,0.08)] transition-all duration-200 hover:-translate-y-1">
               <CardContent className="p-6">
-                <div className="w-12 h-12 rounded-full bg-[#ECFDF5] flex items-center justify-center mx-auto mb-4">
-                  <span className="text-xl font-bold text-[#15803D]">{step.number}</span>
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-500 via-pink-500 to-amber-400 flex items-center justify-center mx-auto mb-4">
+                  <span className="text-xl font-bold text-white">{step.number}</span>
                 </div>
-                <h3 className="font-semibold text-[#0F172A] mb-2">{step.title}</h3>
-                <p className="text-sm text-[#64748B]">{step.description}</p>
+                <h3 className="font-semibold text-slate-900 mb-2">{step.title}</h3>
+                <p className="text-sm text-slate-500">{step.description}</p>
               </CardContent>
             </Card>
           ))}

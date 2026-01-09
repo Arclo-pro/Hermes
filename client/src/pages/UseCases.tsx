@@ -1,9 +1,10 @@
 import { MarketingLayout } from "@/components/layout/MarketingLayout";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { MarketingCard } from "@/components/marketing/MarketingCard";
+import { BrandButton } from "@/components/marketing/BrandButton";
+import { IconBadge } from "@/components/marketing/IconBadge";
 import { Link } from "wouter";
 import { ROUTES } from "@shared/routes";
-import { ArrowRight, Building2, ShoppingCart, Briefcase, Users, Heart, Wrench } from "lucide-react";
+import { Sparkles, Building2, ShoppingCart, Briefcase, Users, Heart, Wrench } from "lucide-react";
 
 const useCases = [
   {
@@ -71,50 +72,52 @@ const useCases = [
 export default function UseCases() {
   return (
     <MarketingLayout>
-      <div className="container mx-auto px-4 md:px-6 py-12 md:py-20">
+      <div className="container mx-auto px-4 md:px-6 py-16 md:py-24">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
-            <h1 className="text-4xl md:text-5xl font-bold text-[#020617] mb-6">
-              Use Cases
+            <h1 className="text-4xl md:text-6xl font-bold text-slate-950 mb-6 tracking-tight">
+              Built for{" "}
+              <span className="marketing-gradient-text">every team</span>
             </h1>
-            <p className="text-xl text-[#334155] max-w-2xl mx-auto">
+            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
               Arclo helps teams of all sizes automate their SEO. See how different organizations use the platform.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {useCases.map((useCase) => {
-              const Icon = useCase.icon;
-              return (
-                <Card key={useCase.title} className="bg-white border border-[#CBD5E1] hover:shadow-[0_8px_24px_rgba(15,23,42,0.08)] transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="w-12 h-12 rounded-lg bg-[#ECFDF5] flex items-center justify-center mb-4">
-                      <Icon className="w-6 h-6 text-[#15803D]" />
-                    </div>
-                    <h3 className="text-xl font-semibold text-[#0F172A] mb-2">{useCase.title}</h3>
-                    <p className="text-[#64748B] mb-4">{useCase.description}</p>
-                    <ul className="space-y-2">
-                      {useCase.benefits.map((benefit, idx) => (
-                        <li key={idx} className="flex items-start gap-2 text-sm text-[#334155]">
-                          <span className="text-[#16A34A] mt-1">•</span>
-                          <span>{benefit}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
-              );
-            })}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {useCases.map((useCase) => (
+              <MarketingCard key={useCase.title}>
+                <div className="flex justify-start mb-5">
+                  <IconBadge icon={useCase.icon} size="sm" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-950 mb-2">{useCase.title}</h3>
+                <p className="text-slate-500 mb-4">{useCase.description}</p>
+                <ul className="space-y-2">
+                  {useCase.benefits.map((benefit, idx) => (
+                    <li key={idx} className="flex items-start gap-2 text-sm text-slate-600">
+                      <span className="text-violet-500 mt-1">•</span>
+                      <span>{benefit}</span>
+                    </li>
+                  ))}
+                </ul>
+              </MarketingCard>
+            ))}
           </div>
 
-          {/* CTA */}
-          <div className="text-center mt-16">
-            <Link href={ROUTES.LANDING}>
-              <Button size="lg" className="h-14 px-10 text-lg">
-                Run Free SEO Scan
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-            </Link>
+          <div className="text-center mt-20">
+            <MarketingCard hover={false} className="max-w-xl mx-auto">
+              <h2 className="text-2xl font-bold text-slate-950 mb-6 tracking-tight">
+                Ready to automate your SEO?
+              </h2>
+              <Link href={ROUTES.LANDING}>
+                <BrandButton variant="primary" size="lg" icon={Sparkles} data-testid="button-run-scan">
+                  Fix my SEO automatically
+                </BrandButton>
+              </Link>
+              <p className="mt-4 text-xs text-slate-400">
+                No credit card • Runs in the background • Cancel anytime
+              </p>
+            </MarketingCard>
           </div>
         </div>
       </div>

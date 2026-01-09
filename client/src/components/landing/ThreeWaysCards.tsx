@@ -36,7 +36,7 @@ export function ThreeWaysCards() {
   return (
     <section className="px-5 md:px-6 py-12 md:py-16">
       <div className="max-w-4xl mx-auto">
-        <h2 className="text-2xl md:text-3xl font-bold text-center text-[#020617] mb-8">
+        <h2 className="text-2xl md:text-3xl font-bold text-center text-slate-950 mb-8 tracking-tight">
           Three ways to use Arclo
         </h2>
         
@@ -44,26 +44,27 @@ export function ThreeWaysCards() {
           {WAYS.map((way) => (
             <Card 
               key={way.title} 
-              className={`bg-white border border-[#CBD5E1] shadow-[0_4px_12px_rgba(15,23,42,0.06)] ${way.highlighted ? 'ring-2 ring-[#16A34A]/50' : ''}`}
+              className={`bg-gradient-to-b from-white to-slate-50 border border-slate-100 shadow-[0_20px_40px_rgba(15,23,42,0.08)] transition-all duration-200 hover:-translate-y-1 ${way.highlighted ? 'ring-2 ring-violet-400/50' : ''}`}
             >
               <CardContent className="p-6 flex flex-col h-full">
                 <div className="flex items-center gap-2 mb-4">
-                  <way.icon className="h-5 w-5 text-[#15803D]" />
-                  <h3 className="font-semibold text-[#0F172A]">{way.title}</h3>
+                  <way.icon className="h-5 w-5 text-violet-600" />
+                  <h3 className="font-semibold text-slate-900">{way.title}</h3>
                   {way.badge && (
                     <Badge 
                       variant="secondary" 
-                      className={`ml-auto text-xs ${way.highlighted ? 'bg-[#ECFDF5] text-[#15803D] border-[#A7F3D0]' : 'bg-[#F1F5F9] text-[#64748B]'}`}
+                      className={`ml-auto text-xs ${way.highlighted ? 'bg-violet-100 text-violet-700 border-violet-200' : 'bg-slate-100 text-slate-500'}`}
                     >
                       {way.badge}
                     </Badge>
                   )}
                 </div>
-                <p className="text-sm text-[#64748B] mb-6 flex-1">{way.description}</p>
+                <p className="text-sm text-slate-500 mb-6 flex-1">{way.description}</p>
                 <Link href={way.href}>
                   {way.highlighted ? (
                     <button 
-                      className="w-full h-9 px-4 text-sm font-medium rounded-md bg-[linear-gradient(135deg,#22C55E_0%,#16A34A_100%)] text-white shadow-[0_10px_20px_rgba(22,163,74,0.25)] hover:shadow-[0_10px_20px_rgba(22,163,74,0.40)] hover:brightness-110 transition-all duration-200"
+                      className="w-full h-9 px-4 text-sm font-semibold rounded-lg bg-gradient-to-r from-violet-500 via-pink-500 to-amber-500 text-white shadow-[0_14px_30px_rgba(139,92,246,0.20)] hover:shadow-[0_18px_40px_rgba(236,72,153,0.22)] hover:-translate-y-0.5 transition-all duration-200"
+                      style={{ textShadow: "0 1px 2px rgba(0,0,0,0.15)" }}
                       data-testid={`button-${way.title.toLowerCase().replace(/\s+/g, '-')}`}
                     >
                       {way.cta}
@@ -72,7 +73,7 @@ export function ThreeWaysCards() {
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      className="w-full"
+                      className="w-full border-slate-200 text-slate-700 hover:bg-slate-50"
                       data-testid={`button-${way.title.toLowerCase().replace(/\s+/g, '-')}`}
                     >
                       {way.cta}

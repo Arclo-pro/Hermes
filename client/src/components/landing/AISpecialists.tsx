@@ -28,24 +28,24 @@ const SPECIALISTS = [
 
 export function AISpecialists() {
   return (
-    <section className="px-5 md:px-6 py-12 md:py-16 bg-[#F1F5F9]">
+    <section className="px-5 md:px-6 py-12 md:py-16 bg-slate-50/50">
       <div className="max-w-4xl mx-auto">
-        <h2 className="text-2xl md:text-3xl font-bold text-center text-[#020617] mb-3">
-          Turn insights into action with AI specialists.
+        <h2 className="text-2xl md:text-3xl font-bold text-center text-slate-950 mb-3 tracking-tight">
+          Turn insights into action with <span className="marketing-gradient-text">AI specialists.</span>
         </h2>
-        <p className="text-center text-[#334155] mb-10 max-w-xl mx-auto">
+        <p className="text-center text-slate-600 mb-10 max-w-xl mx-auto">
           Enable only the capabilities you need — from technical SEO to competitive intelligence to automated execution.
         </p>
         
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {SPECIALISTS.map((specialist) => (
-            <Card key={specialist.title} className="bg-white border border-[#CBD5E1] shadow-[0_4px_12px_rgba(15,23,42,0.06)]">
+            <Card key={specialist.title} className="bg-gradient-to-b from-white to-slate-50 border border-slate-100 shadow-[0_20px_40px_rgba(15,23,42,0.08)] transition-all duration-200 hover:-translate-y-1">
               <CardContent className="p-4 text-center">
-                <div className="w-10 h-10 rounded-lg bg-[#ECFDF5] flex items-center justify-center mx-auto mb-3">
-                  <specialist.icon className="h-5 w-5 text-[#15803D]" />
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-100 via-pink-100 to-amber-50 border border-slate-200 flex items-center justify-center mx-auto mb-3">
+                  <specialist.icon className="h-5 w-5 text-violet-700" />
                 </div>
-                <h3 className="font-medium text-[#0F172A] text-sm mb-1">{specialist.title}</h3>
-                <p className="text-xs text-[#64748B]">{specialist.description}</p>
+                <h3 className="font-medium text-slate-900 text-sm mb-1">{specialist.title}</h3>
+                <p className="text-xs text-slate-500">{specialist.description}</p>
               </CardContent>
             </Card>
           ))}
@@ -54,7 +54,8 @@ export function AISpecialists() {
         <div className="text-center mt-8">
           <Link href="/app/crew">
             <button 
-              className="h-10 px-6 text-sm font-medium rounded-lg bg-[linear-gradient(135deg,#22C55E_0%,#16A34A_100%)] text-white shadow-[0_10px_20px_rgba(22,163,74,0.25)] hover:shadow-[0_10px_20px_rgba(22,163,74,0.40)] hover:brightness-110 transition-all duration-200"
+              className="h-10 px-6 text-sm font-semibold rounded-xl bg-gradient-to-r from-violet-500 via-pink-500 to-amber-500 text-white shadow-[0_14px_30px_rgba(139,92,246,0.20)] hover:shadow-[0_18px_40px_rgba(236,72,153,0.22)] hover:-translate-y-0.5 transition-all duration-200"
+              style={{ textShadow: "0 1px 2px rgba(0,0,0,0.15)" }}
               data-testid="button-staff-crew"
             >
               Staff your AI crew
