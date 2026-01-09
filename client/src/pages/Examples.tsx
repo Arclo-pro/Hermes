@@ -5,14 +5,14 @@ import { ROUTES } from "@shared/routes";
 import { BrandButton } from "@/components/marketing/BrandButton";
 import { ExternalLink, Sparkles } from "lucide-react";
 
-import plumbingImage from "@assets/stock_images/plumber_working_resi_75235cbd.jpg";
-import hvacImage from "@assets/stock_images/hvac_technician_resi_dbd46315.jpg";
-import dentalImage from "@assets/stock_images/modern_dental_clinic_ea5e4f2e.jpg";
-import landscapingImage from "@assets/stock_images/landscaping_crew_res_b8e6beb2.jpg";
-import electricalImage from "@assets/stock_images/electrician_working__7518a220.jpg";
-import autoImage from "@assets/stock_images/auto_mechanic_car_re_47b1ee60.jpg";
-import roofingImage from "@assets/stock_images/roofing_contractor_r_61a938b1.jpg";
-import contractorImage from "@assets/stock_images/home_renovation_cont_f8087fe2.jpg";
+import plumbingImage from "@assets/stock_images/clean_modern_residen_0c759d90.jpg";
+import hvacImage from "@assets/stock_images/modern_home_interior_06285429.jpg";
+import dentalImage from "@assets/stock_images/modern_dental_office_c96a0813.jpg";
+import landscapingImage from "@assets/stock_images/beautiful_backyard_l_70adf2e1.jpg";
+import electricalImage from "@assets/stock_images/modern_home_exterior_c67845d3.jpg";
+import autoImage from "@assets/stock_images/clean_auto_repair_sh_690802cd.jpg";
+import roofingImage from "@assets/stock_images/new_roof_residential_43482a1c.jpg";
+import contractorImage from "@assets/stock_images/modern_kitchen_renov_88a358e3.jpg";
 
 const EXAMPLES = [
   {
@@ -21,7 +21,8 @@ const EXAMPLES = [
     industry: "Plumbing",
     city: "Austin, TX",
     image: plumbingImage,
-    altText: "Plumbing service example website",
+    imageLabel: "Plumbing Website",
+    altText: "Plumbing business website example",
     services: ["Emergency repairs", "Water heater installation", "Drain cleaning"],
   },
   {
@@ -30,7 +31,8 @@ const EXAMPLES = [
     industry: "HVAC",
     city: "Denver, CO",
     image: hvacImage,
-    altText: "HVAC company website example",
+    imageLabel: "HVAC Website",
+    altText: "HVAC company website homepage example",
     services: ["AC repair", "Furnace installation", "Duct cleaning"],
   },
   {
@@ -39,7 +41,8 @@ const EXAMPLES = [
     industry: "Dental Clinic",
     city: "Seattle, WA",
     image: dentalImage,
-    altText: "Dental clinic website example",
+    imageLabel: "Dental Website",
+    altText: "Dental clinic website homepage example",
     services: ["General dentistry", "Cosmetic procedures", "Emergency care"],
   },
   {
@@ -48,6 +51,7 @@ const EXAMPLES = [
     industry: "Landscaping",
     city: "Phoenix, AZ",
     image: landscapingImage,
+    imageLabel: "Landscaping Website",
     altText: "Landscaping business website example",
     services: ["Lawn care", "Irrigation", "Landscape design"],
   },
@@ -57,6 +61,7 @@ const EXAMPLES = [
     industry: "Electrical",
     city: "Portland, OR",
     image: electricalImage,
+    imageLabel: "Electrical Website",
     altText: "Electrical service website example",
     services: ["Panel upgrades", "Lighting installation", "EV chargers"],
   },
@@ -66,6 +71,7 @@ const EXAMPLES = [
     industry: "Auto Repair",
     city: "Salt Lake City, UT",
     image: autoImage,
+    imageLabel: "Auto Repair Website",
     altText: "Auto repair shop website example",
     services: ["Brake service", "Oil changes", "Engine repair"],
   },
@@ -75,6 +81,7 @@ const EXAMPLES = [
     industry: "Roofing",
     city: "Dallas, TX",
     image: roofingImage,
+    imageLabel: "Roofing Website",
     altText: "Roofing company website example",
     services: ["Roof replacement", "Storm damage", "Inspections"],
   },
@@ -84,6 +91,7 @@ const EXAMPLES = [
     industry: "General Contractor",
     city: "San Diego, CA",
     image: contractorImage,
+    imageLabel: "Contractor Website",
     altText: "General contractor website example",
     services: ["Kitchen remodels", "Bathroom renovations", "Additions"],
   },
@@ -117,11 +125,16 @@ export default function Examples() {
                     loading="lazy"
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                  <div className="absolute bottom-3 left-3 right-3">
+                    <span className="text-white text-sm font-medium drop-shadow-md">
+                      {example.imageLabel} · {example.city}
+                    </span>
+                  </div>
                 </div>
                 <CardContent className="p-5">
                   <h3 className="font-semibold text-slate-900 mb-1">{example.business}</h3>
-                  <p className="text-sm text-slate-500 mb-3">{example.industry} • {example.city}</p>
+                  <p className="text-sm text-slate-500 mb-3">{example.industry}</p>
                   
                   <div className="flex flex-wrap gap-1 mb-4">
                     {example.services.map((service) => (
