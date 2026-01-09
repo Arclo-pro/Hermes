@@ -2,11 +2,12 @@ import { MarketingLayout } from "@/components/layout/MarketingLayout";
 import {
   LandingHero,
   TrustRow,
-  BenefitCards,
-  ReportPreview,
-  AISpecialists,
   HowItWorks,
-  ThreeWaysCards,
+  BenefitCards,
+  IndustriesSection,
+  ExamplesPreview,
+  ComparisonSection,
+  BottomCTA,
   FounderNote,
 } from "@/components/landing";
 
@@ -15,12 +16,13 @@ export default function Landing() {
     <MarketingLayout>
       <LandingHero />
       <TrustRow />
-      <BenefitCards />
-      <ReportPreview />
-      <AISpecialists />
       <HowItWorks />
-      <ThreeWaysCards />
+      <BenefitCards />
+      <IndustriesSection />
+      <ExamplesPreview />
+      <ComparisonSection />
       <FounderNote />
+      <BottomCTA />
     </MarketingLayout>
   );
 }

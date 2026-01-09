@@ -54,6 +54,7 @@ import Report from "@/pages/Report";
 import FreeReport from "@/pages/FreeReport";
 import ManagedSite from "@/pages/ManagedSite";
 import SelectSite from "@/pages/SelectSite";
+import Examples from "@/pages/Examples";
 import { ROUTES, buildRoute, resolveAgentSlug } from "@shared/routes";
 import { useRoute } from "wouter";
 import { useEffect } from "react";
@@ -117,6 +118,7 @@ function Router() {
       <Route path={ROUTES.HOW_IT_WORKS} component={HowItWorks} />
       <Route path={ROUTES.USE_CASES} component={UseCases} />
       <Route path={ROUTES.PRICING} component={Pricing} />
+      <Route path={ROUTES.EXAMPLES} component={Examples} />
       <Route path={ROUTES.CREATE_SITE} component={CreateSite} />
       <Route path={ROUTES.WEBSITE_GENERATOR} component={WebsiteGenerator} />
       <Route path={ROUTES.SITE_PREVIEW} component={SitePreview} />

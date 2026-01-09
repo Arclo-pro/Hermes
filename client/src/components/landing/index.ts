@@ -6,3 +6,7 @@ export { AISpecialists } from './AISpecialists';
 export { HowItWorks } from './HowItWorks';
 export { ThreeWaysCards } from './ThreeWaysCards';
 export { FounderNote } from './FounderNote';
+export { IndustriesSection } from './IndustriesSection';
+export { ExamplesPreview } from './ExamplesPreview';
+export { ComparisonSection } from './ComparisonSection';
+export { BottomCTA } from './BottomCTA';

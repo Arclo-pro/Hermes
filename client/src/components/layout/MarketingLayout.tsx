@@ -20,14 +20,14 @@ export function MarketingLayout({ children }: MarketingLayoutProps) {
           </Link>
           
           <nav className="flex items-center gap-4 md:gap-6">
+            <Link href={ROUTES.EXAMPLES} className="hidden md:block">
+              <span className="text-sm text-slate-700 hover:text-slate-950 transition-colors cursor-pointer font-medium" data-testid="link-examples">
+                Examples
+              </span>
+            </Link>
             <Link href={ROUTES.HOW_IT_WORKS} className="hidden md:block">
               <span className="text-sm text-slate-700 hover:text-slate-950 transition-colors cursor-pointer font-medium" data-testid="link-how-it-works">
                 How It Works
-              </span>
-            </Link>
-            <Link href={ROUTES.USE_CASES} className="hidden md:block">
-              <span className="text-sm text-slate-700 hover:text-slate-950 transition-colors cursor-pointer font-medium" data-testid="link-use-cases">
-                Use Cases
               </span>
             </Link>
             <Link href={ROUTES.PRICING} className="hidden md:block">
@@ -40,18 +40,18 @@ export function MarketingLayout({ children }: MarketingLayoutProps) {
                 Log In
               </span>
             </Link>
-            <Link href={ROUTES.SCAN}>
+            <Link href={ROUTES.WEBSITE_GENERATOR}>
               <Button 
                 size="sm" 
                 className="gap-2 text-white font-medium"
                 style={{
                   background: "linear-gradient(135deg, #8B5CF6, #EC4899, #F59E0B)"
                 }}
-                data-testid="button-get-action-plan"
+                data-testid="button-generate-site"
               >
                 <Sparkles className="h-4 w-4" />
-                <span className="hidden sm:inline">Get Free SEO Action Plan</span>
-                <span className="sm:hidden">Free Plan</span>
+                <span className="hidden sm:inline">Generate My Site</span>
+                <span className="sm:hidden">Generate</span>
               </Button>
             </Link>
           </nav>
@@ -78,29 +78,36 @@ export function MarketingLayout({ children }: MarketingLayoutProps) {
             <div className="space-y-4">
               <h4 className="font-medium text-white">Product</h4>
               <div className="flex flex-col gap-2">
+                <Link href={ROUTES.EXAMPLES}>
+                  <span className="text-sm text-[#CBD5E1] hover:text-white cursor-pointer">Examples</span>
+                </Link>
                 <Link href={ROUTES.HOW_IT_WORKS}>
                   <span className="text-sm text-[#CBD5E1] hover:text-white cursor-pointer">How It Works</span>
-                </Link>
-                <Link href={ROUTES.USE_CASES}>
-                  <span className="text-sm text-[#CBD5E1] hover:text-white cursor-pointer">Use Cases</span>
                 </Link>
                 <Link href={ROUTES.PRICING}>
                   <span className="text-sm text-[#CBD5E1] hover:text-white cursor-pointer">Pricing</span>
                 </Link>
                 <Link href={ROUTES.WEBSITE_GENERATOR}>
-                  <span className="text-sm text-[#CBD5E1] hover:text-white cursor-pointer">Create a Site</span>
+                  <span className="text-sm text-[#CBD5E1] hover:text-white cursor-pointer">Generate a Site</span>
                 </Link>
               </div>
             </div>
             
             <div className="space-y-4">
-              <h4 className="font-medium text-white">Capabilities</h4>
+              <h4 className="font-medium text-white">Industries</h4>
               <div className="flex flex-col gap-2">
-                <span className="text-sm text-[#CBD5E1]">Technical SEO</span>
-                <span className="text-sm text-[#CBD5E1]">Keyword Opportunities</span>
-                <span className="text-sm text-[#CBD5E1]">Content Optimization</span>
-                <span className="text-sm text-[#CBD5E1]">Competitor Analysis</span>
-                <span className="text-sm text-[#CBD5E1]">Performance Monitoring</span>
+                <Link href={`${ROUTES.EXAMPLES}?industry=plumbing`}>
+                  <span className="text-sm text-[#CBD5E1] hover:text-white cursor-pointer">Plumbing</span>
+                </Link>
+                <Link href={`${ROUTES.EXAMPLES}?industry=hvac`}>
+                  <span className="text-sm text-[#CBD5E1] hover:text-white cursor-pointer">HVAC</span>
+                </Link>
+                <Link href={`${ROUTES.EXAMPLES}?industry=electrical`}>
+                  <span className="text-sm text-[#CBD5E1] hover:text-white cursor-pointer">Electrical</span>
+                </Link>
+                <Link href={`${ROUTES.EXAMPLES}?industry=landscaping`}>
+                  <span className="text-sm text-[#CBD5E1] hover:text-white cursor-pointer">Landscaping</span>
+                </Link>
               </div>
             </div>
             
