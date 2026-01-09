@@ -6,14 +6,14 @@ import { ROUTES } from "@shared/routes";
 import { BrandButton } from "@/components/marketing/BrandButton";
 import { Sparkles, Search } from "lucide-react";
 
-import plumbingImage from "@assets/stock_images/plumber_professional_e50f803a.jpg";
-import hvacImage from "@assets/stock_images/hvac_air_conditionin_4e60885e.jpg";
-import dentalImage from "@assets/stock_images/dental_office_recept_45666d73.jpg";
-import landscapingImage from "@assets/stock_images/lawn_care_worker_mow_e73bce6a.jpg";
-import electricalImage from "@assets/stock_images/electrician_installi_6257a884.jpg";
-import autoImage from "@assets/stock_images/car_mechanic_inspect_7fc519b6.jpg";
-import roofingImage from "@assets/stock_images/roofer_installing_sh_89a5d839.jpg";
-import contractorImage from "@assets/stock_images/carpenter_builder_me_c2c5c6f8.jpg";
+import plumbingImage from "@assets/stock_images/plumber_fixing_kitch_07a8ba6b.jpg";
+import hvacImage from "@assets/stock_images/hvac_technician_serv_e577d5bf.jpg";
+import dentalImage from "@assets/stock_images/dentist_examining_pa_6cbba69c.jpg";
+import landscapingImage from "@assets/stock_images/landscaper_trimming__387f5ca6.jpg";
+import electricalImage from "@assets/stock_images/electrician_wiring_e_30ddf283.jpg";
+import autoImage from "@assets/stock_images/auto_mechanic_under__0b07371d.jpg";
+import roofingImage from "@assets/stock_images/roofer_nailing_shing_9b063b76.jpg";
+import contractorImage from "@assets/stock_images/home_builder_contrac_1f793d61.jpg";
 
 const EXAMPLES = [
   {
