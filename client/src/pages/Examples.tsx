@@ -112,14 +112,14 @@ export default function Examples() {
             </p>
           </div>
           
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-stretch">
             {EXAMPLES.map((example) => (
               <Card 
                 key={example.id}
-                className="bg-white border border-slate-200 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg overflow-hidden group"
+                className="bg-white border border-slate-200 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg overflow-hidden group flex flex-col h-full"
                 data-testid={`card-example-${example.id}`}
               >
-                <div className="relative h-44 overflow-hidden">
+                <div className="relative h-44 overflow-hidden shrink-0">
                   <img 
                     src={example.image}
                     alt={example.altText}
@@ -133,11 +133,11 @@ export default function Examples() {
                     </span>
                   </div>
                 </div>
-                <CardContent className="p-5">
-                  <h3 className="font-semibold text-slate-900 mb-1">{example.business}</h3>
+                <CardContent className="p-5 flex flex-col flex-1">
+                  <h3 className="font-semibold text-slate-900 mb-1 min-h-[1.5rem]">{example.business}</h3>
                   <p className="text-sm text-slate-500 mb-3">{example.industry}</p>
                   
-                  <div className="flex flex-wrap gap-1 mb-4">
+                  <div className="flex flex-wrap gap-1 mb-4 max-h-14 overflow-hidden">
                     {example.services.map((service) => (
                       <span 
                         key={service}
@@ -148,10 +148,10 @@ export default function Examples() {
                     ))}
                   </div>
                   
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-2 mt-auto">
                     <Link href={ROUTES.SCAN}>
                       <span 
-                        className="w-full flex items-center justify-center gap-1 text-sm font-medium text-white py-2 rounded-lg transition-colors cursor-pointer"
+                        className="w-full flex items-center justify-center gap-1 text-sm font-medium text-white h-10 rounded-lg transition-colors cursor-pointer"
                         style={{ background: "linear-gradient(135deg, #8B5CF6, #EC4899, #F59E0B)" }}
                         data-testid={`button-analyze-${example.id}`}
                       >
@@ -161,7 +161,7 @@ export default function Examples() {
                     </Link>
                     <Link href={ROUTES.WEBSITE_GENERATOR}>
                       <span 
-                        className="flex items-center justify-center gap-1 text-sm font-medium text-violet-600 hover:text-violet-700 py-2 border border-violet-200 rounded-lg hover:bg-violet-50 transition-colors cursor-pointer"
+                        className="flex items-center justify-center gap-1 text-sm font-medium text-violet-600 hover:text-violet-700 h-10 border border-violet-200 rounded-lg hover:bg-violet-50 transition-colors cursor-pointer"
                         data-testid={`button-generate-like-${example.id}`}
                       >
                         <Sparkles className="h-3 w-3" />
