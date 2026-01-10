@@ -16,7 +16,10 @@ import { runFullDiagnostic } from "./analysis/orchestrator";
 import { runWorkerOrchestration, getAggregatedDashboardMetrics } from "./workerOrchestrator";
 import { logger } from "./utils/logger";
 import { apiKeyAuth } from "./middleware/apiAuth";
-import { randomUUID } from "crypto";
+import crypto, { randomUUID, scrypt, timingSafeEqual } from "crypto";
+import { promisify } from "util";
+
+const scryptAsync = promisify(scrypt);
 import OpenAI from "openai";
 import { z } from "zod";
 import { getServiceBySlug } from "@shared/servicesCatalog";
@@ -18568,6 +18571,294 @@ Return JSON in this exact format:
     } catch (error: any) {
       logger.error("Scan", `Failed to deploy fixes for ${scanId}`, { error: error.message, requestId });
       res.status(500).json({ ok: false, message: "Failed to deploy fixes" });
+    }
+  });
+
+  // =============================================================================
+  // SHARE MANAGEMENT ENDPOINTS
+  // =============================================================================
+
+  const createShareSchema = z.object({
+    title: z.string().optional(),
+    password: z.string().optional(),
+    expiresInDays: z.number().min(1).max(90).optional(),
+    allowedSections: z.object({
+      technical: z.boolean().optional(),
+      content: z.boolean().optional(),
+      performance: z.boolean().optional(),
+      keywords: z.boolean().optional(),
+      competitors: z.boolean().optional(),
+      backlinks: z.boolean().optional(),
+    }).optional(),
+  });
+
+  async function hashPassword(password: string): Promise<string> {
+    const salt = crypto.randomBytes(16).toString('hex');
+    const derivedKey = await scryptAsync(password, salt, 64) as Buffer;
+    return `${salt}:${derivedKey.toString('hex')}`;
+  }
+
+  async function verifyPassword(password: string, hash: string): Promise<boolean> {
+    const [salt, key] = hash.split(':');
+    if (!salt || !key) return false;
+    const derivedKey = await scryptAsync(password, salt, 64) as Buffer;
+    const keyBuffer = Buffer.from(key, 'hex');
+    return timingSafeEqual(derivedKey, keyBuffer);
+  }
+
+  app.post("/api/scan/:scanId/shares", async (req, res) => {
+    const { scanId } = req.params;
+    
+    try {
+      const scanResult = await db.execute(sql`
+        SELECT scan_id, status FROM scan_requests WHERE scan_id = ${scanId}
+      `);
+
+      if (scanResult.rows.length === 0) {
+        return res.status(404).json({ ok: false, message: "Scan not found" });
+      }
+
+      const parsed = createShareSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ 
+          ok: false, 
+          message: parsed.error.errors[0]?.message || "Invalid request body" 
+        });
+      }
+
+      const { title, password, expiresInDays = 14, allowedSections } = parsed.data;
+
+      const shareToken = crypto.randomBytes(24).toString('base64url');
+
+      let passwordHash: string | undefined;
+      if (password) {
+        passwordHash = await hashPassword(password);
+      }
+
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + Math.min(expiresInDays, 90));
+
+      const share = await storage.createReportShare({
+        scanId,
+        shareToken,
+        title: title || null,
+        passwordHash: passwordHash || null,
+        expiresAt,
+        allowedSections: allowedSections || null,
+      });
+
+      logger.info("Share", "Created share link", { scanId, shareToken: shareToken.slice(0, 8) + "..." });
+
+      res.json({
+        ok: true,
+        shareToken,
+        shareUrl: `/share/${shareToken}`,
+        expiresAt: share.expiresAt,
+      });
+    } catch (error: any) {
+      logger.error("Share", `Failed to create share for ${scanId}`, { error: error.message });
+      res.status(500).json({ ok: false, message: "Failed to create share link" });
+    }
+  });
+
+  app.get("/api/scan/:scanId/shares", async (req, res) => {
+    const { scanId } = req.params;
+    
+    try {
+      const scanResult = await db.execute(sql`
+        SELECT scan_id FROM scan_requests WHERE scan_id = ${scanId}
+      `);
+
+      if (scanResult.rows.length === 0) {
+        return res.status(404).json({ ok: false, message: "Scan not found" });
+      }
+
+      const shares = await storage.getReportSharesByScanId(scanId);
+
+      const sanitizedShares = shares.map(share => ({
+        id: share.id,
+        shareToken: share.shareToken,
+        shareUrl: `/share/${share.shareToken}`,
+        title: share.title,
+        hasPassword: !!share.passwordHash,
+        expiresAt: share.expiresAt,
+        allowedSections: share.allowedSections,
+        viewCount: share.viewCount,
+        lastViewedAt: share.lastViewedAt,
+        revokedAt: share.revokedAt,
+        createdAt: share.createdAt,
+      }));
+
+      res.json({ ok: true, shares: sanitizedShares });
+    } catch (error: any) {
+      logger.error("Share", `Failed to list shares for ${scanId}`, { error: error.message });
+      res.status(500).json({ ok: false, message: "Failed to list shares" });
+    }
+  });
+
+  app.delete("/api/scan/:scanId/shares/:shareId", async (req, res) => {
+    const { scanId, shareId } = req.params;
+    
+    try {
+      const scanResult = await db.execute(sql`
+        SELECT scan_id FROM scan_requests WHERE scan_id = ${scanId}
+      `);
+
+      if (scanResult.rows.length === 0) {
+        return res.status(404).json({ ok: false, message: "Scan not found" });
+      }
+
+      const shares = await storage.getReportSharesByScanId(scanId);
+      const share = shares.find(s => s.id === parseInt(shareId, 10));
+
+      if (!share) {
+        return res.status(404).json({ ok: false, message: "Share not found" });
+      }
+
+      await storage.revokeReportShare(share.id);
+
+      logger.info("Share", "Revoked share", { scanId, shareId });
+
+      res.status(204).send();
+    } catch (error: any) {
+      logger.error("Share", `Failed to revoke share ${shareId}`, { error: error.message });
+      res.status(500).json({ ok: false, message: "Failed to revoke share" });
+    }
+  });
+
+  app.get("/api/share/:token", async (req, res) => {
+    const { token } = req.params;
+    
+    try {
+      const share = await storage.getReportShareByToken(token);
+
+      if (!share) {
+        return res.status(404).json({ ok: false, message: "Share not found" });
+      }
+
+      if (share.revokedAt) {
+        return res.status(410).json({ ok: false, message: "This share link has been revoked" });
+      }
+
+      if (share.expiresAt && new Date(share.expiresAt) < new Date()) {
+        return res.status(410).json({ ok: false, message: "This share link has expired" });
+      }
+
+      if (share.passwordHash) {
+        const providedPassword = req.headers['x-share-password'] as string;
+        
+        if (!providedPassword) {
+          return res.status(401).json({ 
+            ok: false, 
+            message: "Password required",
+            requiresPassword: true 
+          });
+        }
+
+        const isValid = await verifyPassword(providedPassword, share.passwordHash);
+        if (!isValid) {
+          return res.status(401).json({ ok: false, message: "Invalid password" });
+        }
+      }
+
+      await storage.incrementShareViewCount(token);
+
+      const scanResult = await db.execute(sql`
+        SELECT scan_id, target_url, normalized_url, status, preview_findings, score_summary
+        FROM scan_requests
+        WHERE scan_id = ${share.scanId}
+      `);
+
+      if (scanResult.rows.length === 0) {
+        return res.status(404).json({ ok: false, message: "Report not found" });
+      }
+
+      const scan = scanResult.rows[0] as any;
+
+      const findings = scan.preview_findings || [];
+      const scoreSummary = scan.score_summary || { 
+        overall: 0, 
+        technical: 0, 
+        content: 0, 
+        performance: 0 
+      };
+
+      let filteredFindings = findings;
+      if (share.allowedSections) {
+        const allowed = share.allowedSections as Record<string, boolean>;
+        filteredFindings = findings.filter((f: any) => {
+          const category = (f.category || "").toLowerCase();
+          if (category === "technical" && allowed.technical === false) return false;
+          if (category === "content" && allowed.content === false) return false;
+          if (category === "performance" && allowed.performance === false) return false;
+          if (category === "keywords" && allowed.keywords === false) return false;
+          if (category === "competitors" && allowed.competitors === false) return false;
+          if (category === "backlinks" && allowed.backlinks === false) return false;
+          return true;
+        });
+      }
+
+      res.json({
+        ok: true,
+        share: {
+          title: share.title,
+          allowedSections: share.allowedSections,
+          viewCount: share.viewCount + 1,
+        },
+        report: {
+          targetUrl: scan.normalized_url || scan.target_url,
+          findings: filteredFindings,
+          scoreSummary,
+          totalFindings: filteredFindings.length,
+        },
+      });
+    } catch (error: any) {
+      logger.error("Share", `Failed to get shared report`, { error: error.message });
+      res.status(500).json({ ok: false, message: "Failed to get shared report" });
+    }
+  });
+
+  const verifySharePasswordSchema = z.object({
+    password: z.string().min(1, "Password is required"),
+  });
+
+  app.post("/api/share/:token/verify", async (req, res) => {
+    const { token } = req.params;
+    
+    try {
+      const share = await storage.getReportShareByToken(token);
+
+      if (!share) {
+        return res.status(404).json({ ok: false, message: "Share not found" });
+      }
+
+      if (share.revokedAt) {
+        return res.status(410).json({ ok: false, message: "This share link has been revoked" });
+      }
+
+      if (share.expiresAt && new Date(share.expiresAt) < new Date()) {
+        return res.status(410).json({ ok: false, message: "This share link has expired" });
+      }
+
+      if (!share.passwordHash) {
+        return res.json({ ok: true, valid: true, message: "No password required" });
+      }
+
+      const parsed = verifySharePasswordSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ 
+          ok: false, 
+          message: parsed.error.errors[0]?.message || "Invalid request body" 
+        });
+      }
+
+      const { password } = parsed.data;
+      const isValid = await verifyPassword(password, share.passwordHash);
+
+      res.json({ ok: true, valid: isValid });
+    } catch (error: any) {
+      logger.error("Share", `Failed to verify share password`, { error: error.message });
+      res.status(500).json({ ok: false, message: "Failed to verify password" });
     }
   });
 

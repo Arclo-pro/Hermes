@@ -195,6 +195,9 @@ import {
   verificationTokens,
   type VerificationToken,
   type InsertVerificationToken,
+  reportShares,
+  type ReportShare,
+  type InsertReportShare,
 } from "@shared/schema";
 import { eq, desc, and, gte, sql, asc, or, isNull, arrayContains } from "drizzle-orm";
 
@@ -553,6 +556,13 @@ export interface IStorage {
   getFreeReportByShareToken(token: string): Promise<FreeReport | null>;
   updateFreeReport(reportId: string, updates: Partial<FreeReport>): Promise<void>;
   createShareToken(reportId: string): Promise<string>;
+  
+  // Report Shares
+  createReportShare(data: InsertReportShare): Promise<ReportShare>;
+  getReportShareByToken(shareToken: string): Promise<ReportShare | null>;
+  getReportSharesByScanId(scanId: string): Promise<ReportShare[]>;
+  incrementShareViewCount(shareToken: string): Promise<void>;
+  revokeReportShare(id: number): Promise<void>;
 }
 
 class DBStorage implements IStorage {
@@ -3283,6 +3293,49 @@ class DBStorage implements IStorage {
       .where(eq(freeReports.reportId, reportId));
     
     return rawToken;
+  }
+
+  // Report Shares
+  async createReportShare(data: InsertReportShare): Promise<ReportShare> {
+    const [result] = await db
+      .insert(reportShares)
+      .values(data)
+      .returning();
+    return result;
+  }
+
+  async getReportShareByToken(shareToken: string): Promise<ReportShare | null> {
+    const [result] = await db
+      .select()
+      .from(reportShares)
+      .where(eq(reportShares.shareToken, shareToken))
+      .limit(1);
+    return result || null;
+  }
+
+  async getReportSharesByScanId(scanId: string): Promise<ReportShare[]> {
+    return db
+      .select()
+      .from(reportShares)
+      .where(eq(reportShares.scanId, scanId))
+      .orderBy(desc(reportShares.createdAt));
+  }
+
+  async incrementShareViewCount(shareToken: string): Promise<void> {
+    await db
+      .update(reportShares)
+      .set({
+        viewCount: sql`${reportShares.viewCount} + 1`,
+        lastViewedAt: new Date(),
+      })
+      .where(eq(reportShares.shareToken, shareToken));
+  }
+
+  async revokeReportShare(id: number): Promise<void> {
+    await db
+      .update(reportShares)
+      .set({ revokedAt: new Date() })
+      .where(eq(reportShares.id, id));
   }
 
   // User Authentication

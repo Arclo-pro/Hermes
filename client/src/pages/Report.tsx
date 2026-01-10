@@ -4,13 +4,14 @@ import { useParams, useLocation } from "wouter";
 import { 
   Loader2, CheckCircle2, AlertTriangle, Info, ArrowRight, Rocket, Download, Shield, Zap, TrendingUp,
   DollarSign, Users, MousePointer, Copy, FileText, Printer, ChevronDown, ChevronUp,
-  Target, Link2, BarChart2, ExternalLink, Trophy, ArrowDown, ArrowUp
+  Target, Link2, BarChart2, ExternalLink, Trophy, ArrowDown, ArrowUp, Share2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MarketingLayout } from "@/components/layout/MarketingLayout";
 import { DeployOptionsModal } from "@/components/marketing/DeployOptionsModal";
+import { ShareReportModal } from "@/components/reports/ShareReportModal";
 import { ROUTES } from "@shared/routes";
 
 interface Finding {
@@ -646,6 +647,7 @@ export default function Report() {
   const [, navigate] = useLocation();
   const [deployModalOpen, setDeployModalOpen] = useState(false);
   const [showManualInstructions, setShowManualInstructions] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
 
   const { data: report, isLoading, error } = useQuery<ReportData>({
     queryKey: ["report", scanId],
@@ -742,9 +744,21 @@ export default function Report() {
       <div className="py-12 px-4">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-8">
-            <Badge className="bg-green-500/20 text-green-600 border-green-500/30 mb-4">
-              Full Report Unlocked
-            </Badge>
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <Badge className="bg-green-500/20 text-green-600 border-green-500/30">
+                Full Report Unlocked
+              </Badge>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShareModalOpen(true)}
+                className="border-slate-300 text-slate-600 hover:bg-slate-50"
+                data-testid="btn-share-report"
+              >
+                <Share2 className="w-4 h-4 mr-1" />
+                Share Report
+              </Button>
+            </div>
             <h1 className="text-3xl md:text-4xl font-bold mb-2 text-[var(--marketing-text-heading)]" data-testid="report-title">
               SEO Analysis Report
             </h1>
@@ -871,6 +885,14 @@ export default function Report() {
         onSelectAutopilot={handleSelectAutopilot}
         onSelectManaged={handleSelectManaged}
       />
+
+      {scanId && (
+        <ShareReportModal
+          open={shareModalOpen}
+          onOpenChange={setShareModalOpen}
+          scanId={scanId}
+        />
+      )}
     </MarketingLayout>
   );
 }

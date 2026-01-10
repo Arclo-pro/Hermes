@@ -55,6 +55,7 @@ import FreeReport from "@/pages/FreeReport";
 import ManagedSite from "@/pages/ManagedSite";
 import SelectSite from "@/pages/SelectSite";
 import Examples from "@/pages/Examples";
+import SharedReport from "@/pages/SharedReport";
 import { ROUTES, buildRoute, resolveAgentSlug } from "@shared/routes";
 import { useRoute } from "wouter";
 import { useEffect } from "react";
@@ -127,6 +128,7 @@ function Router() {
       <Route path={ROUTES.REPORT} component={Report} />
       <Route path={ROUTES.FREE_REPORT_SHARE} component={FreeReport} />
       <Route path={ROUTES.FREE_REPORT} component={FreeReport} />
+      <Route path={ROUTES.SHARED_REPORT} component={SharedReport} />
       <Route path={ROUTES.MANAGED_SITE} component={ManagedSite} />
       
       {/* ============================================ */}

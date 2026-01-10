@@ -39,6 +39,7 @@ export const ROUTES = {
   REPORT: "/report/:scanId",
   FREE_REPORT: "/report/free/:reportId",
   FREE_REPORT_SHARE: "/report/free/:reportId/share/:shareToken",
+  SHARED_REPORT: "/share/:token",
   HOW_IT_WORKS: "/how-it-works",
   USE_CASES: "/use-cases",
   PRICING: "/pricing",
@@ -103,6 +104,7 @@ export const buildRoute = {
   report: (scanId: string) => `/report/${scanId}`,
   freeReport: (reportId: string) => `/report/free/${reportId}`,
   freeReportShare: (reportId: string, shareToken: string) => `/report/free/${reportId}/share/${shareToken}`,
+  sharedReport: (token: string) => `/share/${token}`,
   sitePreview: (siteId: string, token?: string) => token ? `/preview/${siteId}?token=${token}` : `/preview/${siteId}`,
   
   // App route builders
@@ -255,6 +257,7 @@ const DYNAMIC_ROUTE_PATTERNS = [
   /^\/report\/[a-zA-Z0-9_-]+$/,
   /^\/report\/free\/[a-zA-Z0-9_-]+$/,
   /^\/report\/free\/[a-zA-Z0-9_-]+\/share\/[a-zA-Z0-9_-]+$/,
+  /^\/share\/[a-zA-Z0-9_-]+$/,
   
   // App dynamic routes
   /^\/app\/agents\/[a-zA-Z0-9_-]+$/,
