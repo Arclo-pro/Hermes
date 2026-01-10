@@ -78,7 +78,7 @@ export function MarketingLayout({ children }: MarketingLayoutProps) {
         <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
           <Link href={ROUTES.LANDING}>
             <div className="flex items-center cursor-pointer" data-testid="link-home">
-              <img src={arcloLogo} alt="Arclo" className="h-10 w-auto" />
+              <img src={arcloLogo} alt="Arclo" className="h-10 w-auto" fetchpriority="high" />
             </div>
           </Link>
           
@@ -211,7 +211,7 @@ export function MarketingLayout({ children }: MarketingLayoutProps) {
           <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
             <div className="col-span-2 md:col-span-1 space-y-4">
               <div className="flex items-center">
-                <img src={arcloLogo} alt="Arclo" className="h-8 w-auto" />
+                <img src={arcloLogo} alt="Arclo" className="h-8 w-auto" loading="lazy" />
               </div>
               <p className="text-sm text-[#CBD5E1]">
                 Fully automated SEO from audit to execution.

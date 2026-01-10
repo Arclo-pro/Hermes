@@ -1,5 +1,6 @@
 export { LandingHero } from './LandingHero';
 export { TrustRow } from './TrustRow';
+export { Testimonials } from './Testimonials';
 export { BenefitCards } from './BenefitCards';
 export { ReportPreview } from './ReportPreview';
 export { AISpecialists } from './AISpecialists';
@@ -9,4 +10,5 @@ export { FounderNote } from './FounderNote';
 export { IndustriesSection } from './IndustriesSection';
 export { ExamplesPreview } from './ExamplesPreview';
 export { ComparisonSection } from './ComparisonSection';
+export { FAQSection } from './FAQSection';
 export { BottomCTA } from './BottomCTA';

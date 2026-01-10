@@ -3,11 +3,13 @@ import { SEOHead } from "@/components/marketing/SEOHead";
 import {
   LandingHero,
   TrustRow,
+  Testimonials,
   HowItWorks,
   BenefitCards,
   IndustriesSection,
   ExamplesPreview,
   ComparisonSection,
+  FAQSection,
   BottomCTA,
   FounderNote,
 } from "@/components/landing";
@@ -22,12 +24,14 @@ export default function Landing() {
       />
       <LandingHero />
       <TrustRow />
+      <Testimonials />
       <HowItWorks />
       <BenefitCards />
       <IndustriesSection />
       <ExamplesPreview />
       <ComparisonSection />
       <FounderNote />
+      <FAQSection />
       <BottomCTA />
     </MarketingLayout>
   );
