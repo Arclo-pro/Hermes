@@ -78,7 +78,7 @@ export function MarketingLayout({ children }: MarketingLayoutProps) {
         <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
           <Link href={ROUTES.LANDING}>
             <div className="flex items-center cursor-pointer" data-testid="link-home">
-              <img src={arcloLogo} alt="Arclo" className="h-10 w-auto" fetchpriority="high" />
+              <img src={arcloLogo} alt="Arclo" className="h-10 w-auto" fetchPriority="high" />
             </div>
           </Link>
           
