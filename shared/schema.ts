@@ -109,6 +109,39 @@ export const insertScanRequestSchema = createInsertSchema(scanRequests).omit({
 export type InsertScanRequest = z.infer<typeof insertScanRequestSchema>;
 export type ScanRequest = typeof scanRequests.$inferSelect;
 
+// Report Shares for collaboration
+export const reportShares = pgTable("report_shares", {
+  id: serial("id").primaryKey(),
+  scanId: text("scan_id").notNull(), // References scanRequests.scanId
+  shareToken: text("share_token").notNull().unique(), // URL-safe unique token
+  createdByEmail: text("created_by_email"), // Email of user who created the share
+  title: text("title"), // Optional custom title for the share
+  passwordHash: text("password_hash"), // Optional password protection (bcrypt hash)
+  expiresAt: timestamp("expires_at"), // null = never expires
+  allowedSections: jsonb("allowed_sections").$type<{
+    technical?: boolean;
+    content?: boolean;
+    performance?: boolean;
+    keywords?: boolean;
+    competitors?: boolean;
+    backlinks?: boolean;
+  }>(), // Which sections to show
+  viewCount: integer("view_count").default(0).notNull(),
+  lastViewedAt: timestamp("last_viewed_at"),
+  revokedAt: timestamp("revoked_at"), // null = active, timestamp = revoked
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertReportShareSchema = createInsertSchema(reportShares).omit({
+  id: true,
+  viewCount: true,
+  lastViewedAt: true,
+  revokedAt: true,
+  createdAt: true,
+});
+export type InsertReportShare = z.infer<typeof insertReportShareSchema>;
+export type ReportShare = typeof reportShares.$inferSelect;
+
 // GA4 Daily Snapshots
 export const ga4Daily = pgTable("ga4_daily", {
   id: serial("id").primaryKey(),
