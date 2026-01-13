@@ -801,6 +801,272 @@ function AccomplishmentsSection() {
   );
 }
 
+// Unified Capabilities & Performance Section
+function CapabilitiesSection({ 
+  agents, 
+  crewSummaries, 
+  kbStatus, 
+  agentStatus 
+}: { 
+  agents: Array<{ serviceId: string; score: number | null; missionsOpen?: number; status: 'good' | 'watch' | 'bad' }>; 
+  crewSummaries?: Array<{ crewId: string; nickname: string; pendingCount: number; lastCompletedAt: string | null; status: 'looking_good' | 'doing_okay' | 'needs_attention'; primaryMetric?: string; primaryMetricValue?: number; deltaPercent?: number | null; deltaLabel?: string; hasNoData?: boolean; emptyStateReason?: string | null; missions?: { open?: number } }>;
+  kbStatus?: { totalLearnings?: number; configured?: boolean; status?: string };
+  agentStatus?: Record<string, { health: string; needsConfig: boolean; lastRun: string | null }>;
+}) {
+  const { isHired } = useHiredCrews();
+  
+  // Core KPI definitions per crew
+  const CREW_KPIS: Record<string, { label: string; sampleValue: string; whyItMatters: string }> = {
+    crawl_render: { label: "Issues Found", sampleValue: "~12", whyItMatters: "Technical issues blocking search visibility" },
+    core_web_vitals: { label: "Performance Score", sampleValue: "~85", whyItMatters: "Speed directly impacts rankings and conversions" },
+    content_decay: { label: "Pages Declining", sampleValue: "~3", whyItMatters: "Content losing traffic needs attention" },
+    content_generator: { label: "Content Score", sampleValue: "~72", whyItMatters: "Quality signals that Google rewards" },
+    google_data_connector: { label: "Monthly Sessions", sampleValue: "~12.4K", whyItMatters: "Traffic trends show growth or decline" },
+    serp_intel: { label: "Keywords Tracked", sampleValue: "~25", whyItMatters: "Monitor ranking movements" },
+    ai_optimization: { label: "AI Readiness", sampleValue: "~68%", whyItMatters: "Optimize for AI search answers" },
+    google_ads_connector: { label: "Conversions", sampleValue: "~45", whyItMatters: "Paid campaign performance" },
+    seo_kbase: { label: "Insights Generated", sampleValue: "~15", whyItMatters: "Learning from your site data" },
+    backlink_authority: { label: "Domain Authority", sampleValue: "~35", whyItMatters: "Link equity and credibility" },
+    competitive_snapshot: { label: "Competitors Tracked", sampleValue: "~5", whyItMatters: "Stay ahead of the competition" },
+  };
+  
+  // Build capability cards data
+  const capabilities = agents.map(agent => {
+    const crew = getCrewMember(agent.serviceId);
+    const crewId = SERVICE_TO_CREW[agent.serviceId] || agent.serviceId;
+    const crewSummary = crewSummaries?.find((cs: any) => cs.crewId === crewId);
+    const needsConfig = agentStatus?.[agent.serviceId]?.needsConfig ?? false;
+    const hired = isHired(agent.serviceId);
+    const isSocrates = agent.serviceId === 'seo_kbase';
+    
+    // Get KPI config
+    const kpiConfig = CREW_KPIS[agent.serviceId] || { label: "Tasks Open", sampleValue: "~5", whyItMatters: "Actions to improve your site" };
+    
+    // Determine KPI value
+    let kpiValue = crewSummary?.primaryMetricValue?.toString() || "—";
+    let kpiLabel = crewSummary?.primaryMetric || kpiConfig.label;
+    
+    if (isSocrates && kbStatus) {
+      kpiValue = String(kbStatus.totalLearnings || 0);
+      kpiLabel = "Insights Generated";
+    }
+    
+    // Task count
+    const tasksOpen = crewSummary?.missions?.open ?? crewSummary?.pendingCount ?? agent.missionsOpen ?? 0;
+    
+    // Trend
+    let trend: 'up' | 'down' | 'stable' | 'none' = 'none';
+    if (crewSummary?.deltaPercent !== null && crewSummary?.deltaPercent !== undefined) {
+      if (crewSummary.deltaPercent > 0) trend = 'up';
+      else if (crewSummary.deltaPercent < 0) trend = 'down';
+      else trend = 'stable';
+    }
+    
+    // Status
+    let status: 'active' | 'locked' | 'setup' = 'active';
+    if (!hired) status = 'locked';
+    else if (needsConfig) status = 'setup';
+    
+    return {
+      serviceId: agent.serviceId,
+      crew,
+      kpiValue: status === 'locked' ? kpiConfig.sampleValue : kpiValue,
+      kpiLabel,
+      sampleValue: kpiConfig.sampleValue,
+      whyItMatters: kpiConfig.whyItMatters,
+      tasksOpen,
+      trend,
+      status,
+      isLocked: status === 'locked',
+    };
+  });
+  
+  // Add locked capabilities that aren't in the hired list - show ALL to meet spec
+  const allCrewIds = Object.keys(CREW_KPIS);
+  const hiredIds = agents.map(a => a.serviceId);
+  const lockedCapabilities = allCrewIds
+    .filter(id => !hiredIds.includes(id))
+    .map(serviceId => {
+      const crew = getCrewMember(serviceId);
+      const kpiConfig = CREW_KPIS[serviceId];
+      return {
+        serviceId,
+        crew,
+        kpiValue: kpiConfig.sampleValue,
+        kpiLabel: kpiConfig.label,
+        sampleValue: kpiConfig.sampleValue,
+        whyItMatters: kpiConfig.whyItMatters,
+        tasksOpen: 0,
+        trend: 'none' as const,
+        status: 'locked' as const,
+        isLocked: true,
+      };
+    });
+  
+  const allCapabilities = [...capabilities, ...lockedCapabilities];
+
+  return (
+    <div data-testid="capabilities-section" className="mb-8">
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">Capabilities & Performance</h2>
+          <p className="text-sm text-muted-foreground">Your growth engine at a glance</p>
+        </div>
+        <Link href={ROUTES.CREW}>
+          <Button variant="outline" size="sm" className="text-xs border-dashed border-primary/50 text-primary hover:bg-primary/5">
+            <Users className="w-3 h-3 mr-1.5" />
+            Manage Crew
+          </Button>
+        </Link>
+      </div>
+      
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {allCapabilities.map((cap) => (
+          <CapabilityCard key={cap.serviceId} capability={cap} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CapabilityCard({ capability }: { 
+  capability: {
+    serviceId: string;
+    crew: ReturnType<typeof getCrewMember>;
+    kpiValue: string;
+    kpiLabel: string;
+    sampleValue: string;
+    whyItMatters: string;
+    tasksOpen: number;
+    trend: 'up' | 'down' | 'stable' | 'none';
+    status: 'active' | 'locked' | 'setup';
+    isLocked: boolean;
+  }
+}) {
+  const { crew, kpiValue, kpiLabel, tasksOpen, trend, status, isLocked, whyItMatters } = capability;
+  
+  const tintedGlassStyles = status === 'active' ? getTintedGlassStyles(crew.color) : {};
+  const neutralStyles = status !== 'active' ? {
+    background: 'rgba(255,255,255,0.02)',
+    border: '1px solid rgba(255,255,255,0.08)',
+  } : {};
+  
+  const TrendIcon = trend === 'up' ? TrendingUp : trend === 'down' ? TrendingDown : Minus;
+  const trendColor = trend === 'up' ? 'text-semantic-success' : trend === 'down' ? 'text-semantic-danger' : 'text-muted-foreground';
+  const trendLabel = trend === 'up' ? 'Improving' : trend === 'down' ? 'Declining' : trend === 'stable' ? 'Stable' : 'No trend yet';
+  
+  return (
+    <Link href={status === 'locked' ? ROUTES.CREW : buildRoute.agent(capability.serviceId)}>
+      <Card 
+        className={cn(
+          "transition-all backdrop-blur-sm rounded-xl overflow-hidden h-full flex flex-col cursor-pointer hover:scale-[1.02]",
+          status === 'active' && "hover:shadow-lg",
+          status === 'setup' && "border-2 border-amber-500/30"
+        )}
+        style={{ ...tintedGlassStyles, ...neutralStyles }}
+        data-testid={`capability-card-${capability.serviceId}`}
+      >
+        <CardContent className="p-4 flex flex-col h-full">
+          {/* Header: Avatar + Name + Status */}
+          <div className="flex items-start gap-3 mb-4">
+            <div className="relative">
+              {crew.avatar ? (
+                <img 
+                  src={crew.avatar} 
+                  alt={crew.nickname}
+                  className={cn(
+                    "w-10 h-10 rounded-full object-cover flex-shrink-0",
+                    status === 'active' && "ring-2",
+                    isLocked && "opacity-60 grayscale"
+                  )}
+                  style={status === 'active' ? { boxShadow: `0 0 12px ${crew.color}40`, borderColor: crew.color } : {}}
+                />
+              ) : (
+                <div 
+                  className={cn(
+                    "w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0",
+                    isLocked && "opacity-60"
+                  )}
+                  style={{ backgroundColor: `${crew.color}20`, color: crew.color }}
+                >
+                  {crew.nickname.slice(0, 2)}
+                </div>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className={cn("font-semibold text-base", isLocked && "text-muted-foreground")} style={!isLocked ? { color: crew.color } : {}}>
+                {crew.nickname}
+              </h4>
+              <p className="text-xs text-muted-foreground truncate">{crew.role}</p>
+            </div>
+            {/* Status Badge */}
+            {status === 'active' && (
+              <Badge className="text-[10px] bg-semantic-success/15 text-semantic-success border-0">Active</Badge>
+            )}
+            {status === 'locked' && (
+              <Badge variant="outline" className="text-[10px] border-border text-muted-foreground">Locked</Badge>
+            )}
+            {status === 'setup' && (
+              <Badge className="text-[10px] bg-amber-500/15 text-amber-600 border-0">Setup</Badge>
+            )}
+          </div>
+          
+          {/* Core KPI - Big Number */}
+          <div className="mb-3">
+            <div className="flex items-baseline gap-2">
+              <span 
+                className={cn("text-3xl font-bold", isLocked && "opacity-50 blur-[2px]")}
+                style={!isLocked ? { color: crew.color } : { color: 'var(--muted-foreground)' }}
+              >
+                {kpiValue}
+              </span>
+              {isLocked && (
+                <span className="text-xs text-muted-foreground">(Sample)</span>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">{kpiLabel}</p>
+          </div>
+          
+          {/* Trend Indicator */}
+          {!isLocked && (
+            <div className={cn("flex items-center gap-1.5 text-xs mb-3", trendColor)}>
+              <TrendIcon className="w-3.5 h-3.5" />
+              <span>{trendLabel}</span>
+            </div>
+          )}
+          
+          {isLocked && (
+            <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{whyItMatters}</p>
+          )}
+          
+          <div className="flex-1" />
+          
+          {/* Task Count + CTA */}
+          <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
+            {!isLocked ? (
+              <>
+                <span className="text-xs text-muted-foreground">
+                  {tasksOpen === 0 ? 'All caught up' : `${tasksOpen} ${tasksOpen === 1 ? 'task' : 'tasks'} open`}
+                </span>
+                <span className="text-xs font-medium flex items-center gap-1" style={{ color: crew.color }}>
+                  {status === 'setup' ? 'Configure' : 'Review'} <ArrowRight className="w-3 h-3" />
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="text-xs text-muted-foreground">Unlock to enable</span>
+                <span className="text-xs font-medium text-primary flex items-center gap-1">
+                  Enable <ArrowRight className="w-3 h-3" />
+                </span>
+              </>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
+  );
+}
+
 function AgentSummaryCard({ agent, enabled = true, needsConfig = false }: { agent: { serviceId: string; score: number | null; missionsOpen?: number; status: 'good' | 'watch' | 'bad' | 'neutral'; keyMetric: string; keyMetricValue: string; delta: string; whatChanged: string }; enabled?: boolean; needsConfig?: boolean }) {
   const crew = getCrewMember(agent.serviceId);
   
@@ -1995,9 +2261,7 @@ export default function MissionControl() {
         )}
 
 
-        <MetricCardsRow />
-
-        <AgentSummaryGrid 
+        <CapabilitiesSection 
           agents={userAgents} 
           crewSummaries={dashboard?.crewSummaries}
           kbStatus={kbStatus}
