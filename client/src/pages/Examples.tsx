@@ -154,20 +154,11 @@ export default function Examples() {
                     ))}
                   </div>
                   
-                  <div className="flex flex-col gap-2 mt-auto">
-                    <Link href={ROUTES.SCAN}>
+                  <div className="mt-auto">
+                    <Link href={ROUTES.WEBSITE_GENERATOR}>
                       <span 
                         className="w-full flex items-center justify-center gap-1 text-sm font-medium text-white h-10 rounded-lg transition-colors cursor-pointer"
                         style={{ background: "linear-gradient(135deg, #8B5CF6, #EC4899, #F59E0B)" }}
-                        data-testid={`button-analyze-${example.id}`}
-                      >
-                        <Search className="h-3 w-3" />
-                        Analyze My Website
-                      </span>
-                    </Link>
-                    <Link href={ROUTES.WEBSITE_GENERATOR}>
-                      <span 
-                        className="flex items-center justify-center gap-1 text-sm font-medium text-violet-600 hover:text-violet-700 h-10 border border-violet-200 rounded-lg hover:bg-violet-50 transition-colors cursor-pointer"
                         data-testid={`button-generate-like-${example.id}`}
                       >
                         <Sparkles className="h-3 w-3" />
