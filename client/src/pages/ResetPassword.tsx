@@ -84,6 +84,7 @@ export default function ResetPassword() {
               </CardContent>
               <CardFooter>
                 <Button 
+                  variant="primaryGradient"
                   className="w-full"
                   onClick={() => navigate("/forgot-password")}
                   data-testid="button-request-new-link"
@@ -120,6 +121,7 @@ export default function ResetPassword() {
               </CardContent>
               <CardFooter>
                 <Button 
+                  variant="primaryGradient"
                   className="w-full"
                   onClick={() => navigate("/login")}
                   data-testid="button-go-to-login"
@@ -187,6 +189,7 @@ export default function ResetPassword() {
 
                 <Button 
                   type="submit" 
+                  variant="primaryGradient"
                   className="w-full" 
                   disabled={loading}
                   data-testid="button-reset-submit"

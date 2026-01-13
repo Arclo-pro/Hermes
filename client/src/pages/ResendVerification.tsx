@@ -118,6 +118,7 @@ export default function ResendVerification() {
 
                 <Button 
                   type="submit" 
+                  variant="primaryGradient"
                   className="w-full" 
                   disabled={loading}
                   data-testid="button-resend-submit"

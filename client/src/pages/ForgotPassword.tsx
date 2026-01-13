@@ -118,6 +118,7 @@ export default function ForgotPassword() {
 
                 <Button 
                   type="submit" 
+                  variant="primaryGradient"
                   className="w-full" 
                   disabled={loading}
                   data-testid="button-forgot-submit"
