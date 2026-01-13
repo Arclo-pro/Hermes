@@ -181,7 +181,16 @@ export function registerAuthRoutes(app: Express): void {
       });
 
       // Send verification email
-      await sendVerificationEmail(email, token, displayName || email.split('@')[0]);
+      const emailSent = await sendVerificationEmail(email, token, displayName || email.split('@')[0]);
+
+      if (!emailSent) {
+        console.error("[Auth] Failed to send verification email to:", email);
+        // Still return success but warn about email issue
+        return res.status(201).json({
+          success: true,
+          message: "Account created. Email delivery may be delayed - if you don't receive it, try requesting a new verification link.",
+        });
+      }
 
       return res.status(201).json({
         success: true,
