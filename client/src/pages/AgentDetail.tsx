@@ -20,7 +20,7 @@ import DraperContent from "./draper/DraperContent";
 import GenericAgentContent from "./agents/GenericAgentContent";
 
 export default function AgentDetail() {
-  const [match, params] = useRoute("/agents/:agentId");
+  const [match, params] = useRoute(ROUTES.AGENT_DETAIL);
   const [, navigate] = useLocation();
   
   const rawSlug = params?.agentId || "";
