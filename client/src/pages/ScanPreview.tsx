@@ -102,29 +102,31 @@ function DiagnosisCard({ title, icon, iconColor, status, coverage, impactText, d
   
   return (
     <div className={`${glass.card} h-full flex flex-col p-5`}>
-      {/* Header */}
-      <div className="flex items-start gap-3 mb-4">
-        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-slate-100 to-slate-50 border border-slate-200/50 flex items-center justify-center shadow-sm shrink-0">
-          <div className={iconColor}>{icon}</div>
-        </div>
-        <div>
-          <h3 className="font-semibold text-slate-900">{title}</h3>
-          <div className="flex items-center gap-2 mt-1.5">
-            <Badge className={`${status.bgColor} ${status.color} text-xs font-medium border-0`}>
-              {status.label}
-            </Badge>
-            <Badge className={`${coverageInfo.bgColor} ${coverageInfo.color} text-xs font-medium border-0`}>
-              {coverageInfo.label}
-            </Badge>
+      {/* Header - responsive stacked layout */}
+      <div className="mb-4">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-100 to-slate-50 border border-slate-200/50 flex items-center justify-center shadow-sm shrink-0">
+            <div className={iconColor}>{icon}</div>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-slate-900 leading-tight">{title}</h3>
+            <div className="flex flex-wrap items-center gap-1.5 mt-2">
+              <Badge className={`${status.bgColor} ${status.color} text-[11px] font-medium border-0 px-2 py-0.5`}>
+                {status.label}
+              </Badge>
+              <Badge className={`${coverageInfo.bgColor} ${coverageInfo.color} text-[11px] font-medium border-0 px-2 py-0.5`}>
+                {coverageInfo.label}
+              </Badge>
+            </div>
           </div>
         </div>
       </div>
       
       {/* Body - flex-1 to push footer down */}
       <div className="flex-1">
-        <p className="text-sm text-slate-600 leading-relaxed">{impactText}</p>
+        <p className="text-sm text-slate-500 leading-relaxed">{impactText}</p>
         {details && (
-          <p className="text-xs text-slate-500 mt-2 font-medium">{details}</p>
+          <p className="text-xs text-slate-400 mt-2 font-medium">{details}</p>
         )}
       </div>
       
@@ -350,10 +352,13 @@ export default function ScanPreview() {
 
                 {/* ===== SECTION 2: WHAT WE CHECKED (Layer 2 - Standard Glass) ===== */}
                 <div className={`${glass.panel} p-6 md:p-8`}>
-                  <div className="text-center mb-8">
+                  <div className="text-center mb-6">
                     <h2 className="text-xl font-semibold text-slate-800">What We Checked (So Far)</h2>
                     <p className="text-sm text-slate-500 mt-2 max-w-lg mx-auto">
-                      We ran a fast diagnostic across core SEO signals. Full scans analyze additional ranking, content, and authority factors.
+                      Fast diagnostic across core SEO signals. Full scans add ranking and authority analysis.
+                    </p>
+                    <p className="text-xs text-slate-400 mt-1.5">
+                      Powered by live crawl, performance, and content signals
                     </p>
                   </div>
                   
@@ -365,7 +370,7 @@ export default function ScanPreview() {
                       iconColor={getCardStatus(preview.scoreSummary.technical).iconColor}
                       status={getCardStatus(preview.scoreSummary.technical)}
                       coverage="checked"
-                      impactText="Technical gaps reduce click-through rates even when rankings are strong."
+                      impactText="Technical gaps hurt CTR even with good rankings."
                       details={`Score: ${preview.scoreSummary.technical}/100`}
                       onFix={handleFixClick}
                     />
@@ -376,7 +381,7 @@ export default function ScanPreview() {
                       iconColor={getCardStatus(preview.scoreSummary.performance).iconColor}
                       status={getCardStatus(preview.scoreSummary.performance)}
                       coverage="limited"
-                      impactText="Slow pages lose users before they convert. Google deprioritizes slow sites."
+                      impactText="Slow pages lose users and Google visibility."
                       details={`Score: ${preview.scoreSummary.performance}/100`}
                       onFix={handleFixClick}
                     />
@@ -387,7 +392,7 @@ export default function ScanPreview() {
                       iconColor={getCardStatus(preview.scoreSummary.content).iconColor}
                       status={getCardStatus(preview.scoreSummary.content)}
                       coverage="checked"
-                      impactText="Missing or thin content fails to capture search intent and rankings."
+                      impactText="Thin content fails to capture search intent."
                       details={`Score: ${preview.scoreSummary.content}/100`}
                       onFix={handleFixClick}
                     />
@@ -398,7 +403,7 @@ export default function ScanPreview() {
                       iconColor={getCardStatus(Math.round((preview.scoreSummary.overall + preview.scoreSummary.content) / 2)).iconColor}
                       status={getCardStatus(Math.round((preview.scoreSummary.overall + preview.scoreSummary.content) / 2))}
                       coverage="limited"
-                      impactText="High-intent keywords represent near-term traffic wins with minimal changes."
+                      impactText="Quick wins from untapped high-intent keywords."
                       onFix={handleFixClick}
                     />
                     
@@ -408,7 +413,7 @@ export default function ScanPreview() {
                       iconColor={getCardStatus(preview.scoreSummary.overall).iconColor}
                       status={getCardStatus(preview.scoreSummary.overall)}
                       coverage="preview"
-                      impactText="Competitors are ranking for keywords you're not targeting yet."
+                      impactText="Competitors rank for keywords you're missing."
                       onFix={handleFixClick}
                     />
                     
@@ -418,7 +423,7 @@ export default function ScanPreview() {
                       iconColor={getCardStatus(Math.round(preview.scoreSummary.overall * 0.9)).iconColor}
                       status={getCardStatus(Math.round(preview.scoreSummary.overall * 0.9))}
                       coverage="preview"
-                      impactText="Authority gaps make it harder to sustain rankings long-term."
+                      impactText="Low authority makes rankings hard to sustain."
                       onFix={handleFixClick}
                     />
                   </div>
