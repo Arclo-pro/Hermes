@@ -267,7 +267,7 @@ function OverviewUnavailable({ onRetry }: { onRetry?: () => void }) {
             <div>
               <p className="font-medium text-foreground">Status temporarily unavailable</p>
               <p className="text-sm text-muted-foreground">
-                We couldn't load mission data. This may be a temporary issue.
+                We couldn't load task data. This may be a temporary issue.
               </p>
             </div>
           </div>
@@ -334,7 +334,7 @@ export function MissionOverviewWidget({
           <div className="p-5 pb-4">
             <div className="flex items-start justify-between gap-4 mb-4">
               <div className="flex items-center gap-2.5">
-                <h2 className="text-base font-semibold text-foreground">Missions</h2>
+                <h2 className="text-base font-semibold text-foreground">Tasks</h2>
                 <Badge
                   variant="outline"
                   className={cn("text-xs px-2 py-0.5 border", config.badgeClass)}
@@ -419,7 +419,7 @@ export function MissionOverviewWidget({
                     </div>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p className="text-xs">Open missions are tasks you need to complete</p>
+                    <p className="text-xs">Open tasks that need to be completed</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -461,7 +461,7 @@ export function MissionOverviewWidget({
             {visibleMissions.length === 0 && (
               <div className="py-6 text-center">
                 <CheckCircle2 className="w-8 h-8 text-semantic-success mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">All clear. No open missions.</p>
+                <p className="text-sm text-muted-foreground">All clear. No open tasks.</p>
               </div>
             )}
 

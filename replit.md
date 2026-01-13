@@ -64,11 +64,24 @@ Modular connectors integrate with various data sources: GA4, Google Search Conso
 ### Analysis Engine
 Detects data drops using 7-day rolling averages and z-scores, generating ranked root cause hypotheses (e.g., Tracking, Server Errors, Indexing) with multi-source diagnostic context. Creates actionable tickets for SEO/Dev/Ads teams.
 
-### Mission Execution System
-A unified pipeline across 12 "crews" with defined impact, effort, autoFixable flags, and cooldowns.
+### Mission Execution System (Tasks)
+A unified pipeline across 12 "crews" with defined impact, effort, autoFixable flags, and cooldowns. User-facing terminology uses "tasks" (internal APIs still reference "missions").
 
 ### Unified Crew Lineage System
-All crew identity, theming, integrations, and scores are derived from a single canonical source, ensuring consistent scoring and status across the platform. Scores (0-100 health rating) and Missions (open task count) are distinct concepts, clearly separated in data and UI presentation.
+All crew identity, theming, integrations, and scores are derived from a single canonical source, ensuring consistent scoring and status across the platform. Scores (0-100 health rating) and Tasks (open task count) are distinct concepts, clearly separated in data and UI presentation.
+
+### Mission Control Dashboard (Updated Jan 2026)
+The primary dashboard answering three user intents:
+- **Understand**: Website Report (default view) - current site health, key metrics, task counts
+- **Share**: Developer Report - neutral, technical report for sharing with devs/agencies
+- **Fix**: Fix Everything - managed execution action
+
+Key features:
+- **Unified Metrics Grid**: Shows all metrics (owned + locked) together, not separated
+- **Enticing Locked Cards**: Sample values, "why it matters" copy, task count badges, value-first CTAs
+- **Tasks Overview Section**: "What Needs Fixing" showing top 3 priority tasks + total count
+- **Crew Cards**: One big metric + task count with clear "Review Tasks →" CTAs
+- **Terminology**: All user-facing text uses "tasks" instead of "missions"
 
 ### Gold Standard Worker Blueprint
 All microservice workers adhere to a blueprint defining required endpoints (`/health`, `/smoke-test`, `/capabilities`, `/run`), a standard JSON response shape, API key authentication, and `X-Request-Id` correlation.

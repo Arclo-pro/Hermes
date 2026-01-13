@@ -28,12 +28,12 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-interface ExportFixPackModalProps {
+interface DeveloperReportModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function ExportFixPackModal({ open, onOpenChange }: ExportFixPackModalProps) {
+export function DeveloperReportModal({ open, onOpenChange }: DeveloperReportModalProps) {
   const { currentSite } = useSiteContext();
   const [exportType, setExportType] = useState<"fix-pack" | "report">("fix-pack");
   const [scope, setScope] = useState<"top3" | "full">("top3");
@@ -263,10 +263,10 @@ export function ExportFixPackModal({ open, onOpenChange }: ExportFixPackModalPro
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-foreground">
             <Package className="w-5 h-5 text-purple-accent" />
-            Export Fix Pack
+            Developer Report
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            Generate a structured implementation document with priorities, evidence, and guardrails.
+            Generate a structured technical report with priorities, evidence, and guardrails.
           </DialogDescription>
         </DialogHeader>
 

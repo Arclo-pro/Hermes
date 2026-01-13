@@ -293,7 +293,7 @@ function MissionsEmpty({ description }: { description?: string }) {
     <div className="p-6 rounded-xl bg-muted/20 border border-dashed border-border text-center">
       <Target className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
       <p className="text-sm text-muted-foreground">
-        {description || "No missions in queue"}
+        {description || "No tasks in queue"}
       </p>
     </div>
   );
@@ -304,7 +304,7 @@ function MissionsUnavailable({ onRetry }: { onRetry?: () => void }) {
     <div className="p-6 rounded-xl bg-muted/30 border border-border text-center">
       <AlertCircle className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
       <p className="text-sm text-muted-foreground mb-3">
-        Mission data temporarily unavailable
+        Task data temporarily unavailable
       </p>
       {onRetry && (
         <Button variant="outline" size="sm" onClick={onRetry}>

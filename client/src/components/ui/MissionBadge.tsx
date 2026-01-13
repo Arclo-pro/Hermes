@@ -67,8 +67,8 @@ export function MissionBadge({
         <TooltipContent>
           <p className="text-xs">
             {open === 0
-              ? "No open missions"
-              : `${open} open mission${open !== 1 ? "s" : ""} to complete`}
+              ? "No open tasks"
+              : `${open} open task${open !== 1 ? "s" : ""} to complete`}
           </p>
         </TooltipContent>
       </Tooltip>

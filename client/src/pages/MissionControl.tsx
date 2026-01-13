@@ -28,7 +28,9 @@ import {
   Settings,
   Link as LinkIcon,
   Zap,
-  Users
+  Users,
+  FileText,
+  Code
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -43,12 +45,11 @@ import { toast } from "sonner";
 import { ROUTES, buildRoute } from "@shared/routes";
 import { SERVICE_TO_CREW } from "@shared/registry";
 import { SocratesMemoryCard } from "@/components/dashboard/SocratesMemoryCard";
-import { ExportFixPackModal } from "@/components/export/ExportFixPackModal";
+import { DeveloperReportModal } from "@/components/export/DeveloperReportModal";
 import { MissionDetailsModal } from "@/components/dashboard/MissionDetailsModal";
 import { MissionOverviewWidget } from "@/components/crew-dashboard/widgets/MissionOverviewWidget";
 import { useMissionsDashboard } from "@/hooks/useMissionsDashboard";
 import type { MissionItem, MissionStatusState } from "@/components/crew-dashboard/types";
-import { MissionBadge, ScorePill } from "@/components/ui/MissionBadge";
 import { useHiredCrews } from "@/hooks/useHiredCrews";
 import { GovernancePanels } from "@/components/governance/GovernancePanels";
 
@@ -174,6 +175,10 @@ interface MetricCardData {
     nickname: string;
     role: string;
   };
+  sampleValue?: string;
+  whyItMatters?: string;
+  tasksUnlockedCount?: number;
+  ctaLabel?: string;
 }
 
 function AreaSparkline({ data, color, fillColor }: { data: number[]; color: string; fillColor: string }) {
@@ -291,37 +296,71 @@ function MetricCard({ metric, highlighted = false }: { metric: MetricCardData; h
   const isLocked = metric.locked && metric.requiredCrew;
   
   if (isLocked) {
+    const crewMember = getCrewMember(metric.requiredCrew!.serviceId);
+    const crewColor = crewMember?.color || '#6366F1';
+    const rgb = hexToRgb(crewColor);
+    const gradientBorderStyle = rgb ? {
+      background: `linear-gradient(135deg, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.06) 0%, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.02) 100%)`,
+      border: `1px solid rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.35)`,
+      boxShadow: `0 0 24px -8px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.25)`,
+    } : {};
+    
     return (
       <Card 
-        className="transition-all overflow-hidden rounded-2xl backdrop-blur-sm bg-card/50 border border-dashed border-muted-foreground/30 opacity-75"
+        className="transition-all overflow-hidden rounded-2xl backdrop-blur-sm relative group hover:scale-[1.02]"
+        style={gradientBorderStyle}
         data-testid={`metric-card-${metric.id}-locked`}
       >
+        <div className="absolute top-3 right-3 z-10">
+          <Badge 
+            className="text-[10px] font-medium px-2 py-0.5 rounded-full border"
+            style={{ 
+              backgroundColor: `rgba(${rgb?.r || 99}, ${rgb?.g || 102}, ${rgb?.b || 241}, 0.15)`,
+              color: crewColor,
+              borderColor: `rgba(${rgb?.r || 99}, ${rgb?.g || 102}, ${rgb?.b || 241}, 0.4)`,
+            }}
+          >
+            Sample
+          </Badge>
+        </div>
+        
         <CardContent className="p-5">
-          <div className="flex items-start justify-between mb-1">
-            <span className="text-base font-semibold text-muted-foreground">{metric.label}</span>
-            <Badge className="text-xs font-medium px-3 py-1 rounded-full bg-muted text-muted-foreground">
-              Locked
-            </Badge>
+          <div className="flex items-start justify-between mb-1 pr-16">
+            <span className="text-base font-semibold text-foreground">{metric.label}</span>
           </div>
-          <p className="text-xs text-muted-foreground/70 mb-3">{metric.timeRange}</p>
+          <p className="text-xs text-muted-foreground mb-3">{metric.timeRange}</p>
           
-          <div className="flex flex-col items-center justify-center py-6">
-            <div className="text-3xl font-bold text-muted-foreground/50 mb-2 blur-sm select-none">—</div>
-            <p className="text-sm text-muted-foreground text-center mb-1">
-              Requires: <span className="font-medium">{metric.requiredCrew!.nickname}</span>
-            </p>
-            <p className="text-xs text-muted-foreground/70 text-center mb-4">
-              {metric.requiredCrew!.role}
-            </p>
+          <div className="flex flex-col items-start py-2">
+            <div 
+              className="text-3xl font-bold mb-2 select-none"
+              style={{ color: crewColor, opacity: 0.6 }}
+            >
+              {metric.sampleValue || '—'}
+            </div>
+            
+            {metric.whyItMatters && (
+              <p className="text-sm text-muted-foreground mb-3">{metric.whyItMatters}</p>
+            )}
+            
+            {metric.tasksUnlockedCount && metric.tasksUnlockedCount > 0 && (
+              <Badge 
+                variant="outline" 
+                className="text-xs mb-4 border-primary/40 text-primary bg-primary/5"
+              >
+                <Target className="w-3 h-3 mr-1" />
+                Unlocks {metric.tasksUnlockedCount} tasks
+              </Badge>
+            )}
+            
             <Link href={buildRoute.agent(metric.requiredCrew!.serviceId)}>
               <Button 
                 size="sm" 
-                variant="outline" 
-                className="text-xs border-primary/50 text-primary hover:bg-primary/5"
+                className="text-xs text-white hover:opacity-90"
+                style={{ backgroundColor: crewColor }}
                 data-testid={`button-${metric.id}-enable`}
               >
                 <Zap className="w-3 h-3 mr-1.5" />
-                Enable {metric.requiredCrew!.nickname}
+                {metric.ctaLabel || `Enable ${metric.requiredCrew!.nickname}`}
               </Button>
             </Link>
           </div>
@@ -509,6 +548,10 @@ function MetricCardsRow() {
       emptyState: buildEmptyStateFromMeta('conversion-rate', conversionData?.meta, conversionData?.actualValue),
       locked: !analyticsHired,
       requiredCrew: { serviceId: 'google_data_connector', nickname: 'Popular', role: 'Analytics & Signals' },
+      sampleValue: '~3.2%',
+      whyItMatters: 'Track visitor-to-lead performance',
+      tasksUnlockedCount: 4,
+      ctaLabel: 'Enable Conversion Tracking',
     },
     {
       id: 'bounce-rate',
@@ -524,6 +567,10 @@ function MetricCardsRow() {
       emptyState: buildEmptyStateFromMeta('bounce-rate', bounceData?.meta, bounceData?.actualValue),
       locked: !analyticsHired,
       requiredCrew: { serviceId: 'google_data_connector', nickname: 'Popular', role: 'Analytics & Signals' },
+      sampleValue: '~42%',
+      whyItMatters: 'Identify pages losing visitors',
+      tasksUnlockedCount: 3,
+      ctaLabel: 'Enable Engagement Analytics',
     },
     {
       id: 'sessions',
@@ -539,6 +586,10 @@ function MetricCardsRow() {
       emptyState: buildEmptyStateFromMeta('sessions', sessionsData?.meta, sessionsData?.actualValue),
       locked: !analyticsHired,
       requiredCrew: { serviceId: 'google_data_connector', nickname: 'Popular', role: 'Analytics & Signals' },
+      sampleValue: '~12,400',
+      whyItMatters: 'Understand traffic trends and drops',
+      tasksUnlockedCount: 4,
+      ctaLabel: 'Enable Traffic Analytics',
     },
     {
       id: 'market-sov',
@@ -553,6 +604,10 @@ function MetricCardsRow() {
       emptyState: buildEmptyStateFromMeta('market-sov', undefined, marketSovData?.marketSov),
       locked: !serpHired,
       requiredCrew: { serviceId: 'serp_intel', nickname: 'Lookout', role: 'SERP Tracking' },
+      sampleValue: '~18%',
+      whyItMatters: 'Track your search visibility vs competitors',
+      tasksUnlockedCount: 6,
+      ctaLabel: 'Enable Search Visibility',
     },
   ];
 
@@ -725,6 +780,8 @@ function AgentSummaryCard({ agent, enabled = true, needsConfig = false }: { agen
     );
   }
   
+  const tasksCount = agent.missionsOpen ?? 0;
+  
   return (
     <Card 
       className="transition-all backdrop-blur-sm rounded-xl overflow-hidden h-full flex flex-col"
@@ -732,110 +789,205 @@ function AgentSummaryCard({ agent, enabled = true, needsConfig = false }: { agen
       data-testid={`agent-summary-${agent.serviceId}`}
     >
       <CardContent className="p-4 flex flex-col flex-1">
-        <div className="flex items-start gap-3 mb-3">
+        <div className="flex items-start gap-3 mb-4">
           {crew.avatar ? (
             <img 
               src={crew.avatar} 
               alt={crew.nickname}
-              className="w-12 h-12 object-contain flex-shrink-0"
+              className="w-10 h-10 object-contain flex-shrink-0"
             />
           ) : (
             <div 
-              className="w-12 h-12 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
+              className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
               style={{ backgroundColor: crew.color }}
             >
               {crew.nickname.slice(0, 2)}
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1">
-                <Link href={buildRoute.agent(agent.serviceId)}>
-                  <h4 className="font-semibold text-base cursor-pointer hover:underline" style={{ color: crew.color }}>{crew.nickname}</h4>
-                </Link>
-                {crew.tooltipInfo && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          variant="ghost"
-                          size="icon"
-                          className="h-5 w-5 text-muted-foreground hover:text-foreground"
-                          onClick={(e) => e.stopPropagation()}
-                          data-testid={`button-tooltip-${agent.serviceId}`}
-                        >
-                          <Info className="w-3 h-3" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent side="right" className="max-w-xs p-3">
-                        <div className="space-y-2">
-                          <div>
-                            <p className="font-semibold" style={{ color: crew.color }}>{crew.nickname}</p>
-                            <p className="text-xs text-muted-foreground">{crew.role}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs font-medium mb-1">What it does</p>
-                            <p className="text-xs text-muted-foreground">{crew.tooltipInfo.whatItDoes}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs font-medium mb-1">What it outputs</p>
-                            <ul className="text-xs text-muted-foreground space-y-0.5">
-                              {crew.tooltipInfo.outputs.map((output, i) => (
-                                <li key={i} className="flex items-center gap-1">
-                                  <span className="w-1 h-1 rounded-full bg-current" />
-                                  {output}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
+            <div className="flex items-center gap-1">
+              <Link href={buildRoute.agent(agent.serviceId)}>
+                <h4 className="font-semibold text-base cursor-pointer hover:underline" style={{ color: crew.color }}>{crew.nickname}</h4>
+              </Link>
+              {crew.tooltipInfo && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5 text-muted-foreground hover:text-foreground"
+                        onClick={(e) => e.stopPropagation()}
+                        data-testid={`button-tooltip-${agent.serviceId}`}
+                      >
+                        <Info className="w-3 h-3" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="max-w-xs p-3">
+                      <div className="space-y-2">
+                        <div>
+                          <p className="font-semibold" style={{ color: crew.color }}>{crew.nickname}</p>
+                          <p className="text-xs text-muted-foreground">{crew.role}</p>
                         </div>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
-              </div>
-              <span className="text-lg font-bold" style={{ color: crew.color }}>
-                {agent.score !== null ? agent.score : '—'}
-              </span>
+                        <div>
+                          <p className="text-xs font-medium mb-1">What it does</p>
+                          <p className="text-xs text-muted-foreground">{crew.tooltipInfo.whatItDoes}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium mb-1">What it outputs</p>
+                          <ul className="text-xs text-muted-foreground space-y-0.5">
+                            {crew.tooltipInfo.outputs.map((output, i) => (
+                              <li key={i} className="flex items-center gap-1">
+                                <span className="w-1 h-1 rounded-full bg-current" />
+                                {output}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
             </div>
             <p className="text-xs text-muted-foreground truncate">{crew.role}</p>
-            {crew.shortDescription && (
-              <p className="text-xs text-muted-foreground/70 truncate">{crew.shortDescription}</p>
-            )}
-            <div className="w-full h-1.5 rounded-full bg-muted mt-1 overflow-hidden">
-              <div 
-                className="h-full rounded-full transition-all"
-                style={{ width: `${agent.score ?? 0}%`, backgroundColor: crew.color }}
-              />
-            </div>
           </div>
         </div>
         
-        <div className="flex items-baseline gap-2 mb-1">
-          <span className="text-xl font-bold text-foreground">{agent.keyMetricValue}</span>
-          <span className={cn("text-sm", agent.delta.startsWith('-') ? "text-semantic-danger" : "text-semantic-success")}>
-            {agent.delta}
+        <div className="mb-3">
+          <span 
+            className="text-3xl font-bold"
+            style={{ color: crew.color }}
+          >
+            {agent.keyMetricValue}
           </span>
+          <p className="text-xs text-muted-foreground mt-1">{agent.keyMetric}</p>
         </div>
-        <p className="text-xs text-muted-foreground mb-1">{agent.keyMetric}</p>
         
         <div className="flex-1" />
         
         <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
-          <div className="flex items-center gap-2">
-            <ScorePill value={agent.score} size="sm" />
-            <MissionBadge open={agent.missionsOpen ?? 0} size="sm" accentColor={crew.color} />
-          </div>
+          <span className="text-sm text-muted-foreground">
+            {tasksCount} {tasksCount === 1 ? 'task' : 'tasks'} to complete
+          </span>
           <Link href={buildRoute.agent(agent.serviceId)}>
-            <Button variant="ghost" size="sm" className="text-xs h-7 px-2 text-foreground hover:text-foreground/80 whitespace-nowrap">
-              Review {crew.nickname} <ArrowRight className="w-3 h-3 ml-1" />
+            <Button variant="ghost" size="sm" className="text-xs h-7 px-2 hover:bg-transparent" style={{ color: crew.color }}>
+              Review Tasks <ArrowRight className="w-3 h-3 ml-1" />
             </Button>
           </Link>
         </div>
-        
-        <p className="text-xs text-muted-foreground mt-2 italic line-clamp-1">{agent.whatChanged}</p>
       </CardContent>
     </Card>
+  );
+}
+
+function TasksOverviewSection({ 
+  priorities, 
+  totalOpenTasks,
+  onReview 
+}: { 
+  priorities: any[]; 
+  totalOpenTasks: number;
+  onReview?: (task: any) => void;
+}) {
+  const topTasks = priorities.slice(0, 3);
+  
+  if (topTasks.length === 0) {
+    return null;
+  }
+  
+  return (
+    <div data-testid="tasks-overview-section">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg font-semibold text-foreground">What Needs Fixing</h2>
+          <Badge variant="secondary" className="text-xs bg-muted text-muted-foreground">
+            {totalOpenTasks} open {totalOpenTasks === 1 ? 'task' : 'tasks'}
+          </Badge>
+        </div>
+      </div>
+      <div className="grid gap-3 md:grid-cols-3">
+        {topTasks.map((task, idx) => {
+          const crewId = task.agents?.[0]?.agentId || task.crewId;
+          const crew = crewId ? getCrewMember(crewId) : null;
+          const priorityColors = {
+            High: "bg-semantic-danger-soft text-semantic-danger",
+            Medium: "bg-semantic-warning-soft text-semantic-warning",
+            Low: "bg-semantic-success-soft text-semantic-success",
+          };
+          const impact = task.impact || "Medium";
+          
+          return (
+            <Card 
+              key={task.id || idx} 
+              className="bg-card/80 backdrop-blur-sm border-border rounded-xl hover:border-primary/30 transition-all cursor-pointer group"
+              onClick={() => onReview?.(task)}
+              data-testid={`task-card-${task.id || idx}`}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3 mb-3">
+                  {crew?.avatar ? (
+                    <img 
+                      src={crew.avatar} 
+                      alt={crew.nickname}
+                      className="w-8 h-8 object-contain flex-shrink-0"
+                    />
+                  ) : crew ? (
+                    <div 
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                      style={{ backgroundColor: crew.color }}
+                    >
+                      {crew.nickname.slice(0, 2)}
+                    </div>
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                      <Target className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <Badge className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full mb-1", priorityColors[impact as keyof typeof priorityColors] || priorityColors.Medium)}>
+                      {impact} Priority
+                    </Badge>
+                    <h4 className="text-sm font-medium text-foreground line-clamp-2 group-hover:text-primary transition-colors">
+                      {task.title}
+                    </h4>
+                  </div>
+                </div>
+                {task.why && (
+                  <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{task.why}</p>
+                )}
+                <div className="flex items-center justify-between">
+                  {crew && (
+                    <Link href={buildRoute.agent(crewId)}>
+                      <Badge 
+                        variant="outline" 
+                        className="text-[10px] px-2 py-0.5 rounded-full border"
+                        style={{ color: crew.color, borderColor: `${crew.color}40` }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {crew.nickname}
+                      </Badge>
+                    </Link>
+                  )}
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-xs h-6 px-2 text-primary hover:text-primary/80 ml-auto"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onReview?.(task);
+                    }}
+                    data-testid={`button-fix-${task.id || idx}`}
+                  >
+                    Fix it <ArrowRight className="w-3 h-3 ml-1" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -853,13 +1005,13 @@ function AgentSummaryGrid({ agents, crewSummaries, kbStatus, agentStatus }: {
     const isSocrates = agent.serviceId === 'seo_kbase';
     const needsConfig = agentStatus?.[agent.serviceId]?.needsConfig ?? false;
     
-    let keyMetric = crewSummary?.primaryMetric || "Pending missions";
+    let keyMetric = crewSummary?.primaryMetric || "Pending tasks";
     let keyMetricValue = String(crewSummary?.primaryMetricValue ?? crewSummary?.missions?.open ?? 0);
     
     let whatChanged = crewSummary?.emptyStateReason 
       || (crewSummary?.lastCompletedAt 
         ? `Last completed: ${new Date(crewSummary.lastCompletedAt).toLocaleDateString()}`
-        : "No missions completed yet");
+        : "No tasks completed yet");
     
     if (isSocrates && kbStatus) {
       keyMetric = "Knowledge entries";
@@ -1005,7 +1157,7 @@ function ConsolidatedMissionWidget({
     tier: statusTier,
     summaryLine: isRealData === false
       ? (placeholderReason || "Run diagnostics for real data")
-      : `${completedCount} of ${totalMissions} missions complete${blockers.length > 0 ? ` • ${blockers.length} blocker${blockers.length > 1 ? 's' : ''}` : ''}`,
+      : `${completedCount} of ${totalMissions} tasks complete${blockers.length > 0 ? ` • ${blockers.length} blocker${blockers.length > 1 ? 's' : ''}` : ''}`,
     nextStep: getNextStep(),
     performanceScore: missionScore,
     autoFixableCount: autoFixableItems.length,
@@ -1085,7 +1237,7 @@ export default function MissionControl() {
   };
 
   const handleMarkMissionDone = (missionId: string | number) => {
-    toast.success("Mission marked as done");
+    toast.success("Task marked as done");
     setMissionModalOpen(false);
   };
 
@@ -1093,10 +1245,10 @@ export default function MissionControl() {
     try {
       setIsExecutingAll(true);
       await executeAll();
-      toast.success("All auto-fixable missions executed!");
+      toast.success("All auto-fixable tasks executed!");
       refetch();
     } catch (error) {
-      toast.error("Failed to execute missions");
+      toast.error("Failed to execute tasks");
     } finally {
       setIsExecutingAll(false);
     }
@@ -1251,7 +1403,7 @@ export default function MissionControl() {
     blockers: [],
     confidence: 'Low',
     isRealData: false,
-    placeholderReason: "No missions available - run diagnostics to generate recommendations"
+    placeholderReason: "No tasks available - run diagnostics to generate recommendations"
   };
 
   return (
@@ -1315,20 +1467,43 @@ export default function MissionControl() {
               Validate
             </Button>
             <Button 
-              variant="outline" 
+              variant="ghost" 
+              size="sm"
+              className="text-foreground hover:bg-muted rounded-xl"
+              data-testid="button-website-report"
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Website Report
+            </Button>
+            <Button 
+              variant="ghost" 
               size="sm"
               onClick={() => setExportModalOpen(true)}
-              className="border-border text-foreground hover:bg-muted rounded-xl"
-              data-testid="button-export"
+              className="text-foreground hover:bg-muted rounded-xl"
+              data-testid="button-developer-report"
             >
-              <Package className="w-4 h-4 mr-2" />
-              Export Fix Pack
+              <Code className="w-4 h-4 mr-2" />
+              Developer Report
+            </Button>
+            <Button 
+              size="sm"
+              onClick={handleFixEverything}
+              disabled={isExecutingAll || !dashboard?.aggregatedStatus?.autoFixableCount}
+              className="text-white rounded-xl shadow-purple hover:-translate-y-0.5 active:translate-y-0 transition-all bg-purple-accent hover:bg-purple-accent/90"
+              data-testid="button-fix-everything-header"
+            >
+              {isExecutingAll ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Zap className="w-4 h-4 mr-2" />
+              )}
+              Fix Everything
             </Button>
             <Button 
               size="sm" 
               onClick={() => runDiagnostics.mutate()}
               disabled={runDiagnostics.isPending}
-              className="text-white rounded-xl shadow-purple hover:-translate-y-0.5 active:translate-y-0 transition-all bg-purple-accent hover:bg-purple-accent/90"
+              className="text-white rounded-xl shadow-purple hover:-translate-y-0.5 active:translate-y-0 transition-all bg-semantic-success hover:bg-semantic-success/90"
             >
               {runDiagnostics.isPending ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -1439,6 +1614,12 @@ export default function MissionControl() {
 
         <MetricCardsRow />
 
+        <TasksOverviewSection 
+          priorities={captainData.priorities || []}
+          totalOpenTasks={totalOpenMissions}
+          onReview={handleReviewMission}
+        />
+
         <AgentSummaryGrid 
           agents={userAgents} 
           crewSummaries={dashboard?.crewSummaries}
@@ -1451,7 +1632,7 @@ export default function MissionControl() {
         <GovernancePanels />
       </div>
 
-      <ExportFixPackModal 
+      <DeveloperReportModal 
         open={exportModalOpen} 
         onOpenChange={setExportModalOpen} 
       />
