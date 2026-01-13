@@ -1128,23 +1128,28 @@ function TasksOverviewSection({
   
   return (
     <div data-testid="tasks-overview-section" className="p-5 rounded-2xl border-2 border-amber-500/25 shadow-[0_0_24px_-6px_rgba(245,158,11,0.30)] bg-card/60 backdrop-blur-sm">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
-            <Target className="w-4 h-4 text-amber-500" />
-          </div>
-          <div>
+      {/* Header with count circle */}
+      <div className="flex items-center gap-4 mb-4 py-2">
+        {/* Count circle - visual anchor */}
+        <div className="w-11 h-11 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center flex-shrink-0 shadow-[0_0_12px_-3px_rgba(245,158,11,0.35)]">
+          <span className="text-lg font-bold text-amber-600">{totalOpenTasks}</span>
+        </div>
+        
+        {/* Title and description */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
             <h2 className="text-lg font-semibold text-foreground">Recommended Actions</h2>
           </div>
+          <p className="text-sm text-muted-foreground">
+            Complete these to improve traffic, rankings, and conversions.
+          </p>
         </div>
-        <Badge variant="secondary" className="text-xs bg-amber-500/10 text-amber-600 border-amber-500/20">
-          {totalOpenTasks} {totalOpenTasks === 1 ? 'action' : 'actions'} available
+        
+        {/* Right side badge */}
+        <Badge variant="secondary" className="text-xs bg-amber-500/10 text-amber-500/70 border-amber-500/20 flex-shrink-0">
+          {totalOpenTasks} open
         </Badge>
       </div>
-      <p className="text-sm text-muted-foreground mb-5 ml-11">
-        Complete these to improve traffic, rankings, and conversions.
-      </p>
 
       {/* Featured Next Action Card */}
       {featuredTask && (
