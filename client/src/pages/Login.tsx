@@ -109,6 +109,7 @@ export default function Login() {
               <CardFooter className="flex flex-col space-y-4">
                 <Button 
                   type="submit" 
+                  variant="primaryGradient"
                   className="w-full"
                   disabled={loading}
                   data-testid="button-login"

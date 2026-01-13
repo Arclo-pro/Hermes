@@ -197,6 +197,7 @@ export default function Signup() {
 
                 <Button 
                   type="submit" 
+                  variant="primaryGradient"
                   className="w-full h-12" 
                   disabled={signupMutation.isPending}
                   data-testid="button-signup-submit"
