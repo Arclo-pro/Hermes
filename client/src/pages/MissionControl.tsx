@@ -943,7 +943,7 @@ function CapabilityCard({ capability }: {
     isLocked: boolean;
   }
 }) {
-  const { crew, kpiValue, kpiLabel, tasksOpen, trend, status, isLocked, whyItMatters } = capability;
+  const { crew, kpiValue, kpiLabel, tasksOpen, trend, status, isLocked } = capability;
   
   const tintedGlassStyles = status === 'active' ? getTintedGlassStyles(crew.color) : {};
   const neutralStyles = status !== 'active' ? {
@@ -953,7 +953,7 @@ function CapabilityCard({ capability }: {
   
   const TrendIcon = trend === 'up' ? TrendingUp : trend === 'down' ? TrendingDown : Minus;
   const trendColor = trend === 'up' ? 'text-semantic-success' : trend === 'down' ? 'text-semantic-danger' : 'text-muted-foreground';
-  const trendLabel = trend === 'up' ? 'Improving' : trend === 'down' ? 'Declining' : trend === 'stable' ? 'Stable' : 'No trend yet';
+  const trendLabel = trend === 'up' ? 'Improving' : trend === 'down' ? 'Declining' : trend === 'stable' ? 'Stable' : '';
   
   return (
     <Link href={status === 'locked' ? ROUTES.CREW : buildRoute.agent(capability.serviceId)}>
@@ -966,87 +966,80 @@ function CapabilityCard({ capability }: {
         style={{ ...tintedGlassStyles, ...neutralStyles }}
         data-testid={`capability-card-${capability.serviceId}`}
       >
-        <CardContent className="p-4 flex flex-col h-full">
+        <CardContent className="p-5 flex flex-col h-full">
           {/* Header: Avatar + Name + Status */}
-          <div className="flex items-start gap-3 mb-4">
-            <div className="relative">
-              {crew.avatar ? (
-                <img 
-                  src={crew.avatar} 
-                  alt={crew.nickname}
-                  className={cn(
-                    "w-10 h-10 rounded-full object-cover flex-shrink-0",
-                    status === 'active' && "ring-2",
-                    isLocked && "opacity-60 grayscale"
-                  )}
-                  style={status === 'active' ? { boxShadow: `0 0 12px ${crew.color}40`, borderColor: crew.color } : {}}
-                />
-              ) : (
-                <div 
-                  className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0",
-                    isLocked && "opacity-60"
-                  )}
-                  style={{ backgroundColor: `${crew.color}20`, color: crew.color }}
-                >
-                  {crew.nickname.slice(0, 2)}
-                </div>
-              )}
-            </div>
+          <div className="flex items-center gap-2.5 mb-5">
+            {crew.avatar ? (
+              <img 
+                src={crew.avatar} 
+                alt={crew.nickname}
+                className={cn(
+                  "w-8 h-8 rounded-full object-cover flex-shrink-0",
+                  status === 'active' && "ring-2",
+                  isLocked && "opacity-50 grayscale"
+                )}
+                style={status === 'active' ? { boxShadow: `0 0 8px ${crew.color}30`, borderColor: crew.color } : {}}
+              />
+            ) : (
+              <div 
+                className={cn(
+                  "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0",
+                  isLocked && "opacity-50"
+                )}
+                style={{ backgroundColor: `${crew.color}20`, color: crew.color }}
+              >
+                {crew.nickname.slice(0, 2)}
+              </div>
+            )}
             <div className="flex-1 min-w-0">
-              <h4 className={cn("font-semibold text-base", isLocked && "text-muted-foreground")} style={!isLocked ? { color: crew.color } : {}}>
+              <h4 className={cn("font-medium text-sm leading-tight", isLocked && "text-muted-foreground")} style={!isLocked ? { color: crew.color } : {}}>
                 {crew.nickname}
               </h4>
-              <p className="text-xs text-muted-foreground truncate">{crew.role}</p>
             </div>
-            {/* Status Badge */}
             {status === 'active' && (
-              <Badge className="text-[10px] bg-semantic-success/15 text-semantic-success border-0">Active</Badge>
+              <Badge className="text-[10px] px-1.5 py-0 h-4 bg-semantic-success/15 text-semantic-success border-0">Active</Badge>
             )}
             {status === 'locked' && (
-              <Badge variant="outline" className="text-[10px] border-border text-muted-foreground">Locked</Badge>
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-border text-muted-foreground">Locked</Badge>
             )}
             {status === 'setup' && (
-              <Badge className="text-[10px] bg-amber-500/15 text-amber-600 border-0">Setup</Badge>
+              <Badge className="text-[10px] px-1.5 py-0 h-4 bg-amber-500/15 text-amber-600 border-0">Setup</Badge>
             )}
           </div>
           
-          {/* Core KPI - Big Number */}
-          <div className="mb-3">
-            <div className="flex items-baseline gap-2">
+          {/* HERO KPI - Central, dominant, crew-colored */}
+          <div className="flex-1 flex flex-col items-center justify-center text-center py-4">
+            <div className="relative">
               <span 
-                className={cn("text-3xl font-bold", isLocked && "opacity-50 blur-[2px]")}
-                style={!isLocked ? { color: crew.color } : { color: 'var(--muted-foreground)' }}
+                className={cn(
+                  "text-5xl font-bold tracking-tight leading-none",
+                  isLocked && "blur-[3px] opacity-60"
+                )}
+                style={{ color: isLocked ? 'var(--muted-foreground)' : crew.color }}
               >
                 {kpiValue}
               </span>
               {isLocked && (
-                <span className="text-xs text-muted-foreground">(Sample)</span>
+                <span className="absolute -top-1 -right-8 text-[10px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">Sample</span>
               )}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">{kpiLabel}</p>
+            <p className="text-xs text-muted-foreground mt-2">{kpiLabel}</p>
+            
+            {/* Trend - subtle, secondary */}
+            {!isLocked && trendLabel && (
+              <div className={cn("flex items-center gap-1 text-[11px] mt-2", trendColor)}>
+                <TrendIcon className="w-3 h-3" />
+                <span>{trendLabel}</span>
+              </div>
+            )}
           </div>
           
-          {/* Trend Indicator */}
-          {!isLocked && (
-            <div className={cn("flex items-center gap-1.5 text-xs mb-3", trendColor)}>
-              <TrendIcon className="w-3.5 h-3.5" />
-              <span>{trendLabel}</span>
-            </div>
-          )}
-          
-          {isLocked && (
-            <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{whyItMatters}</p>
-          )}
-          
-          <div className="flex-1" />
-          
-          {/* Task Count + CTA */}
-          <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
+          {/* Footer: Task count + CTA */}
+          <div className="flex items-center justify-between pt-3 border-t border-border/30">
             {!isLocked ? (
               <>
                 <span className="text-xs text-muted-foreground">
-                  {tasksOpen === 0 ? 'All caught up' : `${tasksOpen} ${tasksOpen === 1 ? 'task' : 'tasks'} open`}
+                  {tasksOpen === 0 ? 'All caught up' : `${tasksOpen} ${tasksOpen === 1 ? 'task' : 'tasks'}`}
                 </span>
                 <span className="text-xs font-medium flex items-center gap-1" style={{ color: crew.color }}>
                   {status === 'setup' ? 'Configure' : 'Review'} <ArrowRight className="w-3 h-3" />
