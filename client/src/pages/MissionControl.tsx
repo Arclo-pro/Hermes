@@ -168,6 +168,12 @@ interface MetricCardData {
     actionLabel: string;
     actionRoute: string;
   } | null;
+  locked?: boolean;
+  requiredCrew?: {
+    serviceId: string;
+    nickname: string;
+    role: string;
+  };
 }
 
 function AreaSparkline({ data, color, fillColor }: { data: number[]; color: string; fillColor: string }) {
@@ -282,6 +288,47 @@ function MetricCard({ metric, highlighted = false }: { metric: MetricCardData; h
   const highlightStyles = highlighted ? getHighlightedCardStyles(styles.lineColor) : {};
   
   const hasNoData = metric.value === '—' && metric.emptyState;
+  const isLocked = metric.locked && metric.requiredCrew;
+  
+  if (isLocked) {
+    return (
+      <Card 
+        className="transition-all overflow-hidden rounded-2xl backdrop-blur-sm bg-card/50 border border-dashed border-muted-foreground/30 opacity-75"
+        data-testid={`metric-card-${metric.id}-locked`}
+      >
+        <CardContent className="p-5">
+          <div className="flex items-start justify-between mb-1">
+            <span className="text-base font-semibold text-muted-foreground">{metric.label}</span>
+            <Badge className="text-xs font-medium px-3 py-1 rounded-full bg-muted text-muted-foreground">
+              Locked
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground/70 mb-3">{metric.timeRange}</p>
+          
+          <div className="flex flex-col items-center justify-center py-6">
+            <div className="text-3xl font-bold text-muted-foreground/50 mb-2 blur-sm select-none">—</div>
+            <p className="text-sm text-muted-foreground text-center mb-1">
+              Requires: <span className="font-medium">{metric.requiredCrew!.nickname}</span>
+            </p>
+            <p className="text-xs text-muted-foreground/70 text-center mb-4">
+              {metric.requiredCrew!.role}
+            </p>
+            <Link href={buildRoute.agent(metric.requiredCrew!.serviceId)}>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="text-xs border-primary/50 text-primary hover:bg-primary/5"
+                data-testid={`button-${metric.id}-enable`}
+              >
+                <Zap className="w-3 h-3 mr-1.5" />
+                Enable {metric.requiredCrew!.nickname}
+              </Button>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
   
   return (
     <Card 
@@ -349,6 +396,11 @@ function MetricCard({ metric, highlighted = false }: { metric: MetricCardData; h
 function MetricCardsRow() {
   const { activeSite } = useSiteContext();
   const siteId = activeSite?.id || 'default';
+  const { isHired } = useHiredCrews();
+  
+  // Check if required crews are hired for each metric type
+  const analyticsHired = isHired('google_data_connector');
+  const serpHired = isHired('serp_intel');
   
   // Preserve last known values to prevent blanks
   const lastKnownMetricsRef = useRef<Record<string, any>>({});
@@ -455,6 +507,8 @@ function MetricCardsRow() {
       nextAction: { text: 'Review Pulse', link: buildRoute.agent('google_data_connector') },
       timeRange: 'Last 30 days',
       emptyState: buildEmptyStateFromMeta('conversion-rate', conversionData?.meta, conversionData?.actualValue),
+      locked: !analyticsHired,
+      requiredCrew: { serviceId: 'google_data_connector', nickname: 'Popular', role: 'Analytics & Signals' },
     },
     {
       id: 'bounce-rate',
@@ -468,6 +522,8 @@ function MetricCardsRow() {
       nextAction: { text: 'Review Popular', link: buildRoute.agent('google_data_connector') },
       timeRange: 'Last 30 days',
       emptyState: buildEmptyStateFromMeta('bounce-rate', bounceData?.meta, bounceData?.actualValue),
+      locked: !analyticsHired,
+      requiredCrew: { serviceId: 'google_data_connector', nickname: 'Popular', role: 'Analytics & Signals' },
     },
     {
       id: 'sessions',
@@ -481,6 +537,8 @@ function MetricCardsRow() {
       nextAction: { text: 'Review Popular', link: buildRoute.agent('google_data_connector') },
       timeRange: 'Last 30 days',
       emptyState: buildEmptyStateFromMeta('sessions', sessionsData?.meta, sessionsData?.actualValue),
+      locked: !analyticsHired,
+      requiredCrew: { serviceId: 'google_data_connector', nickname: 'Popular', role: 'Analytics & Signals' },
     },
     {
       id: 'market-sov',
@@ -493,6 +551,8 @@ function MetricCardsRow() {
       nextAction: { text: 'Review Lookout', link: buildRoute.agent('serp_tracker') },
       timeRange: 'CTR-weighted',
       emptyState: buildEmptyStateFromMeta('market-sov', undefined, marketSovData?.marketSov),
+      locked: !serpHired,
+      requiredCrew: { serviceId: 'serp_intel', nickname: 'Lookout', role: 'SERP Tracking' },
     },
   ];
 
@@ -606,8 +666,8 @@ function AgentSummaryCard({ agent, enabled = true, needsConfig = false }: { agen
                   }}
                   data-testid={`button-hire-${agent.serviceId}`}
                 >
-                  <Users className="w-3 h-3 mr-1.5" />
-                  Hire
+                  <Zap className="w-3 h-3 mr-1.5" />
+                  Enable
                 </Button>
               </div>
               
@@ -645,20 +705,20 @@ function AgentSummaryCard({ agent, enabled = true, needsConfig = false }: { agen
                 <div className="flex items-baseline gap-2 mb-1">
                   <span className="text-xl font-bold text-muted-foreground">—</span>
                 </div>
-                <p className="text-xs text-muted-foreground mb-1">Unlock missions + KPIs</p>
+                <p className="text-xs text-muted-foreground mb-1">Enable to unlock insights</p>
                 
                 <div className="flex-1" />
                 
                 <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
                   <Badge variant="outline" className="text-xs px-2 py-0.5 rounded-full border border-muted-foreground/30 text-muted-foreground">
-                    Not Hired
+                    Not Enabled
                   </Badge>
                 </div>
               </CardContent>
             </Card>
           </TooltipTrigger>
           <TooltipContent side="top" className="max-w-xs">
-            <p className="text-sm">Activate this crew member to unlock insights and fixes.</p>
+            <p className="text-sm">Enable this capability to unlock insights and fixes.</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
@@ -831,27 +891,27 @@ function AgentSummaryGrid({ agents, crewSummaries, kbStatus, agentStatus }: {
     <div data-testid="agent-summary-grid">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <h2 className="text-lg font-semibold text-foreground">Crew Summary</h2>
-          <Badge variant="secondary" className="text-xs bg-muted text-muted-foreground">{enabledCount} hired</Badge>
+          <h2 className="text-lg font-semibold text-foreground">Coverage</h2>
+          <Badge variant="secondary" className="text-xs bg-muted text-muted-foreground">{enabledCount} of 11 active</Badge>
         </div>
         <Link href={ROUTES.CREW}>
           <Button variant="outline" size="sm" className="text-xs border-dashed border-primary/50 text-primary hover:bg-primary/5">
             <Users className="w-3 h-3 mr-1.5" />
-            Manage Crew
+            Manage Coverage
           </Button>
         </Link>
       </div>
       {enabledAgentData.length === 0 ? (
         <Card className="p-8 text-center bg-card/50 border-dashed">
           <Users className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
-          <h3 className="text-lg font-medium text-foreground mb-2">No Crew Members Hired</h3>
+          <h3 className="text-lg font-medium text-foreground mb-2">No Capabilities Enabled</h3>
           <p className="text-sm text-muted-foreground mb-4">
-            Hire crew members to start monitoring your site and receiving actionable insights.
+            Enable capabilities to start monitoring your site and receiving actionable insights.
           </p>
           <Link href={ROUTES.CREW}>
             <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
               <Users className="w-4 h-4 mr-2" />
-              Hire Crew
+              Enable Capabilities
             </Button>
           </Link>
         </Card>
