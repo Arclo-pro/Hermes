@@ -1902,6 +1902,12 @@ export default function MissionControl() {
           isRunningDiagnostics={runDiagnostics.isPending}
         />
 
+        <TasksOverviewSection 
+          priorities={captainData.priorities || []}
+          totalOpenTasks={totalOpenMissions}
+          onReview={handleReviewMission}
+        />
+
         <AccomplishmentsSection />
 
 
@@ -1991,12 +1997,6 @@ export default function MissionControl() {
 
 
         <MetricCardsRow />
-
-        <TasksOverviewSection 
-          priorities={captainData.priorities || []}
-          totalOpenTasks={totalOpenMissions}
-          onReview={handleReviewMission}
-        />
 
         <AgentSummaryGrid 
           agents={userAgents} 
