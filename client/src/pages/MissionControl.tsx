@@ -995,9 +995,12 @@ function TasksOverviewSection({
   }
   
   return (
-    <div data-testid="tasks-overview-section">
+    <div data-testid="tasks-overview-section" className="p-4 rounded-2xl border-2 border-amber-500/25 shadow-[0_0_24px_-6px_rgba(245,158,11,0.30)] bg-card/60 backdrop-blur-sm">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center mr-1">
+            <AlertTriangle className="w-4 h-4 text-amber-500" />
+          </div>
           <h2 className="text-lg font-semibold text-foreground">What Needs Fixing</h2>
           <Badge variant="secondary" className="text-xs bg-muted text-muted-foreground">
             {totalOpenTasks} open {totalOpenTasks === 1 ? 'task' : 'tasks'}
@@ -1204,18 +1207,20 @@ function VerificationBadge({ status }: { status?: string }) {
 function PrimaryActionCardRow({ 
   autoFixableCount, 
   onFixEverything, 
-  onOpenDeveloperReport,
-  isExecuting 
+  onRunDiagnostics,
+  isExecuting,
+  isRunningDiagnostics
 }: { 
   autoFixableCount: number;
   onFixEverything: () => void;
-  onOpenDeveloperReport: () => void;
+  onRunDiagnostics: () => void;
   isExecuting: boolean;
+  isRunningDiagnostics?: boolean;
 }) {
   return (
     <div className="grid gap-4 md:grid-cols-3 mb-8" data-testid="primary-action-row">
-      {/* Card 1: Fix Everything - DOMINANT */}
-      <Card className="md:col-span-1 relative overflow-hidden group transition-all hover:scale-[1.02] bg-gradient-to-br from-purple-500/10 via-pink-500/5 to-amber-500/5 border-2 border-purple-500/30 shadow-[0_0_30px_-8px_rgba(139,92,246,0.35)]" data-testid="card-fix-everything">
+      {/* Card 1: Fix Everything - DOMINANT with strong purple glow */}
+      <Card className="md:col-span-1 relative overflow-hidden group transition-all hover:scale-[1.02] bg-gradient-to-br from-purple-500/10 via-pink-500/5 to-amber-500/5 border-2 border-purple-500/30 shadow-[0_0_40px_-8px_rgba(139,92,246,0.45)]" data-testid="card-fix-everything">
         <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent pointer-events-none" />
         <CardContent className="p-6 relative">
           <div className="flex items-center gap-3 mb-3">
@@ -1250,53 +1255,77 @@ function PrimaryActionCardRow({
         </CardContent>
       </Card>
 
-      {/* Card 2: Send Website Report - SECONDARY */}
-      <Card className="transition-all hover:scale-[1.01] bg-card/80 backdrop-blur-sm border-border" data-testid="card-website-report">
+      {/* Card 2: Send Reports - CONSOLIDATED with purple glow */}
+      <Card className="transition-all hover:scale-[1.01] bg-card/80 backdrop-blur-sm border-2 border-purple-500/25 shadow-[0_0_24px_-6px_rgba(139,92,246,0.30)]" data-testid="card-send-reports">
         <CardContent className="p-6">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center">
-              <Send className="w-5 h-5 text-primary" />
+            <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
+              <Send className="w-5 h-5 text-purple-500" />
             </div>
-            <h3 className="text-base font-semibold text-foreground">Send Website Report</h3>
+            <h3 className="text-base font-semibold text-foreground">Send Reports</h3>
           </div>
           <p className="text-sm text-muted-foreground mb-4">
-            Review and send a clear summary of how your site is performing. This will power weekly reports.
+            Review and send tailored reports depending on who you're sharing with.
           </p>
-          <Link href={ROUTES.WEBSITE_REPORT}>
-            <Button 
-              variant="outline"
-              className="w-full rounded-xl border-primary/30 text-primary hover:bg-primary/5"
-              data-testid="button-website-report-card"
-            >
-              <Send className="w-4 h-4 mr-2" />
-              Review Website Report
-            </Button>
-          </Link>
+          <div className="space-y-2">
+            <Link href={ROUTES.WEBSITE_REPORT}>
+              <Button 
+                variant="outline"
+                className="w-full rounded-xl border-purple-500/30 text-purple-400 hover:bg-purple-500/5 justify-start"
+                data-testid="button-business-report"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                <div className="text-left">
+                  <span className="block text-sm">Send Business Report</span>
+                  <span className="block text-[10px] text-muted-foreground font-normal">For owners, stakeholders, weekly summaries</span>
+                </div>
+              </Button>
+            </Link>
+            <Link href={ROUTES.DEVELOPER_REPORT}>
+              <Button 
+                variant="outline"
+                className="w-full rounded-xl border-purple-500/30 text-purple-400 hover:bg-purple-500/5 justify-start"
+                data-testid="button-technical-report"
+              >
+                <Code className="w-4 h-4 mr-2" />
+                <div className="text-left">
+                  <span className="block text-sm">Send Technical Report</span>
+                  <span className="block text-[10px] text-muted-foreground font-normal">For developers and agencies</span>
+                </div>
+              </Button>
+            </Link>
+          </div>
         </CardContent>
       </Card>
 
-      {/* Card 3: Send Developer Report - SECONDARY */}
-      <Card className="transition-all hover:scale-[1.01] bg-card/80 backdrop-blur-sm border-border" data-testid="card-developer-report">
+      {/* Card 3: Run Diagnostics - GREEN GLOW */}
+      <Card className="transition-all hover:scale-[1.01] bg-card/80 backdrop-blur-sm border-2 border-emerald-500/25 shadow-[0_0_24px_-6px_rgba(16,185,129,0.30)]" data-testid="card-run-diagnostics">
         <CardContent className="p-6">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center">
-              <Send className="w-5 h-5 text-primary" />
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+              <Play className="w-5 h-5 text-emerald-500" />
             </div>
-            <h3 className="text-base font-semibold text-foreground">Send Developer Report</h3>
+            <h3 className="text-base font-semibold text-foreground">Run Diagnostics</h3>
           </div>
           <p className="text-sm text-muted-foreground mb-4">
-            Review and send a technical report with prioritized issues for your developer or agency.
+            Re-scan your site to detect new issues and update metrics with the latest data.
           </p>
-          <Link href={ROUTES.DEVELOPER_REPORT}>
-            <Button 
-              variant="outline"
-              className="w-full rounded-xl border-primary/30 text-primary hover:bg-primary/5"
-              data-testid="button-developer-report-card"
-            >
-              <Send className="w-4 h-4 mr-2" />
-              Review Developer Report
-            </Button>
-          </Link>
+          <Button 
+            onClick={onRunDiagnostics}
+            disabled={isRunningDiagnostics}
+            className="w-full rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white"
+            data-testid="button-run-diagnostics-card"
+          >
+            {isRunningDiagnostics ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Play className="w-4 h-4 mr-2" />
+            )}
+            Run Diagnostics
+          </Button>
+          <p className="text-xs text-muted-foreground text-center mt-3">
+            Get fresh data • Update all metrics
+          </p>
         </CardContent>
       </Card>
     </div>
@@ -1670,8 +1699,9 @@ export default function MissionControl() {
         <PrimaryActionCardRow
           autoFixableCount={dashboard?.aggregatedStatus?.autoFixableCount || 0}
           onFixEverything={handleFixEverything}
-          onOpenDeveloperReport={() => setExportModalOpen(true)}
+          onRunDiagnostics={() => runDiagnostics.mutate()}
           isExecuting={isExecutingAll}
+          isRunningDiagnostics={runDiagnostics.isPending}
         />
 
         <AccomplishmentsSection />
