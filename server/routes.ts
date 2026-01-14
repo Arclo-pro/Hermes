@@ -60,6 +60,7 @@ import { enqueueJob } from "./siteGeneration/worker";
 import { getCrewIntegrationConfig, getAllCrewConfigs } from "./integrations/getCrewIntegrationConfig";
 import { validateCrewOutputs } from "./integrations/validateCrewOutputs";
 import { CREW } from "@shared/registry";
+import { normalizeWorkerOutputToKpis } from "./crew/kpiNormalizers";
 
 const createSiteSchema = z.object({
   displayName: z.string().min(1, "Display name is required"),
@@ -946,18 +947,15 @@ export async function registerRoutes(
           outputPayload: workerData,
         });
         
-        // Extract and store KPIs if present
-        if (workerData.kpis && Array.isArray(workerData.kpis)) {
-          const kpiRecords = workerData.kpis.map((kpi: any) => ({
+        // Normalize worker output to canonical KPIs
+        const normalized = normalizeWorkerOutputToKpis(crewId, siteId, workerData);
+        
+        // Save normalized KPIs
+        if (normalized.kpis.length > 0) {
+          await storage.saveCrewKpis(normalized.kpis.map(kpi => ({
+            ...kpi,
             runId: crewRun.id,
-            siteId,
-            crewId,
-            metricKey: kpi.key || kpi.metric,
-            metricValue: String(kpi.value),
-            unit: kpi.unit || null,
-            context: kpi.context || null,
-          }));
-          await storage.saveCrewKpis(kpiRecords);
+          })));
         }
         
         // Extract and store findings if present
