@@ -46,6 +46,8 @@ export const METRIC_KEYS = {
   'serp.avg_position': { label: 'Avg. Keyword Position', unit: 'position', source: 'serp_intel' },
 
   // Technical SEO
+  'technicalHealthScore': { label: 'Technical Health', unit: 'score', source: 'crawl_render' },
+  'indexCoverage': { label: 'Index Coverage', unit: 'percent', source: 'crawl_render' },
   'tech.pages_crawled': { label: 'Pages Crawled', unit: 'count', source: 'crawl_render' },
   'tech.errors': { label: 'Technical Errors', unit: 'count', source: 'crawl_render' },
   'tech.warnings': { label: 'Technical Warnings', unit: 'count', source: 'crawl_render' },
@@ -321,12 +323,12 @@ export const CREW: Record<string, CrewDefinition> = {
     nickname: 'Scotty',
     role: 'Technical SEO',
     services: ['crawl_render'],
-    metricsOwned: ['tech.pages_crawled', 'tech.errors', 'tech.warnings', 'tech.blocked_urls'],
+    metricsOwned: ['technicalHealthScore', 'indexCoverage', 'tech.pages_crawled', 'tech.errors', 'tech.warnings', 'tech.blocked_urls'],
     color: '#F97316',
     theme: deriveTheme('#F97316'),
-    primaryMetricId: 'tech.errors',
+    primaryMetricId: 'technicalHealthScore',
     dependencies: { required: ['crawler'], optional: ['gsc'] },
-    scoreMetric: { id: 'technical_health', label: 'Technical Health', source: 'crawler' },
+    scoreMetric: { id: 'technicalHealthScore', label: 'Technical Health', source: 'crawler' },
     worker: {
       baseUrlEnvKey: 'CRAWL_RENDER_BASE_URL',
       apiKeySecretKey: 'CRAWL_RENDER_API_KEY',

@@ -13,8 +13,8 @@ export type BaseKpi = z.infer<typeof BaseKpiSchema>;
 
 export const CREW_KPI_CONTRACTS: Record<string, { allowedKpis: string[]; primaryKpi: string }> = {
   scotty: {
-    allowedKpis: ["tech.errors", "tech.warnings", "tech.pages_crawled", "tech.blocked_urls", "crawl_health"],
-    primaryKpi: "tech.errors",
+    allowedKpis: ["technicalHealthScore", "tech.errors", "tech.warnings", "tech.pages_crawled", "tech.blocked_urls", "crawl_health", "indexCoverage"],
+    primaryKpi: "technicalHealthScore",
   },
   speedster: {
     allowedKpis: ["vitals.performance_score", "vitals.lcp", "vitals.cls", "vitals.inp", "vitals.fcp", "vitals.ttfb"],
