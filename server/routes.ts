@@ -6768,6 +6768,19 @@ When answering:
           new Date(c.createdAt) >= oneWeekAgo
         ).length;
         
+        // Determine if we have real data - lineage KPIs take precedence over legacy scores
+        const hasLineageData = realKpiValue !== null;
+        const hasLegacyScore = scoreData.value !== null;
+        const hasAnyData = hasLineageData || hasLegacyScore;
+        
+        // Get metric label from registry if lineage data exists
+        const primaryMetricLabel = hasLineageData && crew.primaryMetricId
+          ? (METRIC_KEYS[crew.primaryMetricId]?.label || 'Health Score')
+          : (hasLegacyScore ? 'Health Score' : 'Completion Rate');
+        
+        // Determine display value - lineage takes precedence
+        const displayValue = hasLineageData ? realKpiValue : scoreData.value;
+        
         return {
           crewId,
           nickname: crew.nickname,
@@ -6784,16 +6797,18 @@ When answering:
           },
           lastCompletedAt: lastCompleted?.createdAt || null,
           status,
-          // Primary metric for display (real KPI data takes precedence over mission-based score)
-          primaryMetric: scoreData.value !== null ? 'Health Score' : 'Completion Rate',
-          primaryMetricValue: realKpiValue ?? scoreData.value,
+          // Primary metric for display (lineage KPI data takes precedence over legacy score)
+          primaryMetric: primaryMetricLabel,
+          primaryMetricValue: displayValue,
           deltaPercent,
-          deltaLabel: scoreData.value !== null
-            ? (scoreData.value >= 80 ? 'Healthy' : scoreData.value >= 50 ? 'Needs work' : 'Critical')
+          deltaLabel: hasAnyData
+            ? (displayValue !== null && displayValue >= 80 ? 'Healthy' : displayValue !== null && displayValue >= 50 ? 'Needs work' : 'Critical')
             : 'Not enough data',
-          // Empty state metadata for "No Dead Ends" UX
-          hasNoData: scoreData.value === null,
-          emptyStateReason: scoreData.value === null ? 'Run diagnostics to see health score' : null,
+          // Empty state metadata - check lineage data FIRST, then legacy score
+          hasNoData: !hasAnyData,
+          emptyStateReason: !hasAnyData ? 'Run diagnostics to see metrics' : null,
+          // Flag to distinguish source of data
+          dataSource: hasLineageData ? 'lineage' : (hasLegacyScore ? 'legacy' : 'none'),
         };
       });
       
