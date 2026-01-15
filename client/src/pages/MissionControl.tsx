@@ -48,6 +48,8 @@ import { toast } from "sonner";
 import { ROUTES, buildRoute } from "@shared/routes";
 import { SERVICE_TO_CREW } from "@shared/registry";
 import { CREW_KPI_CONTRACTS } from "@shared/crew/kpiSchemas";
+import { ProvenanceBadge } from "@/components/ui/ProvenanceBadge";
+import type { Provenance } from "@shared/types/provenance";
 import { SocratesMemoryCard } from "@/components/dashboard/SocratesMemoryCard";
 import { DeveloperReportModal } from "@/components/export/DeveloperReportModal";
 import { MissionDetailsModal } from "@/components/dashboard/MissionDetailsModal";
@@ -812,8 +814,8 @@ function CapabilitiesSection({
   agentStatus 
 }: { 
   agents: Array<{ serviceId: string; score: number | null; missionsOpen?: number; status: 'good' | 'watch' | 'bad' }>; 
-  crewSummaries?: Array<{ crewId: string; nickname: string; pendingCount: number; lastCompletedAt: string | null; status: 'looking_good' | 'doing_okay' | 'needs_attention'; primaryMetric?: string; primaryMetricValue?: number; deltaPercent?: number | null; deltaLabel?: string; hasNoData?: boolean; emptyStateReason?: string | null; missions?: { open?: number } }>;
-  kbStatus?: { totalLearnings?: number; configured?: boolean; status?: string };
+  crewSummaries?: Array<{ crewId: string; nickname: string; pendingCount: number; lastCompletedAt: string | null; status: 'looking_good' | 'doing_okay' | 'needs_attention'; primaryMetric?: string; primaryMetricValue?: number; provenance?: Provenance; deltaPercent?: number | null; deltaLabel?: string; hasNoData?: boolean; emptyStateReason?: string | null; missions?: { open?: number } }>;
+  kbStatus?: { totalLearnings?: number; configured?: boolean; status?: string; isRealData?: boolean };
   agentStatus?: Record<string, { health: string; needsConfig: boolean; lastRun: string | null }>;
 }) {
   const { isHired } = useHiredCrews();
@@ -837,9 +839,13 @@ function CapabilitiesSection({
     let kpiValue = crewSummary?.primaryMetricValue?.toString() || "—";
     let kpiLabel = kpiConfig.label; // Always use registry label, never crewSummary.primaryMetric
     
+    // Determine provenance - if locked or sample data, mark as sample
+    let provenance: Provenance = crewSummary?.provenance || 'sample';
+    
     if (isSocrates && kbStatus) {
       kpiValue = String(kbStatus.totalLearnings || 0);
       kpiLabel = kpiConfig.label; // Use registry label: "Total Learnings"
+      provenance = kbStatus.isRealData ? 'real' : 'sample';
     }
     
     // Task count
@@ -869,6 +875,7 @@ function CapabilitiesSection({
       trend,
       status,
       isLocked: status === 'locked',
+      provenance: status === 'locked' ? 'sample' as Provenance : provenance,
     };
   });
   
@@ -901,6 +908,7 @@ function CapabilitiesSection({
         trend: 'none' as const,
         status: 'locked' as const,
         isLocked: true,
+        provenance: 'sample' as Provenance,
       };
     });
   
@@ -942,9 +950,10 @@ function CapabilityCard({ capability }: {
     trend: 'up' | 'down' | 'stable' | 'none';
     status: 'active' | 'locked' | 'setup';
     isLocked: boolean;
+    provenance: Provenance;
   }
 }) {
-  const { crew, kpiValue, kpiLabel, tasksOpen, trend, status, isLocked, whyItMatters } = capability;
+  const { crew, kpiValue, kpiLabel, tasksOpen, trend, status, isLocked, whyItMatters, provenance } = capability;
   
   // All cards get crew-color glow at varying intensity
   const glowIntensity = status === 'active' ? '25' : status === 'setup' ? '15' : '10';
@@ -1038,9 +1047,7 @@ function CapabilityCard({ capability }: {
               >
                 {kpiValue}
               </span>
-              {(isLocked || status === 'setup') && (
-                <span className="text-[9px] text-muted-foreground bg-black/30 px-1.5 py-0.5 rounded font-medium">Sample</span>
-              )}
+              <ProvenanceBadge provenance={provenance} crewName={crew.nickname} />
             </div>
             <p className="text-[11px] text-muted-foreground mt-1.5">{kpiLabel}</p>
             
@@ -1583,7 +1590,7 @@ function TasksOverviewSection({
 function AgentSummaryGrid({ agents, crewSummaries, kbStatus, agentStatus }: { 
   agents: Array<{ serviceId: string; score: number | null; missionsOpen?: number; status: 'good' | 'watch' | 'bad' }>; 
   crewSummaries?: Array<{ crewId: string; nickname: string; pendingCount: number; lastCompletedAt: string | null; status: 'looking_good' | 'doing_okay' | 'needs_attention'; primaryMetric?: string; primaryMetricValue?: number; deltaPercent?: number | null; deltaLabel?: string; hasNoData?: boolean; emptyStateReason?: string | null }>;
-  kbStatus?: { totalLearnings?: number; configured?: boolean; status?: string };
+  kbStatus?: { totalLearnings?: number; configured?: boolean; status?: string; isRealData?: boolean };
   agentStatus?: Record<string, { health: string; needsConfig: boolean; lastRun: string | null }>;
 }) {
   const enabledCount = agents.length;

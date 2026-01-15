@@ -6932,9 +6932,11 @@ When answering:
         const cachedStatus = crewStatusMap[crewId];
         const scoreData = cachedStatus?.score ?? { value: null, status: 'unknown' as const, updatedAt: new Date().toISOString() };
         
-        // Get lineage KPI data if available
+        // Get lineage KPI data using CREW_KPI_CONTRACTS (single source of truth for primaryKpi)
         const lineageKpis = crewKpisMap[crewId] || [];
-        const primaryKpi = lineageKpis.find(k => k.metricKey === crew.primaryMetricId);
+        const kpiContract = CREW_KPI_CONTRACTS[crewId];
+        const primaryKpiKey = kpiContract?.primaryKpi || crew.primaryMetricId;
+        const primaryKpi = lineageKpis.find(k => k.metricKey === primaryKpiKey);
         const realKpiValue = primaryKpi?.value ?? null;
         
         // Missions data
@@ -6947,13 +6949,16 @@ When answering:
         const hasLegacyScore = scoreData.value !== null;
         const hasAnyData = hasLineageData || hasLegacyScore;
         
-        // Get metric label from registry if lineage data exists
-        const primaryMetricLabel = hasLineageData && crew.primaryMetricId
-          ? (METRIC_KEYS[crew.primaryMetricId]?.label || 'Health Score')
-          : (hasLegacyScore ? 'Health Score' : 'Completion Rate');
+        // Get metric label from CREW_KPI_CONTRACTS (single source of truth)
+        const primaryMetricLabel = kpiContract?.label || 'Health Score';
         
         // Determine display value - lineage takes precedence
         const displayValue = hasLineageData ? realKpiValue : scoreData.value;
+        
+        // Determine provenance for this KPI
+        const provenance: 'real' | 'sample' | 'placeholder' = hasLineageData 
+          ? 'real' 
+          : (hasLegacyScore ? 'real' : 'sample');
         
         return {
           crewId,
@@ -6974,6 +6979,7 @@ When answering:
           // Primary metric for display (lineage KPI data takes precedence over legacy score)
           primaryMetric: primaryMetricLabel,
           primaryMetricValue: displayValue,
+          provenance, // Data source indicator for UI badges
           deltaPercent,
           deltaLabel: hasAnyData
             ? (displayValue !== null && displayValue >= 80 ? 'Healthy' : displayValue !== null && displayValue >= 50 ? 'Needs work' : 'Critical')
