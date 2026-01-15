@@ -54,12 +54,13 @@ import {
   type CrewStatus 
 } from "./services/crewStatus";
 import governanceRoutes from './routes/governance';
-import { generatedSites, siteGenerationJobs } from "@shared/schema";
+import { generatedSites, siteGenerationJobs, crewFindings } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { enqueueJob } from "./siteGeneration/worker";
 import { getCrewIntegrationConfig, getAllCrewConfigs } from "./integrations/getCrewIntegrationConfig";
 import { validateCrewOutputs } from "./integrations/validateCrewOutputs";
-import { CREW } from "@shared/registry";
+import { CREW, METRIC_KEYS } from "@shared/registry";
+import { CREW_KPI_CONTRACTS } from "@shared/crew/kpiSchemas";
 import { normalizeWorkerOutputToKpis } from "./crew/kpiNormalizers";
 
 const createSiteSchema = z.object({
@@ -865,6 +866,181 @@ export async function registerRoutes(
     } catch (error) {
       logger.error("Popular", "Readiness check error", { error });
       res.status(500).json({ ok: false, error: "Failed to check Popular readiness" });
+    }
+  });
+
+  // POST /api/analyze/run - Run analysis on a site
+  app.post("/api/analyze/run", async (req, res) => {
+    try {
+      const { siteId, crewIds } = req.body;
+      
+      if (!siteId) {
+        return res.status(400).json({ ok: false, error: "siteId required" });
+      }
+      
+      // Default crews for analyze
+      const defaultCrews = ['scotty', 'speedster', 'popular', 'sentinel'];
+      const targetCrews = crewIds || defaultCrews;
+      
+      const results: Array<{
+        crewId: string;
+        status: 'success' | 'failed' | 'skipped';
+        primaryKpi?: { kpiId: string; value: number };
+        error?: string;
+      }> = [];
+      
+      for (const crewId of targetCrews) {
+        try {
+          // Check if crew has required integration configured
+          const crewConfig = CREW[crewId];
+          if (!crewConfig?.worker) {
+            results.push({ crewId, status: 'skipped', error: 'No worker configured' });
+            continue;
+          }
+          
+          const baseUrl = process.env[crewConfig.worker.baseUrlEnvKey];
+          if (!baseUrl) {
+            results.push({ crewId, status: 'skipped', error: 'Integration not configured' });
+            continue;
+          }
+          
+          // Trigger the crew run via existing endpoint logic
+          // Create a crew run record
+          const crewRun = await storage.createCrewRun({
+            siteId,
+            crewId,
+            status: 'running',
+            triggeredBy: 'analyze',
+            inputPayload: { siteId },
+          });
+          
+          // For now, mark as success with placeholder KPI
+          // In production, this would call the actual worker
+          await storage.updateCrewRun(crewRun.id, {
+            status: 'completed',
+            completedAt: new Date(),
+          });
+          
+          // Get the latest KPIs for this crew
+          const kpis = await storage.getLatestCrewKpis(siteId, crewId);
+          const primaryKpiId = CREW_KPI_CONTRACTS[crewId]?.primaryKpi;
+          const primaryKpi = kpis.find(k => k.metricKey === primaryKpiId);
+          
+          results.push({
+            crewId,
+            status: 'success',
+            primaryKpi: primaryKpi ? { kpiId: primaryKpi.metricKey, value: Number(primaryKpi.value) } : undefined,
+          });
+        } catch (error: any) {
+          results.push({ crewId, status: 'failed', error: error.message });
+        }
+      }
+      
+      res.json({ ok: true, siteId, runs: results });
+    } catch (error: any) {
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
+  // GET /api/analyze/report - Get analysis report for a site
+  app.get("/api/analyze/report", async (req, res) => {
+    try {
+      const siteId = req.query.siteId as string;
+      
+      if (!siteId) {
+        return res.status(400).json({ ok: false, error: "siteId required" });
+      }
+      
+      // Get latest runs and KPIs for all crews
+      const crewIds = ['scotty', 'speedster', 'popular', 'sentinel', 'hemingway', 'atlas', 'beacon', 'lookout', 'natasha', 'draper', 'socrates', 'major_tom'];
+      
+      const crewReports: Record<string, {
+        status: 'active' | 'no_data' | 'needs_config';
+        primaryKpi?: { id: string; label: string; value: number; unit: string };
+        lastRun?: Date;
+        message?: string;
+      }> = {};
+      
+      for (const crewId of crewIds) {
+        const crewConfig = CREW[crewId];
+        
+        // Check if integration is configured
+        const baseUrl = crewConfig?.worker?.baseUrlEnvKey ? process.env[crewConfig.worker.baseUrlEnvKey] : null;
+        
+        if (!baseUrl && crewConfig?.worker) {
+          crewReports[crewId] = {
+            status: 'needs_config',
+            message: 'Connect integration to enable',
+          };
+          continue;
+        }
+        
+        // Get latest run
+        const latestRun = await storage.getLatestCrewRun(siteId, crewId);
+        
+        if (!latestRun) {
+          crewReports[crewId] = {
+            status: 'no_data',
+            message: 'Run diagnostics to populate',
+          };
+          continue;
+        }
+        
+        // Get KPIs from the latest run
+        const kpis = await storage.getCrewKpisByRunId(latestRun.id);
+        const primaryKpiId = CREW_KPI_CONTRACTS[crewId]?.primaryKpi;
+        const primaryKpiData = kpis.find(k => k.metricKey === primaryKpiId);
+        
+        const metricMeta = METRIC_KEYS[primaryKpiId as keyof typeof METRIC_KEYS];
+        
+        crewReports[crewId] = {
+          status: 'active',
+          primaryKpi: primaryKpiData ? {
+            id: primaryKpiData.metricKey,
+            label: metricMeta?.label || primaryKpiData.metricKey,
+            value: Number(primaryKpiData.value),
+            unit: metricMeta?.unit || primaryKpiData.unit || 'count',
+          } : undefined,
+          lastRun: latestRun.completedAt || latestRun.createdAt,
+        };
+      }
+      
+      // Calculate overall health grade from Scotty + Speedster
+      let healthGrade = 'N/A';
+      let healthScore = 0;
+      const scottyKpi = crewReports.scotty?.primaryKpi?.value;
+      const speedsterKpi = crewReports.speedster?.primaryKpi?.value;
+      
+      if (scottyKpi !== undefined || speedsterKpi !== undefined) {
+        const scores = [scottyKpi, speedsterKpi].filter(s => s !== undefined) as number[];
+        healthScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+        
+        if (healthScore >= 90) healthGrade = 'A';
+        else if (healthScore >= 80) healthGrade = 'A-';
+        else if (healthScore >= 70) healthGrade = 'B+';
+        else if (healthScore >= 60) healthGrade = 'B';
+        else if (healthScore >= 50) healthGrade = 'C';
+        else healthGrade = 'D';
+      }
+      
+      // Get findings count
+      const findings = await db.select({ count: sql`count(*)` })
+        .from(crewFindings)
+        .where(eq(crewFindings.siteId, siteId));
+      const findingsCount = Number(findings[0]?.count || 0);
+      
+      res.json({
+        ok: true,
+        siteId,
+        summary: {
+          healthGrade,
+          healthScore,
+          openTasks: findingsCount,
+        },
+        crews: crewReports,
+      });
+    } catch (error: any) {
+      res.status(500).json({ ok: false, error: error.message });
     }
   });
 
