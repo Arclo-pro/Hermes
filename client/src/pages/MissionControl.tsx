@@ -843,12 +843,12 @@ function CapabilitiesSection({
       // Real data exists
       kpiValue = String(crewSummary.primaryMetricValue);
     } else if (crewSummary?.sampleValue) {
-      // Use sample value from API for display parity with crew dashboards
-      kpiValue = crewSummary.sampleValue;
+      // Use sample value from API - strip ~ prefix for clean display (provenance badge indicates sample)
+      kpiValue = crewSummary.sampleValue.replace(/^~/, '');
       provenance = 'sample';
     } else {
-      // Fall back to registry sample value
-      kpiValue = kpiConfig.sampleValue;
+      // Fall back to registry sample value - strip ~ prefix for clean display
+      kpiValue = kpiConfig.sampleValue.replace(/^~/, '');
       provenance = 'sample';
     }
     
@@ -879,9 +879,9 @@ function CapabilitiesSection({
     return {
       serviceId: agent.serviceId,
       crew,
-      kpiValue: status === 'locked' ? kpiConfig.sampleValue : kpiValue,
+      kpiValue: status === 'locked' ? kpiConfig.sampleValue.replace(/^~/, '') : kpiValue,
       kpiLabel,
-      sampleValue: kpiConfig.sampleValue,
+      sampleValue: kpiConfig.sampleValue.replace(/^~/, ''),
       whyItMatters: kpiConfig.whyItMatters,
       tasksOpen,
       trend,
@@ -912,9 +912,9 @@ function CapabilitiesSection({
       return {
         serviceId,
         crew,
-        kpiValue: kpiConfig.sampleValue,
+        kpiValue: kpiConfig.sampleValue.replace(/^~/, ''),
         kpiLabel: kpiConfig.label,
-        sampleValue: kpiConfig.sampleValue,
+        sampleValue: kpiConfig.sampleValue.replace(/^~/, ''),
         whyItMatters: kpiConfig.whyItMatters,
         tasksOpen: 0,
         trend: 'none' as const,
