@@ -814,7 +814,7 @@ function CapabilitiesSection({
   agentStatus 
 }: { 
   agents: Array<{ serviceId: string; score: number | null; missionsOpen?: number; status: 'good' | 'watch' | 'bad' }>; 
-  crewSummaries?: Array<{ crewId: string; nickname: string; pendingCount: number; lastCompletedAt: string | null; status: 'looking_good' | 'doing_okay' | 'needs_attention'; primaryMetric?: string; primaryMetricValue?: number; provenance?: Provenance; deltaPercent?: number | null; deltaLabel?: string; hasNoData?: boolean; emptyStateReason?: string | null; missions?: { open?: number } }>;
+  crewSummaries?: Array<{ crewId: string; nickname: string; pendingCount: number; lastCompletedAt: string | null; status: 'looking_good' | 'doing_okay' | 'needs_attention'; primaryMetric?: string; primaryMetricValue?: number | null; sampleValue?: string | null; provenance?: Provenance; deltaPercent?: number | null; deltaLabel?: string; hasNoData?: boolean; emptyStateReason?: string | null; missions?: { open?: number } }>;
   kbStatus?: { totalLearnings?: number; configured?: boolean; status?: string; isRealData?: boolean };
   agentStatus?: Record<string, { health: string; needsConfig: boolean; lastRun: string | null }>;
 }) {
@@ -835,12 +835,24 @@ function CapabilitiesSection({
       ? { label: kpiContract.label, sampleValue: kpiContract.sampleValue, whyItMatters: kpiContract.whyItMatters }
       : { label: "Tasks Open", sampleValue: "~5", whyItMatters: "Actions to improve your site" };
     
-    // Determine KPI value - use real data from crewSummary, never "Completion Rate"
-    let kpiValue = crewSummary?.primaryMetricValue?.toString() || "—";
-    let kpiLabel = kpiConfig.label; // Always use registry label, never crewSummary.primaryMetric
-    
-    // Determine provenance - if locked or sample data, mark as sample
+    // Determine KPI value - use real data from crewSummary, fall back to sampleValue for display parity
     let provenance: Provenance = crewSummary?.provenance || 'sample';
+    let kpiValue: string;
+    
+    if (crewSummary?.primaryMetricValue !== null && crewSummary?.primaryMetricValue !== undefined) {
+      // Real data exists
+      kpiValue = String(crewSummary.primaryMetricValue);
+    } else if (crewSummary?.sampleValue) {
+      // Use sample value from API for display parity with crew dashboards
+      kpiValue = crewSummary.sampleValue;
+      provenance = 'sample';
+    } else {
+      // Fall back to registry sample value
+      kpiValue = kpiConfig.sampleValue;
+      provenance = 'sample';
+    }
+    
+    let kpiLabel = kpiConfig.label; // Always use registry label, never crewSummary.primaryMetric
     
     if (isSocrates && kbStatus) {
       kpiValue = String(kbStatus.totalLearnings || 0);

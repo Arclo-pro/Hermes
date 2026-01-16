@@ -408,17 +408,27 @@ export default function ScottyContent() {
   const queryClient = useQueryClient();
   const [fixingIssue, setFixingIssue] = useState<string | null>(null);
 
-  const { data: scottyData, isLoading, refetch, isRefetching } = useQuery<ScottyData>({
-    queryKey: ["scotty-data", siteId],
+  const { data: scottyData, isLoading, refetch, isRefetching } = useQuery<ScottyData & { isRealData?: boolean; provenance?: string }>({
+    queryKey: ["scotty-dashboard", siteId],
     queryFn: async () => {
       try {
-        const res = await fetch(`/api/scotty/data?site_id=${siteId}`);
+        const res = await fetch(`/api/crew/scotty/dashboard?siteId=${siteId}`);
         if (!res.ok) {
-          return MOCK_SCOTTY_DATA;
+          return { ...MOCK_SCOTTY_DATA, isRealData: false, provenance: "sample" };
         }
-        return res.json();
+        const data = await res.json();
+        if (!data.ok) {
+          return { ...MOCK_SCOTTY_DATA, isRealData: false, provenance: "sample" };
+        }
+        return {
+          health: data.health,
+          findings: data.findings || [],
+          trends: data.trends || MOCK_SCOTTY_DATA.trends,
+          isRealData: data.isRealData,
+          provenance: data.provenance,
+        };
       } catch {
-        return MOCK_SCOTTY_DATA;
+        return { ...MOCK_SCOTTY_DATA, isRealData: false, provenance: "sample" };
       }
     },
     refetchInterval: 60000,
