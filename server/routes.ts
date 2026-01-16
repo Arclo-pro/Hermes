@@ -61,7 +61,7 @@ import { getCrewIntegrationConfig, getAllCrewConfigs } from "./integrations/getC
 import { validateCrewOutputs } from "./integrations/validateCrewOutputs";
 import { CREW, METRIC_KEYS } from "@shared/registry";
 import { CREW_KPI_CONTRACTS } from "@shared/crew/kpiSchemas";
-import { computeHealthStatus, type HealthStatus } from "@shared/crew/kpiSnapshot";
+import { computeHealthStatus, computeDelta, type HealthStatus, type DeltaInfo } from "@shared/crew/kpiSnapshot";
 import { normalizeWorkerOutputToKpis } from "./crew/kpiNormalizers";
 
 const createSiteSchema = z.object({
@@ -7204,6 +7204,14 @@ When answering:
           crewNeedsConfig
         );
         
+        // Compute delta from previous KPI value
+        // Look for previous KPI snapshot from lineage (second most recent)
+        const allKpisForCrew = lineageKpis.filter(k => k.metricKey === primaryKpiKey);
+        const previousKpi = allKpisForCrew.length > 1 ? allKpisForCrew[1] : null;
+        const previousValue = previousKpi?.value ?? null;
+        const metricUnit = kpiContract?.unit || '';
+        const deltaInfo = computeDelta(displayValue, previousValue, metricUnit);
+        
         return {
           crewId,
           nickname: crew.nickname,
@@ -7239,6 +7247,8 @@ When answering:
           healthReason,
           lastRunStatus,
           lastUpdatedAt,
+          // Delta info for change indicators
+          delta: deltaInfo,
         };
       });
       

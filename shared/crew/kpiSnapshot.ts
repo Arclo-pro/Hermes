@@ -5,12 +5,48 @@ import { CREW_KPI_CONTRACTS, type CrewKpiContract } from "./kpiSchemas";
 export const HealthStatusSchema = z.enum(["live", "stale", "not_configured", "error", "sample"]);
 export type HealthStatus = z.infer<typeof HealthStatusSchema>;
 
+export const DeltaInfoSchema = z.object({
+  previousValue: z.union([z.number(), z.string()]).nullable(),
+  delta: z.number().nullable(),
+  direction: z.enum(["up", "down", "stable", "none"]),
+  displayDelta: z.string(),
+});
+
+export type DeltaInfo = z.infer<typeof DeltaInfoSchema>;
+
+export function computeDelta(
+  currentValue: number | string | null,
+  previousValue: number | string | null,
+  unit?: string
+): DeltaInfo {
+  if (currentValue === null || previousValue === null) {
+    return { previousValue, delta: null, direction: "none", displayDelta: "—" };
+  }
+
+  const current = typeof currentValue === "string" ? parseFloat(currentValue) : currentValue;
+  const previous = typeof previousValue === "string" ? parseFloat(previousValue) : previousValue;
+
+  if (isNaN(current) || isNaN(previous)) {
+    return { previousValue, delta: null, direction: "none", displayDelta: "—" };
+  }
+
+  const delta = current - previous;
+  const direction: "up" | "down" | "stable" = delta > 0 ? "up" : delta < 0 ? "down" : "stable";
+  
+  const suffix = unit === "%" ? "pp" : "";
+  const sign = delta > 0 ? "+" : "";
+  const displayDelta = delta === 0 ? "—" : `${sign}${delta}${suffix}`;
+
+  return { previousValue, delta, direction, displayDelta };
+}
+
 export const CrewKpiSnapshotSchema = z.object({
   crewId: z.string(),
   primaryMetric: z.object({
     key: z.string(),
     label: z.string(),
     value: z.union([z.number(), z.string()]).nullable(),
+    previousValue: z.union([z.number(), z.string()]).nullable().optional(),
     unit: z.string().optional(),
     trend: z.enum(["up", "down", "stable", "none"]).optional(),
     status: z.enum(["good", "watch", "bad", "unknown"]).optional(),
@@ -23,6 +59,7 @@ export const CrewKpiSnapshotSchema = z.object({
   health: HealthStatusSchema.optional(),
   healthReason: z.string().optional(),
   lastRunStatus: z.enum(["success", "failed", "never"]).optional(),
+  delta: DeltaInfoSchema.optional(),
 });
 
 export type CrewKpiSnapshot = z.infer<typeof CrewKpiSnapshotSchema>;
