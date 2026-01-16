@@ -2,6 +2,9 @@ import { z } from "zod";
 import { ProvenanceSchema, type Provenance } from "../types/provenance";
 import { CREW_KPI_CONTRACTS, type CrewKpiContract } from "./kpiSchemas";
 
+export const HealthStatusSchema = z.enum(["live", "stale", "not_configured", "error", "sample"]);
+export type HealthStatus = z.infer<typeof HealthStatusSchema>;
+
 export const CrewKpiSnapshotSchema = z.object({
   crewId: z.string(),
   primaryMetric: z.object({
@@ -17,9 +20,66 @@ export const CrewKpiSnapshotSchema = z.object({
   }),
   lastUpdated: z.string().nullable(),
   dataSource: z.enum(["lineage", "legacy", "mock", "none"]),
+  health: HealthStatusSchema.optional(),
+  healthReason: z.string().optional(),
+  lastRunStatus: z.enum(["success", "failed", "never"]).optional(),
 });
 
 export type CrewKpiSnapshot = z.infer<typeof CrewKpiSnapshotSchema>;
+
+export function computeHealthStatus(
+  isSample: boolean,
+  lastUpdatedAt: string | null,
+  lastRunStatus: "success" | "failed" | "never" | undefined,
+  needsConfig: boolean
+): { health: HealthStatus; healthReason: string } {
+  const SIX_HOURS = 6 * 60 * 60 * 1000;
+  const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+
+  if (isSample) {
+    return { health: "sample", healthReason: "Using sample data" };
+  }
+
+  if (lastRunStatus === "failed") {
+    return { health: "error", healthReason: "Last run failed" };
+  }
+
+  if (needsConfig) {
+    return { health: "not_configured", healthReason: "Setup required" };
+  }
+
+  if (!lastUpdatedAt) {
+    return { health: "not_configured", healthReason: "No data yet" };
+  }
+
+  const lastUpdated = new Date(lastUpdatedAt).getTime();
+  const now = Date.now();
+  const age = now - lastUpdated;
+
+  if (age <= SIX_HOURS) {
+    return { health: "live", healthReason: formatRelativeTime(lastUpdatedAt) };
+  }
+
+  if (age <= SEVEN_DAYS) {
+    return { health: "stale", healthReason: formatRelativeTime(lastUpdatedAt) };
+  }
+
+  return { health: "stale", healthReason: formatRelativeTime(lastUpdatedAt) };
+}
+
+function formatRelativeTime(isoDate: string): string {
+  const date = new Date(isoDate);
+  const now = Date.now();
+  const diffMs = now - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return "Updated just now";
+  if (diffMins < 60) return `Updated ${diffMins}m ago`;
+  if (diffHours < 24) return `Updated ${diffHours}h ago`;
+  return `Updated ${diffDays}d ago`;
+}
 
 export function createSampleSnapshot(crewId: string): CrewKpiSnapshot {
   const contract = CREW_KPI_CONTRACTS[crewId];
