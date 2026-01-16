@@ -14,6 +14,13 @@ export const DeltaInfoSchema = z.object({
 
 export type DeltaInfo = z.infer<typeof DeltaInfoSchema>;
 
+function parseNumericValue(val: number | string): number {
+  if (typeof val === "number") return val;
+  // Remove commas, %, and other non-numeric chars except minus and decimal
+  const cleaned = val.replace(/[,%]/g, "").trim();
+  return parseFloat(cleaned);
+}
+
 export function computeDelta(
   currentValue: number | string | null,
   previousValue: number | string | null,
@@ -23,19 +30,23 @@ export function computeDelta(
     return { previousValue, delta: null, direction: "none", displayDelta: "—" };
   }
 
-  const current = typeof currentValue === "string" ? parseFloat(currentValue) : currentValue;
-  const previous = typeof previousValue === "string" ? parseFloat(previousValue) : previousValue;
+  const current = parseNumericValue(currentValue);
+  const previous = parseNumericValue(previousValue);
 
   if (isNaN(current) || isNaN(previous)) {
     return { previousValue, delta: null, direction: "none", displayDelta: "—" };
   }
 
-  const delta = current - previous;
+  const rawDelta = current - previous;
+  // Round to 1 decimal place for clean display
+  const delta = Math.round(rawDelta * 10) / 10;
   const direction: "up" | "down" | "stable" = delta > 0 ? "up" : delta < 0 ? "down" : "stable";
   
   const suffix = unit === "%" ? "pp" : "";
   const sign = delta > 0 ? "+" : "";
-  const displayDelta = delta === 0 ? "—" : `${sign}${delta}${suffix}`;
+  // Format to avoid long floats - show integer if whole number, else 1 decimal
+  const formattedDelta = Number.isInteger(delta) ? delta.toString() : delta.toFixed(1);
+  const displayDelta = delta === 0 ? "—" : `${sign}${formattedDelta}${suffix}`;
 
   return { previousValue, delta, direction, displayDelta };
 }

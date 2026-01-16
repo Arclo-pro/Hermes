@@ -7206,7 +7206,10 @@ When answering:
         
         // Compute delta from previous KPI value
         // Look for previous KPI snapshot from lineage (second most recent)
-        const allKpisForCrew = lineageKpis.filter(k => k.metricKey === primaryKpiKey);
+        // Sort by timestamp descending to ensure proper ordering
+        const allKpisForCrew = lineageKpis
+          .filter(k => k.metricKey === primaryKpiKey)
+          .sort((a, b) => new Date(b.capturedAt).getTime() - new Date(a.capturedAt).getTime());
         const previousKpi = allKpisForCrew.length > 1 ? allKpisForCrew[1] : null;
         const previousValue = previousKpi?.value ?? null;
         const metricUnit = kpiContract?.unit || '';

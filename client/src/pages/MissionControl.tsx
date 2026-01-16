@@ -814,7 +814,7 @@ function CapabilitiesSection({
   agentStatus 
 }: { 
   agents: Array<{ serviceId: string; score: number | null; missionsOpen?: number; status: 'good' | 'watch' | 'bad' }>; 
-  crewSummaries?: Array<{ crewId: string; nickname: string; pendingCount: number; lastCompletedAt: string | null; status: 'looking_good' | 'doing_okay' | 'needs_attention'; primaryMetric?: string; primaryMetricValue?: number | null; sampleValue?: string | null; provenance?: Provenance; deltaPercent?: number | null; deltaLabel?: string; hasNoData?: boolean; emptyStateReason?: string | null; missions?: { open?: number }; health?: HealthStatus; healthReason?: string; lastRunStatus?: string; lastUpdatedAt?: string | null }>;
+  crewSummaries?: Array<{ crewId: string; nickname: string; pendingCount: number; lastCompletedAt: string | null; status: 'looking_good' | 'doing_okay' | 'needs_attention'; primaryMetric?: string; primaryMetricValue?: number | null; sampleValue?: string | null; provenance?: Provenance; deltaPercent?: number | null; deltaLabel?: string; hasNoData?: boolean; emptyStateReason?: string | null; missions?: { open?: number }; health?: HealthStatus; healthReason?: string; lastRunStatus?: string; lastUpdatedAt?: string | null; delta?: { direction: 'up' | 'down' | 'stable' | 'none'; displayDelta: string } }>;
   kbStatus?: { totalLearnings?: number; configured?: boolean; status?: string; isRealData?: boolean };
   agentStatus?: Record<string, { health: string; needsConfig: boolean; lastRun: string | null }>;
 }) {
@@ -890,6 +890,7 @@ function CapabilitiesSection({
       provenance: status === 'locked' ? 'sample' as Provenance : provenance,
       health: crewSummary?.health,
       healthReason: crewSummary?.healthReason,
+      delta: crewSummary?.delta,
     };
   });
   
@@ -925,6 +926,7 @@ function CapabilitiesSection({
         provenance: 'sample' as Provenance,
         health: 'sample' as HealthStatus,
         healthReason: 'Unlock to enable',
+        delta: undefined,
       };
     });
   
@@ -1003,9 +1005,13 @@ function CapabilityCard({ capability }: {
     provenance: Provenance;
     health?: HealthStatus;
     healthReason?: string;
+    delta?: {
+      direction: 'up' | 'down' | 'stable' | 'none';
+      displayDelta: string;
+    };
   }
 }) {
-  const { crew, kpiValue, kpiLabel, tasksOpen, trend, status, isLocked, whyItMatters, provenance, health, healthReason } = capability;
+  const { crew, kpiValue, kpiLabel, tasksOpen, trend, status, isLocked, whyItMatters, provenance, health, healthReason, delta } = capability;
   
   // All cards get crew-color glow at varying intensity
   const glowIntensity = status === 'active' ? '25' : status === 'setup' ? '15' : '10';
@@ -1102,17 +1108,23 @@ function CapabilityCard({ capability }: {
               >
                 {kpiValue}
               </span>
+              {/* Delta indicator - always visible when delta exists */}
+              {delta && delta.direction !== 'none' && (
+                <span className={cn(
+                  "flex items-center gap-0.5 text-sm font-medium",
+                  delta.direction === 'up' ? 'text-semantic-success' : delta.direction === 'down' ? 'text-semantic-danger' : 'text-muted-foreground'
+                )}>
+                  {delta.direction === 'up' ? <TrendingUp className="w-3.5 h-3.5" /> : delta.direction === 'down' ? <TrendingDown className="w-3.5 h-3.5" /> : <Minus className="w-3.5 h-3.5" />}
+                  {delta.displayDelta}
+                </span>
+              )}
+              {/* No delta data indicator */}
+              {delta && delta.direction === 'none' && (
+                <span className="text-xs text-muted-foreground/60">—</span>
+              )}
               <ProvenanceBadge provenance={provenance} crewName={crew.nickname} />
             </div>
             <p className="text-[11px] text-muted-foreground mt-1.5">{kpiLabel}</p>
-            
-            {/* Trend indicator (active cards) */}
-            {status === 'active' && trendLabel && (
-              <div className={cn("flex items-center gap-1 text-[10px] mt-2", trendColor)}>
-                <TrendIcon className="w-3 h-3" />
-                <span>{trendLabel}</span>
-              </div>
-            )}
             
             {/* Setup message */}
             {status === 'setup' && (
