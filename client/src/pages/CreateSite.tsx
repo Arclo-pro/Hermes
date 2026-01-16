@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Button } from "@/components/ui/button";
 import { 
   Building2, 
   MapPin, 
@@ -20,7 +21,8 @@ import {
   Globe,
   FileText,
   Palette,
-  Zap
+  Zap,
+  Wand2
 } from "lucide-react";
 
 const BUSINESS_CATEGORIES = [
@@ -69,6 +71,7 @@ export default function CreateSite() {
   const [siteId, setSiteId] = useState<string | null>(null);
   const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [isGeneratingServices, setIsGeneratingServices] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     businessName: "",
     businessCategory: "",
@@ -84,6 +87,43 @@ export default function CreateSite() {
 
   const updateField = (field: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const generateServicesWithAI = async () => {
+    if (!formData.businessName.trim() || !formData.businessCategory) {
+      setError("Please enter business name and category first");
+      return;
+    }
+    
+    setIsGeneratingServices(true);
+    setError("");
+    
+    try {
+      const res = await fetch("/api/ai/generate-services", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          businessName: formData.businessName,
+          businessCategory: formData.businessCategory,
+          description: formData.description,
+        }),
+      });
+      
+      if (!res.ok) {
+        throw new Error("Failed to generate services");
+      }
+      
+      const data = await res.json();
+      if (data.success && data.services) {
+        updateField("services", data.services);
+      } else {
+        throw new Error(data.message || "Failed to generate services");
+      }
+    } catch (err) {
+      setError("Could not generate services. Please try again or enter manually.");
+    } finally {
+      setIsGeneratingServices(false);
+    }
   };
 
   const pollJobStatus = async (siteIdToPoll: string, publishedUrlFallback: string) => {
@@ -442,15 +482,38 @@ export default function CreateSite() {
                 </div>
 
                 <div className="md:col-span-2">
-                  <Label htmlFor="services" className="text-slate-700 font-medium">
-                    Primary services (comma-separated)
-                  </Label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <Label htmlFor="services" className="text-slate-700 font-medium">
+                      Primary services (comma-separated)
+                    </Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={generateServicesWithAI}
+                      disabled={isGeneratingServices || !formData.businessName.trim() || !formData.businessCategory}
+                      className="text-violet-600 hover:text-violet-700 hover:bg-violet-50 h-7 text-xs gap-1.5"
+                      data-testid="button-generate-services"
+                    >
+                      {isGeneratingServices ? (
+                        <>
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Wand2 className="h-3 w-3" />
+                          Generate with AI
+                        </>
+                      )}
+                    </Button>
+                  </div>
                   <Textarea
                     id="services"
                     value={formData.services}
                     onChange={(e) => updateField("services", e.target.value)}
                     placeholder="Drain cleaning, water heater repair, emergency plumbing"
-                    className="mt-1.5 min-h-[80px]"
+                    className="min-h-[80px]"
                     data-testid="input-services"
                   />
                 </div>

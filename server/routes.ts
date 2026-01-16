@@ -465,6 +465,66 @@ export async function registerRoutes(
     }
   });
 
+  // Generate services using AI based on business name/category/description
+  app.post("/api/ai/generate-services", async (req, res) => {
+    try {
+      const { businessName, businessCategory, description } = req.body;
+      
+      if (!businessName || !businessCategory) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Business name and category are required" 
+        });
+      }
+
+      const openaiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+      const openaiBaseUrl = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
+
+      if (!openaiKey) {
+        return res.status(500).json({ 
+          success: false, 
+          message: "AI service not configured" 
+        });
+      }
+
+      const openai = new OpenAI({
+        apiKey: openaiKey,
+        baseURL: openaiBaseUrl,
+      });
+
+      const prompt = `Generate a comma-separated list of 5-7 specific services for this business:
+
+Business Name: ${businessName}
+Business Category: ${businessCategory}
+${description ? `Description: ${description}` : ''}
+
+Return ONLY a comma-separated list of services, nothing else. Be specific and relevant to the business type.
+Example format: Service 1, Service 2, Service 3, Service 4, Service 5`;
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 150,
+        temperature: 0.7,
+      });
+
+      const services = completion.choices[0]?.message?.content?.trim() || "";
+
+      logger.info("AI", "Generated services for business", { businessName, services });
+
+      return res.json({ 
+        success: true, 
+        services 
+      });
+    } catch (error: any) {
+      logger.error("AI", "Failed to generate services", { error: error.message });
+      return res.status(500).json({ 
+        success: false, 
+        message: "Failed to generate services" 
+      });
+    }
+  });
+
   // ============================================================
   // Intake API Endpoints (Website Generator)
   // ============================================================
