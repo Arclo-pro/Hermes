@@ -814,7 +814,7 @@ function CapabilitiesSection({
   agentStatus 
 }: { 
   agents: Array<{ serviceId: string; score: number | null; missionsOpen?: number; status: 'good' | 'watch' | 'bad' }>; 
-  crewSummaries?: Array<{ crewId: string; nickname: string; pendingCount: number; lastCompletedAt: string | null; status: 'looking_good' | 'doing_okay' | 'needs_attention'; primaryMetric?: string; primaryMetricValue?: number | null; sampleValue?: string | null; provenance?: Provenance; deltaPercent?: number | null; deltaLabel?: string; hasNoData?: boolean; emptyStateReason?: string | null; missions?: { open?: number } }>;
+  crewSummaries?: Array<{ crewId: string; nickname: string; pendingCount: number; lastCompletedAt: string | null; status: 'looking_good' | 'doing_okay' | 'needs_attention'; primaryMetric?: string; primaryMetricValue?: number | null; sampleValue?: string | null; provenance?: Provenance; deltaPercent?: number | null; deltaLabel?: string; hasNoData?: boolean; emptyStateReason?: string | null; missions?: { open?: number }; health?: HealthStatus; healthReason?: string; lastRunStatus?: string; lastUpdatedAt?: string | null }>;
   kbStatus?: { totalLearnings?: number; configured?: boolean; status?: string; isRealData?: boolean };
   agentStatus?: Record<string, { health: string; needsConfig: boolean; lastRun: string | null }>;
 }) {
@@ -888,6 +888,8 @@ function CapabilitiesSection({
       status,
       isLocked: status === 'locked',
       provenance: status === 'locked' ? 'sample' as Provenance : provenance,
+      health: crewSummary?.health,
+      healthReason: crewSummary?.healthReason,
     };
   });
   
@@ -921,6 +923,8 @@ function CapabilitiesSection({
         status: 'locked' as const,
         isLocked: true,
         provenance: 'sample' as Provenance,
+        health: 'sample' as HealthStatus,
+        healthReason: 'Unlock to enable',
       };
     });
   
@@ -950,6 +954,40 @@ function CapabilitiesSection({
   );
 }
 
+type HealthStatus = "live" | "stale" | "not_configured" | "error" | "sample";
+
+function FreshnessIndicator({ health, healthReason }: { health?: HealthStatus; healthReason?: string }) {
+  // Default to "sample" if health is undefined (ensures every card has an indicator)
+  const effectiveHealth = health || "sample";
+  const effectiveReason = healthReason || (effectiveHealth === "sample" ? "Using sample data" : "Unknown status");
+  
+  const config: Record<HealthStatus, { label: string; color: string; bgColor: string; icon?: React.ReactNode }> = {
+    live: { label: "Live", color: "text-semantic-success", bgColor: "bg-semantic-success/15" },
+    stale: { label: "Stale", color: "text-amber-500", bgColor: "bg-amber-500/15" },
+    not_configured: { label: "Configure", color: "text-muted-foreground", bgColor: "bg-muted/30" },
+    error: { label: "Error", color: "text-semantic-danger", bgColor: "bg-semantic-danger/15" },
+    sample: { label: "Sample", color: "text-blue-400", bgColor: "bg-blue-500/15" },
+  };
+  
+  const { label, color, bgColor } = config[effectiveHealth];
+  
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Badge 
+          className={cn("text-[9px] px-1.5 py-0 h-4 border-0 cursor-help", bgColor, color)}
+          data-testid={`freshness-indicator-${effectiveHealth}`}
+        >
+          {label}
+        </Badge>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="text-xs max-w-[200px]">
+        {effectiveReason}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 function CapabilityCard({ capability }: { 
   capability: {
     serviceId: string;
@@ -963,9 +1001,11 @@ function CapabilityCard({ capability }: {
     status: 'active' | 'locked' | 'setup';
     isLocked: boolean;
     provenance: Provenance;
+    health?: HealthStatus;
+    healthReason?: string;
   }
 }) {
-  const { crew, kpiValue, kpiLabel, tasksOpen, trend, status, isLocked, whyItMatters, provenance } = capability;
+  const { crew, kpiValue, kpiLabel, tasksOpen, trend, status, isLocked, whyItMatters, provenance, health, healthReason } = capability;
   
   // All cards get crew-color glow at varying intensity
   const glowIntensity = status === 'active' ? '25' : status === 'setup' ? '15' : '10';
@@ -1026,21 +1066,24 @@ function CapabilityCard({ capability }: {
                 {crew.nickname}
               </h4>
             </div>
-            {status === 'active' && (
-              <Badge className="text-[10px] px-1.5 py-0 h-4 bg-semantic-success/20 text-semantic-success border-0">Active</Badge>
-            )}
-            {status === 'locked' && (
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-muted-foreground/30 text-muted-foreground flex items-center gap-1">
-                <Lock className="w-2.5 h-2.5" />
-                Locked
-              </Badge>
-            )}
-            {status === 'setup' && (
-              <Badge className="text-[10px] px-1.5 py-0 h-4 bg-amber-500/20 text-amber-500 border-0 flex items-center gap-1">
-                <Settings className="w-2.5 h-2.5" />
-                Setup
-              </Badge>
-            )}
+            <div className="flex items-center gap-1">
+              <FreshnessIndicator health={health} healthReason={healthReason} />
+              {status === 'active' && (
+                <Badge className="text-[10px] px-1.5 py-0 h-4 bg-semantic-success/20 text-semantic-success border-0">Active</Badge>
+              )}
+              {status === 'locked' && (
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-muted-foreground/30 text-muted-foreground flex items-center gap-1">
+                  <Lock className="w-2.5 h-2.5" />
+                  Locked
+                </Badge>
+              )}
+              {status === 'setup' && (
+                <Badge className="text-[10px] px-1.5 py-0 h-4 bg-amber-500/20 text-amber-500 border-0 flex items-center gap-1">
+                  <Settings className="w-2.5 h-2.5" />
+                  Setup
+                </Badge>
+              )}
+            </div>
           </div>
           
           {/* KPI WIDGET - Distinct panel matching old Key Metrics cards */}

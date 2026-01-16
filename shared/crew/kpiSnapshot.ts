@@ -36,22 +36,31 @@ export function computeHealthStatus(
   const SIX_HOURS = 6 * 60 * 60 * 1000;
   const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
 
-  if (isSample) {
-    return { health: "sample", healthReason: "Using sample data" };
-  }
-
+  // Priority 1: Check for errors (failed runs override everything)
   if (lastRunStatus === "failed") {
     return { health: "error", healthReason: "Last run failed" };
   }
 
+  // Priority 2: Check if configuration is needed (no runs ever + needs setup)
   if (needsConfig) {
     return { health: "not_configured", healthReason: "Setup required" };
   }
 
+  // Priority 3: If sample data (no real data yet, but configured)
+  if (isSample) {
+    // If never ran, show not_configured instead of sample
+    if (lastRunStatus === "never" && !lastUpdatedAt) {
+      return { health: "not_configured", healthReason: "Run first scan" };
+    }
+    return { health: "sample", healthReason: "Using sample data" };
+  }
+
+  // Priority 4: No data timestamp available
   if (!lastUpdatedAt) {
     return { health: "not_configured", healthReason: "No data yet" };
   }
 
+  // Priority 5: Determine freshness based on timestamp
   const lastUpdated = new Date(lastUpdatedAt).getTime();
   const now = Date.now();
   const age = now - lastUpdated;
