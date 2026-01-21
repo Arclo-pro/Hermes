@@ -288,3 +288,59 @@ export async function sendMonthlySummaryEmail(email: string, data: MonthlySummar
     return false;
   }
 }
+
+interface SignupNotificationData {
+  email: string;
+  websiteUrl?: string;
+  scanId?: string;
+  timestamp: string;
+}
+
+export async function sendSignupNotification(data: SignupNotificationData): Promise<boolean> {
+  const KEVIN_EMAIL = 'kevin@arclo.io';
+  
+  try {
+    const { client, fromEmail } = getSendGridClient();
+    
+    const msg = {
+      to: KEVIN_EMAIL,
+      from: fromEmail,
+      subject: 'New Arclo Signup',
+      text: `New Signup\n\nEmail: ${data.email}\nWebsite: ${data.websiteUrl || 'Not provided'}\nScan ID: ${data.scanId || 'None'}\nTimestamp: ${data.timestamp}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 50%, #f59e0b 100%); padding: 20px; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">New Arclo Signup</h1>
+          </div>
+          <div style="padding: 30px; background: #f9fafb;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; color: #6b7280; font-weight: 500;">Email</td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; color: #111827;">${data.email}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; color: #6b7280; font-weight: 500;">Website</td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; color: #111827;">${data.websiteUrl || 'Not provided'}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; color: #6b7280; font-weight: 500;">Scan ID</td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; color: #111827; font-family: monospace;">${data.scanId || 'None'}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 0; color: #6b7280; font-weight: 500;">Timestamp</td>
+                <td style="padding: 10px 0; color: #111827;">${data.timestamp}</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+      `,
+    };
+
+    await client.send(msg);
+    console.log(`[Email] Signup notification sent to ${KEVIN_EMAIL} for ${data.email}`);
+    return true;
+  } catch (error: any) {
+    console.error('[Email] Failed to send signup notification:', error.message);
+    return false;
+  }
+}

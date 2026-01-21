@@ -92,6 +92,11 @@ Automated validation infrastructure uses Zod schemas to test worker responses ag
 ### Free Report v1 System
 A shareable, read-only SEO diagnosis report generated from website scans, stored in a `free_reports` table. It uses a deterministic penalty-based scoring algorithm and transformers to compose 6 sections of the report.
 
+**Visibility Modes (Jan 2026)**:
+- **Full Visibility**: Crawl succeeded, all sections (Technical, Performance, Competitors, Keywords) display full data
+- **Limited Visibility**: Crawl blocked/failed - shows LimitedVisibilityBanner with reason and recommended steps, hides Technical section
+- Fields: `visibilityMode`, `limitedVisibilityReason`, `limitedVisibilitySteps[]`
+
 ### Change Governance System
 A platform-wide governance layer that logs, validates, and batches all SEO changes. It uses a Change Log SDK, KB Validator, Cadence Checker, and Deploy Windows to manage the lifecycle of changes, from proposal to execution, with pre/post metrics capture.
 

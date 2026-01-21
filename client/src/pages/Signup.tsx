@@ -25,7 +25,7 @@ export default function Signup() {
   const scanId = params.get("scanId");
 
   const signupMutation = useMutation({
-    mutationFn: async (data: { email: string; password: string; displayName?: string }) => {
+    mutationFn: async (data: { email: string; password: string; displayName?: string; scanId?: string; websiteUrl?: string }) => {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -72,7 +72,8 @@ export default function Signup() {
     signupMutation.mutate({ 
       email, 
       password, 
-      displayName: displayName.trim() || undefined 
+      displayName: displayName.trim() || undefined,
+      scanId: scanId || undefined,
     });
   };
 

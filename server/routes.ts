@@ -2260,6 +2260,23 @@ Example format: Service 1, Service 2, Service 3, Service 4, Service 5`;
       }
 
       const latestRun = await storage.getLatestRun();
+      
+      // Check required env vars for scan workflow
+      const serpApiKey = process.env.SERP_API_KEY || process.env.SERP_INTELLIGENCE_API_KEY;
+      const sendGridKey = process.env.SendGrid;
+      const sendGridFrom = process.env.SENDGRID_FROM_EMAIL;
+      
+      const integrations = {
+        serp: {
+          configured: !!serpApiKey,
+          keyPrefix: serpApiKey ? serpApiKey.substring(0, 8) + '...' : null,
+        },
+        sendgrid: {
+          configured: !!sendGridKey,
+          fromEmail: sendGridFrom || 'noreply@arclo.pro',
+          keyValid: sendGridKey ? sendGridKey.startsWith('SG.') : false,
+        },
+      };
 
       res.json({
         ok: true,
@@ -2269,6 +2286,7 @@ Example format: Service 1, Service 2, Service 3, Service 4, Service 5`;
         dbConnected,
         lastRunAt: latestRun?.startedAt || null,
         lastRunStatus: latestRun?.status || null,
+        integrations,
       });
     } catch (error: any) {
       res.status(500).json({ 
@@ -19082,6 +19100,20 @@ Return JSON in this exact format:
             }
           }
           
+          // Fallback: ensure we always have some competitors listed (placeholder when API fails)
+          if (topCompetitors.length === 0) {
+            topCompetitors = [
+              { domain: "Competitor analysis pending", overlap: 0, note: "Sign up for full competitor intelligence" }
+            ];
+          }
+          
+          // Fallback: ensure we always have keyword data
+          if (quickWinKeywords.length === 0 && decliningKeywords.length === 0) {
+            quickWinKeywords = [
+              { keyword: "Keyword analysis pending", position: 0, note: "Sign up for detailed keyword tracking" }
+            ];
+          }
+          
           if (backlinkData.ok && backlinkData.data) {
             const backlinks = backlinkData.data;
             
@@ -19158,7 +19190,20 @@ Return JSON in this exact format:
             overallScore: scoreSummary.overall,
           });
 
+          // Determine visibility mode based on crawl success
+          const visibilityMode = crawlerData.ok ? "full" : "limited";
+          
+          // Technical next steps when visibility is limited (crawl blocked/failed)
+          const limitedVisibilitySteps = !crawlerData.ok ? [
+            "Allow our crawler access (check robots.txt directives)",
+            "Submit your sitemap to help search engines discover pages",
+            "Review and optimize robots.txt to ensure important pages are crawlable"
+          ] : [];
+
           const fullReport = {
+            visibilityMode,
+            limitedVisibilityReason: !crawlerData.ok ? (crawlerData.error || "Crawl was blocked or failed") : null,
+            limitedVisibilitySteps,
             technical: crawlerData.data || null,
             performance: cwvData.data || null,
             serp: serpData.data || null,
@@ -19882,6 +19927,11 @@ Return JSON in this exact format:
         },
       };
 
+      const fullReport = scan.full_report || {};
+      const scanVisibilityMode = fullReport.visibilityMode || "full";
+      const scanLimitedReason = fullReport.limitedVisibilityReason || null;
+      const scanLimitedSteps = fullReport.limitedVisibilitySteps || [];
+
       await storage.createFreeReport({
         reportId,
         scanId,
@@ -19892,10 +19942,13 @@ Return JSON in this exact format:
         summary,
         competitors,
         keywords,
-        technical,
+        technical: scanVisibilityMode === "limited" ? null : technical,
         performance,
         nextSteps,
         meta,
+        visibilityMode: scanVisibilityMode,
+        limitedVisibilityReason: scanLimitedReason,
+        limitedVisibilitySteps: scanLimitedSteps,
       });
 
       logger.info("FreeReport", "Created free report", { reportId, scanId, requestId });
@@ -19948,6 +20001,9 @@ Return JSON in this exact format:
           performance: report.performance,
           next_steps: report.nextSteps,
           meta: report.meta,
+          visibilityMode: report.visibilityMode || "full",
+          limitedVisibilityReason: report.limitedVisibilityReason || null,
+          limitedVisibilitySteps: report.limitedVisibilitySteps || [],
         },
       });
     } catch (error: any) {
@@ -19990,6 +20046,9 @@ Return JSON in this exact format:
           performance: report.performance,
           next_steps: report.nextSteps,
           meta: report.meta,
+          visibilityMode: report.visibilityMode || "full",
+          limitedVisibilityReason: report.limitedVisibilityReason || null,
+          limitedVisibilitySteps: report.limitedVisibilitySteps || [],
         },
       });
     } catch (error: any) {

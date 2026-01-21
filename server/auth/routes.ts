@@ -3,7 +3,9 @@ import { z } from "zod";
 import crypto from "crypto";
 import { storage } from "../storage";
 import { hashPassword, verifyPassword, getSessionUser, requireAuth } from "./session";
-import { sendVerificationEmail, sendPasswordResetEmail } from "../services/email";
+import { sendVerificationEmail, sendPasswordResetEmail, sendSignupNotification } from "../services/email";
+import { db } from "../db";
+import { sql } from "drizzle-orm";
 
 const loginSchema = z.object({
   email: z.string().email("Valid email required"),
@@ -147,7 +149,7 @@ export function registerAuthRoutes(app: Express): void {
         });
       }
 
-      const { email, password, displayName } = parsed.data;
+      const { email, password, displayName, scanId, websiteUrl } = parsed.data;
 
       // Check if user exists
       const existingUser = await storage.getUserByEmail(email);
@@ -171,6 +173,20 @@ export function registerAuthRoutes(app: Express): void {
         addons: {},
       });
 
+      // Associate scanId with user email if provided
+      if (scanId) {
+        try {
+          await db.execute(sql`
+            UPDATE scan_requests 
+            SET email = ${email}, updated_at = NOW()
+            WHERE scan_id = ${scanId}
+          `);
+          console.log(`[Auth] Associated scan ${scanId} with user ${email}`);
+        } catch (scanErr) {
+          console.error("[Auth] Failed to associate scan with user:", scanErr);
+        }
+      }
+
       // Generate verification token
       const token = crypto.randomUUID();
       const expiresAt = new Date();
@@ -183,8 +199,7 @@ export function registerAuthRoutes(app: Express): void {
         expiresAt,
       });
 
-      // Send verification email asynchronously for faster response
-      // Use setImmediate to hand off to the event loop without blocking
+      // Send verification email and signup notification asynchronously
       setImmediate(async () => {
         try {
           const emailSent = await sendVerificationEmail(email, token, displayName || email.split('@')[0]);
@@ -194,12 +209,25 @@ export function registerAuthRoutes(app: Express): void {
         } catch (err) {
           console.error("[Auth] Error sending verification email:", err);
         }
+        
+        // Send signup notification to Kevin
+        try {
+          await sendSignupNotification({
+            email,
+            websiteUrl,
+            scanId,
+            timestamp: new Date().toISOString(),
+          });
+        } catch (err) {
+          console.error("[Auth] Error sending signup notification:", err);
+        }
       });
 
-      // Return immediately - email is being sent in background
+      // Return immediately - emails are being sent in background
       return res.status(201).json({
         success: true,
         message: "Check your email to verify your account.",
+        scanId, // Return scanId so frontend can redirect
       });
     } catch (error: any) {
       console.error("[Auth] Registration error:", error);

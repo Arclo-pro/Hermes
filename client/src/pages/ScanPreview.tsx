@@ -338,13 +338,13 @@ export default function ScanPreview() {
                         size="lg" 
                         className="h-14 px-10 text-lg"
                         onClick={handleFixClick}
-                        data-testid="button-fix-everything"
+                        data-testid="button-signup-primary"
                       >
-                        Fix Everything Automatically
+                        Unlock Full Automation
                         <ArrowRight className="w-5 h-5 ml-2" />
                       </Button>
                       <p className="text-sm text-slate-500">
-                        Safe mode enabled · No destructive changes · Review before publish
+                        Sign up to deploy fixes automatically · Review before publish
                       </p>
                     </div>
                   </div>
@@ -560,9 +560,9 @@ export default function ScanPreview() {
               size="lg" 
               className="h-12 px-8"
               onClick={handleFixClick}
-              data-testid="button-sticky-fix"
+              data-testid="button-sticky-signup"
             >
-              Fix Everything Automatically
+              Unlock Full Automation
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
           </div>

@@ -184,6 +184,9 @@ interface FreeReportData {
   performance: PerformanceData;
   next_steps: NextSteps;
   meta: ReportMeta;
+  visibilityMode?: "full" | "limited";
+  limitedVisibilityReason?: string;
+  limitedVisibilitySteps?: string[];
 }
 
 function HealthScoreRing({ score }: { score: number }) {
@@ -325,6 +328,39 @@ function NotAvailableState({ reason }: { reason?: string }) {
         {reason || "This data is currently unavailable. Please try again later."}
       </p>
     </div>
+  );
+}
+
+function LimitedVisibilityBanner({ reason, steps }: { reason?: string; steps?: string[] }) {
+  return (
+    <Card className="bg-amber-500/10 border-amber-500/30 mb-6" data-testid="limited-visibility-banner">
+      <CardContent className="pt-6">
+        <div className="flex items-start gap-4">
+          <AlertTriangle className="w-6 h-6 text-amber-500 shrink-0 mt-0.5" />
+          <div className="space-y-3">
+            <div>
+              <h3 className="font-semibold text-foreground">Limited Visibility Report</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                {reason || "Technical crawling was blocked or failed. Some sections have limited data."}
+              </p>
+            </div>
+            {steps && steps.length > 0 && (
+              <div>
+                <p className="text-sm font-medium text-foreground mb-2">Recommended next steps:</p>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  {steps.map((step, idx) => (
+                    <li key={idx} className="flex items-start gap-2">
+                      <span className="text-amber-500 font-bold">{idx + 1}.</span>
+                      <span>{step}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -783,7 +819,7 @@ function PerformanceSection({ performance, missingReason }: { performance?: Perf
   );
 }
 
-function NextStepsSection({ nextSteps, onCtaClick }: { nextSteps: NextSteps; onCtaClick: (cta: CTA) => void }) {
+function NextStepsSection({ nextSteps, onCtaClick, scanId }: { nextSteps: NextSteps; onCtaClick: (cta: CTA) => void; scanId?: string }) {
   return (
     <section data-testid="section-next-steps" className="space-y-6">
       <div className="flex items-center gap-3">
@@ -832,18 +868,33 @@ function NextStepsSection({ nextSteps, onCtaClick }: { nextSteps: NextSteps; onC
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
-        {nextSteps.ctas.map((cta) => (
-          <Button
-            key={cta.id}
-            variant={cta.id === "deploy_fixes" ? "default" : "outline"}
-            size="lg"
-            onClick={() => onCtaClick(cta)}
-            data-testid={`cta-${cta.id}`}
-          >
-            {cta.label}
-            <ArrowRight className="w-4 h-4 ml-2" />
-          </Button>
-        ))}
+        <Button
+          size="lg"
+          className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg"
+          onClick={() => {
+            const signupUrl = scanId ? `/signup?scanId=${scanId}` : '/signup';
+            window.location.href = signupUrl;
+          }}
+          data-testid="cta-signup-primary"
+        >
+          Unlock Full Automation
+          <ArrowRight className="w-4 h-4 ml-2" />
+        </Button>
+        {nextSteps.ctas
+          .filter(cta => cta.id !== "deploy_fixes")
+          .map((cta) => (
+            <Button
+              key={cta.id}
+              variant="outline"
+              size="lg"
+              onClick={() => onCtaClick(cta)}
+              data-testid={`cta-${cta.id}`}
+            >
+              {cta.label}
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          ))
+        }
       </div>
     </section>
   );
@@ -1187,6 +1238,13 @@ export default function FreeReport() {
         )}
 
         <div className="space-y-12">
+          {report.visibilityMode === "limited" && (
+            <LimitedVisibilityBanner 
+              reason={report.limitedVisibilityReason}
+              steps={report.limitedVisibilitySteps}
+            />
+          )}
+          
           <ExecutiveSummarySection summary={report.summary} />
 
           <CompetitorSection
@@ -1199,17 +1257,19 @@ export default function FreeReport() {
             missingReason={report.meta?.missing?.rank_reason}
           />
 
-          <TechnicalSection
-            technical={report.technical}
-            missingReason={report.meta?.missing?.technical_reason}
-          />
+          {report.visibilityMode !== "limited" && (
+            <TechnicalSection
+              technical={report.technical}
+              missingReason={report.meta?.missing?.technical_reason}
+            />
+          )}
 
           <PerformanceSection
             performance={report.performance}
             missingReason={report.meta?.missing?.performance_reason}
           />
 
-          <NextStepsSection nextSteps={report.next_steps} onCtaClick={handleCtaClick} />
+          <NextStepsSection nextSteps={report.next_steps} onCtaClick={handleCtaClick} scanId={report.source_scan_id} />
 
           <ImplementationPlanSection plan={report.next_steps?.implementation_plan} onCopy={handleCopyImplementationPlan} />
         </div>

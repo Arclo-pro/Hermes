@@ -2523,6 +2523,10 @@ export const freeReports = pgTable("free_reports", {
   nextSteps: jsonb("next_steps"),
   meta: jsonb("meta"),
   
+  visibilityMode: text("visibility_mode").default("full"),
+  limitedVisibilityReason: text("limited_visibility_reason"),
+  limitedVisibilitySteps: jsonb("limited_visibility_steps"),
+  
   shareToken: text("share_token"),
   shareTokenExpiresAt: timestamp("share_token_expires_at"),
   
