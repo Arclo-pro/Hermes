@@ -1,23 +1,35 @@
-import { useState } from "react";
-import { useLocation } from "wouter";
+import { useState, useEffect } from "react";
+import { useLocation, useSearch } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { MarketingLayout } from "@/components/layout/MarketingLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { AlertCircle, Loader2, LogIn } from "lucide-react";
+import { AlertCircle, Loader2, LogIn, CheckCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import arcloLogo from "@assets/A_small_logo_1765393189114.png";
 
 export default function Login() {
-  const [email, setEmail] = useState("");
+  const searchString = useSearch();
+  const params = new URLSearchParams(searchString);
+  const messageFromUrl = params.get("message");
+  const emailFromUrl = params.get("email");
+  
+  const [email, setEmail] = useState(emailFromUrl || "");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [infoMessage, setInfoMessage] = useState<string | null>(messageFromUrl);
   const [showResendLink, setShowResendLink] = useState(false);
   const [loading, setLoading] = useState(false);
   const { login, authenticated } = useAuth();
   const [, navigate] = useLocation();
+  
+  useEffect(() => {
+    if (emailFromUrl) {
+      setEmail(emailFromUrl);
+    }
+  }, [emailFromUrl]);
 
   // Redirect if already authenticated
   if (authenticated) {
@@ -60,6 +72,14 @@ export default function Login() {
             </CardHeader>
             <form onSubmit={handleSubmit}>
               <CardContent className="space-y-4">
+                {infoMessage && (
+                  <Alert className="border-[#15803D]/30 bg-[#15803D]/10">
+                    <CheckCircle className="h-4 w-4 text-[#15803D]" />
+                    <AlertDescription className="text-[#15803D]">
+                      {infoMessage}
+                    </AlertDescription>
+                  </Alert>
+                )}
                 {error && (
                   <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />

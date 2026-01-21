@@ -37,8 +37,13 @@ export default function Signup() {
       }
       return result;
     },
-    onSuccess: () => {
-      setSuccess(true);
+    onSuccess: (data) => {
+      if (data.existingAccount) {
+        // Redirect to login with a message
+        navigate(`/login?message=${encodeURIComponent("You already have an account. Please sign in.")}&email=${encodeURIComponent(email)}`);
+      } else {
+        setSuccess(true);
+      }
     },
     onError: (error: Error) => {
       setError(error.message);

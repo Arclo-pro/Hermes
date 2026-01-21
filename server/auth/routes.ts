@@ -150,10 +150,11 @@ export function registerAuthRoutes(app: Express): void {
       // Check if user exists
       const existingUser = await storage.getUserByEmail(email);
       if (existingUser) {
-        // Return generic message to prevent account enumeration
+        // Tell user they already have an account
         return res.json({ 
           success: true, 
-          message: "If this email is not already registered, you will receive a verification email shortly." 
+          existingAccount: true,
+          message: "An account with this email already exists. Please sign in instead." 
         });
       }
 
