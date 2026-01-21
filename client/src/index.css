@@ -362,3 +362,136 @@
 body:has(.dashboard-light) {
   background: linear-gradient(135deg, #FAFBFC 0%, #F1F5F9 50%, #F8FAFC 100%) !important;
 }
+
+/* ========================================
+   GLASSMORPHISM DESIGN SYSTEM
+   Light theme glass + glow aesthetic
+   ======================================== */
+
+:root {
+  /* Glass backgrounds */
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-bg-strong: rgba(255, 255, 255, 0.86);
+  --glass-border: rgba(17, 24, 39, 0.08);
+  --glass-shadow: 0 10px 30px rgba(2, 6, 23, 0.08);
+  --glass-blur: 14px;
+
+  /* Text (high contrast) */
+  --glass-text: #111827;
+  --glass-muted: #475569;
+
+  /* Gradients */
+  --grad-primary: linear-gradient(90deg, #7c3aed 0%, #ec4899 55%, #f59e0b 100%);
+  --grad-success: linear-gradient(90deg, #10b981 0%, #22c55e 60%, #a3e635 100%);
+  --grad-info: linear-gradient(90deg, #38bdf8 0%, #6366f1 60%, #a78bfa 100%);
+
+  /* Glow colors */
+  --glow-purple: rgba(124, 58, 237, 0.25);
+  --glow-pink: rgba(236, 72, 153, 0.20);
+  --glow-amber: rgba(245, 158, 11, 0.18);
+  --glow-green: rgba(34, 197, 94, 0.18);
+
+  /* Tinted glass fills */
+  --tint-green: rgba(34, 197, 94, 0.08);
+  --tint-purple: rgba(124, 58, 237, 0.08);
+  --tint-amber: rgba(245, 158, 11, 0.08);
+  --tint-pink: rgba(236, 72, 153, 0.06);
+}
+
+/* Glass card base */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.glass-strong {
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+/* Tinted glass fills */
+.glass-green {
+  background: linear-gradient(135deg, var(--tint-green), rgba(255,255,255,0.72));
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  box-shadow: 0 10px 30px var(--glow-green);
+}
+
+.glass-purple {
+  background: linear-gradient(135deg, var(--tint-purple), rgba(255,255,255,0.72));
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid rgba(124, 58, 237, 0.25);
+  box-shadow: 0 10px 30px var(--glow-purple);
+}
+
+.glass-amber {
+  background: linear-gradient(135deg, var(--tint-amber), rgba(255,255,255,0.72));
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  box-shadow: 0 10px 30px var(--glow-amber);
+}
+
+/* Gradient border using mask technique */
+.glow-border {
+  position: relative;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  box-shadow: var(--glass-shadow);
+  border: none;
+}
+
+.glow-border::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: var(--grad-primary);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+/* Soft outer glow utilities */
+.glow-purple-shadow { box-shadow: 0 18px 45px var(--glow-purple); }
+.glow-green-shadow { box-shadow: 0 18px 45px var(--glow-green); }
+.glow-amber-shadow { box-shadow: 0 18px 45px var(--glow-amber); }
+
+/* Gradient button styles */
+.btn-gradient-primary {
+  background: var(--grad-primary);
+  color: white;
+  font-weight: 600;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.btn-gradient-primary:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 8px 25px var(--glow-purple);
+}
+
+.btn-gradient-success {
+  background: var(--grad-success);
+  color: white;
+  font-weight: 600;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.btn-gradient-success:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 8px 25px var(--glow-green);
+}
