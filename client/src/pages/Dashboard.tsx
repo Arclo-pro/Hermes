@@ -61,10 +61,10 @@ interface Agent {
 
 function StatCard({ label, value, subtext }: { label: string; value: string | number; subtext?: string }) {
   return (
-    <div className="bg-gradient-to-br from-violet-50 to-pink-50 dark:from-violet-950/30 dark:to-pink-950/30 rounded-xl p-5 border border-violet-100 dark:border-violet-900/50">
-      <p className="text-sm text-muted-foreground mb-1">{label}</p>
-      <p className="text-3xl font-bold text-foreground">{value}</p>
-      {subtext && <p className="text-xs text-muted-foreground mt-1">{subtext}</p>}
+    <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+      <p className="text-sm text-gray-600 mb-1">{label}</p>
+      <p className="text-3xl font-bold text-gray-900">{value}</p>
+      {subtext && <p className="text-xs text-gray-500 mt-1">{subtext}</p>}
     </div>
   );
 }
@@ -73,30 +73,30 @@ function RankingMomentumSection({ improving, needsAttention }: { improving: Rank
   return (
     <section className="space-y-4" data-testid="section-ranking-momentum">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-foreground">Ranking Momentum</h2>
+        <h2 className="text-xl font-semibold text-gray-900">Ranking Momentum</h2>
         <Badge variant="outline" className="text-xs">7-day change</Badge>
       </div>
       
       <div className="grid md:grid-cols-2 gap-6">
-        <Card className="bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
+        <Card className="bg-white border border-emerald-300 shadow-sm">
+          <CardHeader className="pb-3 bg-emerald-50 border-b border-emerald-200">
+            <CardTitle className="text-base flex items-center gap-2 text-gray-900">
               <TrendingUp className="w-4 h-4 text-emerald-600" />
               Improving
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-2 pt-4">
             {improving.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No significant improvements this week</p>
+              <p className="text-sm text-gray-600">No significant improvements this week</p>
             ) : (
               improving.map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between py-2 border-b border-emerald-100 dark:border-emerald-900/30 last:border-0">
-                  <span className="text-sm font-medium truncate max-w-[200px]">{item.keyword}</span>
+                <div key={idx} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                  <span className="text-sm font-semibold text-gray-900 truncate max-w-[200px]">{item.keyword}</span>
                   <div className="flex items-center gap-3">
-                    <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300">
+                    <Badge className="bg-emerald-100 text-emerald-800 font-semibold">
                       +{Math.abs(item.change)}
                     </Badge>
-                    <span className="text-sm text-muted-foreground w-8 text-right">#{item.position}</span>
+                    <span className="text-sm font-semibold text-gray-700 w-8 text-right">#{item.position}</span>
                   </div>
                 </div>
               ))
@@ -104,25 +104,25 @@ function RankingMomentumSection({ improving, needsAttention }: { improving: Rank
           </CardContent>
         </Card>
 
-        <Card className="bg-amber-50/50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
+        <Card className="bg-white border border-amber-300 shadow-sm">
+          <CardHeader className="pb-3 bg-amber-50 border-b border-amber-200">
+            <CardTitle className="text-base flex items-center gap-2 text-gray-900">
               <TrendingDown className="w-4 h-4 text-amber-600" />
               Needs Attention
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-2 pt-4">
             {needsAttention.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No significant declines this week</p>
+              <p className="text-sm text-gray-600">No significant declines this week</p>
             ) : (
               needsAttention.map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between py-2 border-b border-amber-100 dark:border-amber-900/30 last:border-0">
-                  <span className="text-sm font-medium truncate max-w-[200px]">{item.keyword}</span>
+                <div key={idx} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                  <span className="text-sm font-semibold text-gray-900 truncate max-w-[200px]">{item.keyword}</span>
                   <div className="flex items-center gap-3">
-                    <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300">
+                    <Badge className="bg-amber-100 text-amber-800 font-semibold">
                       {item.change}
                     </Badge>
-                    <span className="text-sm text-muted-foreground w-8 text-right">#{item.position}</span>
+                    <span className="text-sm font-semibold text-gray-700 w-8 text-right">#{item.position}</span>
                   </div>
                 </div>
               ))
@@ -188,35 +188,40 @@ function WhatToDoNextSection() {
 
   return (
     <section className="space-y-4" data-testid="section-what-to-do-next">
-      <h2 className="text-xl font-semibold text-foreground">What To Do Next</h2>
+      <h2 className="text-xl font-semibold text-gray-900">What To Do Next</h2>
       
       <div className="space-y-4">
         {steps.map((step) => (
-          <Card key={step.number} className={cn(
-            "transition-all",
-            step.status === "locked" && "opacity-75"
-          )}>
+          <Card key={step.number} className="transition-all bg-white border border-gray-200 shadow-sm">
             <CardContent className="pt-5">
               <div className="flex items-start gap-4">
                 <div className={cn(
                   "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0",
                   step.status === "active" 
-                    ? "bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300" 
-                    : "bg-muted text-muted-foreground"
+                    ? "bg-violet-600 text-white" 
+                    : "bg-gray-200 text-gray-700"
                 )}>
                   {step.number}
                 </div>
                 
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-foreground mb-1">{step.title}</h3>
-                  <p className="text-sm text-muted-foreground mb-3">{step.description}</p>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-semibold text-gray-900">{step.title}</h3>
+                    {step.status === "locked" && (
+                      <Badge variant="outline" className="text-xs bg-gray-100 text-gray-600 border-gray-300">
+                        <Lock className="w-3 h-3 mr-1" />
+                        Locked
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-600 mb-3">{step.description}</p>
                   
                   <div className="mb-4">
-                    <p className="text-xs font-medium text-muted-foreground mb-2">What this means:</p>
+                    <p className="text-xs font-semibold text-gray-700 mb-2">What this means:</p>
                     <ul className="space-y-1">
                       {step.actions.map((action, idx) => (
-                        <li key={idx} className="text-sm text-muted-foreground flex items-start gap-2">
-                          <span className="text-violet-500 mt-1">•</span>
+                        <li key={idx} className="text-sm text-gray-600 flex items-start gap-2">
+                          <span className="text-violet-600 mt-1">•</span>
                           <span>{action}</span>
                         </li>
                       ))}
@@ -225,13 +230,12 @@ function WhatToDoNextSection() {
                   
                   <div className="flex items-center gap-2">
                     {step.status === "active" ? (
-                      <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300">
+                      <Badge className="bg-emerald-100 text-emerald-800 font-semibold">
                         <CheckCircle2 className="w-3 h-3 mr-1" />
                         Active
                       </Badge>
                     ) : (
-                      <Button variant="outline" size="sm" className="gap-1">
-                        <Lock className="w-3 h-3" />
+                      <Button variant="outline" size="sm" className="gap-1 text-gray-700 border-gray-300 hover:bg-gray-100">
                         {step.unlockLabel}
                       </Button>
                     )}
@@ -249,35 +253,35 @@ function WhatToDoNextSection() {
 function PagesToOptimizeSection({ pages }: { pages: PageToOptimize[] }) {
   return (
     <section className="space-y-4" data-testid="section-pages-to-optimize">
-      <h2 className="text-xl font-semibold text-foreground">Pages to Optimize</h2>
+      <h2 className="text-xl font-semibold text-gray-900">Pages to Optimize</h2>
       
       <div className="space-y-3">
         {pages.length === 0 ? (
-          <Card>
+          <Card className="bg-white border border-gray-200 shadow-sm">
             <CardContent className="py-8 text-center">
-              <p className="text-muted-foreground">Connect your Search Console to see optimization opportunities</p>
+              <p className="text-gray-600">Connect your Search Console to see optimization opportunities</p>
             </CardContent>
           </Card>
         ) : (
           pages.map((page, idx) => (
-            <Card key={idx} className="hover:border-violet-300 dark:hover:border-violet-700 transition-colors">
+            <Card key={idx} className="bg-white border border-gray-200 shadow-sm hover:border-violet-400 transition-colors">
               <CardContent className="py-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-foreground truncate">{page.title}</p>
-                    <p className="text-xs text-muted-foreground truncate">{page.url}</p>
+                    <p className="font-semibold text-gray-900 truncate">{page.title}</p>
+                    <p className="text-xs text-gray-500 truncate">{page.url}</p>
                     <div className="flex items-center gap-3 mt-2">
-                      <Badge variant="outline" className="text-xs">
+                      <Badge variant="outline" className="text-xs bg-gray-50 text-gray-700 border-gray-300">
                         {page.keyword}
                       </Badge>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs font-semibold text-gray-700">
                         #{page.position} · {page.volume.toLocaleString()} mo/search
                       </span>
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-sm text-violet-600 dark:text-violet-400 font-medium">{page.action}</p>
-                    <Button variant="ghost" size="sm" className="mt-1 gap-1 text-xs">
+                    <p className="text-sm text-violet-700 font-semibold">{page.action}</p>
+                    <Button variant="ghost" size="sm" className="mt-1 gap-1 text-xs text-gray-700 hover:text-gray-900">
                       View <ArrowRight className="w-3 h-3" />
                     </Button>
                   </div>
@@ -294,28 +298,31 @@ function PagesToOptimizeSection({ pages }: { pages: PageToOptimize[] }) {
 function TopPerformersSection({ performers }: { performers: TopPerformer[] }) {
   return (
     <section className="space-y-4" data-testid="section-top-performers">
-      <h2 className="text-xl font-semibold text-foreground">Top Performers</h2>
+      <h2 className="text-xl font-semibold text-gray-900">Top Performers</h2>
       
-      <Card className="bg-emerald-50/30 dark:bg-emerald-950/10 border-emerald-200 dark:border-emerald-900/30">
-        <CardContent className="pt-5">
+      <Card className="bg-white border border-emerald-300 shadow-sm">
+        <CardHeader className="pb-0 bg-emerald-50 border-b border-emerald-200">
+          <p className="text-sm font-semibold text-emerald-800 py-2">Pages ranking in top 3</p>
+        </CardHeader>
+        <CardContent className="pt-4">
           {performers.length === 0 ? (
-            <p className="text-muted-foreground text-center py-4">No top-ranking pages detected yet</p>
+            <p className="text-gray-600 text-center py-4">No top-ranking pages detected yet</p>
           ) : (
             <>
               <div className="space-y-3">
                 {performers.map((page, idx) => (
-                  <div key={idx} className="flex items-center justify-between py-2 border-b border-emerald-100 dark:border-emerald-900/20 last:border-0">
+                  <div key={idx} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium text-foreground truncate">{page.title}</p>
-                      <p className="text-xs text-muted-foreground">{page.keyword}</p>
+                      <p className="font-semibold text-gray-900 truncate">{page.title}</p>
+                      <p className="text-xs text-gray-600">{page.keyword}</p>
                     </div>
-                    <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300 shrink-0">
+                    <Badge className="bg-emerald-100 text-emerald-800 font-bold shrink-0">
                       #{page.position}
                     </Badge>
                   </div>
                 ))}
               </div>
-              <p className="text-xs text-muted-foreground mt-4 italic">
+              <p className="text-sm text-gray-600 mt-4 italic">
                 These pages protect your traffic. Changes here should be deliberate.
               </p>
             </>
@@ -329,39 +336,37 @@ function TopPerformersSection({ performers }: { performers: TopPerformer[] }) {
 function AgentsSection({ agents }: { agents: Agent[] }) {
   return (
     <section className="space-y-4" data-testid="section-agents">
-      <h2 className="text-xl font-semibold text-foreground">Agents</h2>
-      <p className="text-sm text-muted-foreground">Unlock capabilities to automate your SEO workflow</p>
+      <h2 className="text-xl font-semibold text-gray-900">Agents</h2>
+      <p className="text-sm text-gray-600">Unlock capabilities to automate your SEO workflow</p>
       
       <div className="grid md:grid-cols-2 gap-4">
         {agents.map((agent) => (
           <Card 
             key={agent.id} 
-            className={cn(
-              "relative overflow-hidden transition-all",
-              agent.status === "locked" && "opacity-80"
-            )}
+            className="relative bg-white border border-gray-200 shadow-sm"
           >
             {agent.status === "locked" && (
-              <div className="absolute inset-0 bg-gradient-to-br from-white/80 to-white/60 dark:from-gray-900/80 dark:to-gray-900/60 backdrop-blur-[1px] z-10 flex items-center justify-center">
-                <Lock className="w-8 h-8 text-muted-foreground/50" />
-              </div>
+              <Badge variant="outline" className="absolute top-3 right-3 bg-gray-100 text-gray-600 border-gray-300 text-xs">
+                <Lock className="w-3 h-3 mr-1" />
+                Locked
+              </Badge>
             )}
             
             <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Bot className="w-4 h-4 text-violet-500" />
+              <CardTitle className="text-base flex items-center gap-2 text-gray-900">
+                <Bot className="w-4 h-4 text-violet-600" />
                 {agent.name}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <p className="text-sm text-muted-foreground">{agent.description}</p>
+              <p className="text-sm text-gray-600">{agent.description}</p>
               
               <div>
-                <p className="text-xs font-medium text-muted-foreground mb-1">Includes:</p>
+                <p className="text-xs font-semibold text-gray-700 mb-1">Includes:</p>
                 <ul className="space-y-1">
                   {agent.includes.map((item, idx) => (
-                    <li key={idx} className="text-xs text-muted-foreground flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                    <li key={idx} className="text-xs text-gray-600 flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                       {item}
                     </li>
                   ))}
@@ -371,7 +376,10 @@ function AgentsSection({ agents }: { agents: Agent[] }) {
               <Button 
                 variant={agent.status === "active" ? "outline" : "default"}
                 size="sm" 
-                className="w-full mt-2"
+                className={cn(
+                  "w-full mt-2",
+                  agent.status !== "active" && "bg-violet-600 hover:bg-violet-700 text-white"
+                )}
               >
                 {agent.ctaLabel}
               </Button>
@@ -392,22 +400,22 @@ function HowItWorksSection() {
   ];
 
   return (
-    <section className="space-y-4 pt-8 border-t border-border" data-testid="section-how-it-works">
-      <h2 className="text-lg font-semibold text-foreground text-center">How This Works</h2>
+    <section className="space-y-4 pt-8 border-t border-gray-200" data-testid="section-how-it-works">
+      <h2 className="text-lg font-semibold text-gray-900 text-center">How This Works</h2>
       
       <div className="flex flex-wrap justify-center gap-4">
         {steps.map((step, idx) => (
           <div key={step.number} className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-violet-100 dark:bg-violet-900/50 flex items-center justify-center text-xs font-bold text-violet-700 dark:text-violet-300">
+            <div className="w-6 h-6 rounded-full bg-violet-600 flex items-center justify-center text-xs font-bold text-white">
               {step.number}
             </div>
-            <span className="text-sm text-muted-foreground">{step.text}</span>
-            {idx < steps.length - 1 && <ArrowRight className="w-4 h-4 text-muted-foreground/50 hidden sm:block" />}
+            <span className="text-sm text-gray-700">{step.text}</span>
+            {idx < steps.length - 1 && <ArrowRight className="w-4 h-4 text-gray-400 hidden sm:block" />}
           </div>
         ))}
       </div>
       
-      <p className="text-center text-sm text-muted-foreground italic max-w-lg mx-auto">
+      <p className="text-center text-sm text-gray-600 italic max-w-lg mx-auto">
         Rankings are the signal. Everything here exists to improve them.
       </p>
     </section>
@@ -503,10 +511,10 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-2xl font-bold text-foreground">SEO Performance Overview</h1>
-                <Badge variant="outline" className="text-xs">Weekly Report</Badge>
+                <h1 className="text-2xl font-bold text-gray-900">SEO Performance Overview</h1>
+                <Badge className="text-xs bg-violet-100 text-violet-800 border-violet-300">Weekly Report</Badge>
               </div>
-              <p className="text-muted-foreground">Updated weekly · Focused on rankings that drive demand</p>
+              <p className="text-gray-600">Updated weekly · Focused on rankings that drive demand</p>
             </div>
             <SiteSelector />
           </div>
