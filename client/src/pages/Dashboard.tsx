@@ -61,7 +61,7 @@ interface Agent {
 
 function StatCard({ label, value, subtext }: { label: string; value: string | number; subtext?: string }) {
   return (
-    <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+    <div className="glass-strong rounded-xl p-5">
       <p className="text-sm text-gray-600 mb-1">{label}</p>
       <p className="text-3xl font-bold text-gray-900">{value}</p>
       {subtext && <p className="text-xs text-gray-500 mt-1">{subtext}</p>}
@@ -78,8 +78,8 @@ function RankingMomentumSection({ improving, needsAttention }: { improving: Rank
       </div>
       
       <div className="grid md:grid-cols-2 gap-6">
-        <Card className="bg-white border border-emerald-300 shadow-sm">
-          <CardHeader className="pb-3 bg-emerald-50 border-b border-emerald-200">
+        <Card className="glass-green rounded-xl overflow-hidden">
+          <CardHeader className="pb-3 border-b border-emerald-200/50">
             <CardTitle className="text-base flex items-center gap-2 text-gray-900">
               <TrendingUp className="w-4 h-4 text-emerald-600" />
               Improving
@@ -104,8 +104,8 @@ function RankingMomentumSection({ improving, needsAttention }: { improving: Rank
           </CardContent>
         </Card>
 
-        <Card className="bg-white border border-amber-300 shadow-sm">
-          <CardHeader className="pb-3 bg-amber-50 border-b border-amber-200">
+        <Card className="glass-amber rounded-xl overflow-hidden">
+          <CardHeader className="pb-3 border-b border-amber-200/50">
             <CardTitle className="text-base flex items-center gap-2 text-gray-900">
               <TrendingDown className="w-4 h-4 text-amber-600" />
               Needs Attention
@@ -192,7 +192,10 @@ function WhatToDoNextSection() {
       
       <div className="space-y-4">
         {steps.map((step) => (
-          <Card key={step.number} className="transition-all bg-white border border-gray-200 shadow-sm">
+          <Card key={step.number} className={cn(
+            "transition-all rounded-xl",
+            step.status === "active" ? "glass-purple" : "glass glow-border"
+          )}>
             <CardContent className="pt-5">
               <div className="flex items-start gap-4">
                 <div className={cn(
@@ -235,7 +238,7 @@ function WhatToDoNextSection() {
                         Active
                       </Badge>
                     ) : (
-                      <Button variant="outline" size="sm" className="gap-1 text-gray-700 border-gray-300 hover:bg-gray-100">
+                      <Button size="sm" className="gap-1 btn-gradient-primary">
                         {step.unlockLabel}
                       </Button>
                     )}
@@ -257,14 +260,14 @@ function PagesToOptimizeSection({ pages }: { pages: PageToOptimize[] }) {
       
       <div className="space-y-3">
         {pages.length === 0 ? (
-          <Card className="bg-white border border-gray-200 shadow-sm">
+          <Card className="glass rounded-xl">
             <CardContent className="py-8 text-center">
               <p className="text-gray-600">Connect your Search Console to see optimization opportunities</p>
             </CardContent>
           </Card>
         ) : (
           pages.map((page, idx) => (
-            <Card key={idx} className="bg-white border border-gray-200 shadow-sm hover:border-violet-400 transition-colors">
+            <Card key={idx} className="glass rounded-xl hover:shadow-lg transition-all">
               <CardContent className="py-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">
@@ -300,8 +303,8 @@ function TopPerformersSection({ performers }: { performers: TopPerformer[] }) {
     <section className="space-y-4" data-testid="section-top-performers">
       <h2 className="text-xl font-semibold text-gray-900">Top Performers</h2>
       
-      <Card className="bg-white border border-emerald-300 shadow-sm">
-        <CardHeader className="pb-0 bg-emerald-50 border-b border-emerald-200">
+      <Card className="glass-green rounded-xl overflow-hidden">
+        <CardHeader className="pb-0 border-b border-emerald-200/50">
           <p className="text-sm font-semibold text-emerald-800 py-2">Pages ranking in top 3</p>
         </CardHeader>
         <CardContent className="pt-4">
@@ -343,10 +346,13 @@ function AgentsSection({ agents }: { agents: Agent[] }) {
         {agents.map((agent) => (
           <Card 
             key={agent.id} 
-            className="relative bg-white border border-gray-200 shadow-sm"
+            className={cn(
+              "relative rounded-xl",
+              agent.status === "locked" ? "glass glow-border" : "glass-purple"
+            )}
           >
             {agent.status === "locked" && (
-              <Badge variant="outline" className="absolute top-3 right-3 bg-gray-100 text-gray-600 border-gray-300 text-xs">
+              <Badge className="absolute top-3 right-3 bg-gray-900/80 text-white border-0 text-xs">
                 <Lock className="w-3 h-3 mr-1" />
                 Locked
               </Badge>
@@ -374,11 +380,12 @@ function AgentsSection({ agents }: { agents: Agent[] }) {
               </div>
               
               <Button 
-                variant={agent.status === "active" ? "outline" : "default"}
                 size="sm" 
                 className={cn(
                   "w-full mt-2",
-                  agent.status !== "active" && "bg-violet-600 hover:bg-violet-700 text-white"
+                  agent.status === "active" 
+                    ? "bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200" 
+                    : "btn-gradient-primary"
                 )}
               >
                 {agent.ctaLabel}
