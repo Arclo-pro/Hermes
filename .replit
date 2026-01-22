@@ -63,3 +63,4 @@ SEO_ORCHESTRATOR_BASE_URL = "https://orchestrator-job-spec--providers2.replit.ap
 REMOVE_BG_API_KEY = "CLNUCboZSfZSu8K6BQRoE6jT"
 SEO_DEPLOYER_BASE_URL = "https://site-change-executor--providers2.replit.app"
 SENDGRID_FROM_EMAIL = "noreply@arclo.pro"
+SERP_WORKER_BASE_URL = "https://seo-scheduler-providers2.replit.app"
