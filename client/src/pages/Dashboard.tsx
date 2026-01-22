@@ -3,6 +3,8 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { DataCard } from "@/components/ui/DataCard";
+import { EmptyStateInline } from "@/components/ui/EmptyStateInline";
 import { 
   TrendingUp, 
   TrendingDown,
@@ -17,12 +19,14 @@ import {
   Search,
   PenTool,
   Bot,
-  ExternalLink
+  ExternalLink,
+  Activity,
+  Play
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useSiteContext } from "@/hooks/useSiteContext";
 import { SiteSelector } from "@/components/site/SiteSelector";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { ROUTES } from "@shared/routes";
 import { cn } from "@/lib/utils";
 
@@ -151,12 +155,51 @@ function HealthScoreCard({ label, score, owner }: {
 
 function ActivityCard({ label, value, period }: { label: string; value: number; period: string }) {
   return (
-    <div className="bg-gray-50/80 rounded-lg p-3 border border-gray-200/40 shadow-sm flex items-center justify-between relative overflow-hidden">
-      <div className="absolute inset-x-0 top-0 h-px bg-white/40" />
-      <span className="text-sm text-gray-600">{label}</span>
+    <div className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm flex items-center justify-between">
+      <span className="text-sm font-medium text-gray-900">{label}</span>
       <div className="text-right">
         <span className="text-xl font-bold text-gray-900">{value}</span>
-        <span className="text-xs text-gray-400 ml-1">{period}</span>
+        <span className="text-xs text-gray-500 ml-1">{period}</span>
+      </div>
+    </div>
+  );
+}
+
+function ActivitySection({ 
+  blogsPublished, 
+  pagesOptimized, 
+  fixesApplied,
+  onRunReport
+}: { 
+  blogsPublished: number; 
+  pagesOptimized: number; 
+  fixesApplied: number;
+  onRunReport: () => void;
+}) {
+  const hasActivity = blogsPublished > 0 || pagesOptimized > 0 || fixesApplied > 0;
+
+  if (!hasActivity) {
+    return (
+      <div>
+        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Activity</p>
+        <EmptyStateInline
+          icon={<Activity className="w-5 h-5" />}
+          title="No recent activity yet"
+          description="Run your first report to start tracking your SEO progress"
+          ctaText="Run your first report"
+          onCtaClick={onRunReport}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Activity</p>
+      <div className="grid grid-cols-3 gap-3">
+        <ActivityCard label="Blogs Published" value={blogsPublished} period="30d" />
+        <ActivityCard label="Pages Optimized" value={pagesOptimized} period="30d" />
+        <ActivityCard label="Fixes Applied" value={fixesApplied} period="30d" />
       </div>
     </div>
   );
@@ -635,6 +678,7 @@ function HowItWorksSection() {
 
 export default function Dashboard() {
   const { siteId, siteDomain } = useSiteContext();
+  const [, navigate] = useLocation();
   
   const { data: dashboardData, isLoading } = useQuery({
     queryKey: ["/api/dashboard", siteId],
@@ -748,10 +792,42 @@ export default function Dashboard() {
             <div>
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Outcomes</p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <OutcomeCard label="Authority" value={42} subtext="Domain strength" tint="amber" />
-                <OutcomeCard label="Keywords" value={95} delta="+12" deltaType="positive" subtext="Total tracked" tint="purple" />
-                <OutcomeCard label="Top 20" value={39} delta="+5" deltaType="positive" subtext="Ranking positions" tint="blue" />
-                <OutcomeCard label="Not Ranked" value={12} subtext="Missing from top 100" tint="red" />
+                <DataCard 
+                  title="Authority" 
+                  value={42} 
+                  status="active"
+                  description="Domain strength" 
+                  tint="amber"
+                  onClick={() => navigate(ROUTES.AGENTS)}
+                />
+                <DataCard 
+                  title="Keywords" 
+                  value={95} 
+                  status="active"
+                  delta="+12" 
+                  deltaType="positive" 
+                  description="Total tracked" 
+                  tint="purple"
+                  onClick={() => navigate("/app/settings/integrations")}
+                />
+                <DataCard 
+                  title="Top 20" 
+                  value={39} 
+                  status="active"
+                  delta="+5" 
+                  deltaType="positive" 
+                  description="Ranking positions" 
+                  tint="blue"
+                  onClick={() => navigate("/app/settings/integrations")}
+                />
+                <DataCard 
+                  title="Not Ranked" 
+                  value={12} 
+                  status="active"
+                  description="Missing from top 100" 
+                  tint="red"
+                  onClick={() => navigate(ROUTES.AGENTS)}
+                />
               </div>
             </div>
             
@@ -765,14 +841,12 @@ export default function Dashboard() {
               </div>
             </div>
             
-            <div>
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Activity</p>
-              <div className="grid grid-cols-3 gap-3">
-                <ActivityCard label="Blogs Published" value={4} period="30d" />
-                <ActivityCard label="Pages Optimized" value={12} period="30d" />
-                <ActivityCard label="Fixes Applied" value={23} period="30d" />
-              </div>
-            </div>
+            <ActivitySection
+              blogsPublished={4}
+              pagesOptimized={12}
+              fixesApplied={23}
+              onRunReport={() => navigate(ROUTES.RUNS)}
+            />
           </div>
         </header>
 

@@ -57,6 +57,7 @@ import Examples from "@/pages/Examples";
 import SharedReport from "@/pages/SharedReport";
 import WebsiteReportPage from "@/pages/WebsiteReportPage";
 import DeveloperReportPage from "@/pages/DeveloperReportPage";
+import SettingsIntegrations from "@/pages/SettingsIntegrations";
 import { ROUTES, buildRoute, resolveAgentSlug } from "@shared/routes";
 import { useRoute } from "wouter";
 import { useEffect } from "react";
@@ -158,6 +159,7 @@ function Router() {
       <Route path={ROUTES.BENCHMARKS}><ProtectedRoute component={Benchmarks} /></Route>
       <Route path={ROUTES.ACHIEVEMENTS}><ProtectedRoute component={Achievements} /></Route>
       <Route path={ROUTES.INTEGRATIONS}><ProtectedRoute component={Integrations} /></Route>
+      <Route path="/app/settings/integrations"><ProtectedRoute component={SettingsIntegrations} lightMode /></Route>
       <Route path={ROUTES.SETTINGS}><ProtectedRoute component={Settings} /></Route>
       <Route path={ROUTES.SETTINGS_WEBSITES}><ProtectedRoute component={WebsitesSettings} /></Route>
       <Route path={ROUTES.SETTINGS_WEBSITE_DETAIL}><ProtectedRoute component={WebsiteDetail} /></Route>
