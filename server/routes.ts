@@ -6035,6 +6035,56 @@ Format your response as JSON with these keys:
     }
   });
 
+  // POST /api/recommendations/:id/invalidate - Mark recommendation as unhelpful/incorrect
+  app.post("/api/recommendations/:id/invalidate", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { reason } = req.body as { reason?: string };
+
+      if (!id) {
+        return res.status(400).json({ ok: false, error: "Recommendation ID is required" });
+      }
+
+      await storage.invalidateRecommendation(id, reason);
+
+      logger.info("API", "Recommendation invalidated", { 
+        recommendationId: id, 
+        reason: reason || "No reason provided" 
+      });
+
+      res.json({ 
+        ok: true, 
+        message: "Recommendation marked as invalid",
+        id 
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to invalidate recommendation", { error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
+  // POST /api/recommendations/:id/helpful - Mark recommendation as helpful (positive feedback)
+  app.post("/api/recommendations/:id/helpful", async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      if (!id) {
+        return res.status(400).json({ ok: false, error: "Recommendation ID is required" });
+      }
+
+      logger.info("API", "Recommendation marked as helpful", { recommendationId: id });
+
+      res.json({ 
+        ok: true, 
+        message: "Feedback recorded",
+        id 
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to record helpful feedback", { error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
   // Validate recommendations - check provenance and evidence
   app.post("/api/missions/validate", async (req, res) => {
     try {

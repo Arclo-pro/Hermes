@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DataCard } from "@/components/ui/DataCard";
 import { EmptyStateInline } from "@/components/ui/EmptyStateInline";
+import { ConfigureOverlay } from "@/components/overlays";
 import { 
   TrendingUp, 
   TrendingDown,
@@ -449,21 +450,28 @@ function WhatToDoNextSection() {
   );
 }
 
-function PagesToOptimizeSection({ pages }: { pages: PageToOptimize[] }) {
+function PagesToOptimizeSection({ pages, hasGsc, onConfigure }: { pages: PageToOptimize[]; hasGsc: boolean; onConfigure: () => void }) {
   return (
-    <section className="space-y-4" data-testid="section-pages-to-optimize">
+    <section className="space-y-4 relative" data-testid="section-pages-to-optimize">
       <h2 className="text-xl font-semibold text-gray-900">Pages to Optimize</h2>
       
-      <div className="space-y-3">
+      <div className={cn("space-y-3 relative", !hasGsc && "min-h-[200px]")}>
+        {!hasGsc && (
+          <ConfigureOverlay
+            integration="Search Console"
+            onConfigure={onConfigure}
+            className="rounded-xl"
+          />
+        )}
         {pages.length === 0 ? (
-          <Card className="bg-white rounded-xl border border-gray-100 shadow-sm">
+          <Card className={cn("bg-white rounded-xl border border-gray-100 shadow-sm", !hasGsc && "blur-sm")}>
             <CardContent className="py-8 text-center">
               <p className="text-gray-500">Connect your Search Console to see optimization opportunities</p>
             </CardContent>
           </Card>
         ) : (
           pages.map((page, idx) => (
-            <Card key={idx} className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+            <Card key={idx} className={cn("bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow", !hasGsc && "blur-sm")}>
               <CardContent className="py-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">
@@ -829,9 +837,12 @@ export default function Dashboard() {
           </div>
           
           <div className="space-y-6">
-            <div>
+            <div className="relative">
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Cost of Inaction</p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className={cn(
+                "grid grid-cols-2 md:grid-cols-4 gap-4 rounded-xl",
+                !hasGa4 && "blur-sm pointer-events-none"
+              )}>
                 <CostMetricCard 
                   title="Traffic at risk/mo" 
                   value={costMetrics.trafficAtRisk} 
@@ -860,6 +871,13 @@ export default function Dashboard() {
                   icon={Target}
                 />
               </div>
+              {!hasGa4 && (
+                <ConfigureOverlay
+                  integration="GA4"
+                  onConfigure={() => navigate(ROUTES.INTEGRATIONS)}
+                  className="rounded-xl"
+                />
+              )}
               <p className="text-xs text-gray-400 mt-2">Estimates use industry CTR by rank, a capture factor (0.65), and a lead rate (2.5%).</p>
             </div>
             
@@ -939,7 +957,7 @@ export default function Dashboard() {
 
         <WhatToDoNextSection />
 
-        <PagesToOptimizeSection pages={pagesToOptimize} />
+        <PagesToOptimizeSection pages={pagesToOptimize} hasGsc={hasGsc} onConfigure={() => navigate(ROUTES.INTEGRATIONS)} />
 
         <TopPerformersSection performers={topPerformers} />
 

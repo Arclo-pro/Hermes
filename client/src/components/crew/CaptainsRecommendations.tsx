@@ -5,6 +5,7 @@ import { Compass, AlertCircle, ArrowRight, Lightbulb, TrendingUp, Clock } from "
 import { getCrewMember } from "@/config/agents";
 import type { CaptainsRecommendations as CaptainsRecommendationsType, CaptainPriority, CaptainBlocker } from "@shared/captainsRecommendations";
 import { cn } from "@/lib/utils";
+import { RecommendationFeedback } from "@/components/recommendations/RecommendationFeedback";
 
 interface CaptainsRecommendationsProps {
   data: CaptainsRecommendationsType;
@@ -96,6 +97,37 @@ function ConfidenceBadge({ confidence }: { confidence: "High" | "Medium" | "Low"
   );
 }
 
+function generateRecommendationId(priority: CaptainPriority): string {
+  const titleSlug = priority.title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .slice(0, 30);
+  return `priority-${priority.rank}-${titleSlug}`;
+}
+
+async function handleRecommendationFeedback(
+  recommendationId: string,
+  helpful: boolean,
+  reason?: string
+): Promise<void> {
+  try {
+    if (helpful) {
+      await fetch(`/api/recommendations/${encodeURIComponent(recommendationId)}/helpful`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+    } else {
+      await fetch(`/api/recommendations/${encodeURIComponent(recommendationId)}/invalidate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason }),
+      });
+    }
+  } catch (error) {
+    console.error("Failed to submit recommendation feedback:", error);
+  }
+}
+
 function PriorityCard({ priority }: { priority: CaptainPriority }) {
   const priorityStyles = {
     1: { bg: "bg-semantic-danger-soft", border: "border-semantic-danger-border" },
@@ -103,6 +135,8 @@ function PriorityCard({ priority }: { priority: CaptainPriority }) {
     3: { bg: "bg-semantic-info-soft", border: "border-semantic-info-border" },
   };
   const styles = priorityStyles[priority.rank as 1 | 2 | 3] || { bg: "bg-muted", border: "border-border" };
+  const recommendationId = generateRecommendationId(priority);
+  
   return (
     <div 
       className={cn(
@@ -118,7 +152,13 @@ function PriorityCard({ priority }: { priority: CaptainPriority }) {
         {priority.rank}
       </div>
       <div className="flex-1 space-y-2">
-        <h4 className="font-medium">{priority.title}</h4>
+        <div className="flex items-start justify-between gap-2">
+          <h4 className="font-medium">{priority.title}</h4>
+          <RecommendationFeedback
+            recommendationId={recommendationId}
+            onFeedback={(helpful, reason) => handleRecommendationFeedback(recommendationId, helpful, reason)}
+          />
+        </div>
         <p className="text-sm text-muted-foreground">{priority.why}</p>
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs text-muted-foreground">Signals:</span>

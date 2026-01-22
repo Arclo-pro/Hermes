@@ -7,6 +7,7 @@ import { prefetchCrewStatus } from "@/lib/queryClient";
 import { useSiteContext } from "@/hooks/useSiteContext";
 import type { AgentFinding, AgentNextStep } from "@shared/agentInsight";
 import { SERVICE_TO_CREW } from "@shared/registry";
+import { UnlockOverlay } from "@/components/overlays";
 
 interface AgentCardProps {
   serviceId: string;
@@ -63,20 +64,22 @@ export function AgentCard({
   const showSubscribeButton = onToggleSubscribe !== undefined;
   const isActive = isSubscribed !== false;
 
+  const showUnlockOverlay = showSubscribeButton && !isSubscribed;
+
   return (
     <Card 
       className={cn(
         "agent-card relative overflow-hidden transition-all rounded-xl border-l-[3px] border border-slate-200 shadow-sm text-slate-900",
         isActive ? "bg-white" : "bg-slate-50",
-        onClick && "cursor-pointer hover:shadow-md",
+        onClick && !showUnlockOverlay && "cursor-pointer hover:shadow-md",
         className
       )}
       style={{ borderLeftColor: crew.color, opacity: 1 }}
-      onClick={onClick}
+      onClick={showUnlockOverlay ? undefined : onClick}
       onMouseEnter={handleMouseEnter}
       data-testid={`agent-card-${serviceId}`}
     >
-      <CardHeader className="pb-3 pt-4 px-5">
+      <CardHeader className={cn("pb-3 pt-4 px-5", showUnlockOverlay && "blur-sm")}>
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             {crew.avatar ? (
@@ -166,7 +169,7 @@ export function AgentCard({
         </div>
       </CardHeader>
 
-      <CardContent className="px-5 pb-5 pt-0">
+      <CardContent className={cn("px-5 pb-5 pt-0", showUnlockOverlay && "blur-sm")}>
         {crew.watchDescription && (
           <div className="mb-4">
             <SectionLabel>What I watch</SectionLabel>
@@ -212,6 +215,17 @@ export function AgentCard({
           </div>
         </div>
       </CardContent>
+
+      {showUnlockOverlay && (
+        <UnlockOverlay
+          feature={crew.role}
+          description={crew.shortDescription}
+          onUnlock={() => {
+            console.log(`Unlock requested for: ${crew.nickname} (${serviceId})`);
+            onToggleSubscribe?.();
+          }}
+        />
+      )}
     </Card>
   );
 }
