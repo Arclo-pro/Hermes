@@ -20666,7 +20666,138 @@ Return JSON in this exact format:
   });
 
   /**
-   * GET /api/internal/authority/:domain - Get authority data for a domain
+   * Helper function to determine if a user/site is licensed for Authority add-on
+   * Checks user.addons.authority_signals or plan includes it
+   */
+  async function isAuthorityLicensed(userId: number | null, siteId: string | null): Promise<boolean> {
+    if (!userId && !siteId) return false;
+    
+    try {
+      // If we have a userId, check directly
+      if (userId) {
+        const userResults = await db.select().from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
+        const user = userResults[0];
+        if (user) {
+          // Check if plan is 'core' (includes authority) or addon is enabled
+          if (user.plan === 'core') return true;
+          const addons = user.addons as { authority_signals?: boolean } | null;
+          if (addons?.authority_signals) return true;
+        }
+      }
+      
+      // If we have a siteId, find the user via defaultWebsiteId
+      if (siteId) {
+        const userResults = await db.select().from(users)
+          .where(eq(users.defaultWebsiteId, siteId))
+          .limit(1);
+        const user = userResults[0];
+        if (user) {
+          if (user.plan === 'core') return true;
+          const addons = user.addons as { authority_signals?: boolean } | null;
+          if (addons?.authority_signals) return true;
+        }
+      }
+      
+      return false;
+    } catch (error: any) {
+      logger.error("InternalAPI", "Error checking authority license", { error: error.message });
+      return false;
+    }
+  }
+
+  /**
+   * GET /api/internal/site/authority - Get authority data for a domain with licensing
+   * Query param: domain (required)
+   * Returns licensed status and DA if licensed and available
+   */
+  app.get("/api/internal/site/authority", internalApiAuth, async (req, res) => {
+    try {
+      const domain = req.query.domain as string;
+      
+      if (!domain) {
+        return res.status(400).json({ error: "domain query parameter is required" });
+      }
+
+      const normalizedDomain = domain.toLowerCase().replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/$/, '');
+
+      // Find site by domain to get siteId for license check
+      const siteResults = await db.select().from(sites)
+        .where(sql`LOWER(REPLACE(REPLACE(REPLACE(base_url, 'https://', ''), 'http://', ''), 'www.', '')) LIKE ${`%${normalizedDomain}%`}`)
+        .limit(1);
+      const site = siteResults[0];
+
+      // Find user associated with this site
+      let userId: number | null = null;
+      if (site) {
+        const userResults = await db.select().from(users)
+          .where(eq(users.defaultWebsiteId, site.siteId))
+          .limit(1);
+        userId = userResults[0]?.id || null;
+      }
+
+      // Check if licensed for authority
+      const licensed = await isAuthorityLicensed(userId, site?.siteId || null);
+
+      // If not licensed, return locked status with no DA data
+      if (!licensed) {
+        return res.json({
+          domain: normalizedDomain,
+          licensed: false,
+          status: "locked",
+          da: null,
+          updated_at: null,
+          reason: "Authority add-on not licensed for this account"
+        });
+      }
+
+      // Licensed - try to get authority data
+      try {
+        const competitorData = await db.select()
+          .from(seoAgentCompetitors)
+          .where(sql`LOWER(domain) = ${normalizedDomain}`)
+          .limit(1);
+
+        if (competitorData.length > 0) {
+          const data = competitorData[0];
+          res.json({
+            domain: normalizedDomain,
+            licensed: true,
+            status: "ok",
+            da: data.domainRating || null,
+            updated_at: data.updatedAt?.toISOString() || new Date().toISOString()
+          });
+        } else {
+          // Licensed but no data available yet
+          res.json({
+            domain: normalizedDomain,
+            licensed: true,
+            status: "unavailable",
+            da: null,
+            updated_at: new Date().toISOString(),
+            reason: "No authority data available for this domain"
+          });
+        }
+      } catch (fetchError: any) {
+        // Licensed but fetch failed
+        res.json({
+          domain: normalizedDomain,
+          licensed: true,
+          status: "unavailable",
+          da: null,
+          updated_at: new Date().toISOString(),
+          reason: "Traffic Doctor authority provider timeout"
+        });
+      }
+    } catch (error: any) {
+      logger.error("InternalAPI", "Failed to get authority data", { error: error.message });
+      res.status(500).json({ error: "Failed to get authority data" });
+    }
+  });
+
+  /**
+   * GET /api/internal/authority/:domain - Legacy endpoint (kept for backwards compatibility)
    * Returns backlink metrics if available from external authority APIs
    */
   app.get("/api/internal/authority/:domain", internalApiAuth, async (req, res) => {
@@ -20679,7 +20810,34 @@ Return JSON in this exact format:
 
       const normalizedDomain = domain.toLowerCase().replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/$/, '');
 
-      // Try to get authority data from seo_agent_competitors or other sources
+      // Find site and user for license check
+      const siteResults = await db.select().from(sites)
+        .where(sql`LOWER(REPLACE(REPLACE(REPLACE(base_url, 'https://', ''), 'http://', ''), 'www.', '')) LIKE ${`%${normalizedDomain}%`}`)
+        .limit(1);
+      const site = siteResults[0];
+
+      let userId: number | null = null;
+      if (site) {
+        const userResults = await db.select().from(users)
+          .where(eq(users.defaultWebsiteId, site.siteId))
+          .limit(1);
+        userId = userResults[0]?.id || null;
+      }
+
+      const licensed = await isAuthorityLicensed(userId, site?.siteId || null);
+
+      if (!licensed) {
+        return res.json({
+          domain: normalizedDomain,
+          licensed: false,
+          status: "locked",
+          da: null,
+          updated_at: null,
+          reason: "Authority add-on not licensed for this account"
+        });
+      }
+
+      // Try to get authority data from seo_agent_competitors
       const competitorData = await db.select()
         .from(seoAgentCompetitors)
         .where(sql`LOWER(domain) = ${normalizedDomain}`)
@@ -20689,22 +20847,106 @@ Return JSON in this exact format:
         const data = competitorData[0];
         res.json({
           domain: normalizedDomain,
+          licensed: true,
+          status: "ok",
+          da: data.domainRating || null,
+          updated_at: data.updatedAt?.toISOString() || new Date().toISOString(),
           backlinks: data.backlinks || null,
           referringDomains: data.referringDomains || null,
-          domainRating: data.domainRating || null,
         });
       } else {
-        // No authority data available
         res.json({
           domain: normalizedDomain,
-          backlinks: null,
-          referringDomains: null,
-          domainRating: null,
+          licensed: true,
+          status: "unavailable",
+          da: null,
+          updated_at: new Date().toISOString(),
+          reason: "No authority data available for this domain"
         });
       }
     } catch (error: any) {
       logger.error("InternalAPI", "Failed to get authority data", { error: error.message });
       res.status(500).json({ error: "Failed to get authority data" });
+    }
+  });
+
+  /**
+   * GET /api/internal/test/authority - Test endpoint for authority licensing
+   * Tests both licensed and unlicensed paths for empathyhealthclinic.com
+   */
+  app.get("/api/internal/test/authority", internalApiAuth, async (req, res) => {
+    const testDomain = "empathyhealthclinic.com";
+    
+    try {
+      // Find site and user
+      const siteResults = await db.select().from(sites)
+        .where(sql`LOWER(REPLACE(REPLACE(REPLACE(base_url, 'https://', ''), 'http://', ''), 'www.', '')) LIKE ${`%${testDomain}%`}`)
+        .limit(1);
+      const site = siteResults[0];
+
+      let userId: number | null = null;
+      let userPlan = 'unknown';
+      let userAddons: any = null;
+      
+      if (site) {
+        const userResults = await db.select().from(users)
+          .where(eq(users.defaultWebsiteId, site.siteId))
+          .limit(1);
+        if (userResults[0]) {
+          userId = userResults[0].id;
+          userPlan = userResults[0].plan;
+          userAddons = userResults[0].addons;
+        }
+      }
+
+      const actualLicensed = await isAuthorityLicensed(userId, site?.siteId || null);
+
+      // Get authority data for display
+      const competitorData = await db.select()
+        .from(seoAgentCompetitors)
+        .where(sql`LOWER(domain) = ${testDomain}`)
+        .limit(1);
+      
+      const hasAuthorityData = competitorData.length > 0;
+      const da = hasAuthorityData ? competitorData[0].domainRating : null;
+
+      // Simulate both licensed and unlicensed responses
+      const licensedResponse = {
+        domain: testDomain,
+        licensed: true,
+        status: hasAuthorityData ? "ok" : "unavailable",
+        da: hasAuthorityData ? da : null,
+        updated_at: new Date().toISOString(),
+        ...(hasAuthorityData ? {} : { reason: "No authority data available for this domain" })
+      };
+
+      const unlicensedResponse = {
+        domain: testDomain,
+        licensed: false,
+        status: "locked",
+        da: null,
+        updated_at: null,
+        reason: "Authority add-on not licensed for this account"
+      };
+
+      res.json({
+        test_domain: testDomain,
+        site_found: !!site,
+        site_id: site?.siteId || null,
+        user_id: userId,
+        user_plan: userPlan,
+        user_addons: userAddons,
+        actual_licensed: actualLicensed,
+        has_authority_data: hasAuthorityData,
+        simulated_responses: {
+          when_licensed: licensedResponse,
+          when_unlicensed: unlicensedResponse
+        },
+        actual_response: actualLicensed ? licensedResponse : unlicensedResponse
+      });
+    } catch (error: any) {
+      logger.error("InternalAPI", "Test authority failed", { error: error.message });
+      res.status(500).json({ error: "Test failed", details: error.message });
     }
   });
 
