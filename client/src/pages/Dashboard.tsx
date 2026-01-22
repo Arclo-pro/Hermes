@@ -107,6 +107,40 @@ function OutcomeCard({ label, value, subtext, delta, deltaType, tint }: {
   );
 }
 
+function CostMetricCard({ title, value, tint, isEstimate }: { 
+  title: string; 
+  value: number; 
+  tint: 'red' | 'orange' | 'amber' | 'violet';
+  isEstimate?: boolean;
+}) {
+  const tintStyles = {
+    'red': { bg: 'bg-red-50', text: 'text-red-600', labelText: 'text-red-700', border: 'border-red-200' },
+    'orange': { bg: 'bg-orange-50', text: 'text-orange-600', labelText: 'text-orange-700', border: 'border-orange-200' },
+    'amber': { bg: 'bg-amber-50', text: 'text-amber-600', labelText: 'text-amber-700', border: 'border-amber-200' },
+    'violet': { bg: 'bg-violet-50', text: 'text-violet-600', labelText: 'text-violet-700', border: 'border-violet-200' }
+  };
+  
+  const style = tintStyles[tint];
+  
+  return (
+    <div className={cn(
+      "rounded-xl p-4 border shadow-sm relative overflow-hidden",
+      style.bg,
+      style.border
+    )}>
+      <div className="flex items-center gap-1 mb-2">
+        <p className={cn("text-xs font-medium", style.labelText)}>{title}</p>
+        {isEstimate && (
+          <span className="text-[10px] text-gray-400">(Est.)</span>
+        )}
+      </div>
+      <p className={cn("text-3xl font-bold", style.text)}>
+        {value.toLocaleString()}
+      </p>
+    </div>
+  );
+}
+
 function HealthScoreCard({ label, score, owner }: { 
   label: string; 
   score: number; 
@@ -790,7 +824,37 @@ export default function Dashboard() {
           
           <div className="space-y-6">
             <div>
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Outcomes</p>
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Cost of Inaction</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <CostMetricCard 
+                  title="Traffic at risk / mo" 
+                  value={1255} 
+                  tint="red"
+                  isEstimate
+                />
+                <CostMetricCard 
+                  title="Clicks lost / mo" 
+                  value={3840} 
+                  tint="orange"
+                  isEstimate
+                />
+                <CostMetricCard 
+                  title="Leads missed / mo" 
+                  value={96} 
+                  tint="amber"
+                  isEstimate
+                />
+                <CostMetricCard 
+                  title="Page-one opportunities" 
+                  value={18} 
+                  tint="violet"
+                />
+              </div>
+              <p className="text-xs text-gray-400 mt-2">Estimates use industry CTR by rank, a capture factor (0.65), and a lead rate (2.5%).</p>
+            </div>
+            
+            <div>
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Current Performance</p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <DataCard 
                   title="Authority" 
