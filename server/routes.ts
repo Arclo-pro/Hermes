@@ -7918,7 +7918,7 @@ Return JSON:
         return res.status(401).json({ error: "Unauthorized" });
       }
       
-      const user = await storage.getUser(userId);
+      const user = await storage.getUserById(userId);
       if (!user) {
         return res.status(401).json({ error: "Unauthorized" });
       }
