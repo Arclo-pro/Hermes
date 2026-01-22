@@ -21,7 +21,10 @@ import {
   Bot,
   ExternalLink,
   Activity,
-  Play
+  Play,
+  MousePointer,
+  UserMinus,
+  LucideIcon
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useSiteContext } from "@/hooks/useSiteContext";
@@ -107,17 +110,18 @@ function OutcomeCard({ label, value, subtext, delta, deltaType, tint }: {
   );
 }
 
-function CostMetricCard({ title, value, tint, isEstimate }: { 
+function CostMetricCard({ title, value, tint, isEstimate, icon: Icon }: { 
   title: string; 
   value: number; 
   tint: 'red' | 'orange' | 'amber' | 'violet';
   isEstimate?: boolean;
+  icon: LucideIcon;
 }) {
   const tintStyles = {
-    'red': { bg: 'bg-red-50', text: 'text-red-600', labelText: 'text-red-700', border: 'border-red-200' },
-    'orange': { bg: 'bg-orange-50', text: 'text-orange-600', labelText: 'text-orange-700', border: 'border-orange-200' },
-    'amber': { bg: 'bg-amber-50', text: 'text-amber-600', labelText: 'text-amber-700', border: 'border-amber-200' },
-    'violet': { bg: 'bg-violet-50', text: 'text-violet-600', labelText: 'text-violet-700', border: 'border-violet-200' }
+    'red': { bg: 'bg-red-50', text: 'text-red-600', labelText: 'text-red-700', border: 'border-red-200', iconText: 'text-red-500' },
+    'orange': { bg: 'bg-orange-50', text: 'text-orange-600', labelText: 'text-orange-700', border: 'border-orange-200', iconText: 'text-orange-500' },
+    'amber': { bg: 'bg-amber-50', text: 'text-amber-600', labelText: 'text-amber-700', border: 'border-amber-200', iconText: 'text-amber-500' },
+    'violet': { bg: 'bg-violet-50', text: 'text-violet-600', labelText: 'text-violet-700', border: 'border-violet-200', iconText: 'text-violet-500' }
   };
   
   const style = tintStyles[tint];
@@ -128,7 +132,8 @@ function CostMetricCard({ title, value, tint, isEstimate }: {
       style.bg,
       style.border
     )}>
-      <div className="flex items-center gap-1 mb-2">
+      <Icon className={cn("w-[18px] h-[18px] opacity-70 mb-2", style.iconText)} />
+      <div className="flex items-center gap-1 mb-1">
         <p className={cn("text-xs font-medium", style.labelText)}>{title}</p>
         {isEstimate && (
           <span className="text-[10px] text-gray-400">(Est.)</span>
@@ -830,24 +835,28 @@ export default function Dashboard() {
                   title="Traffic at risk / mo" 
                   value={1255} 
                   tint="red"
+                  icon={TrendingDown}
                   isEstimate
                 />
                 <CostMetricCard 
                   title="Clicks lost / mo" 
                   value={3840} 
                   tint="orange"
+                  icon={MousePointer}
                   isEstimate
                 />
                 <CostMetricCard 
                   title="Leads missed / mo" 
                   value={96} 
                   tint="amber"
+                  icon={UserMinus}
                   isEstimate
                 />
                 <CostMetricCard 
                   title="Page-one opportunities" 
                   value={18} 
                   tint="violet"
+                  icon={Target}
                 />
               </div>
               <p className="text-xs text-gray-400 mt-2">Estimates use industry CTR by rank, a capture factor (0.65), and a lead rate (2.5%).</p>
