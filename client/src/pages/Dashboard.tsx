@@ -66,24 +66,26 @@ function OutcomeCard({ label, value, subtext, delta, deltaType, tint }: {
   subtext?: string;
   delta?: string;
   deltaType?: 'positive' | 'negative' | 'neutral';
-  tint: 'brand' | 'brand-light' | 'blue' | 'green';
+  tint: 'amber' | 'purple' | 'blue' | 'green';
 }) {
-  const tintClasses = {
-    'brand': 'bg-violet-500/10',
-    'brand-light': 'bg-violet-400/8',
-    'blue': 'bg-blue-500/10',
-    'green': 'bg-emerald-500/10'
+  const tintStyles = {
+    'amber': { bg: 'bg-amber-100', text: 'text-amber-600', labelText: 'text-amber-700' },
+    'purple': { bg: 'bg-violet-100', text: 'text-violet-600', labelText: 'text-violet-700' },
+    'blue': { bg: 'bg-cyan-100', text: 'text-cyan-600', labelText: 'text-cyan-700' },
+    'green': { bg: 'bg-emerald-100', text: 'text-emerald-600', labelText: 'text-emerald-700' }
   };
+  
+  const style = tintStyles[tint];
   
   return (
     <div className={cn(
       "rounded-xl p-5 border border-gray-200/40 shadow-sm relative overflow-hidden",
-      tintClasses[tint]
+      style.bg
     )}>
-      <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
-      <p className="text-xs font-medium text-gray-600 uppercase tracking-wide mb-2">{label}</p>
+      <div className="absolute inset-x-0 top-0 h-px bg-white/40" />
+      <p className={cn("text-xs font-semibold uppercase tracking-wide mb-2", style.labelText)}>{label}</p>
       <div className="flex items-baseline gap-2">
-        <p className="text-4xl font-bold text-gray-900">{value}</p>
+        <p className={cn("text-4xl font-bold", style.text)}>{value}</p>
         {delta && (
           <span className={cn(
             "text-sm font-bold",
@@ -95,7 +97,7 @@ function OutcomeCard({ label, value, subtext, delta, deltaType, tint }: {
           </span>
         )}
       </div>
-      {subtext && <p className="text-xs text-gray-500 mt-1">{subtext}</p>}
+      {subtext && <p className="text-xs text-gray-600 mt-1">{subtext}</p>}
     </div>
   );
 }
@@ -745,10 +747,10 @@ export default function Dashboard() {
             <div>
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Outcomes</p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <OutcomeCard label="Keywords in Top 3" value={8} delta="+2" deltaType="positive" subtext="Core targets" tint="brand" />
-                <OutcomeCard label="Keywords in Top 10" value={24} delta="+5" deltaType="positive" subtext="57% of tracked" tint="brand-light" />
-                <OutcomeCard label="Organic Traffic" value="12.4K" delta="+8%" deltaType="positive" subtext="Last 30 days" tint="blue" />
-                <OutcomeCard label="Conversions" value={147} delta="-3%" deltaType="negative" subtext="Last 30 days" tint="green" />
+                <OutcomeCard label="Authority" value={42} subtext="Domain strength" tint="amber" />
+                <OutcomeCard label="Keywords" value={95} delta="+12" deltaType="positive" subtext="Total tracked" tint="purple" />
+                <OutcomeCard label="Top 20" value={39} delta="+5" deltaType="positive" subtext="Ranking positions" tint="blue" />
+                <OutcomeCard label="Quick Wins" value={5} subtext="Ready to improve" tint="green" />
               </div>
             </div>
             
