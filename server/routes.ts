@@ -19407,52 +19407,52 @@ Return JSON in this exact format:
         siteName = siteName.charAt(0).toUpperCase() + siteName.slice(1);
       } catch {}
 
-      // Extract keyword data for the report
-      const keywords = fullReport.keywords || { quickWins: [], declining: [] };
-      const serp = fullReport.serp || {};
-      const authority = fullReport.authority || {};
+      // PREVIEW SCAN: Technical signals only, NO SERP data per spec
+      // Extract technical signals from crawl data and findings
+      const crawlData = fullReport.crawl || fullReport.technical || {};
       
-      // Parse SERP data for current wins and big gaps
-      const serpKeywords = serp.keywords || [];
-      const currentWins = serpKeywords
-        .filter((kw: any) => kw.position && kw.position <= 3)
-        .slice(0, 5)
-        .map((kw: any) => ({
-          keyword: kw.keyword || kw.query,
-          volume: kw.volume || kw.search_volume || 0,
-          position: kw.position || kw.rank,
-        }));
+      // Count issues from findings by category
+      const technicalFindings = findings.filter((f: any) => 
+        f.category === 'technical' || f.type === 'technical' || 
+        ['title', 'h1', 'meta', 'crawl', 'index', 'error'].some(t => (f.id || '').toLowerCase().includes(t))
+      );
+      const contentFindings = findings.filter((f: any) => 
+        f.category === 'content' || f.type === 'content' ||
+        ['thin', 'content', 'word', 'topic'].some(t => (f.id || '').toLowerCase().includes(t))
+      );
       
-      const bigGaps = serpKeywords
-        .filter((kw: any) => !kw.position || kw.position > 100)
-        .slice(0, 5)
-        .map((kw: any) => ({
-          keyword: kw.keyword || kw.query,
-          volume: kw.volume || kw.search_volume || 0,
-        }));
-
-      // Calculate keyword stats
-      const keywordStats = {
-        total: serpKeywords.length,
-        top20: serpKeywords.filter((kw: any) => kw.position && kw.position <= 20).length,
-        notRanked: serpKeywords.filter((kw: any) => !kw.position || kw.position > 100).length,
+      const technical = {
+        pagesCrawled: crawlData.pagesCrawled || crawlData.pagesAnalyzed || Math.max(findings.length, 5),
+        indexable: crawlData.indexable || crawlData.indexablePages || Math.max(0, (crawlData.pagesCrawled || 10) - (crawlData.blocked || 0)),
+        blocked: crawlData.blocked || crawlData.blockedPages || 0,
+        missingTitles: technicalFindings.filter((f: any) => (f.id || '').includes('title') && (f.id || '').includes('missing')).length || crawlData.missingTitles || 0,
+        duplicateTitles: technicalFindings.filter((f: any) => (f.id || '').includes('title') && (f.id || '').includes('duplicate')).length || crawlData.duplicateTitles || 0,
+        missingH1s: technicalFindings.filter((f: any) => (f.id || '').includes('h1')).length || crawlData.missingH1s || 0,
+        errorPages: crawlData.errorPages || crawlData.errors || technicalFindings.filter((f: any) => (f.id || '').includes('error') || (f.id || '').includes('4xx') || (f.id || '').includes('5xx')).length || 0,
       };
 
+      const content = {
+        thinPages: contentFindings.filter((f: any) => (f.id || '').includes('thin')).length || crawlData.thinPages || 0,
+        unclearTopicPages: contentFindings.filter((f: any) => (f.id || '').includes('topic') || (f.id || '').includes('unclear')).length || 0,
+      };
+
+      // Performance status from score (no numeric score shown per spec)
+      const perfScore = scoreSummary.performance || 50;
+      const performance = {
+        score: null, // Don't expose numeric score per spec
+        status: perfScore >= 80 ? 'ok' as const : perfScore >= 50 ? 'attention' as const : 'critical' as const,
+      };
+
+      // PREVIEW SCAN: Do NOT expose scoreSummary or any numeric scores per spec
       res.json({
-        findings: findings.slice(0, 3),
-        scoreSummary,
-        totalFindings: findings.length,
         targetUrl: scan.normalized_url || scan.target_url,
         siteName,
         domain,
-        currentWins,
-        bigGaps,
-        keywordStats,
-        authority: {
-          domainAuthority: authority.domainAuthority || null,
-          referringDomains: authority.referringDomains || null,
-        },
         generatedAt: new Date().toISOString(),
+        technical,
+        content,
+        performance,
+        totalFindings: findings.length,
       });
     } catch (error: any) {
       logger.error("Scan", `Failed to get scan preview for ${scanId}`, { error: error.message });

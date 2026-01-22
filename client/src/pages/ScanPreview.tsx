@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { MarketingLayout } from "@/components/layout/MarketingLayout";
 import { Button } from "@/components/ui/button";
@@ -6,19 +5,11 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { 
   ArrowRight, Loader2, AlertTriangle, 
-  Eye, MousePointerClick, Users, Target, BarChart, TrendingUp
+  CheckCircle2, AlertCircle, XCircle,
+  FileText, Layout, Gauge, Search
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { ROUTES } from "@shared/routes";
-
-interface Finding {
-  id: string;
-  title: string;
-  severity: "high" | "medium" | "low";
-  impact: string;
-  effort: string;
-  summary: string;
-}
 
 interface ScanStatus {
   scanId: string;
@@ -27,78 +18,133 @@ interface ScanStatus {
   message?: string;
 }
 
-interface KeywordItem {
-  keyword: string;
-  volume: number;
-  position?: number;
+interface TechnicalSignal {
+  label: string;
+  status: "ok" | "attention" | "critical";
+  detail?: string;
 }
 
 interface ScanPreviewData {
-  findings: Finding[];
-  scoreSummary: {
+  targetUrl: string;
+  siteName?: string;
+  domain?: string;
+  generatedAt?: string;
+  technical?: {
+    pagesCrawled: number;
+    indexable: number;
+    blocked: number;
+    missingTitles: number;
+    duplicateTitles: number;
+    missingH1s: number;
+    errorPages: number;
+  };
+  content?: {
+    thinPages: number;
+    unclearTopicPages: number;
+  };
+  performance?: {
+    score: number | null;
+    status: "ok" | "attention" | "critical";
+  };
+  scoreSummary?: {
     overall: number;
     technical: number;
     content: number;
     performance: number;
-    serp?: number;
-    authority?: number;
-    costOfInaction?: {
-      trafficAtRisk: number;
-      clicksLost: number;
-      leadsMin: number;
-      leadsMax: number;
-      pageOneOpportunities: number;
-    };
   };
-  totalFindings: number;
-  targetUrl: string;
-  siteName?: string;
-  domain?: string;
-  currentWins?: KeywordItem[];
-  bigGaps?: KeywordItem[];
-  keywordStats?: {
-    total: number;
-    top20: number;
-    notRanked: number;
-  };
-  authority?: {
-    domainAuthority: number | null;
-    referringDomains: number | null;
-  };
-  generatedAt?: string;
+  totalFindings?: number;
 }
 
-function getLetterGrade(score: number): { grade: string; color: string; bgClass: string } {
-  if (score >= 90) return { grade: "A", color: "text-emerald-600", bgClass: "from-emerald-100 to-emerald-50" };
-  if (score >= 80) return { grade: "B+", color: "text-emerald-500", bgClass: "from-emerald-100/80 to-emerald-50/80" };
-  if (score >= 70) return { grade: "B", color: "text-amber-600", bgClass: "from-amber-100 to-amber-50" };
-  if (score >= 60) return { grade: "C+", color: "text-amber-600", bgClass: "from-amber-100 to-amber-50" };
-  if (score >= 50) return { grade: "C", color: "text-amber-700", bgClass: "from-amber-200 to-amber-100" };
-  if (score >= 40) return { grade: "D+", color: "text-red-500", bgClass: "from-red-100 to-red-50" };
-  if (score >= 30) return { grade: "D", color: "text-red-600", bgClass: "from-red-200 to-red-100" };
-  return { grade: "F", color: "text-red-700", bgClass: "from-red-200 to-red-100" };
-}
-
-function getHealthLabel(score: number): { label: string; color: string } {
-  if (score >= 80) return { label: "Strong", color: "text-emerald-600" };
-  if (score >= 60) return { label: "Needs Attention", color: "text-amber-600" };
-  return { label: "At Risk", color: "text-red-600" };
-}
-
-function getImpactFromPreview(scoreSummary: ScanPreviewData["scoreSummary"], totalFindings: number) {
-  if (scoreSummary.costOfInaction) {
-    return scoreSummary.costOfInaction;
+function getStatusIcon(status: "ok" | "attention" | "critical") {
+  switch (status) {
+    case "ok":
+      return <CheckCircle2 className="w-5 h-5 text-emerald-500" />;
+    case "attention":
+      return <AlertCircle className="w-5 h-5 text-amber-500" />;
+    case "critical":
+      return <XCircle className="w-5 h-5 text-red-500" />;
   }
+}
+
+function getStatusLabel(status: "ok" | "attention" | "critical") {
+  switch (status) {
+    case "ok":
+      return { text: "Looks OK", className: "bg-emerald-100 text-emerald-700" };
+    case "attention":
+      return { text: "Needs Attention", className: "bg-amber-100 text-amber-700" };
+    case "critical":
+      return { text: "Critical", className: "bg-red-100 text-red-700" };
+  }
+}
+
+function getTechnicalSignals(technical?: ScanPreviewData["technical"]): TechnicalSignal[] {
+  if (!technical) {
+    return [
+      { label: "Pages Crawled", status: "attention", detail: "Scan pending" },
+      { label: "Indexable Pages", status: "attention", detail: "Scan pending" },
+      { label: "Title Tags", status: "attention", detail: "Scan pending" },
+      { label: "H1 Headings", status: "attention", detail: "Scan pending" },
+      { label: "Error Pages", status: "attention", detail: "Scan pending" },
+    ];
+  }
+
+  const signals: TechnicalSignal[] = [];
   
-  const severity = 100 - scoreSummary.overall;
-  const baseTraffic = Math.round(severity * 35 + totalFindings * 50);
-  const trafficAtRisk = Math.max(200, Math.min(5000, baseTraffic));
-  const clicksLost = Math.round(trafficAtRisk * 1.5);
-  const leadsMin = Math.round(clicksLost * 0.015);
-  const leadsMax = Math.round(clicksLost * 0.04);
-  const pageOneOpportunities = Math.max(3, Math.round(totalFindings * 0.5));
-  
-  return { trafficAtRisk, clicksLost, leadsMin, leadsMax, pageOneOpportunities };
+  signals.push({
+    label: "Pages Crawled",
+    status: technical.pagesCrawled > 0 ? "ok" : "attention",
+    detail: `${technical.pagesCrawled} pages analyzed`
+  });
+
+  const blockedRatio = technical.blocked / Math.max(technical.pagesCrawled, 1);
+  signals.push({
+    label: "Indexable Pages",
+    status: blockedRatio > 0.3 ? "critical" : blockedRatio > 0.1 ? "attention" : "ok",
+    detail: `${technical.indexable} indexable, ${technical.blocked} blocked`
+  });
+
+  const titleIssues = technical.missingTitles + technical.duplicateTitles;
+  signals.push({
+    label: "Title Tags",
+    status: titleIssues > 5 ? "critical" : titleIssues > 0 ? "attention" : "ok",
+    detail: titleIssues > 0 ? `${technical.missingTitles} missing, ${technical.duplicateTitles} duplicates` : "All pages have unique titles"
+  });
+
+  signals.push({
+    label: "H1 Headings",
+    status: technical.missingH1s > 5 ? "critical" : technical.missingH1s > 0 ? "attention" : "ok",
+    detail: technical.missingH1s > 0 ? `${technical.missingH1s} pages missing H1` : "All pages have H1 headings"
+  });
+
+  signals.push({
+    label: "Error Pages",
+    status: technical.errorPages > 3 ? "critical" : technical.errorPages > 0 ? "attention" : "ok",
+    detail: technical.errorPages > 0 ? `${technical.errorPages} error pages found` : "No error pages detected"
+  });
+
+  return signals;
+}
+
+function getContentSignals(content?: ScanPreviewData["content"]): TechnicalSignal[] {
+  if (!content) {
+    return [
+      { label: "Thin Content", status: "attention", detail: "Scan pending" },
+      { label: "Topic Clarity", status: "attention", detail: "Scan pending" },
+    ];
+  }
+
+  return [
+    {
+      label: "Thin Content",
+      status: content.thinPages > 5 ? "critical" : content.thinPages > 0 ? "attention" : "ok",
+      detail: content.thinPages > 0 ? `${content.thinPages} pages below word threshold` : "All pages have sufficient content"
+    },
+    {
+      label: "Topic Clarity",
+      status: content.unclearTopicPages > 3 ? "critical" : content.unclearTopicPages > 0 ? "attention" : "ok",
+      detail: content.unclearTopicPages > 0 ? `${content.unclearTopicPages} pages lack clear topic` : "All pages have clear topics"
+    }
+  ];
 }
 
 function formatDate(isoString?: string): string {
@@ -155,7 +201,7 @@ export default function ScanPreview() {
   const isReady = statusQuery.data?.status === "preview_ready" || statusQuery.data?.status === "completed";
   const isFailed = statusQuery.data?.status === "failed";
 
-  const handleSignupClick = () => {
+  const handleFullScanClick = () => {
     navigate(`${ROUTES.SIGNUP}?scanId=${scanId}`);
   };
 
@@ -170,15 +216,15 @@ export default function ScanPreview() {
   }
 
   const preview = previewQuery.data;
-  const gradeInfo = preview ? getLetterGrade(preview.scoreSummary.overall) : null;
-  const healthInfo = preview ? getHealthLabel(preview.scoreSummary.overall) : null;
-  const impact = preview ? getImpactFromPreview(preview.scoreSummary, preview.totalFindings) : null;
+  const technicalSignals = getTechnicalSignals(preview?.technical);
+  const contentSignals = getContentSignals(preview?.content);
+  const performanceStatus = preview?.performance?.status || "attention";
 
   return (
     <MarketingLayout>
       <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50/50">
         <div className="container mx-auto px-4 md:px-6 py-8 md:py-12">
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-3xl mx-auto">
             
             {/* Scanning State */}
             {isScanning && (
@@ -191,7 +237,7 @@ export default function ScanPreview() {
                     Analyzing Your Site
                   </h1>
                   <p className="text-xl text-slate-600">
-                    {statusQuery.data?.message || "Checking SEO, performance, and content..."}
+                    {statusQuery.data?.message || "Checking structure, content, and performance..."}
                   </p>
                 </div>
                 <div className="max-w-md mx-auto">
@@ -223,8 +269,8 @@ export default function ScanPreview() {
               </div>
             )}
 
-            {/* ===== REPORT READY STATE - Email Style ===== */}
-            {isReady && preview && gradeInfo && healthInfo && impact && (
+            {/* ===== PREVIEW SCAN READY - Per Spec ===== */}
+            {isReady && preview && (
               <div className="bg-white rounded-2xl shadow-xl border border-slate-200/50 overflow-hidden">
                 
                 {/* Report Header */}
@@ -237,207 +283,172 @@ export default function ScanPreview() {
                       <span className="text-xl font-semibold text-slate-900">arclo</span>
                     </div>
                     <Badge className="bg-violet-100 text-violet-700 border-0 px-3 py-1">
-                      SEO Report
+                      Preview Scan
                     </Badge>
                   </div>
                   
-                  <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2">
-                    SEO Performance Report
+                  <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2" data-testid="text-title">
+                    Site Health Preview
                   </h1>
                   <p className="text-sm text-slate-500">
-                    Generated {formatDate(preview.generatedAt)}
+                    {preview.domain || preview.targetUrl} · {formatDate(preview.generatedAt)}
                   </p>
                 </div>
 
-                {/* Site Info Section */}
+                {/* Technical Signals Section */}
                 <div className="border-b border-slate-200 p-6 md:p-8">
-                  <div className="flex items-center gap-2 mb-6">
-                    <div className={`w-16 h-16 rounded-xl bg-gradient-to-br ${gradeInfo.bgClass} flex items-center justify-center`} data-testid="badge-grade">
-                      <span className={`text-3xl font-bold ${gradeInfo.color}`} data-testid="value-grade">{gradeInfo.grade}</span>
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+                      <FileText className="w-5 h-5 text-blue-600" />
                     </div>
-                    <div className="ml-2">
-                      <h2 className="text-xl font-semibold text-slate-900" data-testid="text-site-name">
-                        {preview.siteName || "Your Website"}
-                      </h2>
-                      <p className="text-sm text-blue-600" data-testid="text-domain">{preview.domain || preview.targetUrl}</p>
-                      <p className={`text-sm font-medium ${healthInfo.color}`} data-testid="text-health-status">{healthInfo.label}</p>
-                    </div>
-                  </div>
-
-                  {/* Cost of Inaction Metrics - 4 columns */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                    <div className="text-center p-4 bg-red-50 rounded-xl border border-red-100" data-testid="card-traffic-at-risk">
-                      <Eye className="w-5 h-5 mx-auto mb-2 text-red-500" />
-                      <div className="text-2xl font-bold text-red-700" data-testid="value-traffic-at-risk">{impact.trafficAtRisk.toLocaleString()}</div>
-                      <div className="text-xs text-red-600 font-medium uppercase tracking-wide">Traffic at Risk (Est.)</div>
-                    </div>
-                    <div className="text-center p-4 bg-amber-50 rounded-xl border border-amber-100" data-testid="card-clicks-lost">
-                      <MousePointerClick className="w-5 h-5 mx-auto mb-2 text-amber-500" />
-                      <div className="text-2xl font-bold text-amber-700" data-testid="value-clicks-lost">{impact.clicksLost.toLocaleString()}</div>
-                      <div className="text-xs text-amber-600 font-medium uppercase tracking-wide">Clicks Lost</div>
-                    </div>
-                    <div className="text-center p-4 bg-purple-50 rounded-xl border border-purple-100" data-testid="card-leads-missed">
-                      <Users className="w-5 h-5 mx-auto mb-2 text-purple-500" />
-                      <div className="text-2xl font-bold text-purple-700" data-testid="value-leads-missed">{impact.leadsMin}-{impact.leadsMax}</div>
-                      <div className="text-xs text-purple-600 font-medium uppercase tracking-wide">Leads Missed (Est.)</div>
-                    </div>
-                    <div className="text-center p-4 bg-blue-50 rounded-xl border border-blue-100" data-testid="card-page-one-opps">
-                      <Target className="w-5 h-5 mx-auto mb-2 text-blue-500" />
-                      <div className="text-2xl font-bold text-blue-700" data-testid="value-page-one-opps">{impact.pageOneOpportunities}</div>
-                      <div className="text-xs text-blue-600 font-medium uppercase tracking-wide">Page-One Opps</div>
+                    <div>
+                      <h2 className="text-lg font-semibold text-slate-900">Technical Signals</h2>
+                      <p className="text-sm text-slate-500">Structural SEO health indicators</p>
                     </div>
                   </div>
                   
-                  <p className="text-xs text-slate-400 text-center">
-                    Estimates use industry CTR by rank, a capture factor (0.65), and a lead rate (2.5%).
-                  </p>
-                </div>
-
-                {/* SEO Metrics Row */}
-                <div className="border-b border-slate-200 p-6 md:p-8">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="text-center p-4 bg-slate-50 rounded-xl border border-slate-200" data-testid="card-authority">
-                      <div className="text-2xl font-bold text-slate-600" data-testid="value-authority">
-                        {preview.authority?.domainAuthority || "—"}
-                      </div>
-                      <div className="text-xs text-slate-500 font-medium uppercase tracking-wide">Authority</div>
-                    </div>
-                    <div className="text-center p-4 bg-amber-50 rounded-xl border border-amber-100" data-testid="card-keywords">
-                      <div className="text-2xl font-bold text-amber-700" data-testid="value-keywords">
-                        {preview.keywordStats?.total || 0}
-                      </div>
-                      <div className="text-xs text-amber-600 font-medium uppercase tracking-wide">Keywords</div>
-                    </div>
-                    <div className="text-center p-4 bg-teal-50 rounded-xl border border-teal-100" data-testid="card-top20">
-                      <div className="text-2xl font-bold text-teal-700" data-testid="value-top20">
-                        {preview.keywordStats?.top20 || 0}
-                      </div>
-                      <div className="text-xs text-teal-600 font-medium uppercase tracking-wide">Top 20</div>
-                    </div>
-                    <div className="text-center p-4 bg-pink-50 rounded-xl border border-pink-100" data-testid="card-not-ranked">
-                      <div className="text-2xl font-bold text-pink-700" data-testid="value-not-ranked">
-                        {preview.keywordStats?.notRanked || 0}
-                      </div>
-                      <div className="text-xs text-pink-600 font-medium uppercase tracking-wide">Not Ranked</div>
-                    </div>
+                  <div className="space-y-3" data-testid="section-technical">
+                    {technicalSignals.map((signal, idx) => {
+                      const statusLabel = getStatusLabel(signal.status);
+                      return (
+                        <div 
+                          key={idx} 
+                          className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100"
+                          data-testid={`signal-technical-${idx}`}
+                        >
+                          <div className="flex items-center gap-3">
+                            {getStatusIcon(signal.status)}
+                            <div>
+                              <span className="font-medium text-slate-800">{signal.label}</span>
+                              {signal.detail && (
+                                <p className="text-sm text-slate-500">{signal.detail}</p>
+                              )}
+                            </div>
+                          </div>
+                          <Badge className={`${statusLabel.className} border-0`} data-testid={`status-technical-${idx}`}>
+                            {statusLabel.text}
+                          </Badge>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
-                {/* Current Wins & Big Gaps - Side by side */}
+                {/* Content Structure Section */}
                 <div className="border-b border-slate-200 p-6 md:p-8">
-                  <div className="grid md:grid-cols-2 gap-6">
-                    {/* Current Wins */}
-                    <div className="bg-emerald-50/50 rounded-xl p-5 border border-emerald-100" data-testid="section-current-wins">
-                      <h3 className="text-sm font-semibold text-emerald-700 uppercase tracking-wide mb-4 flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4" />
-                        Current Wins
-                      </h3>
-                      {preview.currentWins && preview.currentWins.length > 0 ? (
-                        <div className="space-y-3">
-                          {preview.currentWins.map((kw, idx) => (
-                            <div key={idx} className="flex items-center justify-between text-sm" data-testid={`keyword-win-${idx}`}>
-                              <span className="text-slate-700 font-medium truncate max-w-[60%]">{kw.keyword}</span>
-                              <div className="flex items-center gap-2 text-slate-500">
-                                <span>Vol {kw.volume.toLocaleString()}</span>
-                                <span className="text-xs px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded font-bold">
-                                  #{kw.position}
-                                </span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-slate-500 italic" data-testid="text-no-wins">
-                          Sign up to discover your top-ranking keywords
-                        </p>
-                      )}
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center">
+                      <Layout className="w-5 h-5 text-purple-600" />
                     </div>
-
-                    {/* Big Gaps */}
-                    <div className="bg-red-50/50 rounded-xl p-5 border border-red-100" data-testid="section-big-gaps">
-                      <h3 className="text-sm font-semibold text-red-700 uppercase tracking-wide mb-4 flex items-center gap-2">
-                        <BarChart className="w-4 h-4" />
-                        Big Gaps
-                      </h3>
-                      {preview.bigGaps && preview.bigGaps.length > 0 ? (
-                        <div className="space-y-3">
-                          {preview.bigGaps.map((kw, idx) => (
-                            <div key={idx} className="flex items-center justify-between text-sm" data-testid={`keyword-gap-${idx}`}>
-                              <span className="text-slate-700 font-medium truncate max-w-[50%]">{kw.keyword}</span>
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs px-2 py-0.5 bg-red-100 text-red-600 rounded font-medium">
-                                  Not ranking
-                                </span>
-                                <span className="text-slate-400 text-xs">({kw.volume.toLocaleString()}/mo)</span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-slate-500 italic" data-testid="text-no-gaps">
-                          Sign up to identify keyword opportunities
-                        </p>
-                      )}
+                    <div>
+                      <h2 className="text-lg font-semibold text-slate-900">Content Structure</h2>
+                      <p className="text-sm text-slate-500">Page quality and topic clarity</p>
                     </div>
                   </div>
-                </div>
-
-                {/* What To Do Next */}
-                <div className="border-b border-slate-200 p-6 md:p-8">
-                  <h3 className="text-sm font-semibold text-violet-700 uppercase tracking-wide mb-4">
-                    What To Do Next
-                  </h3>
                   
-                  <div className="space-y-3">
-                    <div className="flex items-start gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center font-bold shrink-0">
-                        1
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <BarChart className="w-4 h-4 text-slate-600" />
-                          <span className="font-semibold text-slate-800">Rankings Core</span>
-                          <Badge className="bg-emerald-100 text-emerald-700 border-0 text-xs">ACTIVE</Badge>
+                  <div className="space-y-3" data-testid="section-content">
+                    {contentSignals.map((signal, idx) => {
+                      const statusLabel = getStatusLabel(signal.status);
+                      return (
+                        <div 
+                          key={idx} 
+                          className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100"
+                          data-testid={`signal-content-${idx}`}
+                        >
+                          <div className="flex items-center gap-3">
+                            {getStatusIcon(signal.status)}
+                            <div>
+                              <span className="font-medium text-slate-800">{signal.label}</span>
+                              {signal.detail && (
+                                <p className="text-sm text-slate-500">{signal.detail}</p>
+                              )}
+                            </div>
+                          </div>
+                          <Badge className={`${statusLabel.className} border-0`} data-testid={`status-content-${idx}`}>
+                            {statusLabel.text}
+                          </Badge>
                         </div>
-                        <p className="text-sm text-slate-600">
-                          Push near-ranking pages into top results
-                        </p>
-                        <p className="text-xs text-slate-400 mt-1">
-                          Pages ranking #4-#10 are your fastest path to top results.
-                        </p>
-                      </div>
-                    </div>
+                      );
+                    })}
+                  </div>
+                </div>
 
-                    <div className="flex items-start gap-4 p-4 bg-slate-50/50 rounded-xl border border-slate-100 opacity-60">
-                      <div className="w-8 h-8 rounded-lg bg-slate-300 text-white flex items-center justify-center font-bold shrink-0">
-                        2
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Target className="w-4 h-4 text-slate-400" />
-                          <span className="font-semibold text-slate-500">Content Gaps</span>
-                          <Badge className="bg-slate-100 text-slate-500 border-0 text-xs">LOCKED</Badge>
-                        </div>
-                        <p className="text-sm text-slate-400">
-                          Create content for high-value keywords you're missing
-                        </p>
-                      </div>
+                {/* Performance Section */}
+                <div className="border-b border-slate-200 p-6 md:p-8">
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
+                      <Gauge className="w-5 h-5 text-amber-600" />
                     </div>
-
-                    <div className="flex items-start gap-4 p-4 bg-slate-50/50 rounded-xl border border-slate-100 opacity-60">
-                      <div className="w-8 h-8 rounded-lg bg-slate-300 text-white flex items-center justify-center font-bold shrink-0">
-                        3
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Eye className="w-4 h-4 text-slate-400" />
-                          <span className="font-semibold text-slate-500">Technical SEO</span>
-                          <Badge className="bg-slate-100 text-slate-500 border-0 text-xs">LOCKED</Badge>
+                    <div>
+                      <h2 className="text-lg font-semibold text-slate-900">Performance</h2>
+                      <p className="text-sm text-slate-500">Page speed and loading metrics</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3" data-testid="section-performance">
+                    {(() => {
+                      const statusLabel = getStatusLabel(performanceStatus);
+                      return (
+                        <div 
+                          className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100"
+                          data-testid="signal-performance"
+                        >
+                          <div className="flex items-center gap-3">
+                            {getStatusIcon(performanceStatus)}
+                            <div>
+                              <span className="font-medium text-slate-800">PageSpeed Insights</span>
+                              <p className="text-sm text-slate-500">
+                                {performanceStatus === "ok" ? "Fast loading times" : 
+                                 performanceStatus === "attention" ? "Some optimization needed" :
+                                 "Performance issues detected"}
+                              </p>
+                            </div>
+                          </div>
+                          <Badge className={`${statusLabel.className} border-0`} data-testid="status-performance">
+                            {statusLabel.text}
+                          </Badge>
                         </div>
-                        <p className="text-sm text-slate-400">
-                          Fix crawl errors and improve site performance
-                        </p>
+                      );
+                    })()}
+                  </div>
+                </div>
+
+                {/* What's Next - Gated Content Teaser */}
+                <div className="border-b border-slate-200 p-6 md:p-8 bg-slate-50/50">
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
+                      <Search className="w-5 h-5 text-emerald-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-semibold text-slate-900">Full Scan Unlocks</h2>
+                      <p className="text-sm text-slate-500">Available when you create an account</p>
+                    </div>
+                  </div>
+                  
+                  <div className="grid md:grid-cols-2 gap-3">
+                    <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-slate-200 opacity-60">
+                      <div className="w-8 h-8 rounded bg-slate-100 flex items-center justify-center">
+                        <span className="text-slate-400 text-sm">🔒</span>
                       </div>
+                      <span className="text-slate-500">Competitor Discovery</span>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-slate-200 opacity-60">
+                      <div className="w-8 h-8 rounded bg-slate-100 flex items-center justify-center">
+                        <span className="text-slate-400 text-sm">🔒</span>
+                      </div>
+                      <span className="text-slate-500">Keyword Opportunities</span>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-slate-200 opacity-60">
+                      <div className="w-8 h-8 rounded bg-slate-100 flex items-center justify-center">
+                        <span className="text-slate-400 text-sm">🔒</span>
+                      </div>
+                      <span className="text-slate-500">Ranking Positions</span>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-slate-200 opacity-60">
+                      <div className="w-8 h-8 rounded bg-slate-100 flex items-center justify-center">
+                        <span className="text-slate-400 text-sm">🔒</span>
+                      </div>
+                      <span className="text-slate-500">Content Gap Analysis</span>
                     </div>
                   </div>
                 </div>
@@ -445,24 +456,20 @@ export default function ScanPreview() {
                 {/* CTA Section */}
                 <div className="p-6 md:p-8 bg-gradient-to-r from-violet-50 to-pink-50">
                   <div className="text-center space-y-4">
-                    <h3 className="text-xl font-semibold text-slate-900">
-                      Ready to fix these issues automatically?
-                    </h3>
                     <p className="text-sm text-slate-600 max-w-md mx-auto">
-                      Sign up to unlock full automation. Arclo monitors your site, detects issues, and deploys fixes — all with your approval.
+                      Create a free account to unlock real search data, keyword rankings, and prioritized recommendations.
                     </p>
                     <Button 
                       variant="primaryGradient"
                       size="lg" 
                       className="h-12 px-8"
-                      onClick={handleSignupClick}
-                      data-testid="button-signup-primary"
+                      onClick={handleFullScanClick}
+                      data-testid="button-full-scan"
                     >
-                      Get Started Free
-                      <ArrowRight className="w-5 h-5 ml-2" />
+                      See competitors, keywords, and what to fix first → Run Full Scan
                     </Button>
                     <p className="text-xs text-slate-400">
-                      No credit card required · Safe mode by default
+                      Free account required · No credit card needed
                     </p>
                   </div>
                 </div>
