@@ -194,34 +194,33 @@ export function apiKeyAuth(req: Request, res: Response, next: NextFunction) {
 
 /**
  * Internal API authentication middleware
- * Validates X-Internal-API-Key header against ARCLO_INTERNAL_API_KEY or TRAFFIC_DOCTOR_API_KEY
+ * Validates X-ARCLO-API-KEY header against SEO_SCHEDULER_API_KEY
  * Used for Hermes ↔ SERP Worker bidirectional communication
  */
 export function internalApiAuth(req: Request, res: Response, next: NextFunction) {
-  const providedKey = req.headers["x-internal-api-key"] as string;
+  const providedKey = req.headers["x-arclo-api-key"] as string;
 
   if (!providedKey) {
-    logger.warn("InternalAPI", "Missing internal API key", { path: req.path, method: req.method });
+    logger.warn("InternalAPI", "Missing ARCLO API key", { path: req.path, method: req.method });
     return res.status(401).json({ 
-      error: "Internal API key required",
-      hint: "Provide X-Internal-API-Key header"
+      error: "ARCLO API key required",
+      hint: "Provide X-ARCLO-API-KEY header"
     });
   }
 
-  // Accept either ARCLO_INTERNAL_API_KEY or TRAFFIC_DOCTOR_API_KEY
-  const internalKey = process.env.ARCLO_INTERNAL_API_KEY || process.env.TRAFFIC_DOCTOR_API_KEY;
+  const schedulerKey = process.env.SEO_SCHEDULER_API_KEY;
   
-  if (!internalKey) {
-    logger.warn("InternalAPI", "Internal API key not configured (ARCLO_INTERNAL_API_KEY or TRAFFIC_DOCTOR_API_KEY)");
+  if (!schedulerKey) {
+    logger.warn("InternalAPI", "SEO_SCHEDULER_API_KEY not configured");
     return res.status(500).json({ 
       error: "Internal API not configured",
-      hint: "Server internal API key not set"
+      hint: "Server SEO_SCHEDULER_API_KEY not set"
     });
   }
 
-  if (providedKey !== internalKey) {
-    logger.warn("InternalAPI", "Invalid internal API key", { path: req.path });
-    return res.status(403).json({ error: "Invalid internal API key" });
+  if (providedKey !== schedulerKey) {
+    logger.warn("InternalAPI", "Invalid ARCLO API key", { path: req.path });
+    return res.status(403).json({ error: "Invalid ARCLO API key" });
   }
 
   next();

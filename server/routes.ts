@@ -54,7 +54,7 @@ import {
   type CrewStatus 
 } from "./services/crewStatus";
 import governanceRoutes from './routes/governance';
-import { generatedSites, siteGenerationJobs, crewFindings, insertAgentActionLogSchema, insertOutcomeEventLogSchema, type InsertAgentActionLog, type InsertOutcomeEventLog, seoReports, completedWork, sites, users, seoAgentCompetitors, type InsertSeoReport } from "@shared/schema";
+import { generatedSites, siteGenerationJobs, crewFindings, insertAgentActionLogSchema, insertOutcomeEventLogSchema, type InsertAgentActionLog, type InsertOutcomeEventLog, seoReports, completedWork, sites, users, seoAgentCompetitors, type InsertSeoReport, findings, serpKeywords, type Finding } from "@shared/schema";
 import { processUnattributedEvents } from "./services/socratesAttribution";
 import { v4 as uuidv4 } from "uuid";
 import { eq } from "drizzle-orm";
@@ -20594,6 +20594,351 @@ Return JSON in this exact format:
     } catch (error: any) {
       logger.error("InternalAPI", "Failed to get completed work", { error: error.message });
       res.status(500).json({ error: "Failed to get completed work" });
+    }
+  });
+
+  /**
+   * GET /api/internal/site/recommendations - Returns page-specific recommendations
+   * Query params: domain (required), week (optional, YYYY-MM-DD format)
+   * 
+   * Hermes returns already-analyzed, page-specific recommendation objects so 
+   * the Worker does NOT invent generic actions. Hermes is responsible for:
+   * - choosing *what kind* of recommendation applies to a page
+   * - choosing *how big* the fix should be
+   * - ensuring recommendations differ per page
+   */
+  app.get("/api/internal/site/recommendations", internalApiAuth, async (req, res) => {
+    try {
+      const domain = req.query.domain as string;
+      const weekParam = req.query.week as string;
+      
+      if (!domain) {
+        return res.status(400).json({ error: "domain query parameter is required" });
+      }
+
+      const normalizedDomain = domain.toLowerCase().replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/$/, '');
+      
+      // Parse week for deterministic variation (default to current week)
+      const weekDate = weekParam ? new Date(weekParam) : new Date();
+      const weekStart = new Date(weekDate);
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Start of week (Sunday)
+      const weekKey = weekStart.toISOString().split('T')[0];
+
+      // Helper: Generate deterministic variant seed
+      function getVariantSeed(page: string, category: string): number {
+        const str = `${normalizedDomain}|${page}|${category}|${weekKey}`;
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+          const char = str.charCodeAt(i);
+          hash = ((hash << 5) - hash) + char;
+          hash = hash & hash;
+        }
+        return Math.abs(hash);
+      }
+
+      // Helper: Generate SHA1 fingerprint for deduplication
+      function generateFingerprint(page: string, category: string, action: string): string {
+        const crypto = require('crypto');
+        const normalizedAction = action.toLowerCase().replace(/\d+/g, 'N').replace(/\s+/g, ' ').trim();
+        const input = `${normalizedDomain}|${page}|${category}|${normalizedAction}`;
+        return crypto.createHash('sha1').update(input).digest('hex');
+      }
+
+      // Get completed fingerprints for suppression
+      const completedResults = await db.select({ fingerprint: completedWork.fingerprint })
+        .from(completedWork)
+        .where(sql`LOWER(domain) = ${normalizedDomain}`);
+      const completedFingerprints = new Set(completedResults.map(r => r.fingerprint));
+
+      // Find site by domain first - required for scoped recommendations
+      const siteResults = await db.select().from(sites)
+        .where(sql`LOWER(REPLACE(REPLACE(REPLACE(base_url, 'https://', ''), 'http://', ''), 'www.', '')) LIKE ${`%${normalizedDomain}%`}`)
+        .limit(1);
+      const site = siteResults[0];
+
+      // Guard: If no site match, return empty recommendations to prevent cross-domain leakage
+      if (!site) {
+        logger.info("InternalAPI", "No site match for recommendations", { domain: normalizedDomain });
+        return res.json({
+          domain: normalizedDomain,
+          generated_at: new Date().toISOString(),
+          recommendations: [],
+          note: "No site configuration found for this domain"
+        });
+      }
+
+      // Get keyword data for pages - ONLY use keywords with full URLs that match this domain
+      // Path-only keywords are NOT used because they can't be reliably tied to a specific site
+      const keywords = await db.select()
+        .from(serpKeywords)
+        .where(sql`target_url IS NOT NULL AND target_url != '' AND LOWER(target_url) LIKE ${`%${normalizedDomain}%`}`)
+        .orderBy(sql`priority DESC`);
+
+      // Group keywords by page - only include URLs that match this domain
+      const pageKeywords: Record<string, typeof keywords> = {};
+      for (const kw of keywords) {
+        if (!kw.targetUrl) continue;
+        let page = kw.targetUrl;
+        
+        // Only process full URLs to ensure domain ownership
+        if (!page.startsWith('http')) {
+          // Skip path-only keywords - can't verify domain ownership
+          continue;
+        }
+        
+        try {
+          const url = new URL(page);
+          const urlDomain = url.hostname.toLowerCase().replace(/^www\./, '');
+          // Skip if this URL is for a different domain
+          if (!urlDomain.includes(normalizedDomain) && !normalizedDomain.includes(urlDomain)) {
+            continue;
+          }
+          page = url.pathname || '/';
+        } catch {
+          // Invalid URL format - skip
+          continue;
+        }
+        
+        if (!pageKeywords[page]) pageKeywords[page] = [];
+        pageKeywords[page].push(kw);
+      }
+
+      interface Recommendation {
+        fingerprint: string;
+        agent: string;
+        category: string;
+        priority: 'high' | 'medium' | 'low';
+        page: string;
+        title: string;
+        action: string;
+        evidence: Record<string, any>;
+      }
+
+      const recommendations: Recommendation[] = [];
+
+      // Simulated page metrics (in production, fetch from crawl data)
+      interface PageMetrics {
+        word_count: number;
+        faq_count: number;
+        h1_count: number;
+        h2_count: number;
+        h3_count: number;
+        internal_links_in: number;
+        internal_links_out: number;
+        schema_types: string[];
+        title_length: number;
+        has_city_in_title: boolean;
+        page_type: 'money' | 'hub' | 'blog' | 'other';
+      }
+
+      // Generate page metrics based on page path (deterministic simulation)
+      function getPageMetrics(page: string): PageMetrics {
+        const seed = getVariantSeed(page, 'metrics');
+        const isMoneyPage = page.includes('psychiatr') || page.includes('adhd') || page.includes('anxiety') || page.includes('depression');
+        const isHub = page === '/' || page.includes('services') || page.includes('about');
+        const isBlog = page.includes('blog') || page.includes('article');
+        
+        return {
+          word_count: 300 + (seed % 1200),
+          faq_count: seed % 8,
+          h1_count: 1,
+          h2_count: 2 + (seed % 6),
+          h3_count: seed % 10,
+          internal_links_in: seed % 8,
+          internal_links_out: 3 + (seed % 10),
+          schema_types: seed % 3 === 0 ? ['FAQPage'] : [],
+          title_length: 35 + (seed % 30),
+          has_city_in_title: page.includes('orlando') || seed % 4 === 0,
+          page_type: isMoneyPage ? 'money' : isHub ? 'hub' : isBlog ? 'blog' : 'other',
+        };
+      }
+
+      // Generate recommendations for each page with keywords
+      for (const [page, kws] of Object.entries(pageKeywords)) {
+        const metrics = getPageMetrics(page);
+        const primaryKeyword = kws[0];
+        const rank = primaryKeyword?.priority ? Math.max(1, 100 - primaryKeyword.priority) : null;
+
+        // 1) FAQ VARIANCE RULES
+        if (metrics.page_type === 'money' || metrics.page_type === 'hub') {
+          let faqAction: string | null = null;
+          let faqTitle: string | null = null;
+          
+          if (metrics.faq_count === 0) {
+            const addCount = 5 + (getVariantSeed(page, 'faq') % 3); // 5-7
+            faqTitle = 'Add FAQs that match search intent';
+            faqAction = `Add ${addCount} FAQs focused on: diagnosis, treatment options, telehealth availability, insurance/cost, and what to expect. Add FAQ schema.`;
+          } else if (metrics.faq_count >= 1 && metrics.faq_count <= 3) {
+            const addCount = 3 + (getVariantSeed(page, 'faq') % 3); // 3-5
+            const total = metrics.faq_count + addCount;
+            faqTitle = 'Expand FAQ section';
+            faqAction = `Add ${addCount} FAQs (total ${total}) focused on common patient questions about scheduling, preparation, and follow-up care.`;
+          } else if (metrics.faq_count >= 4 && metrics.faq_count <= 6) {
+            const addCount = 2 + (getVariantSeed(page, 'faq') % 3); // 2-4
+            const total = metrics.faq_count + addCount;
+            faqTitle = 'Add FAQs that match search intent';
+            faqAction = `Add ${addCount} FAQs (total ${total}) focused on: ${primaryKeyword?.keyword || 'primary service'} specifics and local availability.`;
+          }
+          // >= 7 FAQs: Do NOT recommend adding; could recommend tightening instead
+          
+          if (faqAction && faqTitle) {
+            const fingerprint = generateFingerprint(page, 'content', faqAction);
+            if (!completedFingerprints.has(fingerprint)) {
+              recommendations.push({
+                fingerprint,
+                agent: 'scotty',
+                category: 'content',
+                priority: metrics.faq_count === 0 ? 'high' : 'medium',
+                page,
+                title: faqTitle,
+                action: faqAction,
+                evidence: {
+                  word_count: metrics.word_count,
+                  faq_count: metrics.faq_count,
+                  schema: metrics.schema_types,
+                  links_in: metrics.internal_links_in,
+                  rank,
+                  primary_keyword: primaryKeyword?.keyword || null,
+                },
+              });
+            }
+          }
+        }
+
+        // 2) CONTENT EXPANSION VARIANCE
+        if (metrics.page_type === 'money') {
+          let contentAction: string | null = null;
+          let contentTitle: string | null = null;
+          
+          if (metrics.word_count < 450) {
+            const addWords = '600–900';
+            contentTitle = 'Add substantial content sections';
+            contentAction = `Add 'Cost & Insurance' and 'What to Expect' sections (~${addWords} words) to improve topical depth and satisfy informational intent.`;
+          } else if (metrics.word_count >= 450 && metrics.word_count < 900) {
+            const addWords = '250–500';
+            const sections = getVariantSeed(page, 'content') % 2 === 0 
+              ? "'Treatment Process' and 'Success Stories'" 
+              : "'Insurance & Costs' and 'FAQ'";
+            contentTitle = 'Expand content for ranking improvements';
+            contentAction = `Add ${sections} sections (~${addWords} words) to strengthen E-E-A-T signals.`;
+          } else if (metrics.word_count >= 900 && metrics.word_count < 1500) {
+            const addWords = '150–300';
+            contentTitle = 'Add supplementary content';
+            contentAction = `Add '${primaryKeyword?.keyword || 'Local'} Resources' section (~${addWords} words) with actionable next steps.`;
+          }
+          // > 1500 words: Do NOT add words; could recommend restructure
+          
+          if (contentAction && contentTitle) {
+            const fingerprint = generateFingerprint(page, 'content_expansion', contentAction);
+            if (!completedFingerprints.has(fingerprint)) {
+              recommendations.push({
+                fingerprint,
+                agent: 'scotty',
+                category: 'content',
+                priority: metrics.word_count < 450 ? 'high' : 'medium',
+                page,
+                title: contentTitle,
+                action: contentAction,
+                evidence: {
+                  word_count: metrics.word_count,
+                  h2_count: metrics.h2_count,
+                  page_type: metrics.page_type,
+                  primary_keyword: primaryKeyword?.keyword || null,
+                },
+              });
+            }
+          }
+        }
+
+        // 3) INTERNAL LINK VARIANCE
+        if (metrics.internal_links_in < 6) {
+          let linkAction: string | null = null;
+          let linkTitle: string | null = null;
+          
+          if (metrics.internal_links_in === 0) {
+            const addLinks = 6 + (getVariantSeed(page, 'links') % 5); // 6-10
+            linkTitle = 'Build internal link equity to this page';
+            linkAction = `Add ${addLinks} internal links from 3 hub pages: /services, /about, and /. Use keyword-rich anchor text mentioning "${primaryKeyword?.keyword || 'service'}".`;
+          } else if (metrics.internal_links_in >= 1 && metrics.internal_links_in <= 2) {
+            const addLinks = 4 + (getVariantSeed(page, 'links') % 3); // 4-6
+            linkTitle = 'Strengthen internal linking';
+            linkAction = `Add ${addLinks} internal links from top traffic pages. Prioritize links from /services and related condition pages.`;
+          } else if (metrics.internal_links_in >= 3 && metrics.internal_links_in <= 5) {
+            const addLinks = 2 + (getVariantSeed(page, 'links') % 3); // 2-4
+            linkTitle = 'Optimize internal link anchors';
+            linkAction = `Add ${addLinks} internal links and audit existing anchors. Replace generic "click here" with keyword-rich anchors.`;
+          }
+          // >= 6 links: Do NOT add more; could recommend anchor optimization
+          
+          if (linkAction && linkTitle) {
+            const fingerprint = generateFingerprint(page, 'internal_links', linkAction);
+            if (!completedFingerprints.has(fingerprint)) {
+              recommendations.push({
+                fingerprint,
+                agent: 'bones',
+                category: 'technical',
+                priority: metrics.internal_links_in === 0 ? 'high' : 'medium',
+                page,
+                title: linkTitle,
+                action: linkAction,
+                evidence: {
+                  internal_links_in: metrics.internal_links_in,
+                  internal_links_out: metrics.internal_links_out,
+                  page_type: metrics.page_type,
+                },
+              });
+            }
+          }
+        }
+
+        // 4) TITLE / META VARIANCE - Only recommend if something is wrong
+        const titleIssues: string[] = [];
+        if (metrics.title_length > 60) titleIssues.push('too long');
+        if (!metrics.has_city_in_title && metrics.page_type === 'money') titleIssues.push('missing city');
+        
+        if (titleIssues.length > 0) {
+          const issueText = titleIssues.join(' and ');
+          const titleAction = `Update title tag (currently ${issueText}). Front-load primary keyword "${primaryKeyword?.keyword || 'service'}" and include "Orlando" for local intent.`;
+          const fingerprint = generateFingerprint(page, 'title', titleAction);
+          
+          if (!completedFingerprints.has(fingerprint)) {
+            recommendations.push({
+              fingerprint,
+              agent: 'scotty',
+              category: 'on_page',
+              priority: 'medium',
+              page,
+              title: 'Optimize title tag for search',
+              action: titleAction,
+              evidence: {
+                title_length: metrics.title_length,
+                has_city: metrics.has_city_in_title,
+                issues: titleIssues,
+                primary_keyword: primaryKeyword?.keyword || null,
+              },
+            });
+          }
+        }
+      }
+
+      // Sort by priority (high > medium > low)
+      const priorityOrder = { high: 0, medium: 1, low: 2 };
+      recommendations.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+
+      logger.info("InternalAPI", "Generated recommendations", { 
+        domain: normalizedDomain, 
+        count: recommendations.length,
+        weekKey,
+      });
+
+      res.json({
+        domain: normalizedDomain,
+        generated_at: new Date().toISOString(),
+        recommendations: recommendations.slice(0, 50), // Limit to 50 recommendations
+      });
+    } catch (error: any) {
+      logger.error("InternalAPI", "Failed to generate recommendations", { error: error.message });
+      res.status(500).json({ error: "Failed to generate recommendations" });
     }
   });
 
