@@ -446,7 +446,7 @@ export class ExtendedSerpWorkerClient extends SerpWorkerClient {
         siteId: request.siteId,
         source: request.source || "free_report",
         callbackUrl,
-        internalApiKey: process.env.ARCLO_INTERNAL_API_KEY,
+        internalApiKey: process.env.ARCLO_INTERNAL_API_KEY || process.env.TRAFFIC_DOCTOR_API_KEY,
       });
       
       return response;

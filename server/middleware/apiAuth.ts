@@ -194,7 +194,7 @@ export function apiKeyAuth(req: Request, res: Response, next: NextFunction) {
 
 /**
  * Internal API authentication middleware
- * Validates X-Internal-API-Key header against ARCLO_INTERNAL_API_KEY env variable
+ * Validates X-Internal-API-Key header against ARCLO_INTERNAL_API_KEY or TRAFFIC_DOCTOR_API_KEY
  * Used for Hermes ↔ SERP Worker bidirectional communication
  */
 export function internalApiAuth(req: Request, res: Response, next: NextFunction) {
@@ -208,10 +208,11 @@ export function internalApiAuth(req: Request, res: Response, next: NextFunction)
     });
   }
 
-  const internalKey = process.env.ARCLO_INTERNAL_API_KEY;
+  // Accept either ARCLO_INTERNAL_API_KEY or TRAFFIC_DOCTOR_API_KEY
+  const internalKey = process.env.ARCLO_INTERNAL_API_KEY || process.env.TRAFFIC_DOCTOR_API_KEY;
   
   if (!internalKey) {
-    logger.warn("InternalAPI", "ARCLO_INTERNAL_API_KEY not configured");
+    logger.warn("InternalAPI", "Internal API key not configured (ARCLO_INTERNAL_API_KEY or TRAFFIC_DOCTOR_API_KEY)");
     return res.status(500).json({ 
       error: "Internal API not configured",
       hint: "Server internal API key not set"
