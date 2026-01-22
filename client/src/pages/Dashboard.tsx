@@ -280,8 +280,10 @@ function WhatToDoNextSection() {
       <div className="space-y-4">
         {steps.map((step) => (
           <Card key={step.number} className={cn(
-            "bg-white rounded-xl border shadow-sm overflow-hidden relative",
-            step.status === "active" ? "border-violet-200" : "border-gray-100"
+            "rounded-xl border overflow-hidden relative transition-all",
+            step.status === "active" 
+              ? "bg-white border-violet-200 shadow-sm" 
+              : "bg-gray-50/60 border-gray-200/60 opacity-50"
           )}>
             {step.status === "active" && (
               <div className="absolute left-0 top-0 bottom-0 w-1 bg-violet-500" />
@@ -292,45 +294,64 @@ function WhatToDoNextSection() {
                   "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0",
                   step.status === "active" 
                     ? "bg-violet-600 text-white" 
-                    : "bg-gray-100 text-gray-500"
+                    : "bg-gray-200 text-gray-400"
                 )}>
                   {step.number}
                 </div>
                 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-semibold text-gray-900">{step.title}</h3>
+                    <h3 className={cn(
+                      "font-semibold",
+                      step.status === "active" ? "text-gray-900" : "text-gray-500"
+                    )}>{step.title}</h3>
                     {step.status === "locked" && (
-                      <Badge variant="outline" className="text-xs bg-gray-50 text-gray-500 border-gray-200">
+                      <Badge variant="outline" className="text-xs bg-gray-100 text-gray-400 border-gray-200">
                         <Lock className="w-3 h-3 mr-1" />
                         Locked
                       </Badge>
                     )}
                   </div>
-                  <p className="text-sm text-gray-500 mb-3">{step.description}</p>
+                  <p className={cn(
+                    "text-sm mb-3",
+                    step.status === "active" ? "text-gray-500" : "text-gray-400"
+                  )}>{step.description}</p>
                   
                   <div className="mb-4">
-                    <p className="text-xs font-medium text-gray-600 mb-2">What this means:</p>
+                    <p className={cn(
+                      "text-xs font-medium mb-2",
+                      step.status === "active" ? "text-gray-600" : "text-gray-400"
+                    )}>What this means:</p>
                     <ul className="space-y-1">
                       {step.actions.map((action, idx) => (
-                        <li key={idx} className="text-sm text-gray-500 flex items-start gap-2">
-                          <span className="text-gray-400 mt-1">•</span>
+                        <li key={idx} className={cn(
+                          "text-sm flex items-start gap-2",
+                          step.status === "active" ? "text-gray-500" : "text-gray-400"
+                        )}>
+                          <span className="text-gray-300 mt-1">•</span>
                           <span>{action}</span>
                         </li>
                       ))}
                     </ul>
                   </div>
                   
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col gap-1">
                     {step.status === "active" ? (
-                      <span className="text-sm font-medium text-emerald-600 flex items-center gap-1">
-                        <CheckCircle2 className="w-4 h-4" />
-                        Active
-                      </span>
-                    ) : (
-                      <Button size="sm" variant="outline" className="text-violet-600 border-violet-200 hover:bg-violet-50">
-                        {step.unlockLabel}
+                      <Button size="sm" className="w-fit bg-violet-600 hover:bg-violet-700 text-white shadow-sm hover:shadow-md transition-all">
+                        Get Started
                       </Button>
+                    ) : (
+                      <>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          disabled
+                          className="w-fit bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed hover:bg-gray-100"
+                        >
+                          {step.unlockLabel}
+                        </Button>
+                        <span className="text-xs text-gray-400">Complete previous step to unlock</span>
+                      </>
                     )}
                   </div>
                 </div>
@@ -438,53 +459,83 @@ function AgentsSection({ agents }: { agents: Agent[] }) {
           <Card 
             key={agent.id} 
             className={cn(
-              "bg-white rounded-xl border shadow-sm overflow-hidden relative",
-              agent.status === "active" ? "border-violet-200" : "border-gray-100"
+              "rounded-xl border overflow-hidden relative transition-all",
+              agent.status === "active" 
+                ? "bg-white border-violet-200 shadow-sm" 
+                : "bg-gray-50/60 border-gray-200/60 opacity-50"
             )}
           >
             {agent.status === "active" && (
               <div className="absolute left-0 top-0 bottom-0 w-1 bg-violet-500" />
             )}
             {agent.status === "locked" && (
-              <Badge variant="outline" className="absolute top-3 right-3 bg-gray-50 text-gray-500 border-gray-200 text-xs">
+              <Badge variant="outline" className="absolute top-3 right-3 bg-gray-100 text-gray-400 border-gray-200 text-xs">
                 <Lock className="w-3 h-3 mr-1" />
                 Locked
               </Badge>
             )}
             
             <CardHeader className={cn("pb-3", agent.status === "active" && "ml-1")}>
-              <CardTitle className="text-base flex items-center gap-2 text-gray-900">
-                <Bot className="w-4 h-4 text-violet-600" />
+              <CardTitle className={cn(
+                "text-base flex items-center gap-2",
+                agent.status === "active" ? "text-gray-900" : "text-gray-500"
+              )}>
+                <Bot className={cn(
+                  "w-4 h-4",
+                  agent.status === "active" ? "text-violet-600" : "text-gray-400"
+                )} />
                 {agent.name}
               </CardTitle>
             </CardHeader>
             <CardContent className={cn("space-y-3", agent.status === "active" && "ml-1")}>
-              <p className="text-sm text-gray-500">{agent.description}</p>
+              <p className={cn(
+                "text-sm",
+                agent.status === "active" ? "text-gray-500" : "text-gray-400"
+              )}>{agent.description}</p>
               
               <div>
-                <p className="text-xs font-medium text-gray-600 mb-1">Includes:</p>
+                <p className={cn(
+                  "text-xs font-medium mb-1",
+                  agent.status === "active" ? "text-gray-600" : "text-gray-400"
+                )}>Includes:</p>
                 <ul className="space-y-1">
                   {agent.includes.map((item, idx) => (
-                    <li key={idx} className="text-xs text-gray-500 flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                    <li key={idx} className={cn(
+                      "text-xs flex items-center gap-1",
+                      agent.status === "active" ? "text-gray-500" : "text-gray-400"
+                    )}>
+                      <CheckCircle2 className={cn(
+                        "w-3 h-3",
+                        agent.status === "active" ? "text-emerald-500" : "text-gray-300"
+                      )} />
                       {item}
                     </li>
                   ))}
                 </ul>
               </div>
               
-              <Button 
-                size="sm" 
-                variant="outline"
-                className={cn(
-                  "w-full mt-2",
-                  agent.status === "active" 
-                    ? "text-gray-600 border-gray-200" 
-                    : "text-violet-600 border-violet-200 hover:bg-violet-50"
+              <div className="flex flex-col gap-1">
+                {agent.status === "active" ? (
+                  <Button 
+                    size="sm" 
+                    className="w-full bg-violet-600 hover:bg-violet-700 text-white shadow-sm hover:shadow-md transition-all"
+                  >
+                    {agent.ctaLabel}
+                  </Button>
+                ) : (
+                  <>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      disabled
+                      className="w-full bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed hover:bg-gray-100"
+                    >
+                      {agent.ctaLabel}
+                    </Button>
+                    <span className="text-xs text-gray-400 text-center">Requires setup</span>
+                  </>
                 )}
-              >
-                {agent.ctaLabel}
-              </Button>
+              </div>
             </CardContent>
           </Card>
         ))}
