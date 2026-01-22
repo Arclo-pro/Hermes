@@ -377,4 +377,110 @@ export class SerpWorkerClient {
   }
 }
 
-export const serpWorkerClient = new SerpWorkerClient();
+export interface ReportTriggerRequest {
+  domain: string;
+  email?: string;
+  siteId?: string;
+  source?: "free_report" | "scheduled" | "manual";
+  callbackUrl?: string;
+}
+
+export interface ReportTriggerResponse {
+  ok: boolean;
+  reportId?: string;
+  error?: string;
+}
+
+// Extended SerpWorkerClient with report generation support
+export class ExtendedSerpWorkerClient extends SerpWorkerClient {
+  
+  private async postRequest<T>(endpoint: string, body: Record<string, unknown>): Promise<T> {
+    await this.init();
+    
+    // Access private baseUrl through initialization
+    const baseUrl = process.env.SERP_WORKER_BASE_URL || process.env.SERP_INTELLIGENCE_BASE_URL;
+    if (!baseUrl) {
+      throw new Error("SerpWorker not configured - missing SERP_WORKER_BASE_URL or SERP_INTELLIGENCE_BASE_URL");
+    }
+
+    const url = new URL(endpoint, baseUrl);
+    const apiKey = process.env.SERP_INTELLIGENCE_API_KEY;
+    
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (apiKey) {
+      headers["X-Api-Key"] = apiKey;
+    }
+
+    logger.debug("SerpWorker", `POST ${url.pathname}`);
+    
+    const response = await fetch(url.toString(), { 
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+    });
+    
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`SERP Worker error ${response.status}: ${text}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Trigger report generation at the SERP worker
+   * The worker will call back to /api/internal/report when complete
+   */
+  async triggerReportGeneration(request: ReportTriggerRequest): Promise<ReportTriggerResponse> {
+    try {
+      const hermesBaseUrl = process.env.HERMES_BASE_URL || 
+        (process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : "http://localhost:5000");
+      
+      const callbackUrl = request.callbackUrl || `${hermesBaseUrl}/api/internal/report`;
+      
+      const response = await this.postRequest<ReportTriggerResponse>("/api/report/generate", {
+        domain: request.domain,
+        email: request.email,
+        siteId: request.siteId,
+        source: request.source || "free_report",
+        callbackUrl,
+        internalApiKey: process.env.ARCLO_INTERNAL_API_KEY,
+      });
+      
+      return response;
+    } catch (error: any) {
+      logger.error("SerpWorker", `Failed to trigger report generation: ${error.message}`);
+      return {
+        ok: false,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
+   * Poll for report completion status
+   */
+  async getReportStatus(reportId: string): Promise<{
+    status: "queued" | "running" | "complete" | "failed";
+    reportJson?: unknown;
+    error?: string;
+  }> {
+    try {
+      const response = await this.request<{
+        status: "queued" | "running" | "complete" | "failed";
+        reportJson?: unknown;
+        error?: string;
+      }>("/api/report/status", { reportId });
+      return response;
+    } catch (error: any) {
+      return {
+        status: "failed",
+        error: error.message,
+      };
+    }
+  }
+}
+
+export const serpWorkerClient = new ExtendedSerpWorkerClient();
