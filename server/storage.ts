@@ -219,6 +219,9 @@ import {
   socratesKbEntries,
   type SocratesKbEntry,
   type InsertSocratesKbEntry,
+  hermesRecommendations,
+  type HermesRecommendation,
+  type InsertHermesRecommendation,
 } from "@shared/schema";
 import { eq, desc, and, gte, sql, asc, or, isNull, arrayContains } from "drizzle-orm";
 
@@ -621,6 +624,13 @@ export interface IStorage {
   updateSocratesKbEntry(kbId: string, updates: Partial<InsertSocratesKbEntry>): Promise<SocratesKbEntry | null>;
   getSocratesKbEntriesByContext(params: { siteId?: string; metricKeys?: string[]; agentId?: string; status?: string; limit?: number }): Promise<SocratesKbEntry[]>;
   getSocratesKbEntryByKbId(kbId: string): Promise<SocratesKbEntry | null>;
+  
+  // Hermes Recommendations
+  getRecommendationsBySite(siteId: string): Promise<HermesRecommendation[]>;
+  getRecommendationById(id: string): Promise<HermesRecommendation | null>;
+  createRecommendation(data: InsertHermesRecommendation): Promise<HermesRecommendation>;
+  updateRecommendationStatus(id: string, status: string): Promise<void>;
+  invalidateRecommendation(id: string, reason?: string): Promise<void>;
 }
 
 class DBStorage implements IStorage {
@@ -3731,6 +3741,46 @@ class DBStorage implements IStorage {
       .where(eq(socratesKbEntries.kbId, kbId))
       .limit(1);
     return result || null;
+  }
+
+  // Hermes Recommendations
+  async getRecommendationsBySite(siteId: string): Promise<HermesRecommendation[]> {
+    return db
+      .select()
+      .from(hermesRecommendations)
+      .where(eq(hermesRecommendations.siteId, siteId))
+      .orderBy(desc(hermesRecommendations.priority));
+  }
+
+  async getRecommendationById(id: string): Promise<HermesRecommendation | null> {
+    const [result] = await db
+      .select()
+      .from(hermesRecommendations)
+      .where(eq(hermesRecommendations.id, id))
+      .limit(1);
+    return result || null;
+  }
+
+  async createRecommendation(data: InsertHermesRecommendation): Promise<HermesRecommendation> {
+    const [result] = await db.insert(hermesRecommendations).values(data).returning();
+    return result;
+  }
+
+  async updateRecommendationStatus(id: string, status: string): Promise<void> {
+    await db
+      .update(hermesRecommendations)
+      .set({ status, updatedAt: new Date() })
+      .where(eq(hermesRecommendations.id, id));
+  }
+
+  async invalidateRecommendation(id: string, reason?: string): Promise<void> {
+    await db
+      .update(hermesRecommendations)
+      .set({ 
+        status: "invalidated", 
+        updatedAt: new Date() 
+      })
+      .where(eq(hermesRecommendations.id, id));
   }
 }
 

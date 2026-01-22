@@ -3104,3 +3104,40 @@ export const insertCompletedWorkSchema = createInsertSchema(completedWork).omit(
 });
 export type InsertCompletedWork = z.infer<typeof insertCompletedWorkSchema>;
 export type CompletedWork = typeof completedWork.$inferSelect;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HERMES RECOMMENDATIONS - Canonical recommendation schema
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const hermesRecommendations = pgTable("hermes_recommendations", {
+  id: text("id").primaryKey(), // UUID
+  siteId: text("site_id").notNull(), // references sites.siteId
+  category: text("category").notNull(), // 'technical', 'content', 'authority', 'performance'
+  agentSources: text("agent_sources").array().notNull(), // array of agent IDs that contributed
+  priority: integer("priority").notNull(), // 1-100, higher = more important
+  confidence: text("confidence").notNull(), // 'full' | 'degraded'
+  missingInputs: text("missing_inputs").array(), // what's missing when degraded
+  phase: text("phase").notNull(), // 'now' | 'next' | 'later'
+  action: text("action").notNull(), // concise imperative, e.g., "Add FAQ schema to service pages"
+  steps: jsonb("steps").$type<string[]>(), // array of implementation steps
+  evidence: jsonb("evidence").$type<{
+    inputs?: Record<string, any>;
+    urls?: string[];
+    keywords?: string[];
+    timestamps?: string[];
+  }>(), // inputs, URLs, keywords, timestamps
+  definitionOfDone: text("definition_of_done"),
+  dependencies: text("dependencies").array(), // configure/purchase/prerequisites
+  risks: text("risks").array(),
+  kbaseRefs: text("kbase_refs").array(), // doctrine or weekly learnings
+  status: text("status").notNull().default("open"), // 'open' | 'acknowledged' | 'exported' | 'applied' | 'invalidated'
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertHermesRecommendationSchema = createInsertSchema(hermesRecommendations).omit({
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertHermesRecommendation = z.infer<typeof insertHermesRecommendationSchema>;
+export type HermesRecommendation = typeof hermesRecommendations.$inferSelect;
