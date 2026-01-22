@@ -4,6 +4,7 @@ import { buildRoute } from "@shared/routes";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Badge } from "@/components/ui/badge";
 import { AgentCard } from "@/components/crew/AgentCard";
+import { AgentCoveragePanel } from "@/components/crew/AgentCoveragePanel";
 import { USER_FACING_AGENTS, getCrewMember } from "@/config/agents";
 import { getMockAgentData } from "@/config/mockAgentInsights";
 import { Bot } from "lucide-react";
@@ -178,6 +179,10 @@ export default function CrewPage() {
                 </div>
               ))}
             </div>
+          </div>
+
+          <div className="pt-4">
+            <AgentCoveragePanel />
           </div>
         </div>
       </div>

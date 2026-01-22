@@ -1,3 +1,4 @@
+export { AgentCoveragePanel } from "./AgentCoveragePanel";
 export { CrewBadge } from "./CrewBadge";
 export { CrewCard, CrewCardCompact } from "./CrewCard";
 export { CrewFeed } from "./CrewFeed";
