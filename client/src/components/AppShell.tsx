@@ -1,10 +1,10 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useLocation, Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useSiteContext } from "@/hooks/useSiteContext";
 import { 
   LayoutDashboard, 
-  Users, 
+  Bot, 
   Ticket, 
   FileText, 
   Play, 
@@ -12,11 +12,14 @@ import {
   Plug, 
   LogOut,
   ChevronDown,
+  ChevronRight,
   Building2,
   Loader2,
   Target,
   Award,
-  HelpCircle
+  Globe,
+  Bell,
+  Key
 } from "lucide-react";
 import arcloLogo from "@assets/A_small_logo_1765393189114.png";
 import { Button } from "@/components/ui/button";
@@ -31,20 +34,88 @@ import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { path: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { path: "/app/agents", label: "Agents", icon: Users },
+  { path: "/app/agents", label: "Agents", icon: Bot },
+  { path: "/app/achievements", label: "Achievements", icon: Award },
+];
+
+const SETTINGS_ITEMS = [
+  { path: "/app/settings", label: "General", icon: Settings },
+  { path: "/app/integrations", label: "Integrations", icon: Plug },
+  { path: "/app/domains", label: "Domains", icon: Globe },
   { path: "/app/tickets", label: "Tickets", icon: Ticket },
   { path: "/app/changes", label: "Changes", icon: FileText },
   { path: "/app/runs", label: "Runs", icon: Play },
-  { path: "/app/benchmarks", label: "Benchmarks", icon: Target },
-  { path: "/app/achievements", label: "Achievements", icon: Award },
-  { path: "/app/integrations", label: "Integrations", icon: Plug },
-  { path: "/app/settings", label: "Settings", icon: Settings },
-  { path: "/app/help", label: "Help", icon: HelpCircle },
+  { path: "/app/api-keys", label: "API Keys", icon: Key },
+  { path: "/app/notifications", label: "Notifications", icon: Bell },
 ];
 
 interface AppShellProps {
   children: ReactNode;
   lightMode?: boolean;
+}
+
+function SettingsNav({ location, lightMode }: { location: string; lightMode: boolean }) {
+  const [isOpen, setIsOpen] = useState(() => {
+    return SETTINGS_ITEMS.some(item => location === item.path || location.startsWith(item.path + "/"));
+  });
+  
+  const isSettingsActive = SETTINGS_ITEMS.some(item => 
+    location === item.path || location.startsWith(item.path + "/")
+  );
+
+  return (
+    <div className="space-y-1">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={cn(
+          "w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer",
+          isSettingsActive 
+            ? "bg-amber-600/20 text-amber-500" 
+            : lightMode 
+              ? "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+              : "text-gray-400 hover:bg-gray-700 hover:text-white"
+        )}
+        data-testid="nav-link-settings"
+      >
+        <span className="flex items-center space-x-3">
+          <Settings className="h-5 w-5" />
+          <span>Settings</span>
+        </span>
+        {isOpen ? (
+          <ChevronDown className="h-4 w-4" />
+        ) : (
+          <ChevronRight className="h-4 w-4" />
+        )}
+      </button>
+      
+      {isOpen && (
+        <div className="ml-4 pl-3 border-l border-gray-700/50 space-y-1">
+          {SETTINGS_ITEMS.map((item) => {
+            const isActive = location === item.path || location.startsWith(item.path + "/");
+            const Icon = item.icon;
+            return (
+              <Link key={item.path} href={item.path}>
+                <span
+                  className={cn(
+                    "flex items-center space-x-2 px-3 py-1.5 rounded-lg text-sm transition-colors cursor-pointer",
+                    isActive 
+                      ? "text-amber-500" 
+                      : lightMode 
+                        ? "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                        : "text-gray-500 hover:bg-gray-700 hover:text-gray-300"
+                  )}
+                  data-testid={`nav-link-settings-${item.label.toLowerCase().replace(" ", "-")}`}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span>{item.label}</span>
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function AppShell({ children, lightMode = false }: AppShellProps) {
@@ -194,6 +265,8 @@ export default function AppShell({ children, lightMode = false }: AppShellProps)
               </Link>
             );
           })}
+          
+          <SettingsNav location={location} lightMode={lightMode} />
         </nav>
 
         <div className={cn(
