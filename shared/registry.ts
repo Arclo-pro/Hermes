@@ -189,6 +189,17 @@ export const SERVICES: Record<string, ServiceDefinition> = {
     metricsProduced: [],
     secretName: 'SEO_Orchestrator',
   },
+  technical_seo: {
+    id: 'technical_seo',
+    displayName: 'Technical SEO',
+    description: 'Unified technical health agent: performance monitoring, Core Web Vitals, and content decay detection',
+    metricsProduced: [
+      'vitals.lcp', 'vitals.cls', 'vitals.inp', 'vitals.performance_score',
+      'tech.pages_crawled', 'tech.errors', 'tech.warnings', 'tech.blocked_urls',
+      'content.decay_signals', 'content.refresh_candidates',
+    ],
+    secretName: 'SEO_Technical_SEO',
+  },
 } as const;
 
 export type ServiceId = keyof typeof SERVICES;
@@ -507,6 +518,31 @@ export const CREW: Record<string, CrewDefinition> = {
     integrationId: 'major_tom',
     dashboardRoute: '/app/mission-control',
   },
+  technical_seo: {
+    crewId: 'technical_seo',
+    nickname: 'Technical SEO',
+    role: 'Technical Health',
+    services: ['crawl_render', 'core_web_vitals', 'content_decay'],
+    metricsOwned: [
+      'vitals.lcp', 'vitals.cls', 'vitals.inp', 'vitals.performance_score',
+      'tech.pages_crawled', 'tech.errors', 'tech.warnings', 'tech.blocked_urls',
+      'content.decay_signals', 'content.refresh_candidates',
+    ],
+    color: '#F97316',
+    theme: deriveTheme('#F97316'),
+    primaryMetricId: 'vitals.performance_score',
+    dependencies: { required: ['crawler', 'pagespeed'], optional: ['ga4'] },
+    scoreMetric: { id: 'technical_health', label: 'Technical Health', source: 'technical_seo' },
+    worker: {
+      baseUrlEnvKey: 'TECHNICAL_SEO_BASE_URL',
+      apiKeySecretKey: 'TECHNICAL_SEO_API_KEY',
+      healthPath: '/api/health',
+      runPath: '/api/run',
+      requiredOutputs: ['findings', 'recommendations', 'metrics'],
+    },
+    integrationId: 'technical_seo',
+    dashboardRoute: '/app/agents/technical-seo',
+  },
 } as const;
 
 export type CrewId = keyof typeof CREW;
@@ -594,6 +630,13 @@ export const INTEGRATIONS: Record<string, IntegrationDefinition> = {
     connectRoute: '/api/integrations/seo-kbase/connect',
     testRoute: '/api/integrations/seo-kbase/test',
   },
+  technical_seo: {
+    id: 'technical_seo',
+    name: 'Technical SEO',
+    ownerCrewId: 'technical_seo',
+    connectRoute: '/api/integrations/technical-seo/connect',
+    testRoute: '/api/integrations/technical-seo/test',
+  },
 } as const;
 
 export type IntegrationId = keyof typeof INTEGRATIONS;
@@ -645,6 +688,7 @@ export const SERVICE_TO_CREW: Record<string, string> = {
   seo_kbase: 'socrates',
   ai_optimization: 'atlas',
   orchestrator: 'major_tom',
+  technical_seo: 'technical_seo',
 };
 
 /**

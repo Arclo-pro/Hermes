@@ -1,10 +1,39 @@
 import { logger } from "./utils/logger";
 import { resolveWorkerConfig, WorkerConfig } from "./workerConfigResolver";
-import { getWorkerServices, ServiceSecretMapping } from "@shared/serviceSecretMap";
+import { getWorkerServices, getServiceBySlug, ServiceSecretMapping } from "@shared/serviceSecretMap";
 import { storage } from "./storage";
 import { InsertSeoWorkerResult, InsertSeoSuggestion, InsertSeoKbaseInsight, InsertSeoRun } from "@shared/schema";
+import { createHash } from "crypto";
 
 const TIMEOUT_MS = 30000;
+const STALE_THRESHOLD_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+// Technical SEO Agent Types
+export interface TechnicalFinding {
+  type: "performance" | "cwv" | "decay";
+  severity: "low" | "medium" | "high" | "critical";
+  title: string;
+  summary: string;
+  evidence: Record<string, any>;
+  recommendedActions: string[];
+  source: "crawl_render" | "core_web_vitals" | "content_decay";
+}
+
+export interface TechnicalSeoResult {
+  runId: string;
+  siteId: string;
+  status: "ok" | "partial" | "error" | "stale";
+  findings: TechnicalFinding[];
+  recommendations: InsertSeoSuggestion[];
+  errors: { service: string; message: string }[];
+  metrics: {
+    crawl?: Record<string, any>;
+    vitals?: Record<string, any>;
+    decay?: Record<string, any>;
+  };
+  lastRunAt: Date;
+  staleSources: string[];
+}
 
 export interface WorkerCallResult {
   workerKey: string;
@@ -1153,4 +1182,509 @@ export async function getAggregatedDashboardMetrics(siteId: string): Promise<{
   }
   
   return defaults;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TECHNICAL SEO AGENT - Unified orchestration of crawl, vitals, and decay
+// ═══════════════════════════════════════════════════════════════════════════
+
+const TECHNICAL_SEO_WORKERS = ["crawl_render", "core_web_vitals", "content_decay"] as const;
+type TechnicalSeoWorker = typeof TECHNICAL_SEO_WORKERS[number];
+
+function createFindingFingerprint(domain: string, title: string, targetUrl: string | null, type: string): string {
+  const normalized = `${domain}|${title.toLowerCase().trim()}|${(targetUrl || "").toLowerCase().trim()}|${type}`;
+  return createHash("sha256").update(normalized).digest("hex").slice(0, 16);
+}
+
+function normalizeCrawlRenderFindings(result: WorkerCallResult, domain: string): TechnicalFinding[] {
+  const findings: TechnicalFinding[] = [];
+  if (result.status !== "success" || !result.metrics) return findings;
+  
+  const m = result.metrics;
+  
+  if (m.issuesByType?.missingTitle > 0) {
+    findings.push({
+      type: "performance",
+      severity: m.issuesByType.missingTitle > 5 ? "high" : "medium",
+      title: `${m.issuesByType.missingTitle} Pages Missing Title Tags`,
+      summary: "Pages without title tags won't rank well in search results.",
+      evidence: { count: m.issuesByType.missingTitle, pages: m.topIssues?.slice(0, 5) },
+      recommendedActions: [
+        "Add unique title tags under 60 characters",
+        "Include primary keyword near the beginning",
+        "Make titles compelling for click-through",
+      ],
+      source: "crawl_render",
+    });
+  }
+  
+  if (m.issuesByType?.missingH1 > 0) {
+    findings.push({
+      type: "performance",
+      severity: "medium",
+      title: `${m.issuesByType.missingH1} Pages Missing H1 Tags`,
+      summary: "H1 tags help search engines understand page content hierarchy.",
+      evidence: { count: m.issuesByType.missingH1 },
+      recommendedActions: ["Add exactly one H1 tag per page", "Include primary keyword in H1"],
+      source: "crawl_render",
+    });
+  }
+  
+  if (m.issuesByType?.canonicalIssues > 0) {
+    findings.push({
+      type: "performance",
+      severity: "high",
+      title: `${m.issuesByType.canonicalIssues} Canonical Tag Issues`,
+      summary: "Canonical issues can cause duplicate content problems and dilute ranking signals.",
+      evidence: { count: m.issuesByType.canonicalIssues },
+      recommendedActions: [
+        "Ensure each page has a self-referencing canonical",
+        "Fix any canonical chains or loops",
+        "Remove canonicals pointing to 404 pages",
+      ],
+      source: "crawl_render",
+    });
+  }
+  
+  if (m.issuesByType?.brokenLinks > 0) {
+    findings.push({
+      type: "performance",
+      severity: m.issuesByType.brokenLinks > 10 ? "high" : "medium",
+      title: `${m.issuesByType.brokenLinks} Broken Internal Links`,
+      summary: "Broken links hurt user experience and waste crawl budget.",
+      evidence: { count: m.issuesByType.brokenLinks },
+      recommendedActions: ["Fix or remove broken links", "Set up redirects for moved pages"],
+      source: "crawl_render",
+    });
+  }
+  
+  if (m.errorsFound > 0 && findings.length === 0) {
+    findings.push({
+      type: "performance",
+      severity: m.errorsFound > 10 ? "high" : "medium",
+      title: `${m.errorsFound} Technical Crawl Errors`,
+      summary: `Found ${m.errorsFound} errors across ${m.pagesChecked || "unknown"} pages.`,
+      evidence: { errorsFound: m.errorsFound, pagesChecked: m.pagesChecked },
+      recommendedActions: ["Review and fix technical errors", "Check server response codes"],
+      source: "crawl_render",
+    });
+  }
+  
+  return findings;
+}
+
+function normalizeVitalsFindings(result: WorkerCallResult, domain: string): TechnicalFinding[] {
+  const findings: TechnicalFinding[] = [];
+  if (result.status !== "success" || !result.metrics) return findings;
+  
+  const m = result.metrics;
+  
+  if (m.lcpStatus === "poor") {
+    findings.push({
+      type: "cwv",
+      severity: "critical",
+      title: "Slow Largest Contentful Paint (LCP)",
+      summary: `LCP is ${m.lcp?.toFixed(2) || "unknown"}s (target: <2.5s). This directly impacts Core Web Vitals ranking factor.`,
+      evidence: { lcp: m.lcp, lcpStatus: m.lcpStatus, slowUrls: m.slowUrls },
+      recommendedActions: [
+        "Optimize largest image (compress, use modern formats)",
+        "Implement lazy loading for below-fold images",
+        "Reduce server response time (TTFB)",
+        "Preload critical resources",
+        "Use a CDN for static assets",
+      ],
+      source: "core_web_vitals",
+    });
+  } else if (m.lcpStatus === "needs_improvement") {
+    findings.push({
+      type: "cwv",
+      severity: "medium",
+      title: "LCP Needs Improvement",
+      summary: `LCP is ${m.lcp?.toFixed(2) || "unknown"}s (target: <2.5s).`,
+      evidence: { lcp: m.lcp, lcpStatus: m.lcpStatus },
+      recommendedActions: ["Optimize hero images", "Preload critical resources"],
+      source: "core_web_vitals",
+    });
+  }
+  
+  if (m.clsStatus === "poor") {
+    findings.push({
+      type: "cwv",
+      severity: "high",
+      title: "High Cumulative Layout Shift (CLS)",
+      summary: `CLS is ${m.cls?.toFixed(3) || "unknown"} (target: <0.1). Layout shifts frustrate users.`,
+      evidence: { cls: m.cls, clsStatus: m.clsStatus },
+      recommendedActions: [
+        "Add width/height attributes to images and videos",
+        "Reserve space for dynamic content and ads",
+        "Avoid inserting content above existing content",
+        "Use transform animations instead of layout-triggering properties",
+      ],
+      source: "core_web_vitals",
+    });
+  }
+  
+  if (m.inpStatus === "poor") {
+    findings.push({
+      type: "cwv",
+      severity: "high",
+      title: "Slow Interaction to Next Paint (INP)",
+      summary: `INP is ${m.inp || "unknown"}ms (target: <200ms). Slow interactivity hurts user experience.`,
+      evidence: { inp: m.inp, inpStatus: m.inpStatus },
+      recommendedActions: [
+        "Break up long JavaScript tasks",
+        "Optimize event handlers",
+        "Use web workers for heavy computation",
+      ],
+      source: "core_web_vitals",
+    });
+  }
+  
+  if (m.score !== undefined && m.score < 50 && findings.length === 0) {
+    findings.push({
+      type: "cwv",
+      severity: m.score < 30 ? "critical" : "high",
+      title: "Low Overall Performance Score",
+      summary: `Performance score is ${m.score}/100. Pages scoring below 50 may see ranking penalties.`,
+      evidence: { score: m.score, lcp: m.lcp, cls: m.cls, inp: m.inp },
+      recommendedActions: ["Optimize images and resources", "Reduce JavaScript execution time"],
+      source: "core_web_vitals",
+    });
+  }
+  
+  return findings;
+}
+
+function normalizeDecayFindings(result: WorkerCallResult, domain: string): TechnicalFinding[] {
+  const findings: TechnicalFinding[] = [];
+  if (result.status !== "success" || !result.metrics) return findings;
+  
+  const m = result.metrics;
+  
+  if (m.decayingPages > 0) {
+    findings.push({
+      type: "decay",
+      severity: m.decayingPages > 5 ? "high" : "medium",
+      title: `${m.decayingPages} Pages Showing Traffic Decay`,
+      summary: `${m.decayingPages} of ${m.pagesAnalyzed || "unknown"} pages are losing organic traffic.`,
+      evidence: { 
+        decayingPages: m.decayingPages, 
+        pagesAnalyzed: m.pagesAnalyzed,
+        decayedPagesList: m.decayedPagesList,
+      },
+      recommendedActions: [
+        "Update statistics and dates to current year",
+        "Add new sections addressing recent developments",
+        "Improve internal linking to/from decaying pages",
+        "Add FAQ sections targeting related questions",
+        "Republish with updated date",
+      ],
+      source: "content_decay",
+    });
+  }
+  
+  return findings;
+}
+
+function generateTechnicalSeoSuggestions(
+  runId: string,
+  siteId: string,
+  findings: TechnicalFinding[],
+  domain: string
+): InsertSeoSuggestion[] {
+  const suggestions: InsertSeoSuggestion[] = [];
+  const timestamp = Date.now();
+  let suggestionIndex = 0;
+  const seenFingerprints = new Map<string, number>();
+  
+  for (const finding of findings) {
+    const fingerprint = createFindingFingerprint(
+      domain,
+      finding.title,
+      finding.evidence.url || finding.evidence.pages?.[0]?.url || null,
+      finding.type
+    );
+    
+    if (seenFingerprints.has(fingerprint)) {
+      const existingIdx = seenFingerprints.get(fingerprint)!;
+      const existing = suggestions[existingIdx];
+      if (existing) {
+        const existingEvidence = existing.evidenceJson as Record<string, any>;
+        existingEvidence.additionalSources = existingEvidence.additionalSources || [];
+        existingEvidence.additionalSources.push(finding.source);
+        existing.sourceWorkers = [...(existing.sourceWorkers || []), finding.source];
+      }
+      continue;
+    }
+    
+    const suggestionId = `sug_tech_${timestamp}_${++suggestionIndex}`;
+    seenFingerprints.set(fingerprint, suggestions.length);
+    
+    const categoryMap: Record<TechnicalFinding["type"], string> = {
+      performance: "technical",
+      cwv: "performance",
+      decay: "content",
+    };
+    
+    const typeMap: Record<TechnicalFinding["type"], string> = {
+      performance: "technical_fix",
+      cwv: "performance_fix",
+      decay: "content_refresh",
+    };
+    
+    suggestions.push({
+      suggestionId,
+      runId,
+      siteId,
+      suggestionType: typeMap[finding.type],
+      title: finding.title,
+      description: finding.summary,
+      severity: finding.severity,
+      category: categoryMap[finding.type],
+      evidenceJson: { ...finding.evidence, fingerprint },
+      actionsJson: finding.recommendedActions,
+      impactedUrls: finding.evidence.pages?.map((p: any) => p.url) || 
+                    finding.evidence.slowUrls?.map((u: any) => u.url) ||
+                    finding.evidence.decayedPagesList?.map((p: any) => p.url),
+      estimatedImpact: finding.severity === "critical" ? "high" : finding.severity === "high" ? "high" : "medium",
+      estimatedEffort: finding.type === "cwv" ? "significant" : "moderate",
+      assignee: finding.type === "decay" ? "Content" : "Dev",
+      sourceWorkers: [finding.source],
+    });
+  }
+  
+  const severityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+  return suggestions.sort((a, b) => {
+    const aOrder = severityOrder[a.severity || "low"] ?? 4;
+    const bOrder = severityOrder[b.severity || "low"] ?? 4;
+    return aOrder - bOrder;
+  });
+}
+
+export function extractTechnicalSeoMetrics(result: TechnicalSeoResult): Record<string, any> {
+  const metrics: Record<string, any> = {
+    status: result.status,
+    findingsCount: result.findings.length,
+    recommendationsCount: result.recommendations.length,
+    errorsCount: result.errors.length,
+    staleSources: result.staleSources,
+  };
+  
+  if (result.metrics.crawl) {
+    metrics.crawl = {
+      pagesChecked: result.metrics.crawl.pagesChecked,
+      errorsFound: result.metrics.crawl.errorsFound,
+      warningsFound: result.metrics.crawl.warningsFound,
+    };
+  }
+  
+  if (result.metrics.vitals) {
+    metrics.vitals = {
+      score: result.metrics.vitals.score,
+      lcp: result.metrics.vitals.lcp,
+      cls: result.metrics.vitals.cls,
+      inp: result.metrics.vitals.inp,
+    };
+  }
+  
+  if (result.metrics.decay) {
+    metrics.decay = {
+      pagesAnalyzed: result.metrics.decay.pagesAnalyzed,
+      decayingPages: result.metrics.decay.decayingPages,
+    };
+  }
+  
+  const findingsBySeverity = { critical: 0, high: 0, medium: 0, low: 0 };
+  for (const f of result.findings) {
+    findingsBySeverity[f.severity]++;
+  }
+  metrics.findingsBySeverity = findingsBySeverity;
+  
+  return metrics;
+}
+
+async function checkStaleSources(siteId: string): Promise<string[]> {
+  const staleSources: string[] = [];
+  const now = Date.now();
+  
+  try {
+    const latestResults = await storage.getLatestSeoWorkerResults(siteId);
+    for (const workerKey of TECHNICAL_SEO_WORKERS) {
+      const result = latestResults.find(r => r.workerKey === workerKey);
+      if (result?.createdAt) {
+        const age = now - new Date(result.createdAt).getTime();
+        if (age > STALE_THRESHOLD_MS) {
+          staleSources.push(workerKey);
+        }
+      } else {
+        staleSources.push(workerKey);
+      }
+    }
+  } catch (err) {
+    logger.warn("TechnicalSeoAgent", "Failed to check stale sources", { error: err });
+  }
+  
+  return staleSources;
+}
+
+export async function runTechnicalSeoAgent(
+  domain: string,
+  context: { siteId: string; runId: string }
+): Promise<TechnicalSeoResult> {
+  const { siteId, runId } = context;
+  const startedAt = new Date();
+  
+  logger.info("TechnicalSeoAgent", "Starting technical SEO agent", { domain, siteId, runId });
+  
+  const staleSources = await checkStaleSources(siteId);
+  
+  const workerConfigs = await Promise.all(
+    TECHNICAL_SEO_WORKERS.map(async (workerKey) => {
+      const mapping = getServiceBySlug(workerKey);
+      if (!mapping) {
+        return { workerKey, mapping: null, config: null };
+      }
+      const config = await resolveWorkerConfig(workerKey, siteId);
+      return { workerKey, mapping, config };
+    })
+  );
+  
+  const callPromises = workerConfigs.map(async ({ workerKey, mapping, config }) => {
+    if (!mapping || !config) {
+      return {
+        workerKey,
+        status: "skipped" as const,
+        durationMs: 0,
+        payload: null,
+        metrics: {},
+        summary: `Worker ${workerKey} not configured`,
+        errorCode: "NO_CONFIG",
+        errorDetail: `No mapping or config found for ${workerKey}`,
+      } as WorkerCallResult;
+    }
+    return callWorker(config, mapping, siteId, runId, domain);
+  });
+  
+  const settledResults = await Promise.allSettled(callPromises);
+  
+  const results: WorkerCallResult[] = [];
+  const errors: { service: string; message: string }[] = [];
+  
+  for (let i = 0; i < settledResults.length; i++) {
+    const settled = settledResults[i];
+    const workerKey = TECHNICAL_SEO_WORKERS[i];
+    
+    if (settled.status === "fulfilled") {
+      results.push(settled.value);
+      if (settled.value.status !== "success") {
+        errors.push({
+          service: workerKey,
+          message: settled.value.errorDetail || settled.value.summary || "Unknown error",
+        });
+      }
+    } else {
+      errors.push({
+        service: workerKey,
+        message: settled.reason?.message || "Promise rejected",
+      });
+      results.push({
+        workerKey,
+        status: "failed",
+        durationMs: 0,
+        payload: null,
+        metrics: {},
+        summary: `Error: ${settled.reason?.message || "Unknown"}`,
+        errorCode: "PROMISE_REJECTED",
+        errorDetail: settled.reason?.message,
+      });
+    }
+  }
+  
+  const crawlResult = results.find(r => r.workerKey === "crawl_render");
+  const vitalsResult = results.find(r => r.workerKey === "core_web_vitals");
+  const decayResult = results.find(r => r.workerKey === "content_decay");
+  
+  const findings: TechnicalFinding[] = [
+    ...(crawlResult ? normalizeCrawlRenderFindings(crawlResult, domain) : []),
+    ...(vitalsResult ? normalizeVitalsFindings(vitalsResult, domain) : []),
+    ...(decayResult ? normalizeDecayFindings(decayResult, domain) : []),
+  ];
+  
+  const recommendations = generateTechnicalSeoSuggestions(runId, siteId, findings, domain);
+  
+  for (const rec of recommendations) {
+    (rec as any).agent = "technical_seo";
+  }
+  
+  const successCount = results.filter(r => r.status === "success").length;
+  const failedCount = results.filter(r => r.status !== "success").length;
+  
+  let status: TechnicalSeoResult["status"];
+  if (successCount === TECHNICAL_SEO_WORKERS.length) {
+    status = "ok";
+  } else if (successCount > 0 && failedCount > 0) {
+    status = "partial";
+  } else {
+    status = "error";
+  }
+  
+  if (staleSources.length > 0 && status === "ok") {
+    status = "stale";
+  }
+  
+  const technicalSeoResult: TechnicalSeoResult = {
+    runId,
+    siteId,
+    status,
+    findings,
+    recommendations,
+    errors,
+    metrics: {
+      crawl: crawlResult?.metrics,
+      vitals: vitalsResult?.metrics,
+      decay: decayResult?.metrics,
+    },
+    lastRunAt: startedAt,
+    staleSources,
+  };
+  
+  if (recommendations.length > 0) {
+    try {
+      await storage.saveSeoSuggestions(recommendations);
+    } catch (err) {
+      logger.error("TechnicalSeoAgent", "Failed to save suggestions", { error: err });
+    }
+  }
+  
+  const workerResultsToSave: InsertSeoWorkerResult[] = results.map(result => ({
+    runId,
+    siteId,
+    workerKey: result.workerKey,
+    status: result.status,
+    payloadJson: result.payload,
+    metricsJson: result.metrics,
+    summaryText: result.summary,
+    errorCode: result.errorCode,
+    errorDetail: result.errorDetail,
+    durationMs: result.durationMs,
+    startedAt,
+    finishedAt: new Date(),
+  }));
+  
+  try {
+    await storage.saveSeoWorkerResults(workerResultsToSave);
+  } catch (err) {
+    logger.error("TechnicalSeoAgent", "Failed to save worker results", { error: err });
+  }
+  
+  logger.info("TechnicalSeoAgent", "Technical SEO agent complete", {
+    runId,
+    status,
+    findingsCount: findings.length,
+    recommendationsCount: recommendations.length,
+    errorsCount: errors.length,
+    durationMs: Date.now() - startedAt.getTime(),
+  });
+  
+  return technicalSeoResult;
 }
