@@ -59,12 +59,68 @@ interface Agent {
   ctaAction: string;
 }
 
-function StatCard({ label, value, subtext }: { label: string; value: string | number; subtext?: string }) {
+function OutcomeCard({ label, value, subtext, highlight }: { label: string; value: string | number; subtext?: string; highlight?: boolean }) {
   return (
-    <div className="glass-strong glow-border rounded-xl p-5">
+    <div className={cn(
+      "glass-strong rounded-xl p-5",
+      highlight ? "glow-border" : "border border-[rgba(17,24,39,0.08)]"
+    )}>
       <p className="text-sm text-[#334155] mb-1">{label}</p>
-      <p className="text-3xl font-bold text-[#0B1220]">{value}</p>
+      <p className="text-4xl font-bold text-[#0B1220]">{value}</p>
       {subtext && <p className="text-xs text-[#334155] mt-1">{subtext}</p>}
+    </div>
+  );
+}
+
+function HealthScoreCard({ label, score, owner, status }: { label: string; score: number; owner: string; status: 'good' | 'warning' | 'danger' }) {
+  const statusColors = {
+    good: 'text-emerald-600 bg-emerald-50 border-emerald-200',
+    warning: 'text-amber-600 bg-amber-50 border-amber-200',
+    danger: 'text-red-600 bg-red-50 border-red-200'
+  };
+  const ringColors = {
+    good: 'stroke-emerald-500',
+    warning: 'stroke-amber-500',
+    danger: 'stroke-red-500'
+  };
+  
+  const circumference = 2 * Math.PI * 18;
+  const strokeDashoffset = circumference - (score / 100) * circumference;
+  
+  return (
+    <div className="glass rounded-xl p-4 flex items-center gap-4">
+      <div className="relative w-12 h-12 shrink-0">
+        <svg className="w-12 h-12 -rotate-90" viewBox="0 0 40 40">
+          <circle cx="20" cy="20" r="18" fill="none" stroke="#e5e7eb" strokeWidth="3" />
+          <circle 
+            cx="20" cy="20" r="18" fill="none" 
+            className={ringColors[status]}
+            strokeWidth="3"
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+          />
+        </svg>
+        <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-[#0B1220]">
+          {score}
+        </span>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-[#0B1220] truncate">{label}</p>
+        <p className="text-xs text-[#334155]">{owner}</p>
+      </div>
+    </div>
+  );
+}
+
+function ActivityCard({ label, value, period }: { label: string; value: number; period: string }) {
+  return (
+    <div className="glass rounded-lg p-3 flex items-center justify-between">
+      <span className="text-sm text-[#334155]">{label}</span>
+      <div className="text-right">
+        <span className="text-lg font-bold text-[#0B1220]">{value}</span>
+        <span className="text-xs text-[#334155] ml-1">{period}</span>
+      </div>
     </div>
   );
 }
@@ -514,23 +570,47 @@ export default function Dashboard() {
   return (
     <DashboardLayout className="dashboard-light">
       <div className="space-y-8 max-w-5xl mx-auto">
-        <header className="space-y-4">
+        <header className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-2xl font-bold text-gray-900">SEO Performance Overview</h1>
+                <h1 className="text-2xl font-bold text-[#0B1220]">SEO Performance Overview</h1>
                 <Badge className="text-xs bg-violet-100 text-violet-800 border-violet-300">Weekly Report</Badge>
               </div>
-              <p className="text-gray-600">Updated weekly · Focused on rankings that drive demand</p>
+              <p className="text-[#334155]">Updated weekly · Rankings are the north star</p>
             </div>
             <SiteSelector />
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatCard label="Keywords Tracked" value={42} />
-            <StatCard label="Ranking in Top 20" value={18} subtext="43% of tracked" />
-            <StatCard label="Improved This Week" value={7} subtext="+12 positions total" />
-            <StatCard label="Declined This Week" value={3} subtext="-8 positions total" />
+          <div className="space-y-4">
+            <div>
+              <p className="text-xs font-semibold text-[#334155] uppercase tracking-wide mb-3">Outcomes</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <OutcomeCard label="Keywords in Top 3" value={8} subtext="Core targets" highlight />
+                <OutcomeCard label="Keywords in Top 10" value={24} subtext="57% of tracked" highlight />
+                <OutcomeCard label="Organic Traffic" value="12.4K" subtext="Last 30 days" />
+                <OutcomeCard label="Conversions" value={147} subtext="Last 30 days" />
+              </div>
+            </div>
+            
+            <div>
+              <p className="text-xs font-semibold text-[#334155] uppercase tracking-wide mb-3">Health Scores</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <HealthScoreCard label="Domain Authority" score={42} owner="Backlinks Agent" status="warning" />
+                <HealthScoreCard label="Technical SEO" score={78} owner="Technical Agent" status="good" />
+                <HealthScoreCard label="Content Coverage" score={61} owner="Competitive Intel" status="warning" />
+                <HealthScoreCard label="AI Readiness" score={85} owner="Atlas Agent" status="good" />
+              </div>
+            </div>
+            
+            <div>
+              <p className="text-xs font-semibold text-[#334155] uppercase tracking-wide mb-3">Activity</p>
+              <div className="grid grid-cols-3 gap-3">
+                <ActivityCard label="Blogs Published" value={4} period="30d" />
+                <ActivityCard label="Pages Optimized" value={12} period="30d" />
+                <ActivityCard label="Fixes Applied" value={23} period="30d" />
+              </div>
+            </div>
           </div>
         </header>
 
