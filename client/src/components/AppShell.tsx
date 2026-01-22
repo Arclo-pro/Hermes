@@ -71,10 +71,8 @@ function SettingsNav({ location, lightMode }: { location: string; lightMode: boo
         className={cn(
           "w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer",
           isSettingsActive 
-            ? "bg-amber-600/20 text-amber-500" 
-            : lightMode 
-              ? "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-              : "text-gray-400 hover:bg-gray-700 hover:text-white"
+            ? "bg-white/20 text-white" 
+            : "text-violet-200 hover:bg-violet-800 hover:text-white"
         )}
         data-testid="nav-link-settings"
       >
@@ -90,7 +88,7 @@ function SettingsNav({ location, lightMode }: { location: string; lightMode: boo
       </button>
       
       {isOpen && (
-        <div className="ml-4 pl-3 border-l border-gray-700/50 space-y-1">
+        <div className="ml-4 pl-3 border-l border-violet-700/50 space-y-1">
           {SETTINGS_ITEMS.map((item) => {
             const isActive = location === item.path || location.startsWith(item.path + "/");
             const Icon = item.icon;
@@ -100,10 +98,8 @@ function SettingsNav({ location, lightMode }: { location: string; lightMode: boo
                   className={cn(
                     "flex items-center space-x-2 px-3 py-1.5 rounded-lg text-sm transition-colors cursor-pointer",
                     isActive 
-                      ? "text-amber-500" 
-                      : lightMode 
-                        ? "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-                        : "text-gray-500 hover:bg-gray-700 hover:text-gray-300"
+                      ? "text-white" 
+                      : "text-violet-300 hover:bg-violet-800 hover:text-white"
                   )}
                   data-testid={`nav-link-settings-${item.label.toLowerCase().replace(" ", "-")}`}
                 >
@@ -174,34 +170,21 @@ export default function AppShell({ children, lightMode = false }: AppShellProps)
     )}>
       <aside className={cn(
         "w-64 border-r flex flex-col",
-        lightMode 
-          ? "bg-white border-gray-200" 
-          : "bg-gray-800 border-gray-700"
+        "bg-violet-900 border-violet-800"
       )}>
-        <div className={cn(
-          "h-16 flex items-center px-4 border-b",
-          lightMode ? "border-gray-200" : "border-gray-700"
-        )}>
+        <div className="h-16 flex items-center px-4 border-b border-violet-800">
           <Link href="/app/dashboard" className="flex items-center">
             <img src={arcloLogo} alt="Arclo" className="h-10 w-auto" />
           </Link>
         </div>
 
         {sites && sites.length > 0 && (
-          <div className={cn(
-            "p-3 border-b",
-            lightMode ? "border-gray-200" : "border-gray-700"
-          )}>
+          <div className="p-3 border-b border-violet-800">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button 
                   variant="outline" 
-                  className={cn(
-                    "w-full justify-between",
-                    lightMode 
-                      ? "bg-gray-100 border-gray-300 text-gray-900 hover:bg-gray-200" 
-                      : "bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
-                  )}
+                  className="w-full justify-between bg-violet-800 border-violet-700 text-white hover:bg-violet-700"
                   data-testid="button-site-selector"
                 >
                   <span className="flex items-center space-x-2 truncate">
@@ -253,10 +236,8 @@ export default function AppShell({ children, lightMode = false }: AppShellProps)
                   className={cn(
                     "flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer",
                     isActive 
-                      ? "bg-amber-600/20 text-amber-500" 
-                      : lightMode 
-                        ? "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                        : "text-gray-400 hover:bg-gray-700 hover:text-white"
+                      ? "bg-white/20 text-white" 
+                      : "text-violet-200 hover:bg-violet-800 hover:text-white"
                   )}
                   data-testid={`nav-link-${item.label.toLowerCase().replace(" ", "-")}`}
                 >
@@ -270,30 +251,16 @@ export default function AppShell({ children, lightMode = false }: AppShellProps)
           <SettingsNav location={location} lightMode={lightMode} />
         </nav>
 
-        <div className={cn(
-          "p-3 border-t",
-          lightMode ? "border-gray-200" : "border-gray-700"
-        )}>
+        <div className="p-3 border-t border-violet-800">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button 
                 variant="ghost" 
-                className={cn(
-                  "w-full justify-start",
-                  lightMode 
-                    ? "text-gray-600 hover:text-gray-900 hover:bg-gray-100" 
-                    : "text-gray-400 hover:text-white hover:bg-gray-700"
-                )}
+                className="w-full justify-start text-violet-200 hover:text-white hover:bg-violet-800"
                 data-testid="button-user-menu"
               >
-                <div className={cn(
-                  "w-8 h-8 rounded-full flex items-center justify-center mr-3",
-                  lightMode ? "bg-gray-200" : "bg-gray-600"
-                )}>
-                  <span className={cn(
-                    "text-sm font-medium",
-                    lightMode ? "text-gray-700" : "text-white"
-                  )}>
+                <div className="w-8 h-8 rounded-full flex items-center justify-center mr-3 bg-violet-700">
+                  <span className="text-sm font-medium text-white">
                     {user?.email?.charAt(0).toUpperCase() || "U"}
                   </span>
                 </div>
