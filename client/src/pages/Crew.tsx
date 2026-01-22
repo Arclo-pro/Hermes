@@ -29,6 +29,26 @@ export default function CrewPage() {
   const search = useSearch();
   const [focusedAgentId, setFocusedAgentId] = useState<string | null>(null);
   const agentRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  
+  const [subscriptions, setSubscriptions] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {};
+    USER_FACING_AGENTS.forEach((serviceId) => {
+      initial[serviceId] = true;
+    });
+    return initial;
+  });
+
+  const handleToggleSubscription = (serviceId: string) => {
+    setSubscriptions((prev) => {
+      const newValue = !prev[serviceId];
+      if (newValue) {
+        console.log(`Subscribed to agent: ${serviceId}`);
+      } else {
+        console.log(`Unsubscribed from agent: ${serviceId}`);
+      }
+      return { ...prev, [serviceId]: newValue };
+    });
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(search);
@@ -65,6 +85,9 @@ export default function CrewPage() {
       };
     });
 
+  const coreAgents = userFacingAgents.filter((a) => a.crew.category === "core");
+  const additionalAgents = userFacingAgents.filter((a) => a.crew.category === "additional");
+
   const avgScore = userFacingAgents.length > 0 
     ? Math.round(userFacingAgents.reduce((sum, a) => sum + a.score, 0) / userFacingAgents.length)
     : 0;
@@ -100,27 +123,62 @@ export default function CrewPage() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-6">
-          {userFacingAgents.map((agent) => (
-            <div 
-              key={agent.serviceId} 
-              id={agent.serviceId}
-              ref={(el) => { agentRefs.current[agent.serviceId] = el; }}
-              className={cn(
-                "transition-all duration-500",
-                focusedAgentId === agent.serviceId && "ring-2 ring-primary ring-offset-2 ring-offset-background rounded-lg animate-pulse"
-              )}
-            >
-              <AgentCard
-                serviceId={agent.serviceId}
-                score={agent.score}
-                lastCheckIn={agent.lastCheckIn}
-                findings={agent.findings}
-                nextSteps={agent.nextSteps}
-                onClick={() => navigate(buildRoute.agent(agent.serviceId))}
-              />
+        <div className="space-y-8">
+          <div>
+            <h2 className="text-xl font-semibold text-slate-900 mb-1">Core Agents</h2>
+            <p className="text-sm text-slate-500 mb-4">These agents are included and active by default.</p>
+            <div className="flex flex-col gap-6">
+              {coreAgents.map((agent) => (
+                <div 
+                  key={agent.serviceId} 
+                  id={agent.serviceId}
+                  ref={(el) => { agentRefs.current[agent.serviceId] = el; }}
+                  className={cn(
+                    "transition-all duration-500",
+                    focusedAgentId === agent.serviceId && "ring-2 ring-primary ring-offset-2 ring-offset-background rounded-lg animate-pulse"
+                  )}
+                >
+                  <AgentCard
+                    serviceId={agent.serviceId}
+                    score={agent.score}
+                    lastCheckIn={agent.lastCheckIn}
+                    findings={agent.findings}
+                    nextSteps={agent.nextSteps}
+                    onClick={() => navigate(buildRoute.agent(agent.serviceId))}
+                  />
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
+
+          <div>
+            <h2 className="text-xl font-semibold text-slate-900 mb-1">Additional Agents</h2>
+            <p className="text-sm text-slate-500 mb-4">Optional agents you can add or remove at any time.</p>
+            <div className="flex flex-col gap-6">
+              {additionalAgents.map((agent) => (
+                <div 
+                  key={agent.serviceId} 
+                  id={agent.serviceId}
+                  ref={(el) => { agentRefs.current[agent.serviceId] = el; }}
+                  className={cn(
+                    "transition-all duration-500",
+                    focusedAgentId === agent.serviceId && "ring-2 ring-primary ring-offset-2 ring-offset-background rounded-lg animate-pulse"
+                  )}
+                >
+                  <AgentCard
+                    serviceId={agent.serviceId}
+                    score={agent.score}
+                    lastCheckIn={agent.lastCheckIn}
+                    findings={agent.findings}
+                    nextSteps={agent.nextSteps}
+                    isSubscribed={subscriptions[agent.serviceId]}
+                    onToggleSubscribe={() => handleToggleSubscription(agent.serviceId)}
+                    onClick={() => navigate(buildRoute.agent(agent.serviceId))}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </DashboardLayout>

@@ -16,6 +16,8 @@ interface AgentCardProps {
   nextSteps?: AgentNextStep[];
   className?: string;
   onClick?: () => void;
+  isSubscribed?: boolean;
+  onToggleSubscribe?: () => void;
 }
 
 const DEFAULT_NEXT_STEPS: AgentNextStep[] = [
@@ -40,7 +42,9 @@ export function AgentCard({
   findings = [],
   nextSteps,
   className, 
-  onClick 
+  onClick,
+  isSubscribed,
+  onToggleSubscribe
 }: AgentCardProps) {
   const { currentSite } = useSiteContext();
   const crew = getCrewMember(serviceId);
@@ -56,10 +60,14 @@ export function AgentCard({
     }
   };
 
+  const showSubscribeButton = onToggleSubscribe !== undefined;
+  const isActive = isSubscribed !== false;
+
   return (
     <Card 
       className={cn(
-        "agent-card relative overflow-hidden transition-all rounded-xl border-l-[3px] bg-white border border-slate-200 shadow-sm text-slate-900",
+        "agent-card relative overflow-hidden transition-all rounded-xl border-l-[3px] border border-slate-200 shadow-sm text-slate-900",
+        isActive ? "bg-white" : "bg-slate-50",
         onClick && "cursor-pointer hover:shadow-md",
         className
       )}
@@ -133,8 +141,28 @@ export function AgentCard({
               {crew.shortDescription && (
                 <p className="text-xs text-slate-600 truncate mt-0.5" style={{ opacity: 1 }}>{crew.shortDescription}</p>
               )}
+              {!isActive && (
+                <p className="text-xs text-slate-500 mt-1" style={{ opacity: 1 }}>Not active</p>
+              )}
             </div>
           </div>
+          {showSubscribeButton && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleSubscribe();
+              }}
+              className={cn(
+                "px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex-shrink-0",
+                isSubscribed
+                  ? "border border-slate-300 text-slate-700 hover:bg-slate-100"
+                  : "bg-purple-600 text-white hover:bg-purple-700"
+              )}
+              data-testid={`button-subscribe-${serviceId}`}
+            >
+              {isSubscribed ? "Unsubscribe" : "Subscribe"}
+            </button>
+          )}
         </div>
       </CardHeader>
 

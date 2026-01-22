@@ -34,6 +34,7 @@ export type CrewMember = {
   endpoints?: { method: string; path: string; auth: "none" | "api_key" }[];
   userFacing?: boolean;
   watchDescription?: string;
+  category?: "core" | "additional";
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -108,6 +109,7 @@ export const AGENTS: Record<string, CrewMember> = {
       { method: "POST", path: "/api/run", auth: "api_key" },
       { method: "POST", path: "/api/learnings/upsert", auth: "api_key" },
     ],
+    category: "additional",
   },
   competitive_snapshot: {
     service_id: "competitive_snapshot",
@@ -133,6 +135,7 @@ export const AGENTS: Record<string, CrewMember> = {
       { method: "POST", path: "/api/run", auth: "api_key" },
       { method: "GET", path: "/api/report/:report_id", auth: "api_key" },
     ],
+    category: "additional",
   },
   crawl_render: {
     service_id: "crawl_render",
@@ -169,6 +172,7 @@ export const AGENTS: Record<string, CrewMember> = {
     watchDescription: "Domain authority and link growth",
     capabilities: ["Link Tracking", "Authority Metrics", "Competitor Comparison"],
     dependencies: ["orchestrator"],
+    category: "additional",
   },
   google_data_connector: {
     service_id: "google_data_connector",
@@ -187,6 +191,7 @@ export const AGENTS: Record<string, CrewMember> = {
     watchDescription: "Website traffic, conversions, and user behavior",
     capabilities: ["GA4 Data", "GSC Data", "Traffic Metrics"],
     dependencies: ["orchestrator"],
+    category: "core",
   },
   vault: {
     service_id: "vault",
@@ -215,6 +220,7 @@ export const AGENTS: Record<string, CrewMember> = {
     watchDescription: "Keyword rankings and SERP positions",
     capabilities: ["Rank Tracking", "SERP Snapshots", "Position Monitoring"],
     dependencies: ["orchestrator"],
+    category: "core",
   },
   core_web_vitals: {
     service_id: "core_web_vitals",
@@ -269,6 +275,7 @@ export const AGENTS: Record<string, CrewMember> = {
     watchDescription: "Blog cadence, quality, and topical coverage",
     capabilities: ["Long-form Writing", "Rewrites", "Quality Scoring", "E-E-A-T Checks"],
     dependencies: ["orchestrator", "seo_kbase"],
+    category: "additional",
   },
   google_ads_connector: {
     service_id: "google_ads_connector",
@@ -287,6 +294,7 @@ export const AGENTS: Record<string, CrewMember> = {
     watchDescription: "Ad spend, conversions, and campaign performance",
     capabilities: ["Ad Strategy", "Copy Testing", "Conversion Optimization"],
     dependencies: ["orchestrator"],
+    category: "additional",
   },
   notifications: {
     service_id: "notifications",
@@ -351,6 +359,7 @@ export const AGENTS: Record<string, CrewMember> = {
       { method: "POST", path: "/api/atlas/run", auth: "api_key" },
       { method: "GET", path: "/api/atlas/outputs/latest", auth: "api_key" },
     ],
+    category: "additional",
   },
   technical_seo: {
     service_id: "technical_seo",
@@ -369,6 +378,7 @@ export const AGENTS: Record<string, CrewMember> = {
     watchDescription: "Technical SEO health, page speed, and content performance",
     capabilities: ["Technical Audit", "Performance Monitoring", "Content Decay Detection"],
     dependencies: ["orchestrator", "google_data_connector"],
+    category: "core",
   },
 };
 
