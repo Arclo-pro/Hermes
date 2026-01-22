@@ -48,6 +48,7 @@ const DASHBOARD_GET_PATHS = [
   "/api/snapshots",
   "/api/popular",
   "/api/scan",
+  "/api/internal",
 ];
 
 // Paths that allow unauthenticated POST access (only basic safe operations)
@@ -70,6 +71,7 @@ const DASHBOARD_POST_PATHS = [
   "/api/achievements",
   "/api/popular",
   "/api/scan",
+  "/api/internal",
 ];
 
 // Paths that allow same-origin POST access (UI actions, protected by origin check)
@@ -187,6 +189,40 @@ export function apiKeyAuth(req: Request, res: Response, next: NextFunction) {
   if (providedKey !== apiKey) {
     logger.warn("API", "Invalid API key", { path: req.path });
     return res.status(403).json({ error: "Invalid API key" });
+  }
+
+  next();
+}
+
+/**
+ * Internal API authentication middleware
+ * Validates X-Internal-API-Key header against ARCLO_INTERNAL_API_KEY env variable
+ * Used for Hermes ↔ SERP Worker bidirectional communication
+ */
+export function internalApiAuth(req: Request, res: Response, next: NextFunction) {
+  const providedKey = req.headers["x-internal-api-key"] as string;
+
+  if (!providedKey) {
+    logger.warn("InternalAPI", "Missing internal API key", { path: req.path, method: req.method });
+    return res.status(401).json({ 
+      error: "Internal API key required",
+      hint: "Provide X-Internal-API-Key header"
+    });
+  }
+
+  const internalKey = process.env.ARCLO_INTERNAL_API_KEY;
+  
+  if (!internalKey) {
+    logger.warn("InternalAPI", "ARCLO_INTERNAL_API_KEY not configured");
+    return res.status(500).json({ 
+      error: "Internal API not configured",
+      hint: "Server internal API key not set"
+    });
+  }
+
+  if (providedKey !== internalKey) {
+    logger.warn("InternalAPI", "Invalid internal API key", { path: req.path });
+    return res.status(403).json({ error: "Invalid internal API key" });
   }
 
   next();

@@ -15,7 +15,7 @@ import { analysisEngine } from "./analysis";
 import { runFullDiagnostic } from "./analysis/orchestrator";
 import { runWorkerOrchestration, getAggregatedDashboardMetrics } from "./workerOrchestrator";
 import { logger } from "./utils/logger";
-import { apiKeyAuth } from "./middleware/apiAuth";
+import { apiKeyAuth, internalApiAuth } from "./middleware/apiAuth";
 import crypto, { randomUUID, scrypt, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 
@@ -54,7 +54,7 @@ import {
   type CrewStatus 
 } from "./services/crewStatus";
 import governanceRoutes from './routes/governance';
-import { generatedSites, siteGenerationJobs, crewFindings, insertAgentActionLogSchema, insertOutcomeEventLogSchema, type InsertAgentActionLog, type InsertOutcomeEventLog } from "@shared/schema";
+import { generatedSites, siteGenerationJobs, crewFindings, insertAgentActionLogSchema, insertOutcomeEventLogSchema, type InsertAgentActionLog, type InsertOutcomeEventLog, seoReports, completedWork, sites, users, seoAgentCompetitors, type InsertSeoReport } from "@shared/schema";
 import { processUnattributedEvents } from "./services/socratesAttribution";
 import { v4 as uuidv4 } from "uuid";
 import { eq } from "drizzle-orm";
@@ -20506,6 +20506,207 @@ Return JSON in this exact format:
   });
 
   app.use('/api', governanceRoutes);
+
+  // ============================================================
+  // Internal API Endpoints (Hermes ↔ SERP Worker Communication)
+  // ============================================================
+
+  /**
+   * GET /api/internal/site/state - Returns site configuration and scan state
+   * Used by SERP Worker to determine site context before processing
+   */
+  app.get("/api/internal/site/state", internalApiAuth, async (req, res) => {
+    try {
+      const domain = req.query.domain as string;
+      
+      if (!domain) {
+        return res.status(400).json({ error: "domain query parameter is required" });
+      }
+
+      // Normalize domain for lookup
+      const normalizedDomain = domain.toLowerCase().replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/$/, '');
+
+      // Find site by domain
+      const siteResults = await db.select().from(sites)
+        .where(sql`LOWER(REPLACE(REPLACE(REPLACE(base_url, 'https://', ''), 'http://', ''), 'www.', '')) LIKE ${`%${normalizedDomain}%`}`)
+        .limit(1);
+      
+      const site = siteResults[0];
+
+      // Find user associated with this site (if any)
+      let user = null;
+      if (site) {
+        const userResults = await db.select().from(users)
+          .where(eq(users.defaultWebsiteId, site.siteId))
+          .limit(1);
+        user = userResults[0];
+      }
+
+      // Get last scan timestamp from seo_reports
+      const lastScanResult = await db.select({ completedAt: seoReports.completedAt })
+        .from(seoReports)
+        .where(sql`LOWER(domain) = ${normalizedDomain}`)
+        .orderBy(sql`completed_at DESC NULLS LAST`)
+        .limit(1);
+
+      const lastScanAt = lastScanResult[0]?.completedAt?.toISOString() || null;
+
+      res.json({
+        domain: normalizedDomain,
+        siteId: site?.siteId || null,
+        hasAccount: !!user,
+        lastScanAt,
+        plan: user?.plan || 'free',
+        addons: user?.addons || {
+          content_growth: false,
+          competitive_intel: false,
+          authority_signals: false,
+        },
+      });
+    } catch (error: any) {
+      logger.error("InternalAPI", "Failed to get site state", { error: error.message });
+      res.status(500).json({ error: "Failed to get site state" });
+    }
+  });
+
+  /**
+   * GET /api/internal/completed - Returns completed work fingerprints for deduplication
+   * Used by SERP Worker to avoid re-processing already completed recommendations
+   */
+  app.get("/api/internal/completed", internalApiAuth, async (req, res) => {
+    try {
+      const domain = req.query.domain as string;
+      
+      if (!domain) {
+        return res.status(400).json({ error: "domain query parameter is required" });
+      }
+
+      const normalizedDomain = domain.toLowerCase().replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/$/, '');
+
+      // Get all fingerprints for this domain
+      const completedResults = await db.select({ fingerprint: completedWork.fingerprint })
+        .from(completedWork)
+        .where(sql`LOWER(domain) = ${normalizedDomain}`);
+
+      const fingerprints = completedResults.map(r => r.fingerprint);
+
+      res.json({ fingerprints });
+    } catch (error: any) {
+      logger.error("InternalAPI", "Failed to get completed work", { error: error.message });
+      res.status(500).json({ error: "Failed to get completed work" });
+    }
+  });
+
+  /**
+   * POST /api/internal/report - Stores a completed report from the worker
+   * Used by SERP Worker to submit scan results back to Hermes
+   */
+  const internalReportSchema = z.object({
+    reportId: z.string(),
+    domain: z.string(),
+    siteId: z.string().optional().nullable(),
+    status: z.enum(["queued", "running", "complete", "failed"]),
+    reportJson: z.any().optional(),
+    errorMessage: z.string().optional().nullable(),
+    email: z.string().optional().nullable(),
+    source: z.string().optional(),
+  });
+
+  app.post("/api/internal/report", internalApiAuth, async (req, res) => {
+    try {
+      const parsed = internalReportSchema.safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({ 
+          error: "Invalid request body",
+          details: parsed.error.errors,
+        });
+      }
+
+      const { reportId, domain, siteId, status, reportJson, errorMessage, email, source } = parsed.data;
+      const normalizedDomain = domain.toLowerCase().replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/$/, '');
+
+      // Upsert the report
+      const existingReport = await db.select().from(seoReports)
+        .where(eq(seoReports.reportId, reportId))
+        .limit(1);
+
+      if (existingReport.length > 0) {
+        // Update existing report
+        await db.update(seoReports)
+          .set({
+            status,
+            reportJson: reportJson || null,
+            errorMessage: errorMessage || null,
+            completedAt: status === "complete" || status === "failed" ? new Date() : null,
+          })
+          .where(eq(seoReports.reportId, reportId));
+      } else {
+        // Insert new report
+        await db.insert(seoReports).values({
+          reportId,
+          domain: normalizedDomain,
+          siteId: siteId || normalizedDomain,
+          email: email || null,
+          status,
+          reportJson: reportJson || null,
+          errorMessage: errorMessage || null,
+          source: source || 'free_report',
+          completedAt: status === "complete" || status === "failed" ? new Date() : null,
+        });
+      }
+
+      logger.info("InternalAPI", "Report stored", { reportId, domain: normalizedDomain, status });
+
+      res.json({ success: true, reportId });
+    } catch (error: any) {
+      logger.error("InternalAPI", "Failed to store report", { error: error.message });
+      res.status(500).json({ error: "Failed to store report" });
+    }
+  });
+
+  /**
+   * GET /api/internal/authority/:domain - Get authority data for a domain
+   * Returns backlink metrics if available from external authority APIs
+   */
+  app.get("/api/internal/authority/:domain", internalApiAuth, async (req, res) => {
+    try {
+      const { domain } = req.params;
+      
+      if (!domain) {
+        return res.status(400).json({ error: "domain parameter is required" });
+      }
+
+      const normalizedDomain = domain.toLowerCase().replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/$/, '');
+
+      // Try to get authority data from seo_agent_competitors or other sources
+      const competitorData = await db.select()
+        .from(seoAgentCompetitors)
+        .where(sql`LOWER(domain) = ${normalizedDomain}`)
+        .limit(1);
+
+      if (competitorData.length > 0) {
+        const data = competitorData[0];
+        res.json({
+          domain: normalizedDomain,
+          backlinks: data.backlinks || null,
+          referringDomains: data.referringDomains || null,
+          domainRating: data.domainRating || null,
+        });
+      } else {
+        // No authority data available
+        res.json({
+          domain: normalizedDomain,
+          backlinks: null,
+          referringDomains: null,
+          domainRating: null,
+        });
+      }
+    } catch (error: any) {
+      logger.error("InternalAPI", "Failed to get authority data", { error: error.message });
+      res.status(500).json({ error: "Failed to get authority data" });
+    }
+  });
 
   return httpServer;
 }
