@@ -99,47 +99,41 @@ function OutcomeCard({ label, value, subtext, delta, deltaType, tint }: {
   );
 }
 
-function HealthScoreCard({ label, score, owner, status, tint }: { 
+function HealthScoreCard({ label, score, owner }: { 
   label: string; 
   score: number; 
   owner: string; 
-  status: 'good' | 'warning' | 'danger';
-  tint: 'purple' | 'teal' | 'amber' | 'indigo';
 }) {
-  const tintClasses = {
-    'purple': 'bg-purple-500/10',
-    'teal': 'bg-teal-500/10',
-    'amber': 'bg-amber-500/10',
-    'indigo': 'bg-indigo-500/10'
-  };
-  const ringColors = {
-    good: 'stroke-emerald-500',
-    warning: 'stroke-amber-500',
-    danger: 'stroke-red-500'
+  const getScoreColor = (s: number) => {
+    if (s >= 80) return { stroke: '#10b981', text: 'text-emerald-600' };
+    if (s >= 70) return { stroke: '#22c55e', text: 'text-green-600' };
+    if (s >= 60) return { stroke: '#84cc16', text: 'text-lime-600' };
+    if (s >= 50) return { stroke: '#eab308', text: 'text-yellow-600' };
+    if (s >= 40) return { stroke: '#f97316', text: 'text-orange-600' };
+    if (s >= 30) return { stroke: '#ef4444', text: 'text-red-500' };
+    return { stroke: '#dc2626', text: 'text-red-600' };
   };
   
+  const colors = getScoreColor(score);
   const circumference = 2 * Math.PI * 18;
   const strokeDashoffset = circumference - (score / 100) * circumference;
   
   return (
-    <div className={cn(
-      "rounded-xl p-4 border border-gray-200/40 shadow-sm flex items-center gap-4 relative overflow-hidden",
-      tintClasses[tint]
-    )}>
-      <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
+    <div className="bg-white rounded-xl p-4 border border-gray-200/40 shadow-sm flex items-center gap-4 relative overflow-hidden">
+      <div className="absolute inset-x-0 top-0 h-px bg-gray-100" />
       <div className="relative w-12 h-12 shrink-0">
         <svg className="w-12 h-12 -rotate-90" viewBox="0 0 40 40">
-          <circle cx="20" cy="20" r="18" fill="none" stroke="rgba(0,0,0,0.1)" strokeWidth="3" />
+          <circle cx="20" cy="20" r="18" fill="none" stroke="#f3f4f6" strokeWidth="3" />
           <circle 
             cx="20" cy="20" r="18" fill="none" 
-            className={ringColors[status]}
+            stroke={colors.stroke}
             strokeWidth="3"
             strokeDasharray={circumference}
             strokeDashoffset={strokeDashoffset}
             strokeLinecap="round"
           />
         </svg>
-        <span className="absolute inset-0 flex items-center justify-center text-base font-bold text-gray-900">
+        <span className={cn("absolute inset-0 flex items-center justify-center text-base font-bold", colors.text)}>
           {score}
         </span>
       </div>
@@ -641,10 +635,10 @@ export default function Dashboard() {
             <div>
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Health Scores</p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <HealthScoreCard label="Domain Authority" score={42} owner="Backlinks Agent" status="warning" tint="purple" />
-                <HealthScoreCard label="Technical SEO" score={78} owner="Technical Agent" status="good" tint="teal" />
-                <HealthScoreCard label="Content Coverage" score={61} owner="Competitive Intel" status="warning" tint="amber" />
-                <HealthScoreCard label="AI Readiness" score={85} owner="Atlas Agent" status="good" tint="indigo" />
+                <HealthScoreCard label="Domain Authority" score={42} owner="Backlinks Agent" />
+                <HealthScoreCard label="Technical SEO" score={78} owner="Technical Agent" />
+                <HealthScoreCard label="Content Coverage" score={61} owner="Competitive Intel" />
+                <HealthScoreCard label="AI Readiness" score={85} owner="Atlas Agent" />
               </div>
             </div>
             
