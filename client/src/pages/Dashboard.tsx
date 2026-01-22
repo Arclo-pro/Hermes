@@ -715,13 +715,18 @@ function HowItWorksSection() {
 }
 
 export default function Dashboard() {
-  const { siteId, siteDomain } = useSiteContext();
+  const { siteId, siteDomain, selectedSite } = useSiteContext();
   const [, navigate] = useLocation();
   
   const { data: dashboardData, isLoading } = useQuery({
     queryKey: ["/api/dashboard", siteId],
     enabled: !!siteId,
   });
+
+  const integrations = selectedSite?.integrations || {};
+  const hasGa4 = !!integrations.ga4?.property_id;
+  const hasGsc = !!integrations.gsc?.property;
+  const hasCrawler = integrations.crawler?.enabled ?? false;
 
   const mockImprovingKeywords: RankingItem[] = [
     { keyword: "seo audit tool", position: 7, change: 4 },
@@ -867,38 +872,46 @@ export default function Dashboard() {
                 <DataCard 
                   title="Authority" 
                   value={42} 
-                  status="active"
+                  status="locked"
+                  statusLabel="Locked"
                   description="Domain strength" 
+                  ctaText="Subscribe"
                   tint="amber"
                   onClick={() => navigate(ROUTES.AGENTS)}
                 />
                 <DataCard 
                   title="Keywords" 
-                  value={95} 
-                  status="active"
-                  delta="+12" 
-                  deltaType="positive" 
-                  description="Total tracked" 
+                  value={hasGsc ? 95 : "—"} 
+                  status={hasGsc ? "active" : "setup_required"}
+                  statusLabel={hasGsc ? undefined : "Requires setup"}
+                  delta={hasGsc ? "+12" : undefined}
+                  deltaType={hasGsc ? "positive" : undefined}
+                  description={hasGsc ? "Total tracked" : "Connect Search Console"} 
+                  ctaText={hasGsc ? undefined : "Connect"}
                   tint="purple"
-                  onClick={() => navigate("/app/settings/integrations")}
+                  onClick={() => navigate("/app/settings/integrations#gsc")}
                 />
                 <DataCard 
                   title="Top 20" 
-                  value={39} 
-                  status="active"
-                  delta="+5" 
-                  deltaType="positive" 
-                  description="Ranking positions" 
+                  value={hasGsc ? 39 : "—"} 
+                  status={hasGsc ? "active" : "setup_required"}
+                  statusLabel={hasGsc ? undefined : "Requires setup"}
+                  delta={hasGsc ? "+5" : undefined}
+                  deltaType={hasGsc ? "positive" : undefined}
+                  description={hasGsc ? "Ranking positions" : "Connect Search Console"} 
+                  ctaText={hasGsc ? undefined : "Connect"}
                   tint="blue"
-                  onClick={() => navigate("/app/settings/integrations")}
+                  onClick={() => navigate("/app/settings/integrations#gsc")}
                 />
                 <DataCard 
                   title="Not Ranked" 
-                  value={12} 
-                  status="active"
-                  description="Missing from top 100" 
+                  value={hasGsc ? 12 : "—"} 
+                  status={hasGsc ? "active" : "setup_required"}
+                  statusLabel={hasGsc ? undefined : "Requires setup"}
+                  description={hasGsc ? "Missing from top 100" : "Connect Search Console"} 
+                  ctaText={hasGsc ? undefined : "Connect"}
                   tint="red"
-                  onClick={() => navigate(ROUTES.AGENTS)}
+                  onClick={() => navigate("/app/settings/integrations#gsc")}
                 />
               </div>
             </div>

@@ -93,5 +93,13 @@ export function useSiteContext() {
   if (context === undefined) {
     throw new Error('useSiteContext must be used within a SiteProvider');
   }
-  return context;
+  
+  const siteId = context.selectedSite?.siteId || null;
+  const siteDomain = context.selectedSite?.baseUrl?.replace(/^https?:\/\//, '').replace(/\/$/, '') || null;
+  
+  return {
+    ...context,
+    siteId,
+    siteDomain,
+  };
 }

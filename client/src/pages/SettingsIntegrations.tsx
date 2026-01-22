@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,8 +9,10 @@ import { Label } from "@/components/ui/label";
 import { BarChart3, Search, Globe, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { useSiteContext } from "@/hooks/useSiteContext";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
 interface IntegrationBlockProps {
+  id?: string;
   title: string;
   description: string;
   icon: React.ReactNode;
@@ -18,9 +20,9 @@ interface IntegrationBlockProps {
   children: React.ReactNode;
 }
 
-function IntegrationBlock({ title, description, icon, isConnected, children }: IntegrationBlockProps) {
+function IntegrationBlock({ id, title, description, icon, isConnected, children }: IntegrationBlockProps) {
   return (
-    <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
+    <Card id={id} className="bg-white rounded-xl border border-gray-200 shadow-sm scroll-mt-8">
       <CardHeader className="pb-4">
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-3">
@@ -58,20 +60,34 @@ function IntegrationBlock({ title, description, icon, isConnected, children }: I
 }
 
 export default function SettingsIntegrations() {
-  const { siteDomain } = useSiteContext();
+  const { siteDomain, selectedSite } = useSiteContext();
   const { toast } = useToast();
   
-  const [ga4PropertyId, setGa4PropertyId] = useState("");
-  const [ga4Connected, setGa4Connected] = useState(false);
+  const integrations = selectedSite?.integrations || {};
+  
+  const [ga4PropertyId, setGa4PropertyId] = useState(integrations.ga4?.property_id || "");
+  const [ga4Connected, setGa4Connected] = useState(!!integrations.ga4?.property_id);
   const [ga4Saving, setGa4Saving] = useState(false);
   
-  const [gscSiteUrl, setGscSiteUrl] = useState("");
-  const [gscConnected, setGscConnected] = useState(false);
+  const [gscSiteUrl, setGscSiteUrl] = useState(integrations.gsc?.property || "");
+  const [gscConnected, setGscConnected] = useState(!!integrations.gsc?.property);
   const [gscSaving, setGscSaving] = useState(false);
   
-  const [crawlerEnabled, setCrawlerEnabled] = useState(false);
+  const [crawlerEnabled, setCrawlerEnabled] = useState(integrations.crawler?.enabled ?? false);
   const [crawlerUrl, setCrawlerUrl] = useState(siteDomain ? `https://${siteDomain}` : "");
   const [crawlerTesting, setCrawlerTesting] = useState(false);
+
+  useEffect(() => {
+    const hash = window.location.hash.slice(1);
+    if (hash) {
+      const element = document.getElementById(hash);
+      if (element) {
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+      }
+    }
+  }, []);
 
   const handleSaveGa4 = async () => {
     if (!ga4PropertyId.trim()) {
@@ -118,6 +134,7 @@ export default function SettingsIntegrations() {
 
         <div className="space-y-6">
           <IntegrationBlock
+            id="ga4"
             title="Google Analytics (GA4)"
             description="Connect to see traffic and conversion data"
             icon={<BarChart3 className="w-5 h-5 text-orange-600" />}
@@ -161,6 +178,7 @@ export default function SettingsIntegrations() {
           </IntegrationBlock>
 
           <IntegrationBlock
+            id="gsc"
             title="Google Search Console"
             description="Connect to see ranking and indexing data"
             icon={<Search className="w-5 h-5 text-blue-600" />}
@@ -204,6 +222,7 @@ export default function SettingsIntegrations() {
           </IntegrationBlock>
 
           <IntegrationBlock
+            id="crawler"
             title="Technical Crawler"
             description="Enable automated technical SEO audits"
             icon={<Globe className="w-5 h-5 text-emerald-600" />}
