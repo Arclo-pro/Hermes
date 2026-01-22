@@ -24,6 +24,9 @@ import {
   Play,
   MousePointer,
   UserMinus,
+  Eye,
+  Sun,
+  Users,
   LucideIcon
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -112,36 +115,32 @@ function OutcomeCard({ label, value, subtext, delta, deltaType, tint }: {
 
 function CostMetricCard({ title, value, tint, isEstimate, icon: Icon }: { 
   title: string; 
-  value: number; 
+  value: number | string; 
   tint: 'red' | 'orange' | 'amber' | 'violet';
   isEstimate?: boolean;
   icon: LucideIcon;
 }) {
   const tintStyles = {
-    'red': { bg: 'bg-red-50', text: 'text-red-600', labelText: 'text-red-700', border: 'border-red-200', iconText: 'text-red-500' },
-    'orange': { bg: 'bg-orange-50', text: 'text-orange-600', labelText: 'text-orange-700', border: 'border-orange-200', iconText: 'text-orange-500' },
-    'amber': { bg: 'bg-amber-50', text: 'text-amber-600', labelText: 'text-amber-700', border: 'border-amber-200', iconText: 'text-amber-500' },
-    'violet': { bg: 'bg-violet-50', text: 'text-violet-600', labelText: 'text-violet-700', border: 'border-violet-200', iconText: 'text-violet-500' }
+    'red': { bg: 'bg-red-50', text: 'text-red-600', labelText: 'text-gray-500', border: 'border-red-100', iconText: 'text-red-400' },
+    'orange': { bg: 'bg-orange-50', text: 'text-orange-600', labelText: 'text-gray-500', border: 'border-orange-100', iconText: 'text-orange-400' },
+    'amber': { bg: 'bg-amber-50', text: 'text-amber-600', labelText: 'text-gray-500', border: 'border-amber-100', iconText: 'text-amber-400' },
+    'violet': { bg: 'bg-violet-50', text: 'text-violet-600', labelText: 'text-gray-500', border: 'border-violet-100', iconText: 'text-violet-400' }
   };
   
   const style = tintStyles[tint];
+  const displayValue = typeof value === 'number' ? value.toLocaleString() : value;
   
   return (
     <div className={cn(
-      "rounded-xl p-4 border shadow-sm relative overflow-hidden",
+      "rounded-2xl p-5 border shadow-sm",
       style.bg,
       style.border
     )}>
-      <Icon className={cn("w-[18px] h-[18px] opacity-70 mb-2", style.iconText)} />
-      <div className="flex items-center gap-1 mb-1">
-        <p className={cn("text-xs font-medium", style.labelText)}>{title}</p>
-        {isEstimate && (
-          <span className="text-[10px] text-gray-400">(Est.)</span>
-        )}
-      </div>
-      <p className={cn("text-3xl font-bold", style.text)}>
-        {value.toLocaleString()}
+      <Icon className={cn("w-5 h-5 opacity-70 mb-3", style.iconText)} />
+      <p className={cn("text-3xl font-bold mb-1", style.text)}>
+        {displayValue}
       </p>
+      <p className={cn("text-sm", style.labelText)}>{title}</p>
     </div>
   );
 }
@@ -832,24 +831,24 @@ export default function Dashboard() {
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Cost of Inaction</p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <CostMetricCard 
-                  title="Traffic at risk / mo" 
+                  title="Traffic at risk/mo" 
                   value={1255} 
                   tint="red"
-                  icon={TrendingDown}
+                  icon={Eye}
                   isEstimate
                 />
                 <CostMetricCard 
-                  title="Clicks lost / mo" 
-                  value={3840} 
-                  tint="orange"
-                  icon={MousePointer}
-                  isEstimate
-                />
-                <CostMetricCard 
-                  title="Leads missed / mo" 
-                  value={96} 
+                  title="Clicks lost/mo" 
+                  value={502} 
                   tint="amber"
-                  icon={UserMinus}
+                  icon={Sun}
+                  isEstimate
+                />
+                <CostMetricCard 
+                  title="Leads missed/mo" 
+                  value="19-50" 
+                  tint="orange"
+                  icon={Users}
                   isEstimate
                 />
                 <CostMetricCard 
