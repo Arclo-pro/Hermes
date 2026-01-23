@@ -71,8 +71,8 @@ function SettingsNav({ location, lightMode }: { location: string; lightMode: boo
         className={cn(
           "w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer",
           isSettingsActive 
-            ? "bg-slate-800 text-white" 
-            : "text-slate-300 hover:bg-slate-800 hover:text-white"
+            ? "bg-sidebar-primary text-sidebar-primary-foreground" 
+            : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
         )}
         data-testid="nav-link-settings"
       >
@@ -88,7 +88,7 @@ function SettingsNav({ location, lightMode }: { location: string; lightMode: boo
       </button>
       
       {isOpen && (
-        <div className="ml-4 pl-3 border-l border-slate-700 space-y-1">
+        <div className="ml-4 pl-3 border-l border-sidebar-border space-y-1">
           {SETTINGS_ITEMS.map((item) => {
             const isActive = location === item.path || location.startsWith(item.path + "/");
             const Icon = item.icon;
@@ -98,8 +98,8 @@ function SettingsNav({ location, lightMode }: { location: string; lightMode: boo
                   className={cn(
                     "flex items-center space-x-2 px-3 py-1.5 rounded-lg text-sm transition-colors cursor-pointer",
                     isActive 
-                      ? "text-white bg-slate-800" 
-                      : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                      ? "text-sidebar-primary-foreground bg-sidebar-primary" 
+                      : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                   )}
                   data-testid={`nav-link-settings-${item.label.toLowerCase().replace(" ", "-")}`}
                 >
@@ -170,21 +170,21 @@ export default function AppShell({ children, lightMode = false }: AppShellProps)
     )}>
       <aside className={cn(
         "w-64 border-r flex flex-col",
-        "bg-slate-900 border-slate-800"
+        "bg-sidebar border-sidebar-border"
       )}>
-        <div className="h-16 flex items-center px-4 border-b border-slate-800">
+        <div className="h-16 flex items-center px-4 border-b border-sidebar-border">
           <Link href="/app/dashboard" className="flex items-center">
             <img src={arcloLogo} alt="Arclo" className="h-10 w-auto" />
           </Link>
         </div>
 
         {sites && sites.length > 0 && (
-          <div className="p-3 border-b border-slate-800">
+          <div className="p-3 border-b border-sidebar-border">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button 
                   variant="outline" 
-                  className="w-full justify-between bg-slate-800 border-slate-700 text-white hover:bg-slate-700"
+                  className="w-full justify-between bg-sidebar-accent border-sidebar-border text-sidebar-foreground hover:bg-sidebar-accent/80"
                   data-testid="button-site-selector"
                 >
                   <span className="flex items-center space-x-2 truncate">
@@ -236,8 +236,8 @@ export default function AppShell({ children, lightMode = false }: AppShellProps)
                   className={cn(
                     "flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer",
                     isActive 
-                      ? "bg-slate-800 text-white" 
-                      : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                      ? "bg-sidebar-primary text-sidebar-primary-foreground" 
+                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                   )}
                   data-testid={`nav-link-${item.label.toLowerCase().replace(" ", "-")}`}
                 >
@@ -251,15 +251,15 @@ export default function AppShell({ children, lightMode = false }: AppShellProps)
           <SettingsNav location={location} lightMode={lightMode} />
         </nav>
 
-        <div className="p-3 border-t border-slate-800">
+        <div className="p-3 border-t border-sidebar-border">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button 
                 variant="ghost" 
-                className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-800"
+                className="w-full justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                 data-testid="button-user-menu"
               >
-                <div className="w-8 h-8 rounded-full flex items-center justify-center mr-3 bg-slate-700">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center mr-3 bg-sidebar-accent">
                   <span className="text-sm font-medium text-white">
                     {user?.email?.charAt(0).toUpperCase() || "U"}
                   </span>
