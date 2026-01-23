@@ -29,11 +29,21 @@ html, body {
 }
 
 .arclo-nav{
+  position: sticky;
+  top: 0;
+  z-index: 50;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 18px 0;
+  height: 72px;
+  padding: 0 24px;
+  margin: 0 -24px;
+  background: rgba(255,255,255,0.82);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(15,23,42,0.08);
+  box-shadow: 0 8px 24px rgba(15,23,42,0.05);
 }
 
 .arclo-nav-left{
@@ -96,8 +106,12 @@ html, body {
 
 .arclo-btn-primary{
   background: var(--arclo-gradient-primary);
+  background-clip: padding-box;
+  -webkit-background-clip: padding-box;
   color: var(--arclo-btn-text);
   box-shadow: var(--arclo-btn-shadow);
+  border: none;
+  outline: none;
 }
 
 .arclo-btn-primary:hover{ filter: brightness(1.02); transform: translateY(-1px); }
