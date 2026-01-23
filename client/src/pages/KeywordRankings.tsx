@@ -73,7 +73,7 @@ function getPositionBadge(position: number | null) {
   }
   if (position <= 3) {
     return (
-      <Badge className="bg-slate-400 text-black flex items-center gap-1">
+      <Badge className="bg-secondary text-foreground flex items-center gap-1">
         <Trophy className="h-3 w-3" />
         {position}
       </Badge>
@@ -81,7 +81,7 @@ function getPositionBadge(position: number | null) {
   }
   if (position <= 10) {
     return (
-      <Badge className="bg-amber-600 text-white flex items-center gap-1">
+      <Badge className="bg-gold text-foreground flex items-center gap-1">
         <Trophy className="h-3 w-3" />
         {position}
       </Badge>
@@ -191,18 +191,18 @@ export default function KeywordRankings() {
               <div className="text-sm text-muted-foreground">Top 1</div>
             </CardContent>
           </Card>
-          <Card className="bg-gradient-to-br from-slate-400/10 to-slate-500/5 border-slate-400/30">
+          <Card className="bg-gradient-to-br from-muted-foreground/10 to-muted-foreground/5 border-border">
             <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-slate-400 flex items-center gap-1" data-testid="stat-top-3">
+              <div className="text-2xl font-bold text-muted-foreground flex items-center gap-1" data-testid="stat-top-3">
                 <Trophy className="h-4 w-4" />
                 {data?.summary.inTop3 ?? '-'}
               </div>
               <div className="text-sm text-muted-foreground">Top 3</div>
             </CardContent>
           </Card>
-          <Card className="bg-gradient-to-br from-amber-600/10 to-amber-700/5 border-amber-600/30">
+          <Card className="bg-gradient-to-br from-gold/10 to-gold/5 border-gold-border">
             <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-amber-600 flex items-center gap-1" data-testid="stat-top-10">
+              <div className="text-2xl font-bold text-gold flex items-center gap-1" data-testid="stat-top-10">
                 <Trophy className="h-4 w-4" />
                 {data?.summary.inTop10 ?? '-'}
               </div>

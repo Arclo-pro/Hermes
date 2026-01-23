@@ -66,9 +66,9 @@ export function DataCard({
   const content = (
     <div
       className={cn(
-        "bg-white rounded-xl p-5 border shadow-sm relative overflow-hidden transition-all",
-        isClickable && "cursor-pointer hover:shadow-md hover:border-gray-300",
-        status === "active" ? "border-gray-200" : "border-gray-200"
+        "bg-card rounded-xl p-5 border shadow-sm relative overflow-hidden transition-all",
+        isClickable && "cursor-pointer hover:shadow-md hover:border-border",
+        status === "active" ? "border-border" : "border-border"
       )}
       onClick={onClick}
       data-testid={`datacard-${title.toLowerCase().replace(/\s+/g, "-")}`}
@@ -76,7 +76,7 @@ export function DataCard({
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2">
           {icon && <span className={cn("w-5 h-5", style.accent)}>{icon}</span>}
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-600">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             {title}
           </p>
         </div>
@@ -86,7 +86,7 @@ export function DataCard({
       <div className="flex items-baseline gap-2 mb-1">
         <p className={cn(
           "text-4xl font-bold",
-          showPlaceholder ? "text-gray-400" : "text-gray-900"
+          showPlaceholder ? "text-muted-foreground/60" : "text-foreground"
         )}>
           {showPlaceholder ? "—" : value}
         </p>
@@ -94,9 +94,9 @@ export function DataCard({
           <span
             className={cn(
               "text-sm font-bold",
-              deltaType === "positive" && "text-emerald-600",
-              deltaType === "negative" && "text-red-600",
-              deltaType === "neutral" && "text-gray-500"
+              deltaType === "positive" && "text-success",
+              deltaType === "negative" && "text-danger",
+              deltaType === "neutral" && "text-muted-foreground"
             )}
           >
             {delta}
@@ -105,7 +105,7 @@ export function DataCard({
       </div>
 
       {description && (
-        <p className="text-xs text-gray-500">{description}</p>
+        <p className="text-xs text-muted-foreground">{description}</p>
       )}
 
       {showPlaceholder && ctaText && (
@@ -114,7 +114,7 @@ export function DataCard({
           size="sm"
           className={cn(
             "mt-3 gap-1 text-xs p-0 h-auto font-medium",
-            status === "setup_required" ? "text-amber-600 hover:text-amber-700" : "text-gray-600 hover:text-gray-800"
+            status === "setup_required" ? "text-amber-600 hover:text-amber-700" : "text-muted-foreground hover:text-foreground"
           )}
         >
           {ctaText}
@@ -124,7 +124,7 @@ export function DataCard({
 
       {status === "active" && isClickable && (
         <div className="absolute bottom-3 right-3">
-          <ArrowRight className="w-4 h-4 text-gray-400" />
+          <ArrowRight className="w-4 h-4 text-muted-foreground/60" />
         </div>
       )}
     </div>

@@ -123,11 +123,11 @@ function ProgressRing({ percent, size = 64, strokeWidth = 6, tier }: { percent: 
         <circle
           className={cn(
             "transition-all duration-500",
-            tier === "gold" ? "text-yellow-500" :
-            tier === "silver" ? "text-slate-400" :
-            tier === "platinum" ? "text-cyan-400" :
-            tier === "mythic" ? "text-purple-500" :
-            "text-amber-600"
+            tier === "gold" ? "text-gold" :
+            tier === "silver" ? "text-muted-foreground/60" :
+            tier === "platinum" ? "text-info" :
+            tier === "mythic" ? "text-brand" :
+            "text-gold"
           )}
           strokeWidth={strokeWidth}
           strokeDasharray={circumference}
@@ -471,7 +471,7 @@ export default function Achievements() {
               </div>
               <div className="p-4 rounded-lg bg-muted/50">
                 <h4 className="font-semibold mb-2 flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-emerald-500" />
+                  <Zap className="w-4 h-4 text-success" />
                   Automatic Updates
                 </h4>
                 <p className="text-sm text-muted-foreground">

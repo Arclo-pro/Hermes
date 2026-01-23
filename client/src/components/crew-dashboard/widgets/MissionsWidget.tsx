@@ -205,7 +205,7 @@ function MissionRow({
               mission.action?.onClick();
             }}
             disabled={mission.action.disabled}
-            className="bg-emerald-600 hover:bg-emerald-700"
+            className="bg-semantic-success hover:bg-semantic-success/90"
             data-testid={`button-mission-${mission.id}-action`}
           >
             {mission.action.label}
@@ -236,7 +236,7 @@ function MissionRow({
             type="button"
             variant="default"
             size="sm"
-            className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white shadow-sm"
+            className="bg-semantic-success hover:bg-semantic-success/90 text-white shadow-sm"
             onClick={(e) => {
               e.preventDefault();
               onAction?.("approve");

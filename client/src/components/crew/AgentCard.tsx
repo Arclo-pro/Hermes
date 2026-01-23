@@ -29,7 +29,7 @@ const DEFAULT_NEXT_STEPS: AgentNextStep[] = [
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5" style={{ opacity: 1 }}>
+    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5" style={{ opacity: 1 }}>
       {children}
     </p>
   );
@@ -69,8 +69,8 @@ export function AgentCard({
   return (
     <Card 
       className={cn(
-        "agent-card relative overflow-hidden transition-all rounded-xl border-l-[3px] border border-slate-200 shadow-sm text-slate-900",
-        isActive ? "bg-white" : "bg-slate-50",
+        "agent-card relative overflow-hidden transition-all rounded-xl border-l-[3px] border border-border shadow-sm text-foreground",
+        isActive ? "bg-card" : "bg-muted",
         onClick && !showUnlockOverlay && "cursor-pointer hover:shadow-md",
         className
       )}
@@ -98,7 +98,7 @@ export function AgentCard({
             )}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
-                <h3 className="font-medium text-base leading-tight text-slate-900">
+                <h3 className="font-medium text-base leading-tight text-foreground">
                   {crew.nickname}
                 </h3>
                 {crew.tooltipInfo && (
@@ -140,12 +140,12 @@ export function AgentCard({
                   </TooltipProvider>
                 )}
               </div>
-              <p className="text-xs text-slate-700" style={{ opacity: 1 }}>{crew.role}</p>
+              <p className="text-xs text-foreground" style={{ opacity: 1 }}>{crew.role}</p>
               {crew.shortDescription && (
-                <p className="text-xs text-slate-600 truncate mt-0.5" style={{ opacity: 1 }}>{crew.shortDescription}</p>
+                <p className="text-xs text-muted-foreground truncate mt-0.5" style={{ opacity: 1 }}>{crew.shortDescription}</p>
               )}
               {!isActive && (
-                <p className="text-xs text-slate-500 mt-1" style={{ opacity: 1 }}>Not active</p>
+                <p className="text-xs text-muted-foreground mt-1" style={{ opacity: 1 }}>Not active</p>
               )}
             </div>
           </div>
@@ -158,8 +158,8 @@ export function AgentCard({
               className={cn(
                 "px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex-shrink-0",
                 isSubscribed
-                  ? "border border-slate-300 text-slate-700 hover:bg-slate-100"
-                  : "bg-purple-600 text-white hover:bg-purple-700"
+                  ? "border border-border text-foreground hover:bg-muted"
+                  : "bg-primary text-primary-foreground hover:bg-primary/90"
               )}
               data-testid={`button-subscribe-${serviceId}`}
             >
@@ -173,7 +173,7 @@ export function AgentCard({
         {crew.watchDescription && (
           <div className="mb-4">
             <SectionLabel>What I watch</SectionLabel>
-            <p className="text-sm text-slate-700" style={{ opacity: 1 }}>{crew.watchDescription}</p>
+            <p className="text-sm text-foreground" style={{ opacity: 1 }}>{crew.watchDescription}</p>
           </div>
         )}
 
@@ -184,19 +184,19 @@ export function AgentCard({
               <div className="space-y-1.5">
                 {displayFindings.map((finding, i) => (
                   <div key={i} className="flex justify-between items-baseline gap-2">
-                    <span className="text-sm text-slate-600" style={{ opacity: 1 }}>{finding.label}</span>
-                    <span className="text-sm font-medium text-slate-900 tabular-nums" style={{ opacity: 1 }}>{finding.value}</span>
+                    <span className="text-sm text-muted-foreground" style={{ opacity: 1 }}>{finding.label}</span>
+                    <span className="text-sm font-medium text-foreground tabular-nums" style={{ opacity: 1 }}>{finding.value}</span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-slate-500 italic" style={{ opacity: 1 }}>No data yet</p>
+              <p className="text-sm text-muted-foreground italic" style={{ opacity: 1 }}>No data yet</p>
             )}
           </div>
 
           <div>
             <SectionLabel>Last checked</SectionLabel>
-            <p className="text-sm text-slate-700 mb-4" style={{ opacity: 1 }}>{lastCheckIn || "Never"}</p>
+            <p className="text-sm text-foreground mb-4" style={{ opacity: 1 }}>{lastCheckIn || "Never"}</p>
 
             <SectionLabel>Next steps</SectionLabel>
             <ol className="space-y-1.5">
@@ -208,7 +208,7 @@ export function AgentCard({
                   >
                     {step.step}
                   </span>
-                  <span className="text-sm text-slate-700 leading-snug" style={{ opacity: 1 }}>{step.action}</span>
+                  <span className="text-sm text-foreground leading-snug" style={{ opacity: 1 }}>{step.action}</span>
                 </li>
               ))}
             </ol>

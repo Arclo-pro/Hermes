@@ -332,28 +332,28 @@ export default function SiteDetail() {
             <CardContent>
               {!geoScope.scope || geoScope.scope === 'national' ? (
                 geoScope.scope === 'national' ? (
-                  <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-lg border border-slate-200">
-                    <Globe className="w-5 h-5 text-slate-600" />
+                  <div className="flex items-center gap-3 p-4 bg-muted rounded-lg border border-border">
+                    <Globe className="w-5 h-5 text-muted-foreground" />
                     <div>
-                      <p className="font-medium text-slate-900">National</p>
-                      <p className="text-sm text-slate-600">Keyword rankings evaluated nationally</p>
+                      <p className="font-medium text-foreground">National</p>
+                      <p className="text-sm text-muted-foreground">Keyword rankings evaluated nationally</p>
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-3 p-4 bg-amber-50 rounded-lg border border-amber-200">
-                    <AlertTriangle className="w-5 h-5 text-amber-600" />
+                  <div className="flex items-center gap-3 p-4 bg-gold-soft rounded-lg border border-warning">
+                    <AlertTriangle className="w-5 h-5 text-gold" />
                     <div>
-                      <p className="font-medium text-amber-900">Not configured</p>
-                      <p className="text-sm text-amber-700">Configure geographic scope to enable SERP analysis</p>
+                      <p className="font-medium text-foreground">Not configured</p>
+                      <p className="text-sm text-gold">Configure geographic scope to enable SERP analysis</p>
                     </div>
                   </div>
                 )
               ) : (
-                <div className="flex items-center gap-3 p-4 bg-violet-50 rounded-lg border border-violet-200">
-                  <MapPin className="w-5 h-5 text-violet-600" />
+                <div className="flex items-center gap-3 p-4 bg-brand-soft rounded-lg border border-primary">
+                  <MapPin className="w-5 h-5 text-brand" />
                   <div>
-                    <p className="font-medium text-violet-900">Local</p>
-                    <p className="text-sm text-violet-700">
+                    <p className="font-medium text-foreground">Local</p>
+                    <p className="text-sm text-brand">
                       {[geoScope.city, geoScope.state, geoScope.country].filter(Boolean).join(', ')}
                     </p>
                   </div>
@@ -542,7 +542,7 @@ export default function SiteDetail() {
               onChange={setPendingGeoScope}
             />
             {geoScopeError && (
-              <div className="flex items-center gap-2 p-3 bg-red-50 rounded-lg border border-red-200 text-red-700" data-testid="geo-scope-error">
+              <div className="flex items-center gap-2 p-3 bg-danger-soft rounded-lg border border-danger text-danger" data-testid="geo-scope-error">
                 <AlertTriangle className="w-4 h-4 flex-shrink-0" />
                 <p className="text-sm">{geoScopeError}</p>
               </div>

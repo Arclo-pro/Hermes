@@ -101,25 +101,25 @@ function AgentRow({ serviceId, siteId, isSubscribed = true }: AgentRowProps) {
     : "";
 
   const freshnessConfig = {
-    fresh: { label: "Fresh", className: "bg-emerald-100 text-emerald-700" },
-    stale: { label: "Stale", className: "bg-amber-100 text-amber-700" },
-    error: { label: "Error", className: "bg-red-100 text-red-700" },
-    degraded: { label: degradedLabel, className: "bg-orange-100 text-orange-700" },
+    fresh: { label: "Fresh", className: "bg-semantic-success-soft text-semantic-success" },
+    stale: { label: "Stale", className: "bg-gold-soft text-gold" },
+    error: { label: "Error", className: "bg-semantic-danger-soft text-semantic-danger" },
+    degraded: { label: degradedLabel, className: "bg-semantic-warning-soft text-semantic-warning" },
   };
 
   const statusConfig = {
-    "Active": { icon: CheckCircle, className: "text-emerald-600" },
-    "Locked": { icon: Lock, className: "text-amber-600" },
-    "Not Configured": { icon: AlertTriangle, className: "text-slate-500" },
-    "Degraded": { icon: AlertTriangle, className: "text-orange-600" },
+    "Active": { icon: CheckCircle, className: "text-semantic-success" },
+    "Locked": { icon: Lock, className: "text-gold" },
+    "Not Configured": { icon: AlertTriangle, className: "text-muted-foreground" },
+    "Degraded": { icon: AlertTriangle, className: "text-semantic-warning" },
   };
 
   const StatusIcon = statusConfig[status as keyof typeof statusConfig]?.icon || Clock;
-  const statusClassName = statusConfig[status as keyof typeof statusConfig]?.className || "text-slate-500";
+  const statusClassName = statusConfig[status as keyof typeof statusConfig]?.className || "text-muted-foreground";
 
   if (isLoading) {
     return (
-      <tr className="border-b border-slate-100" data-testid={`row-agent-${serviceId}`}>
+      <tr className="border-b border-border" data-testid={`row-agent-${serviceId}`}>
         <td className="py-3 px-4">
           <div className="flex items-center gap-3">
             {crew.avatar ? (
@@ -130,13 +130,13 @@ function AgentRow({ serviceId, siteId, isSubscribed = true }: AgentRowProps) {
               </div>
             )}
             <div>
-              <span className="font-medium text-slate-900">{crew.nickname}</span>
-              <p className="text-xs text-slate-500">{crew.role}</p>
+              <span className="font-medium text-foreground">{crew.nickname}</span>
+              <p className="text-xs text-muted-foreground">{crew.role}</p>
             </div>
           </div>
         </td>
         <td colSpan={5} className="py-3 px-4 text-center">
-          <Loader2 className="w-4 h-4 animate-spin text-slate-400 mx-auto" />
+          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground mx-auto" />
         </td>
       </tr>
     );
@@ -144,7 +144,7 @@ function AgentRow({ serviceId, siteId, isSubscribed = true }: AgentRowProps) {
 
   if (isError) {
     return (
-      <tr className="border-b border-slate-100" data-testid={`row-agent-${serviceId}`}>
+      <tr className="border-b border-border" data-testid={`row-agent-${serviceId}`}>
         <td className="py-3 px-4">
           <div className="flex items-center gap-3">
             {crew.avatar ? (
@@ -155,22 +155,22 @@ function AgentRow({ serviceId, siteId, isSubscribed = true }: AgentRowProps) {
               </div>
             )}
             <div>
-              <span className="font-medium text-slate-900">{crew.nickname}</span>
-              <p className="text-xs text-slate-500">{crew.role}</p>
+              <span className="font-medium text-foreground">{crew.nickname}</span>
+              <p className="text-xs text-muted-foreground">{crew.role}</p>
             </div>
           </div>
         </td>
         <td className="py-3 px-4">
           <div className="flex items-center gap-1.5">
-            <XCircle className="w-4 h-4 text-red-500" />
-            <span className="text-sm text-red-600">Error</span>
+            <XCircle className="w-4 h-4 text-semantic-danger" />
+            <span className="text-sm text-semantic-danger">Error</span>
           </div>
         </td>
-        <td className="py-3 px-4 text-sm text-slate-500">—</td>
+        <td className="py-3 px-4 text-sm text-muted-foreground">—</td>
         <td className="py-3 px-4">
-          <Badge className="bg-red-100 text-red-700">Error</Badge>
+          <Badge className="bg-semantic-danger-soft text-semantic-danger">Error</Badge>
         </td>
-        <td className="py-3 px-4 text-sm text-slate-500">—</td>
+        <td className="py-3 px-4 text-sm text-muted-foreground">—</td>
         <td className="py-3 px-4">
           <Button
             variant="ghost"
@@ -188,7 +188,7 @@ function AgentRow({ serviceId, siteId, isSubscribed = true }: AgentRowProps) {
   }
 
   return (
-    <tr className="border-b border-slate-100 hover:bg-slate-50" data-testid={`row-agent-${serviceId}`}>
+    <tr className="border-b border-border hover:bg-muted/50" data-testid={`row-agent-${serviceId}`}>
       <td className="py-3 px-4">
         <div className="flex items-center gap-3">
           {crew.avatar ? (
@@ -199,19 +199,19 @@ function AgentRow({ serviceId, siteId, isSubscribed = true }: AgentRowProps) {
             </div>
           )}
           <div>
-            <span className="font-medium text-slate-900">{crew.nickname}</span>
-            <p className="text-xs text-slate-500">{crew.role}</p>
+            <span className="font-medium text-foreground">{crew.nickname}</span>
+            <p className="text-xs text-muted-foreground">{crew.role}</p>
           </div>
         </div>
       </td>
       <td className="py-3 px-4">
         <div className="flex items-center gap-1.5">
           <StatusIcon className={cn("w-4 h-4", statusClassName)} />
-          <span className="text-sm text-slate-700">{status}</span>
+          <span className="text-sm text-foreground">{status}</span>
         </div>
       </td>
       <td className="py-3 px-4">
-        <span className="text-sm text-slate-600">{lastRun}</span>
+        <span className="text-sm text-muted-foreground">{lastRun}</span>
       </td>
       <td className="py-3 px-4">
         <Badge className={freshnessConfig[freshness].className}>
@@ -219,7 +219,7 @@ function AgentRow({ serviceId, siteId, isSubscribed = true }: AgentRowProps) {
         </Badge>
       </td>
       <td className="py-3 px-4">
-        <span className="text-sm text-slate-600">{outputSummary}</span>
+        <span className="text-sm text-muted-foreground">{outputSummary}</span>
       </td>
       <td className="py-3 px-4">
         <Button
@@ -246,13 +246,13 @@ export function AgentCoveragePanel({ subscriptions = {} }: AgentCoveragePanelPro
 
   if (siteLoading) {
     return (
-      <Card className="bg-white border-slate-200" data-testid="panel-agent-coverage">
+      <Card className="bg-card border-border" data-testid="panel-agent-coverage">
         <CardHeader>
-          <CardTitle className="text-lg text-slate-900">Agent Coverage Status</CardTitle>
-          <p className="text-sm text-slate-500">Internal debugging surface for agent health</p>
+          <CardTitle className="text-lg text-foreground">Agent Coverage Status</CardTitle>
+          <p className="text-sm text-muted-foreground">Internal debugging surface for agent health</p>
         </CardHeader>
         <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
         </CardContent>
       </Card>
     );
@@ -260,35 +260,35 @@ export function AgentCoveragePanel({ subscriptions = {} }: AgentCoveragePanelPro
 
   if (!siteId) {
     return (
-      <Card className="bg-white border-slate-200" data-testid="panel-agent-coverage">
+      <Card className="bg-card border-border" data-testid="panel-agent-coverage">
         <CardHeader>
-          <CardTitle className="text-lg text-slate-900">Agent Coverage Status</CardTitle>
-          <p className="text-sm text-slate-500">Internal debugging surface for agent health</p>
+          <CardTitle className="text-lg text-foreground">Agent Coverage Status</CardTitle>
+          <p className="text-sm text-muted-foreground">Internal debugging surface for agent health</p>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-slate-500 text-center py-4">No site selected</p>
+          <p className="text-sm text-muted-foreground text-center py-4">No site selected</p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="bg-white border-slate-200" data-testid="panel-agent-coverage">
+    <Card className="bg-card border-border" data-testid="panel-agent-coverage">
       <CardHeader>
-        <CardTitle className="text-lg text-slate-900">Agent Coverage Status</CardTitle>
-        <p className="text-sm text-slate-500">Internal debugging surface for agent health</p>
+        <CardTitle className="text-lg text-foreground">Agent Coverage Status</CardTitle>
+        <p className="text-sm text-muted-foreground">Internal debugging surface for agent health</p>
       </CardHeader>
       <CardContent className="px-0 pb-0">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[700px]">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50">
-                <th className="text-left py-2 px-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">Agent</th>
-                <th className="text-left py-2 px-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">Status</th>
-                <th className="text-left py-2 px-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">Last Run</th>
-                <th className="text-left py-2 px-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">Freshness</th>
-                <th className="text-left py-2 px-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">Outputs</th>
-                <th className="text-left py-2 px-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">Actions</th>
+              <tr className="border-b border-border bg-muted">
+                <th className="text-left py-2 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Agent</th>
+                <th className="text-left py-2 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
+                <th className="text-left py-2 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Last Run</th>
+                <th className="text-left py-2 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Freshness</th>
+                <th className="text-left py-2 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Outputs</th>
+                <th className="text-left py-2 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody>

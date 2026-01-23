@@ -14,10 +14,10 @@ interface CrewFeedProps {
 }
 
 const LEVEL_STYLES: Record<string, string> = {
-  success: "border-l-green-500",
-  warning: "border-l-yellow-500",
-  error: "border-l-red-500",
-  info: "border-l-blue-500",
+  success: "border-l-semantic-success",
+  warning: "border-l-semantic-warning",
+  error: "border-l-semantic-danger",
+  info: "border-l-semantic-info",
 };
 
 export function CrewFeed({ limit = 10, compact = false, className }: CrewFeedProps) {
@@ -57,7 +57,7 @@ export function CrewFeed({ limit = 10, compact = false, className }: CrewFeedPro
               key={event.id}
               className={cn(
                 "flex items-center gap-2 py-1 px-2 rounded border-l-2",
-                LEVEL_STYLES[event.level] || "border-l-gray-300"
+                LEVEL_STYLES[event.level] || "border-l-border"
               )}
             >
               <CrewBadge serviceId={event.service_id} size="sm" />
@@ -92,7 +92,7 @@ export function CrewFeed({ limit = 10, compact = false, className }: CrewFeedPro
                   key={event.id}
                   className={cn(
                     "flex items-start gap-3 p-2 rounded-lg border-l-4 bg-muted/30",
-                    LEVEL_STYLES[event.level] || "border-l-gray-300"
+                    LEVEL_STYLES[event.level] || "border-l-border"
                   )}
                 >
                   <CrewBadge serviceId={event.service_id} size="md" />

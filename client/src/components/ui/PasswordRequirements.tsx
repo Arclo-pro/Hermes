@@ -32,12 +32,12 @@ export function PasswordRequirements({ password, className }: PasswordRequiremen
 
   if (!hasStartedTyping) {
     return (
-      <div className={cn("text-xs text-gray-500 space-y-1", className)}>
+      <div className={cn("text-xs text-muted-foreground space-y-1", className)}>
         <p className="font-medium mb-1">Password requirements:</p>
-        <ul className="space-y-0.5 text-gray-400">
+        <ul className="space-y-0.5 text-muted-foreground/60">
           {requirements.map((req, idx) => (
             <li key={idx} className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-full border border-gray-300" />
+              <span className="w-3 h-3 rounded-full border border-border" />
               <span>{req.label}</span>
             </li>
           ))}
@@ -48,14 +48,14 @@ export function PasswordRequirements({ password, className }: PasswordRequiremen
 
   return (
     <div className={cn("text-xs space-y-1", className)}>
-      <p className="font-medium text-gray-600 mb-1">Password requirements:</p>
+      <p className="font-medium text-muted-foreground mb-1">Password requirements:</p>
       <ul className="space-y-0.5">
         {requirements.map((req, idx) => (
           <li 
             key={idx} 
             className={cn(
               "flex items-center gap-1.5 transition-colors",
-              req.met ? "text-emerald-600" : "text-gray-400"
+              req.met ? "text-success" : "text-muted-foreground/60"
             )}
           >
             {req.met ? (

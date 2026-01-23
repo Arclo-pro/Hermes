@@ -93,20 +93,20 @@ interface KPITileProps {
 
 function KPITile({ label, value, change, changeType = "neutral", icon: Icon }: KPITileProps) {
   const changeColors = {
-    positive: "text-green-600",
-    negative: "text-red-600",
-    neutral: "text-slate-500",
+    positive: "text-success",
+    negative: "text-danger",
+    neutral: "text-muted-foreground",
   };
 
   return (
-    <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-lg border border-slate-100">
+    <div className="flex items-center gap-3 p-4 bg-muted rounded-lg border border-border">
       <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-100 via-pink-100 to-amber-50 flex items-center justify-center">
         <Icon className="w-5 h-5 text-violet-600" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-slate-500 truncate">{label}</p>
+        <p className="text-sm text-muted-foreground truncate">{label}</p>
         <div className="flex items-baseline gap-2">
-          <span className="text-xl font-semibold text-slate-900">{value}</span>
+          <span className="text-xl font-semibold text-foreground">{value}</span>
           {change && (
             <span className={`text-sm font-medium ${changeColors[changeType]}`}>
               {change}
@@ -125,14 +125,14 @@ interface ActivityLogProps {
 
 export function ActivityLog({ activities = SAMPLE_ACTIVITIES, showKPIs = true }: ActivityLogProps) {
   return (
-    <Card className="border-slate-200">
+    <Card className="border-border">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+          <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
             <RefreshCw className="w-5 h-5 text-violet-500" />
             Activity Log
           </CardTitle>
-          <span className="text-xs text-slate-400">What Arclo has done</span>
+          <span className="text-xs text-muted-foreground/60">What Arclo has done</span>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -170,7 +170,7 @@ export function ActivityLog({ activities = SAMPLE_ACTIVITIES, showKPIs = true }:
             return (
               <div
                 key={activity.id}
-                className="flex items-start gap-3 p-3 rounded-lg border border-slate-100 hover:bg-slate-50 transition-colors"
+                className="flex items-start gap-3 p-3 rounded-lg border border-border hover:bg-muted transition-colors"
                 data-testid={`activity-item-${activity.id}`}
               >
                 <div className={`w-8 h-8 rounded-lg ${config.bgColor} flex items-center justify-center shrink-0`}>
@@ -181,13 +181,13 @@ export function ActivityLog({ activities = SAMPLE_ACTIVITIES, showKPIs = true }:
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${config.bgColor} ${config.textColor}`}>
                       {config.label}
                     </span>
-                    <span className="text-xs text-slate-400 flex items-center gap-1">
+                    <span className="text-xs text-muted-foreground/60 flex items-center gap-1">
                       <Clock className="w-3 h-3" />
                       {formatDistanceToNow(activity.timestamp, { addSuffix: true })}
                     </span>
                   </div>
-                  <p className="text-sm font-medium text-slate-900">{activity.action}</p>
-                  <p className="text-sm text-slate-500 truncate">{activity.description}</p>
+                  <p className="text-sm font-medium text-foreground">{activity.action}</p>
+                  <p className="text-sm text-muted-foreground truncate">{activity.description}</p>
                 </div>
                 {activity.link && (
                   <button className="text-violet-600 hover:text-violet-700 p-1" data-testid={`activity-link-${activity.id}`}>

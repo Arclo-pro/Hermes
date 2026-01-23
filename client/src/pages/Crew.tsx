@@ -98,36 +98,36 @@ export default function CrewPage() {
     <DashboardLayout className="dashboard-light">
       <div className="space-y-6" data-testid="agents-page">
         <div>
-          <h1 className="text-3xl font-semibold text-slate-900 flex items-center gap-3">
-            <Bot className="w-8 h-8 text-violet-600" />
+          <h1 className="text-3xl font-semibold text-foreground flex items-center gap-3">
+            <Bot className="w-8 h-8 text-brand" />
             Agents
           </h1>
-          <p className="text-slate-600 mt-1">
+          <p className="text-muted-foreground mt-1">
             Your hired specialists analyzing and improving your site
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-6 text-sm">
           <div className="flex items-center gap-2">
-            <span className="text-slate-600">Active Agents:</span>
-            <Badge variant="secondary" className="bg-slate-100 text-slate-700">{userFacingAgents.length}</Badge>
+            <span className="text-muted-foreground">Active Agents:</span>
+            <Badge variant="secondary" className="bg-secondary text-foreground">{userFacingAgents.length}</Badge>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-slate-600">Avg Score:</span>
-            <Badge className={avgScore >= 70 ? "bg-emerald-100 text-emerald-700" : avgScore >= 40 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"}>
+            <span className="text-muted-foreground">Avg Score:</span>
+            <Badge className={avgScore >= 70 ? "bg-success-soft text-success" : avgScore >= 40 ? "bg-gold-soft text-gold" : "bg-danger-soft text-danger"}>
               {avgScore}
             </Badge>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-slate-600">Needs Attention:</span>
-            <Badge className="bg-amber-100 text-amber-700">{needsAttention}</Badge>
+            <span className="text-muted-foreground">Needs Attention:</span>
+            <Badge className="bg-gold-soft text-gold">{needsAttention}</Badge>
           </div>
         </div>
 
         <div className="space-y-8">
           <div>
-            <h2 className="text-xl font-semibold text-slate-900 mb-1">Core Agents</h2>
-            <p className="text-sm text-slate-500 mb-4">These agents are included and active by default.</p>
+            <h2 className="text-xl font-semibold text-foreground mb-1">Core Agents</h2>
+            <p className="text-sm text-muted-foreground mb-4">These agents are included and active by default.</p>
             <div className="flex flex-col gap-6">
               {coreAgents.map((agent) => (
                 <div 
@@ -153,8 +153,8 @@ export default function CrewPage() {
           </div>
 
           <div>
-            <h2 className="text-xl font-semibold text-slate-900 mb-1">Additional Agents</h2>
-            <p className="text-sm text-slate-500 mb-4">Optional agents you can add or remove at any time.</p>
+            <h2 className="text-xl font-semibold text-foreground mb-1">Additional Agents</h2>
+            <p className="text-sm text-muted-foreground mb-4">Optional agents you can add or remove at any time.</p>
             <div className="flex flex-col gap-6">
               {additionalAgents.map((agent) => (
                 <div 
