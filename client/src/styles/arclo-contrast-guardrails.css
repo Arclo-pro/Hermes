@@ -1,28 +1,105 @@
 /* src/styles/arclo-contrast-guardrails.css
-   Drop-in guardrails to prevent washed-out UI.
-   Safe: does NOT change layout, only contrast and accidental opacity.
+   Drop-in guardrails scoped to dashboard-light theme.
+   Prevents washed-out text and ensures PRD-compliant contrast.
 */
 
-:root {
+/* Scope all guardrails to dashboard-light only */
+.dashboard-light {
   --arclo-text-primary: #0F172A;
   --arclo-text-secondary: #475569;
 }
 
-body {
+.dashboard-light,
+.dashboard-light main,
+.dashboard-light .app-main {
   opacity: 1 !important;
   filter: none !important;
 }
 
-main, .app-main, #root {
-  opacity: 1;
-  filter: none;
-}
-
-/* Prevent accidental low-contrast globals */
-h1, h2, h3, h4, h5, h6 {
+/* Ensure text elements maintain proper contrast within dashboard */
+.dashboard-light h1,
+.dashboard-light h2,
+.dashboard-light h3,
+.dashboard-light h4,
+.dashboard-light h5,
+.dashboard-light h6 {
   color: var(--arclo-text-primary);
 }
 
-p, label, small, span {
+.dashboard-light p,
+.dashboard-light label,
+.dashboard-light small,
+.dashboard-light span {
   color: inherit;
+}
+
+/* Prevent accidental blur on content containers */
+.dashboard-light .bg-card,
+.dashboard-light [class*="bg-surface"] {
+  backdrop-filter: none;
+}
+
+/* Force foreground colors to be solid in dashboard context */
+.dashboard-light .text-foreground {
+  color: #0F172A !important;
+}
+
+.dashboard-light .text-muted-foreground {
+  color: #475569 !important;
+}
+
+/* Ensure semantic colors remain crisp */
+.dashboard-light .text-success {
+  color: #22C55E !important;
+}
+
+.dashboard-light .text-danger {
+  color: #EF4444 !important;
+}
+
+.dashboard-light .text-warning {
+  color: #F59E0B !important;
+}
+
+.dashboard-light .text-info {
+  color: #3B82F6 !important;
+}
+
+.dashboard-light .text-brand {
+  color: #7C3AED !important;
+}
+
+/* Ensure borders are visible */
+.dashboard-light .border-border {
+  border-color: #E5E7EB !important;
+}
+
+/* Input text readability */
+.dashboard-light input,
+.dashboard-light textarea,
+.dashboard-light select {
+  color: #0F172A !important;
+  opacity: 1 !important;
+}
+
+.dashboard-light input::placeholder,
+.dashboard-light textarea::placeholder {
+  color: #94A3B8 !important;
+  opacity: 1 !important;
+}
+
+/* Button text stays crisp */
+.dashboard-light button:not(:disabled) {
+  opacity: 1 !important;
+}
+
+.dashboard-light button:disabled {
+  opacity: 0.5 !important;
+}
+
+/* Exception: Allow decorative blur elements (background blobs) */
+.dashboard-light [aria-hidden="true"].blur-3xl,
+.dashboard-light [aria-hidden="true"].blur-2xl,
+.dashboard-light [aria-hidden="true"].blur-xl {
+  filter: blur(64px) !important;
 }

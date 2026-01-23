@@ -36,12 +36,12 @@ export function PageHeader({ title, subtitle, badgeText, rightSlot, highlight }:
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-3xl font-semibold tracking-tight text-text-primary">
+            <h1 className="text-3xl font-semibold tracking-tight text-foreground">
               {renderTitle()}
             </h1>
 
             {badgeText ? (
-              <span className="inline-flex items-center rounded-full bg-surface-primary px-3 py-1 text-xs font-medium text-text-primary shadow-card ring-1 ring-surface-border">
+              <span className="inline-flex items-center rounded-full bg-brand-soft px-3 py-1 text-xs font-medium text-brand shadow-sm ring-1 ring-border">
                 <span className="mr-2 h-2 w-2 rounded-full bg-brand-gradient" />
                 {badgeText}
               </span>
@@ -49,7 +49,7 @@ export function PageHeader({ title, subtitle, badgeText, rightSlot, highlight }:
           </div>
 
           {subtitle ? (
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
               {subtitle}
             </p>
           ) : null}

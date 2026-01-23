@@ -38,13 +38,13 @@ export function StatCard({
     <Card tone={tone === "brand" ? "brand" : "default"}>
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
+          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             {label}
           </div>
-          <div className="mt-2 text-3xl font-semibold tracking-tight text-text-primary">
+          <div className="mt-2 text-3xl font-semibold tracking-tight text-foreground">
             {value}
           </div>
-          {hint ? <div className="mt-1 text-xs text-text-secondary">{hint}</div> : null}
+          {hint ? <div className="mt-1 text-xs text-muted-foreground">{hint}</div> : null}
         </div>
 
         {icon ? (
