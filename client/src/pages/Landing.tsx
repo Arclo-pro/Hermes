@@ -11,6 +11,7 @@ import {
   BottomCTA,
   FounderNote,
 } from "@/components/landing";
+import { Footer } from "@/components/layout/Footer";
 
 export default function Landing() {
   return (
@@ -31,6 +32,7 @@ export default function Landing() {
         <FounderNote />
         <FAQSection />
         <BottomCTA />
+        <Footer />
       </div>
     </>
   );
