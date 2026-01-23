@@ -32,7 +32,7 @@ export function UnlockOverlay({
     <div
       className={cn(
         "absolute inset-0 z-10 flex items-center justify-center",
-        "bg-gradient-to-br from-violet-950/95 via-slate-900/95 to-purple-950/95",
+        "bg-gradient-to-br from-violet-950/95 via-background/95 to-purple-950/95",
         "backdrop-blur-sm rounded-xl border border-violet-500/20",
         className
       )}
@@ -46,7 +46,7 @@ export function UnlockOverlay({
           <Sparkles className="w-4 h-4 text-violet-400" />
           Unlock {feature}
         </h3>
-        <p className="text-sm text-slate-300 mb-4">
+        <p className="text-sm text-muted-foreground mb-4">
           {featureDescription}
         </p>
         <Button

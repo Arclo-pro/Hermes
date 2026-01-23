@@ -28,19 +28,19 @@ export function ConfigureOverlay({
     <div
       className={cn(
         "absolute inset-0 z-10 flex items-center justify-center",
-        "bg-slate-900/90 backdrop-blur-sm rounded-xl",
+        "bg-background/90 backdrop-blur-sm rounded-xl",
         className
       )}
       data-testid={`configure-overlay-${integration.toLowerCase().replace(/\s+/g, '-')}`}
     >
       <div className="text-center px-6 py-4 max-w-xs">
-        <div className="w-12 h-12 rounded-full bg-slate-700/50 flex items-center justify-center mx-auto mb-4">
-          <Settings className="w-6 h-6 text-slate-300" />
+        <div className="w-12 h-12 rounded-full bg-secondary/50 flex items-center justify-center mx-auto mb-4">
+          <Settings className="w-6 h-6 text-muted-foreground" />
         </div>
         <h3 className="text-lg font-semibold text-white mb-2">
           Configure {integration}
         </h3>
-        <p className="text-sm text-slate-300 mb-4">
+        <p className="text-sm text-muted-foreground mb-4">
           {description}
         </p>
         <Button

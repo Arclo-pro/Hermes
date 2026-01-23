@@ -147,11 +147,11 @@ export default function AppShell({ children, lightMode = false }: AppShellProps)
     return (
       <div className={cn(
         "min-h-screen flex items-center justify-center",
-        lightMode ? "bg-gray-50" : "bg-gray-900"
+        lightMode ? "bg-muted" : "bg-background"
       )}>
         <div className="flex flex-col items-center space-y-4">
           <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
-          <p className={lightMode ? "text-gray-600" : "text-gray-400"}>Loading...</p>
+          <p className={lightMode ? "text-muted-foreground" : "text-muted-foreground"}>Loading...</p>
         </div>
       </div>
     );
@@ -166,7 +166,7 @@ export default function AppShell({ children, lightMode = false }: AppShellProps)
   return (
     <div className={cn(
       "min-h-screen flex",
-      lightMode ? "bg-gray-50" : "bg-gray-900"
+      lightMode ? "bg-muted" : "bg-background"
     )}>
       <aside className={cn(
         "w-64 border-r flex flex-col",
@@ -197,8 +197,8 @@ export default function AppShell({ children, lightMode = false }: AppShellProps)
               <DropdownMenuContent className={cn(
                 "w-56",
                 lightMode 
-                  ? "bg-white border-gray-200" 
-                  : "bg-gray-800 border-gray-700"
+                  ? "bg-card border-border" 
+                  : "bg-card border-border"
               )}>
                 {sites.map((site) => (
                   <DropdownMenuItem
@@ -208,12 +208,12 @@ export default function AppShell({ children, lightMode = false }: AppShellProps)
                       "cursor-pointer",
                       lightMode 
                         ? cn(
-                            "text-gray-700 focus:bg-gray-100 focus:text-gray-900",
-                            site.siteId === activeWebsiteId && "bg-gray-100 text-amber-600"
+                            "text-foreground focus:bg-secondary focus:text-foreground",
+                            site.siteId === activeWebsiteId && "bg-secondary text-amber-600"
                           )
                         : cn(
-                            "text-gray-300 focus:bg-gray-700 focus:text-white",
-                            site.siteId === activeWebsiteId && "bg-gray-700 text-amber-500"
+                            "text-foreground/80 focus:bg-secondary focus:text-foreground",
+                            site.siteId === activeWebsiteId && "bg-secondary text-amber-500"
                           )
                     )}
                     data-testid={`menu-item-site-${site.siteId}`}
@@ -270,27 +270,27 @@ export default function AppShell({ children, lightMode = false }: AppShellProps)
             <DropdownMenuContent className={cn(
               "w-56",
               lightMode 
-                ? "bg-white border-gray-200" 
-                : "bg-gray-800 border-gray-700"
+                ? "bg-card border-border" 
+                : "bg-card border-border"
             )}>
               <div className="px-2 py-1.5">
                 <p className={cn(
                   "text-sm",
-                  lightMode ? "text-gray-900" : "text-white"
+                  lightMode ? "text-foreground" : "text-foreground"
                 )}>{user?.display_name || user?.email}</p>
                 <p className={cn(
                   "text-xs capitalize",
-                  lightMode ? "text-gray-500" : "text-gray-400"
+                  lightMode ? "text-muted-foreground" : "text-muted-foreground"
                 )}>{user?.plan || "Free"} Plan</p>
               </div>
-              <DropdownMenuSeparator className={lightMode ? "bg-gray-200" : "bg-gray-700"} />
+              <DropdownMenuSeparator className={lightMode ? "bg-border" : "bg-border"} />
               <DropdownMenuItem 
                 onClick={logout}
                 className={cn(
                   "cursor-pointer text-red-500",
                   lightMode 
-                    ? "focus:bg-gray-100 focus:text-red-600" 
-                    : "focus:bg-gray-700 focus:text-red-300"
+                    ? "focus:bg-secondary focus:text-red-600" 
+                    : "focus:bg-secondary focus:text-red-300"
                 )}
                 data-testid="menu-item-logout"
               >

@@ -133,9 +133,9 @@
   --color-sidebar-ring: #7C3AED;
 
   /* ========================================
-     TYPOGRAPHY
+     TYPOGRAPHY (PRD: Inter font stack)
      ======================================== */
-  --font-sans: 'Plus Jakarta Sans', sans-serif;
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
   --radius: 0.75rem;
 }
