@@ -1,0 +1,392 @@
+/* Arclo Marketing Regression Fix Kit
+   Scope EVERYTHING to .marketing-shell so dashboard/app isn't impacted.
+   Usage:
+   - Add className="marketing-shell" to the landing page root container.
+   - Ensure this file is imported AFTER your existing marketingTheme.css.
+*/
+
+.marketing-shell{
+  --bg: #ffffff;
+  --ink: #0b1220;             /* primary text */
+  --muted: #516071;           /* secondary text */
+  --border: rgba(15, 23, 42, 0.10);
+  --card: rgba(255,255,255,0.86);
+  --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  --shadow-soft: 0 8px 20px rgba(15, 23, 42, 0.06);
+  --grad: linear-gradient(90deg,#7c3aed 0%,#ec4899 45%,#f59e0b 100%);
+  --grad-soft: linear-gradient(90deg, rgba(124,58,237,.18), rgba(236,72,153,.14), rgba(245,158,11,.14));
+  --focus: 0 0 0 4px rgba(124,58,237,.20);
+  
+  /* Tailwind token overrides for light theme */
+  --color-background: #FFFFFF;
+  --color-foreground: #0F172A;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #0F172A;
+  --color-muted: #F9FAFB;
+  --color-muted-foreground: #475569;
+  --color-border: #E5E7EB;
+  --color-secondary: #F9FAFB;
+  --color-secondary-foreground: #0F172A;
+}
+
+/* ===== Page background + section rhythm ===== */
+.marketing-shell{
+  background: radial-gradient(1200px 600px at 10% 20%, rgba(124,58,237,.10), transparent 60%),
+              radial-gradient(1000px 500px at 85% 55%, rgba(236,72,153,.10), transparent 55%),
+              radial-gradient(900px 450px at 70% 10%, rgba(245,158,11,.10), transparent 55%),
+              #fff;
+  color: var(--ink);
+}
+
+.marketing-shell h1,
+.marketing-shell h2,
+.marketing-shell h3{ color: var(--ink); }
+
+.marketing-shell p,
+.marketing-shell .muted{ color: var(--muted); }
+
+/* Remove any accidental global low-contrast overrides */
+.marketing-shell *{ text-shadow: none; }
+
+/* ===== Header / Nav ===== */
+.marketing-shell .marketing-nav{
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(255,255,255,0.78);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+
+.marketing-shell .marketing-nav-inner{
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  max-width: 1200px;
+  margin: 0 auto;
+  gap: 18px;
+}
+
+.marketing-shell .marketing-nav a{
+  color: #172033;
+  opacity: .86;
+  font-weight: 500;
+  text-decoration: none;
+}
+.marketing-shell .marketing-nav a:hover{ opacity: 1; }
+
+/* ===== Buttons ===== */
+.marketing-shell .btn{
+  border-radius: 999px;
+  padding: 12px 16px;
+  font-weight: 700;
+  line-height: 1;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: #121a2b;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+}
+
+.marketing-shell .btn:focus-visible{
+  outline: none;
+  box-shadow: var(--shadow-soft), var(--focus);
+}
+
+.marketing-shell .btn-primary{
+  border: 0;
+  color: #fff;
+  background: var(--grad);
+  box-shadow: 0 14px 30px rgba(124,58,237,.20), 0 10px 22px rgba(236,72,153,.12);
+}
+
+/* Fix “1px purple line” / edge artifact on gradient buttons */
+.marketing-shell .btn-primary{
+  background-clip: padding-box;
+  transform: translateZ(0);
+}
+
+.marketing-shell .btn-secondary{
+  background: #fff;
+  border: 1px solid rgba(124,58,237,.22);
+}
+
+.marketing-shell .btn-ghost{
+  background: rgba(255,255,255,.70);
+  border: 1px solid rgba(15,23,42,.10);
+}
+
+/* Make “Generate” clearly secondary vs “Analyze” */
+.marketing-shell .btn-generate{
+  background: #fff;
+  border: 1px solid rgba(124,58,237,.25);
+  color: #1b2340;
+}
+.marketing-shell .btn-analyze{
+  border: 0;
+  background: var(--grad);
+  color: #fff;
+}
+
+/* ===== Hero spacing (fix “compressed” feel) ===== */
+.marketing-shell .hero{
+  padding: 56px 24px 28px;
+}
+.marketing-shell .hero-inner{
+  max-width: 980px;
+  margin: 0 auto;
+  text-align: center;
+}
+.marketing-shell .hero h1{
+  font-size: clamp(44px, 5vw, 64px);
+  letter-spacing: -0.03em;
+  line-height: 1.03;
+  margin: 18px 0 10px;
+}
+.marketing-shell .hero .subhead{
+  font-size: 18px;
+  color: var(--muted);
+  margin: 0 0 18px;
+  font-weight: 600;
+}
+
+.marketing-shell .hero .grad-word{
+  background: var(--grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Steps line */
+.marketing-shell .hero-steps{
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+  color: #2b3550;
+  font-weight: 600;
+  margin: 10px 0 22px;
+}
+.marketing-shell .step-dot{
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--grad);
+  box-shadow: 0 6px 14px rgba(124,58,237,.18);
+}
+
+/* CTA row */
+.marketing-shell .cta-row{
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.marketing-shell .cta-input{
+  min-width: min(440px, 88vw);
+  height: 52px;
+  padding: 0 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(15,23,42,.16);
+  background: rgba(255,255,255,.92);
+  color: var(--ink);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
+}
+.marketing-shell .cta-input::placeholder{ color: rgba(11,18,32,.45); }
+
+.marketing-shell .cta-micro{
+  margin-top: 10px;
+  font-size: 13px;
+  color: rgba(11,18,32,.62);
+  font-weight: 600;
+}
+
+/* Secondary CTA below */
+.marketing-shell .cta-secondary{
+  margin-top: 14px;
+}
+
+/* ===== Trust badges (fix visibility + unique icons) ===== */
+.marketing-shell .trust-row{
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin: 22px auto 14px;
+  max-width: 1100px;
+  padding: 0 16px;
+}
+
+.marketing-shell .trust-pill{
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.92);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-soft);
+  color: #1a2340;
+  font-weight: 650;
+  font-size: 14px;
+}
+
+.marketing-shell .trust-icon{
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: var(--grad-soft);
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(124,58,237,.18);
+}
+.marketing-shell .trust-icon svg{ color: #3a2a86; }
+
+/* ===== Sections (fix “white on white” / invisible headings) ===== */
+.marketing-shell section{
+  padding: 56px 24px;
+}
+.marketing-shell .section-title{
+  font-size: 32px;
+  letter-spacing: -0.02em;
+  margin: 0 0 10px;
+  color: var(--ink) !important;
+}
+.marketing-shell .section-subtitle{
+  margin: 0 auto 26px;
+  max-width: 760px;
+  color: var(--muted) !important;
+  font-weight: 550;
+}
+
+/* ===== Cards (testimonials, how-it-works, why arclo) ===== */
+.marketing-shell .card{
+  background: rgba(255,255,255,.95);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--shadow-soft);
+  color: var(--ink);
+}
+
+.marketing-shell .card p{ color: #23304a; }
+.marketing-shell .card .meta{ color: rgba(11,18,32,.60); }
+
+/* Testimonials: stronger text + contrast */
+.marketing-shell .testimonial-quote{
+  color: #182241 !important;
+  font-weight: 600;
+}
+.marketing-shell .testimonial-name{
+  color: #111827 !important;
+  font-weight: 700;
+}
+.marketing-shell .testimonial-role{
+  color: rgba(17,24,39,.60) !important;
+}
+
+/* How it works number badges */
+.marketing-shell .step-card-number{
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  background: var(--grad);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  box-shadow: 0 10px 22px rgba(124,58,237,.18);
+}
+
+/* ===== Business chips ===== */
+.marketing-shell .chip{
+  background: rgba(255,255,255,.92);
+  border: 1px solid var(--border);
+  color: #1a2340;
+  box-shadow: var(--shadow-soft);
+}
+.marketing-shell .chip svg{ color: #6d28d9; }
+
+/* ===== Comparison table (“Why Arclo?”) ===== */
+.marketing-shell table{
+  color: #111827;
+}
+.marketing-shell th{
+  color: #111827 !important;
+  font-weight: 800;
+}
+.marketing-shell td{
+  color: rgba(17,24,39,.78) !important;
+}
+.marketing-shell .table-highlight{
+  color: #6d28d9 !important;
+  font-weight: 800;
+}
+
+/* ===== FAQ (fix invisible text) ===== */
+.marketing-shell .faq{
+  max-width: 980px;
+  margin: 0 auto;
+}
+.marketing-shell .faq-item{
+  background: rgba(255,255,255,.95);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+}
+.marketing-shell .faq-q{
+  color: #111827 !important;
+  font-weight: 750;
+}
+.marketing-shell .faq-a{
+  color: rgba(17,24,39,.76) !important;
+}
+
+/* ===== Footer (restore presence) ===== */
+.marketing-shell footer{
+  padding: 56px 24px;
+  border-top: 1px solid var(--border);
+  background: rgba(255,255,255,.88);
+}
+.marketing-shell .footer-title{
+  color: #0b1220 !important;
+  font-size: 32px;
+  letter-spacing: -0.02em;
+  margin: 0 0 8px;
+}
+.marketing-shell .footer-subtitle{
+  color: rgba(11,18,32,.62) !important;
+  margin: 0 0 18px;
+  font-weight: 600;
+}
+
+/* ===== Tailwind utility class overrides ===== */
+.marketing-shell .bg-muted {
+  background-color: #F9FAFB !important;
+}
+
+.marketing-shell .text-foreground {
+  color: #0F172A !important;
+}
+
+.marketing-shell .text-muted-foreground {
+  color: #475569 !important;
+}
+
+.marketing-shell .bg-card {
+  background-color: #FFFFFF !important;
+}
+
+.marketing-shell .border-border {
+  border-color: #E5E7EB !important;
+}
+
+/* Ensure body background is white when marketing-shell is present */
+body:has(.marketing-shell) {
+  background: #FFFFFF !important;
+}

@@ -20,16 +20,18 @@ export default function Landing() {
         title="Arclo – Fully Automated SEO From Audit to Execution"
         description="Arclo replaces SEO agencies and tools by automating diagnosis, prioritization, and deployment. Stop managing SEO. Start running your business."
       />
-      <WhiteHero />
-      <Testimonials />
-      <HowItWorks />
-      <BenefitCards />
-      <IndustriesSection />
-      <ExamplesPreview />
-      <ComparisonSection />
-      <FounderNote />
-      <FAQSection />
-      <BottomCTA />
+      <div className="marketing-shell">
+        <WhiteHero />
+        <Testimonials />
+        <HowItWorks />
+        <BenefitCards />
+        <IndustriesSection />
+        <ExamplesPreview />
+        <ComparisonSection />
+        <FounderNote />
+        <FAQSection />
+        <BottomCTA />
+      </div>
     </>
   );
 }

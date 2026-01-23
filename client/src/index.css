@@ -4,6 +4,7 @@
 @import "./styles/arclo-base.css";
 @import "./styles/marketingTheme.css";
 @import "./styles/arclo-contrast-guardrails.css";
+@import "./styles/arclo-marketing-regression-fix.css";
 
 @custom-variant dark (&:is(.dark *));
 
