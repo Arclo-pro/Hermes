@@ -1,38 +1,152 @@
-/* src/styles/arclo-base.css
-   Global contrast guardrails.
-*/
+/* Arclo Base Styles — White Hero v1 */
 
 html, body {
-  background: rgb(var(--surface-primary));
-  color: rgb(var(--text-primary));
+  background: var(--arclo-bg);
+  color: var(--arclo-text);
+  font-family: var(--arclo-font);
 }
 
-/* Prevent accidental global washout from inherited opacity */
-body {
-  opacity: 1 !important;
-  filter: none !important;
+.arclo-hero-wrap{
+  position: relative;
+  overflow: hidden;
+  background: var(--arclo-bg);
 }
 
-/* Links */
-a {
-  color: rgb(var(--brand-purple));
-}
-a:hover {
-  color: rgb(var(--brand-pink));
-}
-
-/* Selection */
-::selection {
-  background: rgba(var(--brand-pink), 0.20);
+.arclo-hero-glow{
+  position: absolute;
+  inset: -80px -120px -80px -120px;
+  background: var(--arclo-gradient-glow);
+  pointer-events: none;
+  z-index: 0;
 }
 
-/* Ensure form controls inherit readable text */
-input, textarea, select, button {
-  color: inherit;
+.arclo-hero-container{
+  position: relative;
+  z-index: 1;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 72px 24px 40px;
 }
 
-/* If any legacy layer uses CSS variables like --foreground with alpha, override them */
-:root {
-  --foreground: rgb(var(--text-primary));
-  --muted-foreground: rgb(var(--text-secondary));
+.arclo-nav{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 0;
+}
+
+.arclo-nav-left{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 200px;
+}
+
+.arclo-logo{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  text-decoration:none;
+  color: var(--arclo-text);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.arclo-nav-center{
+  display:flex;
+  align-items:center;
+  gap: 26px;
+  color: var(--arclo-text-2);
+  font-weight: 500;
+}
+
+.arclo-nav-center a{
+  color: var(--arclo-link);
+  text-decoration:none;
+}
+
+.arclo-nav-center a:hover{ color: var(--arclo-text); }
+
+.arclo-nav-right{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  min-width: 260px;
+  justify-content: flex-end;
+}
+
+.arclo-btn{
+  height: 42px;
+  padding: 0 16px;
+  border-radius: 14px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap: 10px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  border: 1px solid transparent;
+  cursor: pointer;
+  user-select:none;
+  text-decoration:none;
+  white-space:nowrap;
+  transition: transform .12s ease, filter .12s ease, background .12s ease;
+}
+
+.arclo-btn-primary{
+  background: var(--arclo-gradient-primary);
+  color: var(--arclo-btn-text);
+  box-shadow: var(--arclo-btn-shadow);
+}
+
+.arclo-btn-primary:hover{ filter: brightness(1.02); transform: translateY(-1px); }
+
+.arclo-btn-secondary{
+  background: rgba(255,255,255,.65);
+  border-color: var(--arclo-btn-secondary-border);
+  color: var(--arclo-text);
+  box-shadow: 0 10px 18px rgba(2,6,23,.08);
+}
+
+.arclo-btn-secondary:hover{ background: rgba(255,255,255,.85); transform: translateY(-1px); }
+
+.arclo-pill-row{
+  display:flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 34px;
+}
+
+.arclo-trust-pill{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.72);
+  border: 1px solid rgba(15,23,42,.10);
+  box-shadow: 0 10px 22px rgba(2,6,23,.08);
+  color: var(--arclo-text-2);
+  font-weight: 560;
+}
+
+.arclo-trust-pill .dot{
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--arclo-gradient-primary);
+  box-shadow: 0 0 0 6px rgba(124,58,237,.10);
+}
+
+@media (max-width: 920px){
+  .arclo-nav-center{ display:none; }
+  .arclo-nav-left{ min-width: 0; }
+  .arclo-nav-right{ min-width: 0; }
+}
+
+@media (max-width: 520px){
+  .arclo-btn{ height: 40px; padding: 0 14px; border-radius: 12px; }
+  .arclo-hero-container{ padding-top: 56px; }
 }

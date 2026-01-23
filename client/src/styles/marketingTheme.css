@@ -1,96 +1,135 @@
-/* Marketing Theme - Logo-aligned design tokens */
+/* Arclo Marketing Theme — Hero (White) v1 */
 
-:root {
-  /* Brand gradient colors (violet → pink → amber) */
-  --brand-violet: #8b5cf6;
-  --brand-pink: #ec4899;
-  --brand-amber: #f59e0b;
-  --brand-gradient: linear-gradient(90deg, var(--brand-violet), var(--brand-pink), var(--brand-amber));
-  --brand-gradient-135: linear-gradient(135deg, var(--brand-violet), var(--brand-pink), var(--brand-amber));
-  
-  /* Text colors */
-  --marketing-text: #020617;
-  --marketing-text-heading: #0f172a;
-  --marketing-text-body: #334155;
-  --marketing-text-muted: #64748b;
-  --marketing-text-subtle: #94a3b8;
-  
-  /* Surface colors */
-  --marketing-bg: #ffffff;
-  --marketing-bg-soft: #f8fafc;
-  --marketing-bg-muted: #f1f5f9;
-  
-  /* Border colors */
-  --marketing-border: #e2e8f0;
-  --marketing-border-light: #f1f5f9;
-  
-  /* Shadows */
-  --marketing-shadow-sm: 0 4px 12px rgba(15, 23, 42, 0.06);
-  --marketing-shadow-md: 0 12px 32px rgba(15, 23, 42, 0.08);
-  --marketing-shadow-lg: 0 20px 40px rgba(15, 23, 42, 0.08);
-  --marketing-shadow-xl: 0 24px 48px rgba(15, 23, 42, 0.1);
-  --marketing-shadow-brand: 0 14px 30px rgba(139, 92, 246, 0.20);
-  --marketing-shadow-brand-hover: 0 18px 40px rgba(236, 72, 153, 0.22);
+.arclo-hero{
+  display:flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 62px 0 10px;
 }
 
-/* Marketing theme context - override shadcn defaults for light backgrounds */
-.marketing-theme,
-.marketing-hero-wash {
-  /* Override shadcn Card/text colors for light backgrounds */
-  --color-foreground: #0f172a;
-  --color-card-foreground: #0f172a;
-  --color-popover-foreground: #0f172a;
-  --color-muted-foreground: #64748b;
-  --color-accent-foreground: #0f172a;
-  --color-secondary-foreground: #0f172a;
-  
-  /* Light background surfaces */
-  --color-background: #ffffff;
-  --color-card: #ffffff;
-  --color-popover: #ffffff;
-  --color-muted: #f1f5f9;
-  --color-accent: #f1f5f9;
-  --color-secondary: #f1f5f9;
-  
-  /* Borders for light theme */
-  --color-border: #e2e8f0;
-  --color-input: #e2e8f0;
+.arclo-h1{
+  font-size: clamp(40px, 5.2vw, 64px);
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+  margin: 0;
+  color: var(--arclo-text);
+  font-weight: 820;
 }
 
-/* Hero wash background */
-.marketing-hero-wash {
-  background: 
-    radial-gradient(1200px circle at 10% 0%, rgba(139, 92, 246, 0.06), transparent 40%),
-    radial-gradient(1200px circle at 90% 10%, rgba(236, 72, 153, 0.04), transparent 40%),
-    radial-gradient(800px circle at 50% 80%, rgba(245, 158, 11, 0.03), transparent 40%),
-    #FFFFFF;
-}
-
-/* Gradient text utility */
-.marketing-gradient-text {
-  background: var(--brand-gradient-135);
+.arclo-h1 .emph{
+  background: var(--arclo-gradient-primary);
   -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
   background-clip: text;
+  color: transparent;
 }
 
-/* Card styling */
-.marketing-card {
-  background: linear-gradient(180deg, #FFFFFF, #F8FAFC);
-  border: 1px solid rgba(15, 23, 42, 0.06);
-  box-shadow: var(--marketing-shadow-lg);
-  border-radius: 1rem;
-  transition: transform 200ms ease, box-shadow 200ms ease;
+.arclo-sub{
+  margin-top: 14px;
+  font-size: 18px;
+  line-height: 1.5;
+  max-width: 720px;
+  color: var(--arclo-text-2);
+  font-weight: 520;
 }
 
-.marketing-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--marketing-shadow-xl);
+.arclo-steps{
+  margin-top: 26px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-wrap: wrap;
+  gap: 12px;
+  color: var(--arclo-text-2);
+  font-weight: 560;
 }
 
-/* Icon badge styling (logo gradient tint) */
-.marketing-icon-badge {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(236, 72, 153, 0.08), rgba(245, 158, 11, 0.06));
-  border: 1px solid rgba(139, 92, 246, 0.12);
-  box-shadow: 0 8px 24px rgba(139, 92, 246, 0.12);
+.arclo-steps .step{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+}
+
+.arclo-steps .bullet{
+  width: 8px;
+  height: 8px;
+  border-radius: 99px;
+  background: rgba(11,18,32,.20);
+}
+
+.arclo-steps .bullet.green{ background: var(--arclo-green); box-shadow: 0 0 0 6px rgba(34,197,94,.12); }
+.arclo-steps .bullet.purple{ background: var(--arclo-purple); box-shadow: 0 0 0 6px rgba(124,58,237,.12); }
+.arclo-steps .bullet.orange{ background: var(--arclo-orange); box-shadow: 0 0 0 6px rgba(245,158,11,.12); }
+
+.arclo-steps .arrow{
+  color: rgba(11,18,32,.35);
+  font-weight: 800;
+}
+
+.arclo-cta{
+  margin-top: 28px;
+  width: min(860px, 100%);
+  display:flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.arclo-input{
+  height: 54px;
+  width: min(420px, 100%);
+  border-radius: 16px;
+  border: 1px solid rgba(15,23,42,.18);
+  background: rgba(255,255,255,.9);
+  box-shadow: 0 12px 24px rgba(2,6,23,.08);
+  padding: 0 16px;
+  color: var(--arclo-text);
+  font-size: 16px;
+  outline: none;
+}
+
+.arclo-input::placeholder{ color: rgba(11,18,32,.45); }
+
+.arclo-primary-cta{
+  height: 54px;
+  padding: 0 22px;
+  border-radius: 16px;
+  font-size: 16px;
+}
+
+.arclo-micro{
+  margin-top: 12px;
+  color: var(--arclo-text-3);
+  font-weight: 560;
+}
+
+.arclo-secondary-cta{
+  margin-top: 14px;
+  height: 46px;
+  padding: 0 18px;
+  border-radius: 14px;
+  background: rgba(11,18,32,.04);
+  border: 1px solid rgba(11,18,32,.16);
+  color: rgba(11,18,32,.86);
+  box-shadow: 0 12px 22px rgba(2,6,23,.08);
+}
+
+.arclo-secondary-cta:hover{
+  background: rgba(11,18,32,.06);
+  transform: translateY(-1px);
+}
+
+.arclo-hairline{
+  margin-top: 44px;
+  height: 1px;
+  width: 100%;
+  background: rgba(15,23,42,.08);
+}
+
+@media (max-width: 520px){
+  .arclo-steps{ gap: 10px; }
+  .arclo-cta{ gap: 10px; }
+  .arclo-input{ height: 52px; border-radius: 14px; }
+  .arclo-primary-cta{ height: 52px; border-radius: 14px; width: 100%; }
 }
