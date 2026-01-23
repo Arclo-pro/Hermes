@@ -1,5 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "./styles/arclo-tokens.css";
+@import "./styles/arclo-base.css";
 @import "./styles/marketingTheme.css";
 @import "./styles/arclo-contrast-guardrails.css";
 
