@@ -82,11 +82,11 @@ function OutcomeCard({ label, value, subtext, delta, deltaType, tint }: {
   tint: 'amber' | 'purple' | 'blue' | 'green' | 'red';
 }) {
   const tintStyles = {
-    'amber': { bg: 'bg-amber-100', text: 'text-amber-600', labelText: 'text-amber-700' },
-    'purple': { bg: 'bg-violet-100', text: 'text-violet-600', labelText: 'text-violet-700' },
-    'blue': { bg: 'bg-cyan-100', text: 'text-cyan-600', labelText: 'text-cyan-700' },
-    'green': { bg: 'bg-emerald-100', text: 'text-emerald-600', labelText: 'text-emerald-700' },
-    'red': { bg: 'bg-red-100', text: 'text-red-600', labelText: 'text-red-700' }
+    'amber': { bg: 'bg-gold-soft', text: 'text-gold', labelText: 'text-gold' },
+    'purple': { bg: 'bg-brand-soft', text: 'text-brand', labelText: 'text-brand' },
+    'blue': { bg: 'bg-info-soft', text: 'text-info', labelText: 'text-info' },
+    'green': { bg: 'bg-success-soft', text: 'text-success', labelText: 'text-success' },
+    'red': { bg: 'bg-danger-soft', text: 'text-danger', labelText: 'text-danger' }
   };
   
   const style = tintStyles[tint];
@@ -103,8 +103,8 @@ function OutcomeCard({ label, value, subtext, delta, deltaType, tint }: {
         {delta && (
           <span className={cn(
             "text-sm font-bold",
-            deltaType === 'positive' && "text-emerald-600",
-            deltaType === 'negative' && "text-red-600",
+            deltaType === 'positive' && "text-success",
+            deltaType === 'negative' && "text-danger",
             deltaType === 'neutral' && "text-muted-foreground"
           )}>
             {delta}
@@ -124,10 +124,10 @@ function CostMetricCard({ title, value, tint, isEstimate, icon: Icon }: {
   icon: LucideIcon;
 }) {
   const tintStyles = {
-    'red': { bg: 'bg-red-50', text: 'text-red-600', labelText: 'text-muted-foreground', border: 'border-red-100', iconText: 'text-red-400' },
-    'orange': { bg: 'bg-orange-50', text: 'text-orange-600', labelText: 'text-muted-foreground', border: 'border-orange-100', iconText: 'text-orange-400' },
-    'amber': { bg: 'bg-amber-50', text: 'text-amber-600', labelText: 'text-muted-foreground', border: 'border-amber-100', iconText: 'text-amber-400' },
-    'violet': { bg: 'bg-violet-50', text: 'text-violet-600', labelText: 'text-muted-foreground', border: 'border-violet-100', iconText: 'text-violet-400' }
+    'red': { bg: 'bg-danger-soft', text: 'text-danger', labelText: 'text-muted-foreground', border: 'border-danger', iconText: 'text-danger' },
+    'orange': { bg: 'bg-warning-soft', text: 'text-warning', labelText: 'text-muted-foreground', border: 'border-warning', iconText: 'text-warning' },
+    'amber': { bg: 'bg-gold-soft', text: 'text-gold', labelText: 'text-muted-foreground', border: 'border-gold', iconText: 'text-gold' },
+    'violet': { bg: 'bg-brand-soft', text: 'text-brand', labelText: 'text-muted-foreground', border: 'border-purple', iconText: 'text-brand' }
   };
   
   const style = tintStyles[tint];
@@ -256,10 +256,10 @@ function RankingMomentumSection({ improving, needsAttention }: { improving: Rank
       
       <div className="grid md:grid-cols-2 gap-6">
         <Card className="bg-card rounded-xl border border-border shadow-sm overflow-hidden relative">
-          <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500" />
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-success" />
           <CardHeader className="pb-3 border-b border-border ml-1">
             <CardTitle className="text-base flex items-center gap-2 text-foreground">
-              <TrendingUp className="w-4 h-4 text-emerald-600" />
+              <TrendingUp className="w-4 h-4 text-success" />
               Improving
             </CardTitle>
           </CardHeader>
@@ -271,7 +271,7 @@ function RankingMomentumSection({ improving, needsAttention }: { improving: Rank
                 <div key={idx} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
                   <span className="text-sm font-medium text-foreground truncate max-w-[200px]">{item.keyword}</span>
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-semibold text-emerald-600">+{Math.abs(item.change)}</span>
+                    <span className="text-sm font-semibold text-success">+{Math.abs(item.change)}</span>
                     <span className="text-sm text-muted-foreground w-8 text-right">#{item.position}</span>
                   </div>
                 </div>
@@ -281,10 +281,10 @@ function RankingMomentumSection({ improving, needsAttention }: { improving: Rank
         </Card>
 
         <Card className="bg-card rounded-xl border border-border shadow-sm overflow-hidden relative">
-          <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500" />
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-danger" />
           <CardHeader className="pb-3 border-b border-border ml-1">
             <CardTitle className="text-base flex items-center gap-2 text-foreground">
-              <TrendingDown className="w-4 h-4 text-red-600" />
+              <TrendingDown className="w-4 h-4 text-danger" />
               Declined
             </CardTitle>
           </CardHeader>
@@ -296,7 +296,7 @@ function RankingMomentumSection({ improving, needsAttention }: { improving: Rank
                 <div key={idx} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
                   <span className="text-sm font-medium text-foreground truncate max-w-[200px]">{item.keyword}</span>
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-semibold text-red-600">{item.change}</span>
+                    <span className="text-sm font-semibold text-danger">{item.change}</span>
                     <span className="text-sm text-muted-foreground w-8 text-right">#{item.position}</span>
                   </div>
                 </div>
@@ -370,18 +370,18 @@ function WhatToDoNextSection() {
           <Card key={step.number} className={cn(
             "rounded-xl border overflow-hidden relative transition-all",
             step.status === "active" 
-              ? "bg-card border-violet-200 shadow-sm" 
+              ? "bg-card border-purple shadow-sm" 
               : "bg-card border-border shadow-sm"
           )}>
             {step.status === "active" && (
-              <div className="absolute left-0 top-0 bottom-0 w-1 bg-violet-500" />
+              <div className="absolute left-0 top-0 bottom-0 w-1 bg-brand" />
             )}
             <CardContent className={cn("pt-5", step.status === "active" && "ml-1")}>
               <div className="flex items-start gap-4">
                 <div className={cn(
                   "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0",
                   step.status === "active" 
-                    ? "bg-violet-600 text-white" 
+                    ? "bg-brand text-white" 
                     : "bg-secondary text-muted-foreground/60"
                 )}>
                   {step.number}
@@ -425,7 +425,7 @@ function WhatToDoNextSection() {
                   
                   <div className="flex flex-col gap-1">
                     {step.status === "active" ? (
-                      <Button size="sm" className="w-fit bg-violet-600 hover:bg-violet-700 text-white shadow-sm hover:shadow-md transition-all">
+                      <Button size="sm" className="w-fit bg-brand hover:bg-primary/90 text-white shadow-sm hover:shadow-md transition-all">
                         Get Started
                       </Button>
                     ) : (
@@ -489,7 +489,7 @@ function PagesToOptimizeSection({ pages, hasGsc, onConfigure }: { pages: PageToO
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-sm text-violet-600 font-medium">{page.action}</p>
+                    <p className="text-sm text-brand font-medium">{page.action}</p>
                     <Button variant="ghost" size="sm" className="mt-1 gap-1 text-xs text-muted-foreground hover:text-foreground">
                       View <ArrowRight className="w-3 h-3" />
                     </Button>
@@ -510,9 +510,9 @@ function TopPerformersSection({ performers }: { performers: TopPerformer[] }) {
       <h2 className="text-xl font-semibold text-foreground">Top Performers</h2>
       
       <Card className="bg-card rounded-xl border border-border shadow-sm overflow-hidden relative">
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500" />
+        <div className="absolute left-0 top-0 bottom-0 w-1 bg-success" />
         <CardHeader className="pb-0 border-b border-border ml-1">
-          <p className="text-sm font-medium text-emerald-600 py-2">Pages ranking in top 3</p>
+          <p className="text-sm font-medium text-success py-2">Pages ranking in top 3</p>
         </CardHeader>
         <CardContent className="pt-4 ml-1">
           {performers.length === 0 ? (
@@ -526,7 +526,7 @@ function TopPerformersSection({ performers }: { performers: TopPerformer[] }) {
                       <p className="font-medium text-foreground truncate">{page.title}</p>
                       <p className="text-xs text-muted-foreground">{page.keyword}</p>
                     </div>
-                    <span className="text-sm font-bold text-emerald-600 shrink-0">
+                    <span className="text-sm font-bold text-success shrink-0">
                       #{page.position}
                     </span>
                   </div>
@@ -549,9 +549,9 @@ function ModulesSection({ modules }: { modules: Module[] }) {
   const freeModules = modules.filter(m => m.tier === "free");
 
   const getBadgeStyle = (tier: Module["tier"], status: Module["status"]) => {
-    if (status === "active") return "bg-emerald-50 text-emerald-700 border-emerald-200";
-    if (tier === "core") return "bg-violet-50 text-violet-700 border-violet-200";
-    if (tier === "free") return "bg-blue-50 text-blue-700 border-blue-200";
+    if (status === "active") return "bg-success-soft text-success border-success";
+    if (tier === "core") return "bg-brand-soft text-brand border-purple";
+    if (tier === "free") return "bg-info-soft text-info border-info";
     return "bg-secondary text-muted-foreground border-border";
   };
 
@@ -561,12 +561,12 @@ function ModulesSection({ modules }: { modules: Module[] }) {
       className={cn(
         "rounded-xl border overflow-hidden relative transition-all",
         mod.status === "active" 
-          ? "bg-card border-violet-200 shadow-sm" 
+          ? "bg-card border-purple shadow-sm" 
           : "bg-card border-border shadow-sm"
       )}
     >
       {mod.status === "active" && (
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-violet-500" />
+        <div className="absolute left-0 top-0 bottom-0 w-1 bg-brand" />
       )}
       {mod.badge && (
         <Badge 
@@ -587,7 +587,7 @@ function ModulesSection({ modules }: { modules: Module[] }) {
         )}>
           <Search className={cn(
             "w-4 h-4",
-            mod.status === "active" ? "text-violet-600" : "text-muted-foreground"
+            mod.status === "active" ? "text-brand" : "text-muted-foreground"
           )} />
           {mod.name}
         </CardTitle>
@@ -611,7 +611,7 @@ function ModulesSection({ modules }: { modules: Module[] }) {
               )}>
                 <CheckCircle2 className={cn(
                   "w-3 h-3",
-                  mod.status === "active" ? "text-emerald-500" : "text-muted-foreground/60"
+                  mod.status === "active" ? "text-success" : "text-muted-foreground/60"
                 )} />
                 {item}
               </li>
@@ -623,7 +623,7 @@ function ModulesSection({ modules }: { modules: Module[] }) {
           {mod.status === "active" ? (
             <Button 
               size="sm" 
-              className="w-full bg-violet-600 hover:bg-violet-700 text-white shadow-sm hover:shadow-md transition-all"
+              className="w-full bg-brand hover:bg-primary/90 text-white shadow-sm hover:shadow-md transition-all"
             >
               {mod.ctaLabel}
             </Button>
@@ -632,7 +632,7 @@ function ModulesSection({ modules }: { modules: Module[] }) {
               <Button 
                 size="sm" 
                 variant="outline"
-                className="w-full text-violet-600 border-violet-200 hover:bg-violet-50"
+                className="w-full text-brand border-purple hover:bg-brand-soft"
               >
                 {mod.ctaLabel}
               </Button>
@@ -708,7 +708,7 @@ function HowItWorksSection() {
       <div className="flex flex-wrap justify-center gap-4">
         {steps.map((step, idx) => (
           <div key={step.number} className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-violet-600 flex items-center justify-center text-xs font-bold text-white">
+            <div className="w-6 h-6 rounded-full bg-brand flex items-center justify-center text-xs font-bold text-white">
               {step.number}
             </div>
             <span className="text-sm text-foreground">{step.text}</span>
@@ -831,7 +831,7 @@ export default function Dashboard() {
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <h1 className="text-2xl font-bold text-foreground">SEO Performance Overview</h1>
-                <span className="text-xs font-medium text-violet-600 bg-violet-50 px-2 py-1 rounded">Weekly Report</span>
+                <span className="text-xs font-medium text-brand bg-brand-soft px-2 py-1 rounded">Weekly Report</span>
               </div>
               <p className="text-muted-foreground">Updated weekly · Rankings are the north star</p>
             </div>
@@ -841,22 +841,22 @@ export default function Dashboard() {
           {/* Geographic Scope Warning */}
           {selectedSite && !selectedSite.geoScope && (
             <div 
-              className="flex items-center justify-between gap-4 p-4 bg-amber-50 border border-amber-200 rounded-xl"
+              className="flex items-center justify-between gap-4 p-4 bg-gold-soft border border-gold rounded-xl"
               data-testid="warning-geo-scope-missing"
             >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
-                  <AlertTriangle className="w-5 h-5 text-amber-600" />
+                <div className="w-10 h-10 rounded-lg bg-gold-soft flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle className="w-5 h-5 text-gold" />
                 </div>
                 <div>
-                  <p className="font-medium text-amber-800">Geographic Scope Required</p>
-                  <p className="text-sm text-amber-600">Configure your target location to enable SERP analysis and rankings tracking.</p>
+                  <p className="font-medium text-gold">Geographic Scope Required</p>
+                  <p className="text-sm text-gold">Configure your target location to enable SERP analysis and rankings tracking.</p>
                 </div>
               </div>
               <Button
                 variant="outline"
                 size="sm"
-                className="border-amber-300 text-amber-700 hover:bg-amber-100"
+                className="border-gold text-gold hover:bg-gold-soft"
                 onClick={() => navigate(`/sites/${selectedSite.id}`)}
                 data-testid="button-configure-geo-scope"
               >

@@ -189,12 +189,24 @@
   .border-gold { border-color: var(--color-gold-border); }
   .shadow-gold { box-shadow: 0 0 20px -5px var(--color-gold-glow); }
   
-  /* Purple accent utilities */
+  /* Purple/Brand accent utilities */
   .bg-purple-accent { background-color: var(--color-purple); }
   .bg-purple-soft { background-color: var(--color-purple-soft); }
   .text-purple-accent { color: var(--color-purple); }
   .border-purple { border-color: var(--color-purple-border); }
   .shadow-purple { box-shadow: 0 0 20px -5px var(--color-purple-glow); }
+  
+  /* Brand primary utilities (maps to #7C3AED) */
+  .bg-brand { background-color: var(--color-primary); }
+  .bg-brand-soft { background-color: var(--color-primary-soft); }
+  .text-brand { color: var(--color-primary); }
+  .border-brand { border-color: var(--color-primary); }
+  
+  /* Status solid utilities for buttons/indicators */
+  .bg-success { background-color: var(--color-semantic-success); }
+  .bg-warning { background-color: var(--color-semantic-warning); }
+  .bg-danger { background-color: var(--color-semantic-danger); }
+  .bg-info { background-color: var(--color-semantic-info); }
   
   /* Surface utilities */
   .bg-panel { background-color: var(--color-surface-panel); }
