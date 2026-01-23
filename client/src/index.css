@@ -121,15 +121,15 @@
   --color-chart-5: #38BDF8;
 
   /* ========================================
-     SIDEBAR - slightly lifted, cooler
+     SIDEBAR - Deep purple brand surface
      ======================================== */
-  --color-sidebar: #0C1222;
+  --color-sidebar: #1E103A;
   --color-sidebar-foreground: rgba(248,250,252,0.94);
   --color-sidebar-primary: #7C3AED;
-  --color-sidebar-primary-foreground: rgba(248,250,252,0.98);
-  --color-sidebar-accent: rgba(148,163,184,0.09);
+  --color-sidebar-primary-foreground: rgba(255,255,255,0.98);
+  --color-sidebar-accent: rgba(124,58,237,0.15);
   --color-sidebar-accent-foreground: rgba(248,250,252,0.94);
-  --color-sidebar-border: rgba(148,163,184,0.14);
+  --color-sidebar-border: rgba(124,58,237,0.20);
   --color-sidebar-ring: #7C3AED;
 
   /* ========================================
