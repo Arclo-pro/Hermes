@@ -309,39 +309,47 @@
 }
 
 /* ========================================
-   DASHBOARD LIGHT THEME
-   Used for report-style Dashboard pages
+   DASHBOARD LIGHT THEME (PRD Compliant)
+   Matches ui-ux-design-standards.prd.md
+   
+   PRD Neutral Palette:
+   - Background: #FFFFFF
+   - Soft Background: #F9FAFB
+   - Primary Text: #0F172A
+   - Secondary Text: #475569
+   - Borders/Dividers: #E5E7EB
    ======================================== */
 .dashboard-light {
-  --color-background: #FAFBFC;
-  --color-foreground: #1E293B;
+  --color-background: #FFFFFF;
+  --color-background-soft: #F9FAFB;
+  --color-foreground: #0F172A;
   
-  --color-card: rgba(255, 255, 255, 0.9);
-  --color-card-foreground: #1E293B;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #0F172A;
   
-  --color-popover: rgba(255, 255, 255, 0.95);
-  --color-popover-foreground: #1E293B;
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #0F172A;
 
-  --color-secondary: rgba(148, 163, 184, 0.12);
-  --color-secondary-foreground: #1E293B;
+  --color-secondary: #F9FAFB;
+  --color-secondary-foreground: #0F172A;
 
-  --color-muted: rgba(148, 163, 184, 0.08);
-  --color-muted-foreground: #64748B;
+  --color-muted: #F9FAFB;
+  --color-muted-foreground: #475569;
 
-  --color-border: rgba(148, 163, 184, 0.25);
-  --color-input: rgba(148, 163, 184, 0.25);
+  --color-border: #E5E7EB;
+  --color-input: #E5E7EB;
   
-  --color-surface-1: rgba(248, 250, 252, 0.9);
-  --color-surface-2: rgba(241, 245, 249, 0.95);
-  --color-surface-3: rgba(226, 232, 240, 0.8);
+  --color-surface-1: #FFFFFF;
+  --color-surface-2: #F9FAFB;
+  --color-surface-3: #F3F4F6;
   
-  --color-surface-panel: rgba(255, 255, 255, 0.85);
-  --color-surface-card: rgba(255, 255, 255, 0.75);
-  --color-surface-card-active: rgba(255, 255, 255, 0.9);
+  --color-surface-panel: #FFFFFF;
+  --color-surface-card: #FFFFFF;
+  --color-surface-card-active: #F9FAFB;
   
   --color-overlay-surface: rgba(255, 255, 255, 0.98);
   
-  background: linear-gradient(135deg, #FAFBFC 0%, #F1F5F9 50%, #F8FAFC 100%);
+  background: #F9FAFB;
 }
 
 .dashboard-light .bg-gray-900,
@@ -350,8 +358,8 @@
 }
 
 .dashboard-light aside {
-  background: rgba(255, 255, 255, 0.85) !important;
-  border-color: rgba(148, 163, 184, 0.2) !important;
+  background: var(--color-sidebar) !important;
+  border-color: var(--color-sidebar-border) !important;
 }
 
 .dashboard-light,
@@ -360,7 +368,7 @@
 }
 
 body:has(.dashboard-light) {
-  background: linear-gradient(135deg, #FAFBFC 0%, #F1F5F9 50%, #F8FAFC 100%) !important;
+  background: #F9FAFB !important;
 }
 
 /* ========================================
