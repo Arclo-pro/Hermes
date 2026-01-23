@@ -101,27 +101,27 @@ export default function ScanPreview() {
 
   return (
     <MarketingLayout>
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50/50">
+      <div className="min-h-screen bg-gradient-to-b from-muted via-background to-muted/50">
         <div className="container mx-auto px-4 md:px-6 py-8 md:py-12">
           <div className="max-w-3xl mx-auto">
             
             {/* Scanning State */}
             {isScanning && (
               <div className="text-center space-y-8">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-violet-100 to-pink-100 flex items-center justify-center mx-auto shadow-lg shadow-violet-500/10">
-                  <Loader2 className="w-10 h-10 text-violet-600 animate-spin" />
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary-soft to-purple-soft flex items-center justify-center mx-auto shadow-lg shadow-purple-glow">
+                  <Loader2 className="w-10 h-10 text-primary animate-spin" />
                 </div>
                 <div className="space-y-4">
-                  <h1 className="text-3xl md:text-4xl font-bold text-slate-900">
+                  <h1 className="text-3xl md:text-4xl font-bold text-foreground">
                     Analyzing Your Site
                   </h1>
-                  <p className="text-xl text-slate-600">
+                  <p className="text-xl text-muted-foreground">
                     {statusQuery.data?.message || "Checking structure, content, and performance..."}
                   </p>
                 </div>
                 <div className="max-w-md mx-auto">
                   <Progress value={statusQuery.data?.progress || 30} className="h-2" />
-                  <p className="text-sm text-slate-500 mt-2">
+                  <p className="text-sm text-muted-foreground mt-2">
                     {statusQuery.data?.progress || 30}% complete
                   </p>
                 </div>
@@ -132,25 +132,25 @@ export default function ScanPreview() {
             {isReady && !generateReportMutation.isPending && !generateReportMutation.isSuccess && (
               <div className="space-y-8">
                 <div className="text-center space-y-4">
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/10">
-                    <CheckCircle2 className="w-10 h-10 text-emerald-600" />
+                  <div className="w-20 h-20 rounded-full bg-semantic-success-soft flex items-center justify-center mx-auto shadow-lg">
+                    <CheckCircle2 className="w-10 h-10 text-semantic-success" />
                   </div>
-                  <h1 className="text-3xl md:text-4xl font-bold text-slate-900">
+                  <h1 className="text-3xl md:text-4xl font-bold text-foreground">
                     Scan Complete
                   </h1>
-                  <p className="text-lg text-slate-600">
+                  <p className="text-lg text-muted-foreground">
                     One more step to generate your personalized SEO report.
                   </p>
                 </div>
 
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 md:p-8 space-y-6">
+                <div className="bg-card rounded-xl border border-border shadow-sm p-6 md:p-8 space-y-6">
                   <GeoScopeSelector 
                     value={geoScope} 
                     onChange={setGeoScope} 
                   />
 
                   <div className="space-y-2 pt-2">
-                    <Label htmlFor="email" className="text-sm text-slate-600">
+                    <Label htmlFor="email" className="text-sm text-muted-foreground">
                       Email (optional — we'll send you a copy)
                     </Label>
                     <Input
@@ -165,13 +165,13 @@ export default function ScanPreview() {
                   </div>
 
                   {validationError && (
-                    <p className="text-sm text-red-600" data-testid="text-validation-error">
+                    <p className="text-sm text-semantic-danger" data-testid="text-validation-error">
                       {validationError}
                     </p>
                   )}
 
                   {generateReportMutation.isError && (
-                    <p className="text-sm text-red-600" data-testid="text-error">
+                    <p className="text-sm text-semantic-danger" data-testid="text-error">
                       Failed to generate report. Please try again.
                     </p>
                   )}
@@ -193,14 +193,14 @@ export default function ScanPreview() {
             {/* Generating Report State */}
             {isReady && generateReportMutation.isPending && (
               <div className="text-center space-y-8">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-violet-100 to-pink-100 flex items-center justify-center mx-auto shadow-lg shadow-violet-500/10">
-                  <Loader2 className="w-10 h-10 text-violet-600 animate-spin" />
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary-soft to-purple-soft flex items-center justify-center mx-auto shadow-lg shadow-purple-glow">
+                  <Loader2 className="w-10 h-10 text-primary animate-spin" />
                 </div>
                 <div className="space-y-4">
-                  <h1 className="text-3xl md:text-4xl font-bold text-slate-900">
+                  <h1 className="text-3xl md:text-4xl font-bold text-foreground">
                     Generating Your Report
                   </h1>
-                  <p className="text-xl text-slate-600">
+                  <p className="text-xl text-muted-foreground">
                     Preparing your SEO analysis...
                   </p>
                 </div>
@@ -210,14 +210,14 @@ export default function ScanPreview() {
             {/* Failed State */}
             {isFailed && (
               <div className="text-center space-y-8">
-                <div className="w-20 h-20 rounded-full bg-red-100 flex items-center justify-center mx-auto">
-                  <AlertTriangle className="w-10 h-10 text-red-600" />
+                <div className="w-20 h-20 rounded-full bg-semantic-danger-soft flex items-center justify-center mx-auto">
+                  <AlertTriangle className="w-10 h-10 text-semantic-danger" />
                 </div>
                 <div className="space-y-4">
-                  <h1 className="text-3xl md:text-4xl font-bold text-slate-900">
+                  <h1 className="text-3xl md:text-4xl font-bold text-foreground">
                     Scan Failed
                   </h1>
-                  <p className="text-xl text-slate-600">
+                  <p className="text-xl text-muted-foreground">
                     {statusQuery.data?.message || "We couldn't complete the scan. Please try again."}
                   </p>
                 </div>

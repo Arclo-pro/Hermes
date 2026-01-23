@@ -246,13 +246,13 @@ export default function CreateSite() {
         <div className="container mx-auto px-4 md:px-6 py-16 md:py-24">
           <div className="max-w-lg mx-auto">
             <MarketingCard className="text-center py-12">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-violet-500 via-pink-500 to-amber-400 flex items-center justify-center mx-auto mb-6">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary via-purple to-gold flex items-center justify-center mx-auto mb-6">
                 <Loader2 className="h-8 w-8 text-white animate-spin" />
               </div>
-              <h2 className="text-2xl font-bold text-slate-950 mb-2">
+              <h2 className="text-2xl font-bold text-foreground mb-2">
                 Creating your website...
               </h2>
-              <p className="text-slate-500 mb-8">This usually takes about a minute.</p>
+              <p className="text-muted-foreground mb-8">This usually takes about a minute.</p>
 
               <div className="space-y-4 text-left max-w-xs mx-auto">
                 <GenerationStepItem 
@@ -284,24 +284,24 @@ export default function CreateSite() {
         <div className="container mx-auto px-4 md:px-6 py-16 md:py-24">
           <div className="max-w-lg mx-auto">
             <MarketingCard className="text-center py-12">
-              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
-                <CheckCircle2 className="h-8 w-8 text-green-600" />
+              <div className="w-16 h-16 rounded-full bg-semantic-success-soft flex items-center justify-center mx-auto mb-6">
+                <CheckCircle2 className="h-8 w-8 text-semantic-success" />
               </div>
-              <h2 className="text-2xl font-bold text-slate-950 mb-2">
+              <h2 className="text-2xl font-bold text-foreground mb-2">
                 Your site is live!
               </h2>
-              <p className="text-slate-500 mb-6">
+              <p className="text-muted-foreground mb-6">
                 {formData.businessName} is now online and SEO-ready.
               </p>
 
               {publishedUrl && (
-                <div className="bg-slate-50 rounded-lg p-4 mb-6 border border-slate-200">
-                  <p className="text-sm text-slate-500 mb-1">Your site URL</p>
+                <div className="bg-muted rounded-lg p-4 mb-6 border border-border">
+                  <p className="text-sm text-muted-foreground mb-1">Your site URL</p>
                   <a 
                     href={publishedUrl} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="text-violet-600 hover:text-violet-700 font-medium break-all"
+                    className="text-primary hover:text-primary/80 font-medium break-all"
                   >
                     {publishedUrl}
                   </a>
@@ -332,7 +332,7 @@ export default function CreateSite() {
                 </BrandButton>
               </div>
 
-              <p className="text-xs text-slate-400 mt-6">
+              <p className="text-xs text-muted-foreground mt-6">
                 You can edit your site details anytime from your dashboard.
               </p>
             </MarketingCard>
@@ -347,10 +347,10 @@ export default function CreateSite() {
       <div className="container mx-auto px-4 md:px-6 py-16 md:py-24">
         <div className="max-w-2xl mx-auto">
           <div className="text-center mb-12">
-            <h1 className="text-4xl md:text-5xl font-bold text-slate-950 mb-4 tracking-tight">
+            <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4 tracking-tight">
               Create a website in minutes — <span className="marketing-gradient-text">free.</span>
             </h1>
-            <p className="text-lg text-slate-600 max-w-lg mx-auto">
+            <p className="text-lg text-muted-foreground max-w-lg mx-auto">
               Answer a few questions and Arclo will generate a fast, SEO-ready site you can publish instantly.
             </p>
           </div>
@@ -365,11 +365,11 @@ export default function CreateSite() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
-                  <Label htmlFor="businessName" className="text-slate-700 font-medium">
+                  <Label htmlFor="businessName" className="text-foreground font-medium">
                     Business name *
                   </Label>
                   <div className="relative mt-1.5">
-                    <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="businessName"
                       value={formData.businessName}
@@ -382,7 +382,7 @@ export default function CreateSite() {
                 </div>
 
                 <div className="md:col-span-2">
-                  <Label htmlFor="businessCategory" className="text-slate-700 font-medium">
+                  <Label htmlFor="businessCategory" className="text-foreground font-medium">
                     Business type *
                   </Label>
                   <Select 
@@ -401,11 +401,11 @@ export default function CreateSite() {
                 </div>
 
                 <div>
-                  <Label htmlFor="city" className="text-slate-700 font-medium">
+                  <Label htmlFor="city" className="text-foreground font-medium">
                     City
                   </Label>
                   <div className="relative mt-1.5">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="city"
                       value={formData.city}
@@ -418,7 +418,7 @@ export default function CreateSite() {
                 </div>
 
                 <div>
-                  <Label htmlFor="state" className="text-slate-700 font-medium">
+                  <Label htmlFor="state" className="text-foreground font-medium">
                     State
                   </Label>
                   <Input
@@ -432,11 +432,11 @@ export default function CreateSite() {
                 </div>
 
                 <div>
-                  <Label htmlFor="phone" className="text-slate-700 font-medium">
+                  <Label htmlFor="phone" className="text-foreground font-medium">
                     Phone (optional)
                   </Label>
                   <div className="relative mt-1.5">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="phone"
                       type="tel"
@@ -450,11 +450,11 @@ export default function CreateSite() {
                 </div>
 
                 <div>
-                  <Label htmlFor="email" className="text-slate-700 font-medium">
+                  <Label htmlFor="email" className="text-foreground font-medium">
                     Email *
                   </Label>
                   <div className="relative mt-1.5">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="email"
                       type="email"
@@ -468,7 +468,7 @@ export default function CreateSite() {
                 </div>
 
                 <div className="md:col-span-2">
-                  <Label htmlFor="description" className="text-slate-700 font-medium">
+                  <Label htmlFor="description" className="text-foreground font-medium">
                     One-line description (optional)
                   </Label>
                   <Input
@@ -483,7 +483,7 @@ export default function CreateSite() {
 
                 <div className="md:col-span-2">
                   <div className="flex items-center justify-between mb-1.5">
-                    <Label htmlFor="services" className="text-slate-700 font-medium">
+                    <Label htmlFor="services" className="text-foreground font-medium">
                       Primary services (comma-separated)
                     </Label>
                     <Button
@@ -492,7 +492,7 @@ export default function CreateSite() {
                       size="sm"
                       onClick={generateServicesWithAI}
                       disabled={isGeneratingServices || !formData.businessName.trim() || !formData.businessCategory}
-                      className="text-violet-600 hover:text-violet-700 hover:bg-violet-50 h-7 text-xs gap-1.5"
+                      className="text-primary hover:text-primary/80 hover:bg-primary-soft h-7 text-xs gap-1.5"
                       data-testid="button-generate-services"
                     >
                       {isGeneratingServices ? (
@@ -519,7 +519,7 @@ export default function CreateSite() {
                 </div>
 
                 <div className="md:col-span-2">
-                  <Label className="text-slate-700 font-medium mb-3 block">
+                  <Label className="text-foreground font-medium mb-3 block">
                     Brand preference
                   </Label>
                   <RadioGroup
@@ -533,16 +533,16 @@ export default function CreateSite() {
                         htmlFor={pref.value}
                         className={`flex flex-col items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${
                           formData.brandPreference === pref.value
-                            ? "border-violet-400 bg-violet-50"
-                            : "border-slate-200 hover:border-slate-300"
+                            ? "border-primary bg-primary-soft"
+                            : "border-border hover:border-muted-foreground"
                         }`}
                       >
                         <RadioGroupItem value={pref.value} id={pref.value} className="sr-only" />
                         <Palette className={`h-5 w-5 mb-2 ${
-                          formData.brandPreference === pref.value ? "text-violet-600" : "text-slate-400"
+                          formData.brandPreference === pref.value ? "text-primary" : "text-muted-foreground"
                         }`} />
-                        <span className="font-medium text-slate-900 text-sm">{pref.label}</span>
-                        <span className="text-xs text-slate-500 text-center mt-1">{pref.description}</span>
+                        <span className="font-medium text-foreground text-sm">{pref.label}</span>
+                        <span className="text-xs text-muted-foreground text-center mt-1">{pref.description}</span>
                       </Label>
                     ))}
                   </RadioGroup>
@@ -550,7 +550,7 @@ export default function CreateSite() {
               </div>
 
               {error && (
-                <p className="text-sm text-red-600" data-testid="text-error">{error}</p>
+                <p className="text-sm text-semantic-danger" data-testid="text-error">{error}</p>
               )}
 
               <div className="pt-4">
@@ -564,7 +564,7 @@ export default function CreateSite() {
                 >
                   Generate my site
                 </BrandButton>
-                <p className="text-center text-xs text-slate-400 mt-3">
+                <p className="text-center text-xs text-muted-foreground mt-3">
                   Free subdomain included • Publish in minutes • Edit anytime
                 </p>
               </div>
@@ -596,21 +596,21 @@ function GenerationStepItem({
     <div className="flex items-center gap-3">
       <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
         isComplete 
-          ? "bg-green-100" 
+          ? "bg-semantic-success-soft" 
           : isActive 
-            ? "bg-gradient-to-br from-violet-500 via-pink-500 to-amber-400" 
-            : "bg-slate-100"
+            ? "bg-gradient-to-br from-primary via-purple to-gold" 
+            : "bg-muted"
       }`}>
         {isComplete ? (
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
+          <CheckCircle2 className="h-4 w-4 text-semantic-success" />
         ) : isActive ? (
           <Loader2 className="h-3 w-3 text-white animate-spin" />
         ) : (
-          <div className="w-2 h-2 rounded-full bg-slate-300" />
+          <div className="w-2 h-2 rounded-full bg-muted-foreground" />
         )}
       </div>
       <span className={`text-sm ${
-        isComplete ? "text-green-600" : isActive ? "text-slate-900 font-medium" : "text-slate-400"
+        isComplete ? "text-semantic-success" : isActive ? "text-foreground font-medium" : "text-muted-foreground"
       }`}>
         {label}
       </span>
@@ -620,9 +620,9 @@ function GenerationStepItem({
 
 function ReassuranceBadge({ icon: Icon, text }: { icon: React.ElementType; text: string }) {
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 border border-slate-200">
-      <Icon className="h-4 w-4 text-violet-500" />
-      <span className="text-sm text-slate-600">{text}</span>
+    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted border border-border">
+      <Icon className="h-4 w-4 text-primary" />
+      <span className="text-sm text-muted-foreground">{text}</span>
     </div>
   );
 }

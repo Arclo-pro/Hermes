@@ -56,19 +56,19 @@ function FAQSchema() {
 
 export function FAQSection() {
   return (
-    <section className="py-20 bg-white">
+    <section className="py-20 bg-card">
       <FAQSchema />
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 className="text-3xl font-bold text-slate-900 text-center mb-12">
+        <h2 className="text-3xl font-bold text-foreground text-center mb-12">
           Frequently Asked Questions
         </h2>
         <Accordion type="single" collapsible className="w-full">
           {faqs.map((faq, index) => (
-            <AccordionItem key={index} value={`item-${index}`} className="border-slate-200">
-              <AccordionTrigger className="text-left text-slate-900 font-medium hover:no-underline hover:text-slate-700">
+            <AccordionItem key={index} value={`item-${index}`} className="border-border">
+              <AccordionTrigger className="text-left text-foreground font-medium hover:no-underline hover:text-foreground/80">
                 {faq.question}
               </AccordionTrigger>
-              <AccordionContent className="text-slate-600">
+              <AccordionContent className="text-muted-foreground">
                 {faq.answer}
               </AccordionContent>
             </AccordionItem>

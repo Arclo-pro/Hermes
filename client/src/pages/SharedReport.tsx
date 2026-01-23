@@ -52,19 +52,19 @@ interface ShareError {
 }
 
 const getHealthStatus = (score: number) => {
-  if (score >= 80) return { label: "Healthy", color: "text-green-600", bg: "bg-green-100", icon: CheckCircle };
-  if (score >= 60) return { label: "Needs Attention", color: "text-amber-600", bg: "bg-amber-100", icon: AlertCircle };
-  return { label: "High Risk", color: "text-red-600", bg: "bg-red-100", icon: AlertTriangle };
+  if (score >= 80) return { label: "Healthy", color: "text-success", bg: "bg-success-soft", icon: CheckCircle };
+  if (score >= 60) return { label: "Needs Attention", color: "text-warning", bg: "bg-warning-soft", icon: AlertCircle };
+  return { label: "High Risk", color: "text-danger", bg: "bg-danger-soft", icon: AlertTriangle };
 };
 
 const getSeverityStyles = (severity: string) => {
   switch (severity) {
     case "high":
-      return { border: "border-red-200", bg: "bg-red-50", badge: "bg-red-100 text-red-700" };
+      return { border: "border-danger", bg: "bg-danger-soft", badge: "bg-danger-soft text-danger" };
     case "medium":
-      return { border: "border-amber-200", bg: "bg-amber-50", badge: "bg-amber-100 text-amber-700" };
+      return { border: "border-warning", bg: "bg-warning-soft", badge: "bg-warning-soft text-warning" };
     default:
-      return { border: "border-blue-200", bg: "bg-blue-50", badge: "bg-blue-100 text-blue-700" };
+      return { border: "border-info", bg: "bg-info-soft", badge: "bg-info-soft text-info" };
   }
 };
 
@@ -139,14 +139,14 @@ export default function SharedReport() {
         <div className="max-w-3xl mx-auto">
           {isLoading && (
             <div className="text-center space-y-8" data-testid="loading-state">
-              <div className="w-20 h-20 rounded-full bg-violet-100 flex items-center justify-center mx-auto">
-                <Loader2 className="w-10 h-10 text-violet-600 animate-spin" />
+              <div className="w-20 h-20 rounded-full bg-brand-soft flex items-center justify-center mx-auto">
+                <Loader2 className="w-10 h-10 text-brand animate-spin" />
               </div>
               <div className="space-y-4">
-                <h1 className="text-3xl md:text-4xl font-bold text-slate-900">
+                <h1 className="text-3xl md:text-4xl font-bold text-foreground">
                   Loading Report
                 </h1>
-                <p className="text-xl text-slate-600">
+                <p className="text-xl text-muted-foreground">
                   Fetching shared analysis...
                 </p>
               </div>
@@ -155,14 +155,14 @@ export default function SharedReport() {
 
           {requiresPassword && !enteredPassword && (
             <div className="text-center space-y-8" data-testid="password-prompt">
-              <div className="w-20 h-20 rounded-full bg-violet-100 flex items-center justify-center mx-auto">
-                <Lock className="w-10 h-10 text-violet-600" />
+              <div className="w-20 h-20 rounded-full bg-brand-soft flex items-center justify-center mx-auto">
+                <Lock className="w-10 h-10 text-brand" />
               </div>
               <div className="space-y-4">
-                <h1 className="text-3xl md:text-4xl font-bold text-slate-900">
+                <h1 className="text-3xl md:text-4xl font-bold text-foreground">
                   Password Protected
                 </h1>
-                <p className="text-xl text-slate-600">
+                <p className="text-xl text-muted-foreground">
                   This report requires a password to view
                 </p>
               </div>
@@ -176,7 +176,7 @@ export default function SharedReport() {
                   data-testid="input-password"
                 />
                 {passwordError && (
-                  <p className="text-sm text-red-600" data-testid="text-password-error">{passwordError}</p>
+                  <p className="text-sm text-danger" data-testid="text-password-error">{passwordError}</p>
                 )}
                 <Button
                   type="submit"
@@ -195,21 +195,21 @@ export default function SharedReport() {
 
           {isExpiredOrRevoked && (
             <div className="text-center space-y-8" data-testid="expired-state">
-              <div className="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center mx-auto">
-                <AlertTriangle className="w-10 h-10 text-slate-400" />
+              <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mx-auto">
+                <AlertTriangle className="w-10 h-10 text-muted-foreground" />
               </div>
               <div className="space-y-4">
-                <h1 className="text-3xl md:text-4xl font-bold text-slate-900">
+                <h1 className="text-3xl md:text-4xl font-bold text-foreground">
                   {error?.expired ? "Link Expired" : "Link No Longer Available"}
                 </h1>
-                <p className="text-xl text-slate-600">
+                <p className="text-xl text-muted-foreground">
                   {error?.expired 
                     ? "This shared report link has expired and is no longer accessible."
                     : "This shared report has been revoked by the owner."}
                 </p>
               </div>
               <div className="space-y-4">
-                <p className="text-slate-600">
+                <p className="text-muted-foreground">
                   Want to analyze your own website?
                 </p>
                 <Link href={ROUTES.SCAN}>
@@ -231,14 +231,14 @@ export default function SharedReport() {
 
           {error && !requiresPassword && !isExpiredOrRevoked && (
             <div className="text-center space-y-8" data-testid="error-state">
-              <div className="w-20 h-20 rounded-full bg-red-100 flex items-center justify-center mx-auto">
-                <AlertTriangle className="w-10 h-10 text-red-600" />
+              <div className="w-20 h-20 rounded-full bg-danger-soft flex items-center justify-center mx-auto">
+                <AlertTriangle className="w-10 h-10 text-danger" />
               </div>
               <div className="space-y-4">
-                <h1 className="text-3xl md:text-4xl font-bold text-slate-900">
+                <h1 className="text-3xl md:text-4xl font-bold text-foreground">
                   Report Not Found
                 </h1>
-                <p className="text-xl text-slate-600">
+                <p className="text-xl text-muted-foreground">
                   {error.error || "We couldn't find this report. It may have been removed or the link is incorrect."}
                 </p>
               </div>
@@ -264,18 +264,18 @@ export default function SharedReport() {
                   </div>
                   
                   {data.title && (
-                    <h1 className="text-3xl md:text-4xl font-bold text-slate-900" data-testid="text-report-title">
+                    <h1 className="text-3xl md:text-4xl font-bold text-foreground" data-testid="text-report-title">
                       {data.title}
                     </h1>
                   )}
                   
-                  <div className="flex items-center justify-center gap-2 text-slate-600">
+                  <div className="flex items-center justify-center gap-2 text-muted-foreground">
                     <ExternalLink className="w-4 h-4" />
                     <a 
                       href={data.targetUrl} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="text-violet-600 hover:underline"
+                      className="text-brand hover:underline"
                       data-testid="link-target-url"
                     >
                       {data.targetUrl}
@@ -283,7 +283,7 @@ export default function SharedReport() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-center gap-6 text-sm text-slate-500">
+                <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
                   <div className="flex items-center gap-1.5">
                     <Calendar className="w-4 h-4" />
                     <span data-testid="text-created-date">
@@ -307,7 +307,7 @@ export default function SharedReport() {
               </div>
 
               <div className="space-y-6">
-                <h2 className="text-xl font-semibold text-slate-900">
+                <h2 className="text-xl font-semibold text-foreground">
                   Issues Found ({data.totalFindings})
                 </h2>
                 
@@ -321,15 +321,15 @@ export default function SharedReport() {
                         data-testid={`finding-${finding.id}`}
                       >
                         <div className="flex items-start justify-between gap-4 mb-3">
-                          <h3 className="font-semibold text-slate-900">{finding.title}</h3>
+                          <h3 className="font-semibold text-foreground">{finding.title}</h3>
                           <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${styles.badge}`}>
                             {finding.severity.charAt(0).toUpperCase() + finding.severity.slice(1)}
                           </span>
                         </div>
-                        <p className="text-slate-600 text-sm mb-4">{finding.summary}</p>
-                        <div className="flex gap-4 text-xs text-slate-500">
-                          <span>Impact: <strong className="text-slate-700">{finding.impact}</strong></span>
-                          <span>Effort: <strong className="text-slate-700">{finding.effort}</strong></span>
+                        <p className="text-muted-foreground text-sm mb-4">{finding.summary}</p>
+                        <div className="flex gap-4 text-xs text-muted-foreground">
+                          <span>Impact: <strong className="text-foreground">{finding.impact}</strong></span>
+                          <span>Effort: <strong className="text-foreground">{finding.effort}</strong></span>
                         </div>
                       </div>
                     );
@@ -337,11 +337,11 @@ export default function SharedReport() {
                 </div>
               </div>
 
-              <div className="text-center p-8 rounded-2xl bg-gradient-to-br from-violet-50 to-fuchsia-50 border border-violet-100 space-y-4">
-                <h2 className="text-2xl font-bold text-slate-900">
+              <div className="text-center p-8 rounded-2xl bg-gradient-to-br from-brand-soft to-purple-soft border border-brand space-y-4">
+                <h2 className="text-2xl font-bold text-foreground">
                   Want to analyze your own website?
                 </h2>
-                <p className="text-slate-600 max-w-md mx-auto">
+                <p className="text-muted-foreground max-w-md mx-auto">
                   Get a comprehensive SEO analysis with actionable recommendations to improve your search rankings.
                 </p>
                 <Link href={ROUTES.SCAN}>
@@ -369,22 +369,22 @@ export default function SharedReport() {
 
 function ScoreCard({ label, score }: { label: string; score: number }) {
   const getScoreColor = (s: number) => {
-    if (s >= 80) return "text-green-600";
-    if (s >= 60) return "text-amber-600";
-    return "text-red-600";
+    if (s >= 80) return "text-success";
+    if (s >= 60) return "text-warning";
+    return "text-danger";
   };
 
   const getProgressColor = (s: number) => {
-    if (s >= 80) return "bg-green-500";
-    if (s >= 60) return "bg-amber-500";
-    return "bg-red-500";
+    if (s >= 80) return "bg-success";
+    if (s >= 60) return "bg-warning";
+    return "bg-danger";
   };
 
   return (
-    <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm" data-testid={`score-${label.toLowerCase()}`}>
-      <p className="text-sm text-slate-500 mb-1">{label}</p>
+    <div className="p-4 rounded-xl bg-card border border-border shadow-sm" data-testid={`score-${label.toLowerCase()}`}>
+      <p className="text-sm text-muted-foreground mb-1">{label}</p>
       <p className={`text-2xl font-bold ${getScoreColor(score)}`}>{score}</p>
-      <div className="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+      <div className="mt-2 h-1.5 bg-muted rounded-full overflow-hidden">
         <div 
           className={`h-full ${getProgressColor(score)} transition-all duration-500`}
           style={{ width: `${score}%` }}

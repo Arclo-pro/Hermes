@@ -119,21 +119,21 @@ export function ShareReportModal({ open, onOpenChange, scanId }: ShareReportModa
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md bg-white border-slate-200">
+      <DialogContent className="max-w-md bg-card border-border">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-slate-900">
-            <Share2 className="w-5 h-5 text-slate-600" />
+          <DialogTitle className="flex items-center gap-2 text-foreground">
+            <Share2 className="w-5 h-5 text-muted-foreground" />
             Share Report
           </DialogTitle>
-          <DialogDescription className="text-slate-500">
+          <DialogDescription className="text-muted-foreground">
             Create a shareable link to this SEO report
           </DialogDescription>
         </DialogHeader>
 
         {createdShare ? (
           <div className="space-y-4" data-testid="share-success">
-            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-              <div className="flex items-center gap-2 text-green-700 mb-2">
+            <div className="p-4 bg-success-soft border border-success rounded-lg">
+              <div className="flex items-center gap-2 text-success mb-2">
                 <CheckCircle2 className="w-5 h-5" />
                 <span className="font-medium">Share link created!</span>
               </div>
@@ -141,7 +141,7 @@ export function ShareReportModal({ open, onOpenChange, scanId }: ShareReportModa
                 <Input
                   value={createdShare.shareUrl}
                   readOnly
-                  className="flex-1 bg-white text-slate-700 text-sm"
+                  className="flex-1 bg-card text-foreground text-sm"
                   data-testid="input-share-url"
                 />
                 <Button
@@ -151,14 +151,14 @@ export function ShareReportModal({ open, onOpenChange, scanId }: ShareReportModa
                   data-testid="btn-copy-share-url"
                 >
                   {copied === createdShare.id ? (
-                    <CheckCircle2 className="w-4 h-4 text-green-600" />
+                    <CheckCircle2 className="w-4 h-4 text-success" />
                   ) : (
                     <Copy className="w-4 h-4" />
                   )}
                 </Button>
               </div>
               {createdShare.passwordProtected && (
-                <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
+                <p className="text-xs text-success mt-2 flex items-center gap-1">
                   <Lock className="w-3 h-3" /> Password protected
                 </p>
               )}
@@ -175,7 +175,7 @@ export function ShareReportModal({ open, onOpenChange, scanId }: ShareReportModa
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4" data-testid="share-form">
             <div className="space-y-2">
-              <Label htmlFor="title" className="text-slate-700">
+              <Label htmlFor="title" className="text-foreground">
                 Title (optional)
               </Label>
               <Input
@@ -183,7 +183,7 @@ export function ShareReportModal({ open, onOpenChange, scanId }: ShareReportModa
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="My SEO Report"
-                className="bg-white border-slate-300 text-slate-900"
+                className="bg-card border-border text-foreground"
                 data-testid="input-share-title"
               />
             </div>
@@ -197,7 +197,7 @@ export function ShareReportModal({ open, onOpenChange, scanId }: ShareReportModa
               />
               <Label
                 htmlFor="password-toggle"
-                className="text-slate-700 cursor-pointer"
+                className="text-foreground cursor-pointer"
               >
                 Password protection
               </Label>
@@ -205,7 +205,7 @@ export function ShareReportModal({ open, onOpenChange, scanId }: ShareReportModa
 
             {passwordProtected && (
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-slate-700">
+                <Label htmlFor="password" className="text-foreground">
                   Password
                 </Label>
                 <Input
@@ -214,20 +214,20 @@ export function ShareReportModal({ open, onOpenChange, scanId }: ShareReportModa
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter password"
-                  className="bg-white border-slate-300 text-slate-900"
+                  className="bg-card border-border text-foreground"
                   data-testid="input-share-password"
                 />
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="expiry" className="text-slate-700">
+              <Label htmlFor="expiry" className="text-foreground">
                 Link expires after
               </Label>
               <Select value={expiry} onValueChange={setExpiry}>
                 <SelectTrigger
                   id="expiry"
-                  className="bg-white border-slate-300 text-slate-900"
+                  className="bg-card border-border text-foreground"
                   data-testid="select-expiry"
                 >
                   <SelectValue />
@@ -244,7 +244,7 @@ export function ShareReportModal({ open, onOpenChange, scanId }: ShareReportModa
 
             <Button
               type="submit"
-              className="w-full bg-slate-800 hover:bg-slate-700 text-white"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
               disabled={createShareMutation.isPending}
               data-testid="btn-create-share"
             >
@@ -264,27 +264,27 @@ export function ShareReportModal({ open, onOpenChange, scanId }: ShareReportModa
         )}
 
         {existingShares && existingShares.length > 0 && (
-          <div className="border-t border-slate-200 pt-4 mt-4" data-testid="existing-shares">
-            <h4 className="text-sm font-medium text-slate-700 mb-3">
+          <div className="border-t border-border pt-4 mt-4" data-testid="existing-shares">
+            <h4 className="text-sm font-medium text-foreground mb-3">
               Existing Share Links ({existingShares.length})
             </h4>
             <div className="space-y-2 max-h-48 overflow-y-auto">
               {existingShares.map((share) => (
                 <div
                   key={share.id}
-                  className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200"
+                  className="flex items-center justify-between p-3 bg-muted rounded-lg border border-border"
                   data-testid={`existing-share-${share.id}`}
                 >
                   <div className="flex-1 min-w-0 mr-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-slate-900 truncate">
+                      <span className="text-sm font-medium text-foreground truncate">
                         {share.title || "Untitled"}
                       </span>
                       {share.passwordProtected && (
-                        <Lock className="w-3 h-3 text-slate-400 flex-shrink-0" />
+                        <Lock className="w-3 h-3 text-muted-foreground flex-shrink-0" />
                       )}
                     </div>
-                    <p className="text-xs text-slate-500">{formatExpiry(share.expiresAt)}</p>
+                    <p className="text-xs text-muted-foreground">{formatExpiry(share.expiresAt)}</p>
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">
                     <Button
@@ -295,9 +295,9 @@ export function ShareReportModal({ open, onOpenChange, scanId }: ShareReportModa
                       data-testid={`btn-copy-${share.id}`}
                     >
                       {copied === share.id ? (
-                        <CheckCircle2 className="w-4 h-4 text-green-600" />
+                        <CheckCircle2 className="w-4 h-4 text-success" />
                       ) : (
-                        <Copy className="w-4 h-4 text-slate-500" />
+                        <Copy className="w-4 h-4 text-muted-foreground" />
                       )}
                     </Button>
                     <Button
@@ -305,7 +305,7 @@ export function ShareReportModal({ open, onOpenChange, scanId }: ShareReportModa
                       size="sm"
                       onClick={() => revokeShareMutation.mutate(share.id)}
                       disabled={revokeShareMutation.isPending}
-                      className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+                      className="h-8 w-8 p-0 text-danger hover:text-danger hover:bg-danger-soft"
                       data-testid={`btn-revoke-${share.id}`}
                     >
                       <Trash2 className="w-4 h-4" />
@@ -319,7 +319,7 @@ export function ShareReportModal({ open, onOpenChange, scanId }: ShareReportModa
 
         {loadingShares && (
           <div className="flex items-center justify-center py-4">
-            <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
           </div>
         )}
       </DialogContent>

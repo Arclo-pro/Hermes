@@ -190,17 +190,17 @@ interface FreeReportData {
 }
 
 function HealthScoreRing({ score }: { score: number }) {
-  let color = "text-red-500";
-  let bgColor = "bg-red-500/10";
+  let color = "text-semantic-danger";
+  let bgColor = "bg-semantic-danger-soft";
   if (score >= 80) {
-    color = "text-green-500";
-    bgColor = "bg-green-500/10";
+    color = "text-semantic-success";
+    bgColor = "bg-semantic-success-soft";
   } else if (score >= 60) {
-    color = "text-yellow-500";
-    bgColor = "bg-yellow-500/10";
+    color = "text-semantic-warning";
+    bgColor = "bg-semantic-warning-soft";
   } else if (score >= 40) {
-    color = "text-orange-500";
-    bgColor = "bg-orange-500/10";
+    color = "text-gold";
+    bgColor = "bg-gold-soft";
   }
 
   return (
@@ -213,7 +213,7 @@ function HealthScoreRing({ score }: { score: number }) {
           fill="none"
           stroke="currentColor"
           strokeWidth="6"
-          className="text-gray-700"
+          className="text-muted"
         />
         <circle
           cx="50"
@@ -237,9 +237,9 @@ function HealthScoreRing({ score }: { score: number }) {
 
 function SeverityBadge({ severity }: { severity: "low" | "medium" | "high" }) {
   const styles = {
-    high: "bg-red-500/15 text-red-400 border-red-500/30",
-    medium: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
-    low: "bg-blue-500/15 text-blue-400 border-blue-500/30",
+    high: "bg-semantic-danger-soft text-semantic-danger border-semantic-danger-border",
+    medium: "bg-semantic-warning-soft text-semantic-warning border-semantic-warning-border",
+    low: "bg-semantic-info-soft text-semantic-info border-semantic-info-border",
   };
   return (
     <Badge variant="outline" className={styles[severity]}>
@@ -250,12 +250,12 @@ function SeverityBadge({ severity }: { severity: "low" | "medium" | "high" }) {
 
 function StatusBadge({ status }: { status: "good" | "needs_attention" | "needs_work" | "critical" | "poor" | "not_available" }) {
   const styles: Record<string, string> = {
-    good: "bg-green-500/15 text-green-400 border-green-500/30",
-    needs_attention: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
-    needs_work: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
-    critical: "bg-red-500/15 text-red-400 border-red-500/30",
-    poor: "bg-red-500/15 text-red-400 border-red-500/30",
-    not_available: "bg-gray-500/15 text-gray-400 border-gray-500/30",
+    good: "bg-semantic-success-soft text-semantic-success border-semantic-success-border",
+    needs_attention: "bg-semantic-warning-soft text-semantic-warning border-semantic-warning-border",
+    needs_work: "bg-semantic-warning-soft text-semantic-warning border-semantic-warning-border",
+    critical: "bg-semantic-danger-soft text-semantic-danger border-semantic-danger-border",
+    poor: "bg-semantic-danger-soft text-semantic-danger border-semantic-danger-border",
+    not_available: "bg-muted text-muted-foreground border-border",
   };
   const labels: Record<string, string> = {
     good: "Good",
@@ -274,8 +274,8 @@ function StatusBadge({ status }: { status: "good" | "needs_attention" | "needs_w
 
 function IntentBadge({ intent }: { intent: "high_intent" | "informational" }) {
   const styles = {
-    high_intent: "bg-purple-500/15 text-purple-400 border-purple-500/30",
-    informational: "bg-cyan-500/15 text-cyan-400 border-cyan-500/30",
+    high_intent: "bg-purple-soft text-purple border-purple-border",
+    informational: "bg-system-soft text-system border-semantic-info-border",
   };
   return (
     <Badge variant="outline" className={styles[intent]}>
@@ -286,10 +286,10 @@ function IntentBadge({ intent }: { intent: "high_intent" | "informational" }) {
 
 function BucketBadge({ bucket }: { bucket: "top_3" | "4_10" | "11_30" | "not_ranking" }) {
   const styles: Record<string, string> = {
-    top_3: "bg-green-500/15 text-green-400 border-green-500/30",
-    "4_10": "bg-blue-500/15 text-blue-400 border-blue-500/30",
-    "11_30": "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
-    not_ranking: "bg-gray-500/15 text-gray-400 border-gray-500/30",
+    top_3: "bg-semantic-success-soft text-semantic-success border-semantic-success-border",
+    "4_10": "bg-semantic-info-soft text-semantic-info border-semantic-info-border",
+    "11_30": "bg-semantic-warning-soft text-semantic-warning border-semantic-warning-border",
+    not_ranking: "bg-muted text-muted-foreground border-border",
   };
   const labels: Record<string, string> = {
     top_3: "Top 3",
@@ -306,10 +306,10 @@ function BucketBadge({ bucket }: { bucket: "top_3" | "4_10" | "11_30" | "not_ran
 
 function TrafficLight({ status }: { status: "good" | "needs_work" | "poor" | "not_available" }) {
   const colors: Record<string, string> = {
-    good: "bg-green-500",
-    needs_work: "bg-yellow-500",
-    poor: "bg-red-500",
-    not_available: "bg-gray-500",
+    good: "bg-semantic-success",
+    needs_work: "bg-semantic-warning",
+    poor: "bg-semantic-danger",
+    not_available: "bg-muted-foreground",
   };
   return (
     <span
@@ -333,10 +333,10 @@ function NotAvailableState({ reason }: { reason?: string }) {
 
 function LimitedVisibilityBanner({ reason, steps }: { reason?: string; steps?: string[] }) {
   return (
-    <Card className="bg-amber-500/10 border-amber-500/30 mb-6" data-testid="limited-visibility-banner">
+    <Card className="bg-gold-soft border-gold-border mb-6" data-testid="limited-visibility-banner">
       <CardContent className="pt-6">
         <div className="flex items-start gap-4">
-          <AlertTriangle className="w-6 h-6 text-amber-500 shrink-0 mt-0.5" />
+          <AlertTriangle className="w-6 h-6 text-gold shrink-0 mt-0.5" />
           <div className="space-y-3">
             <div>
               <h3 className="font-semibold text-foreground">Limited Visibility Report</h3>
@@ -350,7 +350,7 @@ function LimitedVisibilityBanner({ reason, steps }: { reason?: string; steps?: s
                 <ul className="text-sm text-muted-foreground space-y-1">
                   {steps.map((step, idx) => (
                     <li key={idx} className="flex items-start gap-2">
-                      <span className="text-amber-500 font-bold">{idx + 1}.</span>
+                      <span className="text-gold font-bold">{idx + 1}.</span>
                       <span>{step}</span>
                     </li>
                   ))}
@@ -382,12 +382,12 @@ function ExecutiveSummarySection({ summary }: { summary: Summary }) {
           <CardContent className="pt-6 space-y-6">
             <div>
               <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-red-400" />
+                <AlertTriangle className="w-4 h-4 text-semantic-danger" />
                 Top Issues
               </h3>
               <div className="space-y-3">
                 {summary.top_issues.map((issue, idx) => (
-                  <div key={idx} className="p-3 bg-red-500/5 border border-red-500/20 rounded-lg" data-testid={`issue-${idx}`}>
+                  <div key={idx} className="p-3 bg-semantic-danger-soft border border-semantic-danger-border rounded-lg" data-testid={`issue-${idx}`}>
                     <div className="flex items-start justify-between gap-2 mb-1">
                       <span className="font-medium text-foreground">{issue.title}</span>
                       <SeverityBadge severity={issue.severity} />
@@ -400,15 +400,15 @@ function ExecutiveSummarySection({ summary }: { summary: Summary }) {
 
             <div>
               <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-green-400" />
+                <TrendingUp className="w-4 h-4 text-semantic-success" />
                 Top Opportunities
               </h3>
               <div className="space-y-3">
                 {summary.top_opportunities.map((opp, idx) => (
-                  <div key={idx} className="p-3 bg-green-500/5 border border-green-500/20 rounded-lg" data-testid={`opportunity-${idx}`}>
+                  <div key={idx} className="p-3 bg-semantic-success-soft border border-semantic-success-border rounded-lg" data-testid={`opportunity-${idx}`}>
                     <div className="flex items-start justify-between gap-2 mb-1">
                       <span className="font-medium text-foreground">{opp.title}</span>
-                      <Badge variant="outline" className="bg-green-500/15 text-green-400 border-green-500/30">
+                      <Badge variant="outline" className="bg-semantic-success-soft text-semantic-success border-semantic-success-border">
                         {opp.impact}
                       </Badge>
                     </div>
@@ -422,10 +422,10 @@ function ExecutiveSummarySection({ summary }: { summary: Summary }) {
       </div>
 
       {summary.estimated_opportunity && (
-        <Card className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 border-purple-500/20" data-testid="estimated-opportunity">
+        <Card className="bg-gradient-to-r from-purple-soft to-semantic-info-soft border-purple-border" data-testid="estimated-opportunity">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-purple-400" />
+              <TrendingUp className="w-5 h-5 text-purple" />
               Estimated Opportunity
             </CardTitle>
             <CardDescription>
@@ -435,7 +435,7 @@ function ExecutiveSummarySection({ summary }: { summary: Summary }) {
           <CardContent>
             <div className="grid md:grid-cols-3 gap-6 text-center">
               <div>
-                <Users className="w-6 h-6 mx-auto mb-2 text-blue-400" />
+                <Users className="w-6 h-6 mx-auto mb-2 text-semantic-info" />
                 <p className="text-xl font-bold text-foreground" data-testid="opportunity-traffic">
                   {summary.estimated_opportunity.traffic_range_monthly
                     ? `${summary.estimated_opportunity.traffic_range_monthly.min.toLocaleString()} - ${summary.estimated_opportunity.traffic_range_monthly.max.toLocaleString()}`
@@ -444,7 +444,7 @@ function ExecutiveSummarySection({ summary }: { summary: Summary }) {
                 <p className="text-sm text-muted-foreground">Monthly Traffic</p>
               </div>
               <div>
-                <FileText className="w-6 h-6 mx-auto mb-2 text-green-400" />
+                <FileText className="w-6 h-6 mx-auto mb-2 text-semantic-success" />
                 <p className="text-xl font-bold text-foreground" data-testid="opportunity-leads">
                   {summary.estimated_opportunity.leads_range_monthly
                     ? `${summary.estimated_opportunity.leads_range_monthly.min} - ${summary.estimated_opportunity.leads_range_monthly.max}`
@@ -453,7 +453,7 @@ function ExecutiveSummarySection({ summary }: { summary: Summary }) {
                 <p className="text-sm text-muted-foreground">Monthly Leads</p>
               </div>
               <div>
-                <DollarSign className="w-6 h-6 mx-auto mb-2 text-yellow-400" />
+                <DollarSign className="w-6 h-6 mx-auto mb-2 text-gold" />
                 <p className="text-xl font-bold text-foreground" data-testid="opportunity-revenue">
                   {summary.estimated_opportunity.revenue_range_monthly
                     ? `$${summary.estimated_opportunity.revenue_range_monthly.min.toLocaleString()} - $${summary.estimated_opportunity.revenue_range_monthly.max.toLocaleString()}`
@@ -570,27 +570,27 @@ function KeywordSection({ keywords, missingReason }: { keywords?: KeywordData; m
 
       {keywords.bucket_counts && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Card className="bg-green-500/5 border-green-500/20">
+          <Card className="bg-semantic-success-soft border-semantic-success-border">
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-green-400" data-testid="bucket-top-3">{keywords.bucket_counts.top_3}</p>
+              <p className="text-2xl font-bold text-semantic-success" data-testid="bucket-top-3">{keywords.bucket_counts.top_3}</p>
               <p className="text-sm text-muted-foreground">Top 3</p>
             </CardContent>
           </Card>
-          <Card className="bg-blue-500/5 border-blue-500/20">
+          <Card className="bg-semantic-info-soft border-semantic-info-border">
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-blue-400" data-testid="bucket-4-10">{keywords.bucket_counts["4_10"]}</p>
+              <p className="text-2xl font-bold text-semantic-info" data-testid="bucket-4-10">{keywords.bucket_counts["4_10"]}</p>
               <p className="text-sm text-muted-foreground">Pos 4-10</p>
             </CardContent>
           </Card>
-          <Card className="bg-yellow-500/5 border-yellow-500/20">
+          <Card className="bg-semantic-warning-soft border-semantic-warning-border">
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-yellow-400" data-testid="bucket-11-30">{keywords.bucket_counts["11_30"]}</p>
+              <p className="text-2xl font-bold text-semantic-warning" data-testid="bucket-11-30">{keywords.bucket_counts["11_30"]}</p>
               <p className="text-sm text-muted-foreground">Pos 11-30</p>
             </CardContent>
           </Card>
-          <Card className="bg-gray-500/5 border-gray-500/20">
+          <Card className="bg-muted border-border">
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-gray-400" data-testid="bucket-not-ranking">{keywords.bucket_counts.not_ranking}</p>
+              <p className="text-2xl font-bold text-muted-foreground" data-testid="bucket-not-ranking">{keywords.bucket_counts.not_ranking}</p>
               <p className="text-sm text-muted-foreground">Not Ranking</p>
             </CardContent>
           </Card>
@@ -806,13 +806,13 @@ function PerformanceSection({ performance, missingReason }: { performance?: Perf
 
       <div className="flex items-center gap-6 text-sm text-muted-foreground justify-center">
         <span className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-full bg-green-500" /> Good
+          <span className="w-3 h-3 rounded-full bg-semantic-success" /> Good
         </span>
         <span className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-full bg-yellow-500" /> Needs Work
+          <span className="w-3 h-3 rounded-full bg-semantic-warning" /> Needs Work
         </span>
         <span className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-full bg-red-500" /> Poor
+          <span className="w-3 h-3 rounded-full bg-semantic-danger" /> Poor
         </span>
       </div>
     </section>
@@ -828,9 +828,9 @@ function NextStepsSection({ nextSteps, onCtaClick, scanId }: { nextSteps: NextSt
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
-        <Card className="bg-red-500/5 border-red-500/20">
+        <Card className="bg-semantic-danger-soft border-semantic-danger-border">
           <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2 text-red-400">
+            <CardTitle className="text-lg flex items-center gap-2 text-semantic-danger">
               <TrendingDown className="w-5 h-5" />
               If You Do Nothing
             </CardTitle>
@@ -839,7 +839,7 @@ function NextStepsSection({ nextSteps, onCtaClick, scanId }: { nextSteps: NextSt
             <ul className="space-y-3">
               {nextSteps.if_do_nothing.map((item, idx) => (
                 <li key={idx} className="flex items-start gap-2" data-testid={`do-nothing-${idx}`}>
-                  <AlertTriangle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
+                  <AlertTriangle className="w-4 h-4 text-semantic-danger mt-0.5 shrink-0" />
                   <span className="text-sm text-foreground">{item}</span>
                 </li>
               ))}
@@ -847,9 +847,9 @@ function NextStepsSection({ nextSteps, onCtaClick, scanId }: { nextSteps: NextSt
           </CardContent>
         </Card>
 
-        <Card className="bg-green-500/5 border-green-500/20">
+        <Card className="bg-semantic-success-soft border-semantic-success-border">
           <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2 text-green-400">
+            <CardTitle className="text-lg flex items-center gap-2 text-semantic-success">
               <TrendingUp className="w-5 h-5" />
               If You Fix This
             </CardTitle>
@@ -858,7 +858,7 @@ function NextStepsSection({ nextSteps, onCtaClick, scanId }: { nextSteps: NextSt
             <ul className="space-y-3">
               {nextSteps.if_you_fix_this.map((item, idx) => (
                 <li key={idx} className="flex items-start gap-2" data-testid={`fix-this-${idx}`}>
-                  <CheckCircle2 className="w-4 h-4 text-green-400 mt-0.5 shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-semantic-success mt-0.5 shrink-0" />
                   <span className="text-sm text-foreground">{item}</span>
                 </li>
               ))}
@@ -870,7 +870,7 @@ function NextStepsSection({ nextSteps, onCtaClick, scanId }: { nextSteps: NextSt
       <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
         <Button
           size="lg"
-          className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg"
+          className="bg-gradient-to-r from-primary to-purple hover:from-primary/90 hover:to-purple/90 text-white shadow-lg"
           onClick={() => {
             const signupUrl = scanId ? `/signup?scanId=${scanId}` : '/signup';
             window.location.href = signupUrl;

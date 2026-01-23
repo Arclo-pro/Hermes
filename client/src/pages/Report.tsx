@@ -95,23 +95,23 @@ function getHealthConfig(status: HealthStatus) {
     "at-risk": {
       emoji: "🚨",
       label: "At Risk",
-      color: "text-red-600",
-      bgColor: "bg-red-100",
-      borderColor: "border-red-300",
+      color: "text-danger",
+      bgColor: "bg-danger-soft",
+      borderColor: "border-danger",
     },
     "needs-attention": {
       emoji: "⚠️",
       label: "Needs Attention",
-      color: "text-amber-600",
-      bgColor: "bg-amber-100",
-      borderColor: "border-amber-300",
+      color: "text-warning",
+      bgColor: "bg-warning-soft",
+      borderColor: "border-warning",
     },
     "healthy": {
       emoji: "✅",
       label: "Healthy",
-      color: "text-green-600",
-      bgColor: "bg-green-100",
-      borderColor: "border-green-300",
+      color: "text-success",
+      bgColor: "bg-success-soft",
+      borderColor: "border-success",
     },
   };
   return configs[status];
@@ -119,22 +119,22 @@ function getHealthConfig(status: HealthStatus) {
 
 function getCardStatus(score: number | undefined): { label: string; color: string; bgColor: string } {
   if (score === undefined || score < 60) {
-    return { label: "Critical", color: "text-red-700", bgColor: "bg-red-100" };
+    return { label: "Critical", color: "text-danger", bgColor: "bg-danger-soft" };
   }
   if (score < 80) {
-    return { label: "Needs Attention", color: "text-amber-700", bgColor: "bg-amber-100" };
+    return { label: "Needs Attention", color: "text-warning", bgColor: "bg-warning-soft" };
   }
-  return { label: "Good", color: "text-green-700", bgColor: "bg-green-100" };
+  return { label: "Good", color: "text-success", bgColor: "bg-success-soft" };
 }
 
 function ScoreRing({ score, label, size = "lg" }: { score: number; label: string; size?: "sm" | "lg" }) {
   const sizeClasses = size === "lg" ? "w-24 h-24" : "w-16 h-16";
   const textClasses = size === "lg" ? "text-2xl" : "text-lg";
   
-  let color = "text-red-500";
-  if (score >= 80) color = "text-green-500";
-  else if (score >= 60) color = "text-amber-500";
-  else if (score >= 40) color = "text-orange-500";
+  let color = "text-danger";
+  if (score >= 80) color = "text-success";
+  else if (score >= 60) color = "text-warning";
+  else if (score >= 40) color = "text-gold";
 
   return (
     <div className="flex flex-col items-center gap-2">
@@ -147,7 +147,7 @@ function ScoreRing({ score, label, size = "lg" }: { score: number; label: string
             fill="none"
             stroke="currentColor"
             strokeWidth="8"
-            className="text-slate-200"
+            className="text-muted"
           />
           <circle
             cx="50"
@@ -163,7 +163,7 @@ function ScoreRing({ score, label, size = "lg" }: { score: number; label: string
         </svg>
         <span className={`${textClasses} font-bold ${color}`}>{score}</span>
       </div>
-      <span className="text-sm text-slate-500">{label}</span>
+      <span className="text-sm text-muted-foreground">{label}</span>
     </div>
   );
 }
@@ -184,14 +184,14 @@ function DiagnosisCard({
   onFixClick: () => void;
 }) {
   return (
-    <Card className="bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow" data-testid={`diagnosis-card-${title.toLowerCase().replace(/\s+/g, '-')}`}>
+    <Card className="bg-card border-border shadow-sm hover:shadow-md transition-shadow" data-testid={`diagnosis-card-${title.toLowerCase().replace(/\s+/g, '-')}`}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-slate-100 rounded-lg">
-              <Icon className="w-5 h-5 text-slate-700" />
+            <div className="p-2 bg-muted rounded-lg">
+              <Icon className="w-5 h-5 text-foreground" />
             </div>
-            <CardTitle className="text-lg text-slate-900">{title}</CardTitle>
+            <CardTitle className="text-lg text-foreground">{title}</CardTitle>
           </div>
           <Badge className={`${status.bgColor} ${status.color} border-0`}>
             {status.label}
@@ -199,12 +199,12 @@ function DiagnosisCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-sm text-slate-600">{impactSentence}</p>
+        <p className="text-sm text-muted-foreground">{impactSentence}</p>
         {metrics && <div className="text-sm">{metrics}</div>}
         <Button 
           variant="outline" 
           size="sm" 
-          className="w-full border-slate-300 text-slate-700 hover:bg-slate-50"
+          className="w-full border-border text-foreground hover:bg-muted"
           onClick={onFixClick}
           data-testid={`btn-fix-${title.toLowerCase().replace(/\s+/g, '-')}`}
         >
@@ -303,7 +303,7 @@ export default function Report() {
     return (
       <MarketingLayout>
         <div className="min-h-[60vh] flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
+          <Loader2 className="w-8 h-8 animate-spin text-brand" />
         </div>
       </MarketingLayout>
     );
@@ -313,9 +313,9 @@ export default function Report() {
     return (
       <MarketingLayout>
         <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
-          <AlertTriangle className="w-12 h-12 text-red-500" />
-          <h1 className="text-2xl font-bold text-slate-900">Report Not Found</h1>
-          <p className="text-slate-500">This scan may have expired or doesn't exist.</p>
+          <AlertTriangle className="w-12 h-12 text-danger" />
+          <h1 className="text-2xl font-bold text-foreground">Report Not Found</h1>
+          <p className="text-muted-foreground">This scan may have expired or doesn't exist.</p>
           <Button onClick={() => navigate("/")} data-testid="btn-back-home">
             Start New Scan
           </Button>
@@ -348,14 +348,14 @@ export default function Report() {
     <MarketingLayout>
       <div className="min-h-screen">
         {/* SECTION 1: Hero Diagnosis */}
-        <section className="bg-gradient-to-b from-slate-50 to-white py-12 md:py-16 px-4" data-testid="section-hero">
+        <section className="bg-gradient-to-b from-muted to-card py-12 md:py-16 px-4" data-testid="section-hero">
           <div className="max-w-4xl mx-auto text-center">
             <div className="flex items-center justify-center gap-2 mb-6">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShareModalOpen(true)}
-                className="border-slate-300 text-slate-600 hover:bg-slate-50"
+                className="border-border text-muted-foreground hover:bg-muted"
                 data-testid="btn-share-report"
               >
                 <Share2 className="w-4 h-4 mr-1" />
@@ -368,36 +368,36 @@ export default function Report() {
               <span className={healthConfig.color}>SEO Health: {healthConfig.label}</span>
             </div>
             
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-slate-900 mb-4 leading-tight" data-testid="diagnosis-headline">
-              Your website is losing an estimated <span className="text-red-600">{trafficAtRisk.toLocaleString()} visitors</span> and <span className="text-red-600">{leadsMissed.min}-{leadsMissed.max} leads</span> per month due to preventable SEO issues we can fix automatically.
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-4 leading-tight" data-testid="diagnosis-headline">
+              Your website is losing an estimated <span className="text-danger">{trafficAtRisk.toLocaleString()} visitors</span> and <span className="text-danger">{leadsMissed.min}-{leadsMissed.max} leads</span> per month due to preventable SEO issues we can fix automatically.
             </h1>
             
-            <p className="text-slate-500 mb-8" data-testid="report-url">
+            <p className="text-muted-foreground mb-8" data-testid="report-url">
               Analysis for: {targetUrl}
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
-              <Card className="bg-white border-slate-200 shadow-sm" data-testid="metric-traffic">
+              <Card className="bg-card border-border shadow-sm" data-testid="metric-traffic">
                 <CardContent className="pt-6 text-center">
-                  <Eye className="w-8 h-8 mx-auto mb-2 text-red-500" />
-                  <div className="text-3xl font-bold text-slate-900">{trafficAtRisk.toLocaleString()}</div>
-                  <div className="text-sm text-slate-500">Traffic at risk / month</div>
+                  <Eye className="w-8 h-8 mx-auto mb-2 text-danger" />
+                  <div className="text-3xl font-bold text-foreground">{trafficAtRisk.toLocaleString()}</div>
+                  <div className="text-sm text-muted-foreground">Traffic at risk / month</div>
                 </CardContent>
               </Card>
               
-              <Card className="bg-white border-slate-200 shadow-sm" data-testid="metric-clicks">
+              <Card className="bg-card border-border shadow-sm" data-testid="metric-clicks">
                 <CardContent className="pt-6 text-center">
-                  <MousePointer className="w-8 h-8 mx-auto mb-2 text-amber-500" />
-                  <div className="text-3xl font-bold text-slate-900">{clicksLost.toLocaleString()}</div>
-                  <div className="text-sm text-slate-500">Clicks lost / month</div>
+                  <MousePointer className="w-8 h-8 mx-auto mb-2 text-warning" />
+                  <div className="text-3xl font-bold text-foreground">{clicksLost.toLocaleString()}</div>
+                  <div className="text-sm text-muted-foreground">Clicks lost / month</div>
                 </CardContent>
               </Card>
               
-              <Card className="bg-white border-slate-200 shadow-sm" data-testid="metric-leads">
+              <Card className="bg-card border-border shadow-sm" data-testid="metric-leads">
                 <CardContent className="pt-6 text-center">
-                  <Users className="w-8 h-8 mx-auto mb-2 text-violet-500" />
-                  <div className="text-3xl font-bold text-slate-900">{leadsMissed.min}-{leadsMissed.max}</div>
-                  <div className="text-sm text-slate-500">Leads missed / month</div>
+                  <Users className="w-8 h-8 mx-auto mb-2 text-brand" />
+                  <div className="text-3xl font-bold text-foreground">{leadsMissed.min}-{leadsMissed.max}</div>
+                  <div className="text-sm text-muted-foreground">Leads missed / month</div>
                 </CardContent>
               </Card>
             </div>
@@ -405,10 +405,10 @@ export default function Report() {
         </section>
 
         {/* SECTION 2: Diagnosis Signal Cards */}
-        <section className="py-12 px-4 bg-white" data-testid="section-diagnosis-cards">
+        <section className="py-12 px-4 bg-card" data-testid="section-diagnosis-cards">
           <div className="max-w-6xl mx-auto">
-            <h2 className="text-2xl font-bold text-slate-900 mb-2 text-center">What's Affecting Your Rankings</h2>
-            <p className="text-slate-500 text-center mb-8">Click "Fix This" on any card to address that specific issue</p>
+            <h2 className="text-2xl font-bold text-foreground mb-2 text-center">What's Affecting Your Rankings</h2>
+            <p className="text-muted-foreground text-center mb-8">Click "Fix This" on any card to address that specific issue</p>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <DiagnosisCard
@@ -417,7 +417,7 @@ export default function Report() {
                 status={technicalStatus}
                 impactSentence={`${fullReport?.technical?.issues || "Several"} technical issues are preventing search engines from properly indexing your pages.`}
                 metrics={
-                  <div className="flex gap-4 text-slate-500">
+                  <div className="flex gap-4 text-muted-foreground">
                     <span>Meta Coverage: {fullReport?.technical?.metaCoverage || scoreSummary.technical}%</span>
                   </div>
                 }
@@ -430,7 +430,7 @@ export default function Report() {
                 status={performanceStatus}
                 impactSentence="Slow page speed is hurting your search rankings and causing visitors to leave before converting."
                 metrics={
-                  <div className="flex flex-wrap gap-3 text-xs text-slate-500">
+                  <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                     {fullReport?.performance?.lcp && <span>LCP: {fullReport.performance.lcp}s</span>}
                     {fullReport?.performance?.cls !== undefined && <span>CLS: {fullReport.performance.cls}</span>}
                     {fullReport?.performance?.inp && <span>INP: {fullReport.performance.inp}ms</span>}
@@ -449,14 +449,14 @@ export default function Report() {
                   fullReport?.competitors?.length ? (
                     <div className="space-y-1">
                       {fullReport.competitors.slice(0, 3).map((comp, idx) => (
-                        <div key={idx} className="text-xs text-slate-500 flex justify-between">
+                        <div key={idx} className="text-xs text-muted-foreground flex justify-between">
                           <span>{comp.domain}</span>
                           {comp.shareOfVoice && <span>{comp.shareOfVoice}% share</span>}
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <span className="text-xs text-slate-500">Competitor data unavailable</span>
+                    <span className="text-xs text-muted-foreground">Competitor data unavailable</span>
                   )
                 }
                 onFixClick={handleDeployClick}
@@ -471,14 +471,14 @@ export default function Report() {
                   fullReport?.keywords?.quickWins?.length ? (
                     <div className="space-y-1">
                       {fullReport.keywords.quickWins.slice(0, 3).map((kw, idx) => (
-                        <div key={idx} className="text-xs text-slate-500 flex justify-between">
+                        <div key={idx} className="text-xs text-muted-foreground flex justify-between">
                           <span className="truncate flex-1">{kw.keyword}</span>
                           <span className="ml-2">#{kw.position}</span>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <span className="text-xs text-slate-500">No quick wins identified yet</span>
+                    <span className="text-xs text-muted-foreground">No quick wins identified yet</span>
                   )
                 }
                 onFixClick={handleDeployClick}
@@ -490,16 +490,16 @@ export default function Report() {
                 status={authorityStatus}
                 impactSentence="Your domain authority affects how well you rank against competitors for the same keywords."
                 metrics={
-                  <div className="flex gap-4 text-slate-500">
+                  <div className="flex gap-4 text-muted-foreground">
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-slate-900">
+                      <div className="text-2xl font-bold text-foreground">
                         {fullReport?.authority?.domainAuthority || "N/A"}
                       </div>
                       <div className="text-xs">DA Score</div>
                     </div>
                     {fullReport?.authority?.referringDomains && (
                       <div className="text-center">
-                        <div className="text-2xl font-bold text-slate-900">
+                        <div className="text-2xl font-bold text-foreground">
                           {fullReport.authority.referringDomains}
                         </div>
                         <div className="text-xs">Ref. Domains</div>
@@ -514,42 +514,42 @@ export default function Report() {
         </section>
 
         {/* SECTION 3: What This Is Costing You */}
-        <section className="py-16 px-4 bg-slate-900 relative overflow-hidden" data-testid="section-cost">
-          <div className="absolute inset-0 bg-gradient-to-r from-violet-600/10 via-pink-600/10 to-amber-600/10" />
+        <section className="py-16 px-4 bg-background relative overflow-hidden" data-testid="section-cost">
+          <div className="absolute inset-0 bg-gradient-to-r from-brand/10 via-pink-600/10 to-gold/10" />
           <div className="max-w-4xl mx-auto relative z-10">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-3 text-center">What This Is Costing You</h2>
-            <p className="text-slate-400 text-center mb-10">Every day without these fixes means lost opportunities</p>
+            <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3 text-center">What This Is Costing You</h2>
+            <p className="text-muted-foreground text-center mb-10">Every day without these fixes means lost opportunities</p>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 text-center backdrop-blur-sm" data-testid="cost-visibility">
-                <Eye className="w-10 h-10 mx-auto mb-3 text-red-400" />
-                <div className="text-3xl font-bold text-white mb-1">{Math.round(trafficAtRisk * 12).toLocaleString()}</div>
-                <div className="text-lg text-slate-300 mb-2">Lost Visibility / Year</div>
-                <p className="text-sm text-slate-400">Potential customers who never see your business in search results</p>
+              <div className="bg-surface-panel border border-border rounded-xl p-6 text-center backdrop-blur-sm" data-testid="cost-visibility">
+                <Eye className="w-10 h-10 mx-auto mb-3 text-danger" />
+                <div className="text-3xl font-bold text-foreground mb-1">{Math.round(trafficAtRisk * 12).toLocaleString()}</div>
+                <div className="text-lg text-foreground mb-2">Lost Visibility / Year</div>
+                <p className="text-sm text-muted-foreground">Potential customers who never see your business in search results</p>
               </div>
               
-              <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 text-center backdrop-blur-sm" data-testid="cost-clicks">
-                <MousePointer className="w-10 h-10 mx-auto mb-3 text-amber-400" />
-                <div className="text-3xl font-bold text-white mb-1">{Math.round(clicksLost * 12).toLocaleString()}</div>
-                <div className="text-lg text-slate-300 mb-2">Lost Clicks / Year</div>
-                <p className="text-sm text-slate-400">People who would have visited your site but went to competitors instead</p>
+              <div className="bg-surface-panel border border-border rounded-xl p-6 text-center backdrop-blur-sm" data-testid="cost-clicks">
+                <MousePointer className="w-10 h-10 mx-auto mb-3 text-warning" />
+                <div className="text-3xl font-bold text-foreground mb-1">{Math.round(clicksLost * 12).toLocaleString()}</div>
+                <div className="text-lg text-foreground mb-2">Lost Clicks / Year</div>
+                <p className="text-sm text-muted-foreground">People who would have visited your site but went to competitors instead</p>
               </div>
               
-              <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 text-center backdrop-blur-sm" data-testid="cost-leads">
-                <DollarSign className="w-10 h-10 mx-auto mb-3 text-green-400" />
-                <div className="text-3xl font-bold text-white mb-1">{leadsMissed.min * 12}-{leadsMissed.max * 12}</div>
-                <div className="text-lg text-slate-300 mb-2">Missed Leads / Year</div>
-                <p className="text-sm text-slate-400">Customers ready to buy who never found you online</p>
+              <div className="bg-surface-panel border border-border rounded-xl p-6 text-center backdrop-blur-sm" data-testid="cost-leads">
+                <DollarSign className="w-10 h-10 mx-auto mb-3 text-success" />
+                <div className="text-3xl font-bold text-foreground mb-1">{leadsMissed.min * 12}-{leadsMissed.max * 12}</div>
+                <div className="text-lg text-foreground mb-2">Missed Leads / Year</div>
+                <p className="text-sm text-muted-foreground">Customers ready to buy who never found you online</p>
               </div>
             </div>
           </div>
         </section>
 
         {/* SECTION 4: One-Click Fix Engine */}
-        <section className="py-12 px-4 bg-white" data-testid="section-fix-engine">
+        <section className="py-12 px-4 bg-card" data-testid="section-fix-engine">
           <div className="max-w-3xl mx-auto">
-            <h2 className="text-2xl font-bold text-slate-900 mb-2 text-center">One-Click Fix Engine</h2>
-            <p className="text-slate-500 text-center mb-8">Select the issues you want us to fix automatically</p>
+            <h2 className="text-2xl font-bold text-foreground mb-2 text-center">One-Click Fix Engine</h2>
+            <p className="text-muted-foreground text-center mb-8">Select the issues you want us to fix automatically</p>
             
             <div className="space-y-3 mb-8">
               {fixableIssues.map((issue) => (
@@ -557,8 +557,8 @@ export default function Report() {
                   key={issue.id}
                   className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${
                     issue.checked 
-                      ? "border-violet-300 bg-violet-50" 
-                      : "border-slate-200 bg-white hover:border-slate-300"
+                      ? "border-brand bg-brand-soft" 
+                      : "border-border bg-card hover:border-muted-foreground"
                   }`}
                   onClick={() => toggleIssue(issue.id)}
                   data-testid={`fix-item-${issue.id}`}
@@ -571,12 +571,12 @@ export default function Report() {
                     />
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="font-semibold text-slate-900">{issue.name}</span>
-                        <Badge className="bg-green-100 text-green-700 border-0 text-xs">
+                        <span className="font-semibold text-foreground">{issue.name}</span>
+                        <Badge className="bg-success-soft text-success border-0 text-xs">
                           {issue.benefit}
                         </Badge>
                       </div>
-                      <p className="text-sm text-slate-500">{issue.explanation}</p>
+                      <p className="text-sm text-muted-foreground">{issue.explanation}</p>
                     </div>
                   </div>
                 </div>
@@ -598,38 +598,38 @@ export default function Report() {
         </section>
 
         {/* SECTION 6: Trust & Safety */}
-        <section className="py-12 px-4 bg-slate-50" data-testid="section-trust">
+        <section className="py-12 px-4 bg-muted" data-testid="section-trust">
           <div className="max-w-3xl mx-auto">
-            <h2 className="text-xl font-bold text-slate-900 mb-6 text-center">Safe & Secure</h2>
+            <h2 className="text-xl font-bold text-foreground mb-6 text-center">Safe & Secure</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="flex items-start gap-3" data-testid="trust-reversible">
-                <div className="p-2 bg-green-100 rounded-full">
-                  <CheckCircle2 className="w-5 h-5 text-green-600" />
+                <div className="p-2 bg-success-soft rounded-full">
+                  <CheckCircle2 className="w-5 h-5 text-success" />
                 </div>
                 <div>
-                  <div className="font-medium text-slate-900">Changes logged and reversible</div>
-                  <p className="text-sm text-slate-500">Every change is tracked and can be undone instantly</p>
+                  <div className="font-medium text-foreground">Changes logged and reversible</div>
+                  <p className="text-sm text-muted-foreground">Every change is tracked and can be undone instantly</p>
                 </div>
               </div>
               
               <div className="flex items-start gap-3" data-testid="trust-no-access">
-                <div className="p-2 bg-blue-100 rounded-full">
-                  <Shield className="w-5 h-5 text-blue-600" />
+                <div className="p-2 bg-info-soft rounded-full">
+                  <Shield className="w-5 h-5 text-info" />
                 </div>
                 <div>
-                  <div className="font-medium text-slate-900">No account access required</div>
-                  <p className="text-sm text-slate-500">We don't need your CMS or hosting passwords</p>
+                  <div className="font-medium text-foreground">No account access required</div>
+                  <p className="text-sm text-muted-foreground">We don't need your CMS or hosting passwords</p>
                 </div>
               </div>
               
               <div className="flex items-start gap-3" data-testid="trust-safe-mode">
-                <div className="p-2 bg-violet-100 rounded-full">
-                  <TrendingUp className="w-5 h-5 text-violet-600" />
+                <div className="p-2 bg-brand-soft rounded-full">
+                  <TrendingUp className="w-5 h-5 text-brand" />
                 </div>
                 <div>
-                  <div className="font-medium text-slate-900">Safe mode enabled by default</div>
-                  <p className="text-sm text-slate-500">Conservative changes that won't break your site</p>
+                  <div className="font-medium text-foreground">Safe mode enabled by default</div>
+                  <p className="text-sm text-muted-foreground">Conservative changes that won't break your site</p>
                 </div>
               </div>
             </div>
@@ -637,9 +637,9 @@ export default function Report() {
         </section>
 
         {/* Score Summary (optional additional context) */}
-        <section className="py-12 px-4 bg-white border-t border-slate-200" data-testid="section-scores">
+        <section className="py-12 px-4 bg-card border-t border-border" data-testid="section-scores">
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-xl font-bold text-slate-900 mb-6 text-center">Health Score Breakdown</h2>
+            <h2 className="text-xl font-bold text-foreground mb-6 text-center">Health Score Breakdown</h2>
             <div className="flex flex-wrap justify-center gap-8">
               <ScoreRing score={scoreSummary.overall} label="Overall" size="lg" />
               <ScoreRing score={scoreSummary.technical} label="Technical" size="sm" />
@@ -659,12 +659,12 @@ export default function Report() {
       {/* SECTION 5: Sticky CTA */}
       {showStickyBar && (
         <div 
-          className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 shadow-lg py-3 px-4"
+          className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border shadow-lg py-3 px-4"
           data-testid="sticky-cta"
         >
           <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
             <div className="hidden sm:block">
-              <div className="flex items-center gap-2 text-slate-500 text-sm">
+              <div className="flex items-center gap-2 text-muted-foreground text-sm">
                 <Clock className="w-4 h-4" />
                 <span>Takes ~3-7 minutes. Safe mode enabled.</span>
               </div>

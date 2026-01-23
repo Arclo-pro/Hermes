@@ -22,7 +22,7 @@ function StarRating() {
   return (
     <div className="flex gap-0.5">
       {[...Array(5)].map((_, i) => (
-        <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
+        <Star key={i} className="h-4 w-4 fill-gold text-gold" />
       ))}
     </div>
   );
@@ -30,9 +30,9 @@ function StarRating() {
 
 export function Testimonials() {
   return (
-    <section className="px-5 md:px-6 py-16 md:py-20 bg-slate-50">
+    <section className="px-5 md:px-6 py-16 md:py-20 bg-muted">
       <div className="max-w-5xl mx-auto">
-        <h2 className="text-2xl md:text-3xl font-bold text-slate-900 text-center mb-12">
+        <h2 className="text-2xl md:text-3xl font-bold text-foreground text-center mb-12">
           Trusted by Local Service Businesses
         </h2>
         
@@ -40,16 +40,16 @@ export function Testimonials() {
           {TESTIMONIALS.map((testimonial, index) => (
             <div
               key={index}
-              className="bg-white rounded-xl p-6 shadow-sm border border-slate-200"
+              className="bg-card rounded-xl p-6 shadow-sm border border-border"
               data-testid={`testimonial-card-${index}`}
             >
               <StarRating />
-              <blockquote className="mt-4 text-slate-600 leading-relaxed">
+              <blockquote className="mt-4 text-muted-foreground leading-relaxed">
                 "{testimonial.quote}"
               </blockquote>
-              <div className="mt-4 pt-4 border-t border-slate-100">
-                <p className="font-semibold text-slate-900">{testimonial.name}</p>
-                <p className="text-sm text-slate-500">{testimonial.business}</p>
+              <div className="mt-4 pt-4 border-t border-border">
+                <p className="font-semibold text-foreground">{testimonial.name}</p>
+                <p className="text-sm text-muted-foreground">{testimonial.business}</p>
               </div>
             </div>
           ))}

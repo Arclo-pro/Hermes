@@ -32,10 +32,10 @@ export default function SelectSite() {
 
   if (loading || sitesLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
-          <p className="text-gray-400">Loading...</p>
+          <Loader2 className="h-8 w-8 animate-spin text-gold" />
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
@@ -46,16 +46,16 @@ export default function SelectSite() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 px-4">
-      <Card className="w-full max-w-lg bg-gray-800/80 border-gray-700">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-surface-2 to-background px-4">
+      <Card className="w-full max-w-lg bg-card border-border">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-yellow-600 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-gold to-progress flex items-center justify-center">
               <Building2 className="h-6 w-6 text-white" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold text-white">Select a Website</CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardTitle className="text-2xl font-bold text-foreground">Select a Website</CardTitle>
+          <CardDescription className="text-muted-foreground">
             Choose which website you want to manage
           </CardDescription>
         </CardHeader>
@@ -65,26 +65,26 @@ export default function SelectSite() {
               <Button
                 key={site.siteId}
                 variant="outline"
-                className="w-full justify-between bg-gray-700 border-gray-600 text-white hover:bg-gray-600 h-auto py-4"
+                className="w-full justify-between bg-secondary border-border text-foreground hover:bg-muted h-auto py-4"
                 onClick={() => handleSelectSite(site.siteId)}
                 data-testid={`button-select-site-${site.siteId}`}
               >
                 <div className="flex items-center space-x-3">
-                  <Building2 className="h-5 w-5 text-amber-500" />
+                  <Building2 className="h-5 w-5 text-gold" />
                   <div className="text-left">
                     <p className="font-medium">{site.displayName}</p>
-                    <p className="text-sm text-gray-400">{site.baseUrl}</p>
+                    <p className="text-sm text-muted-foreground">{site.baseUrl}</p>
                   </div>
                 </div>
-                <ArrowRight className="h-5 w-5 text-gray-400" />
+                <ArrowRight className="h-5 w-5 text-muted-foreground" />
               </Button>
             ))
           ) : (
             <div className="text-center py-8">
-              <p className="text-gray-400 mb-4">No websites configured yet.</p>
+              <p className="text-muted-foreground mb-4">No websites configured yet.</p>
               <Button 
                 onClick={() => navigate("/app/sites/new")}
-                className="bg-amber-600 hover:bg-amber-700"
+                className="bg-gold hover:bg-gold/90"
                 data-testid="button-add-first-site"
               >
                 <Plus className="mr-2 h-4 w-4" />

@@ -22,16 +22,16 @@ interface IntegrationBlockProps {
 
 function IntegrationBlock({ id, title, description, icon, isConnected, children }: IntegrationBlockProps) {
   return (
-    <Card id={id} className="bg-white rounded-xl border border-gray-200 shadow-sm scroll-mt-8">
+    <Card id={id} className="bg-card rounded-xl border border-border shadow-sm scroll-mt-8">
       <CardHeader className="pb-4">
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
               {icon}
             </div>
             <div>
-              <CardTitle className="text-lg text-gray-900">{title}</CardTitle>
-              <CardDescription className="text-gray-500 mt-1">{description}</CardDescription>
+              <CardTitle className="text-lg text-foreground">{title}</CardTitle>
+              <CardDescription className="text-muted-foreground mt-1">{description}</CardDescription>
             </div>
           </div>
           <Badge 
@@ -128,8 +128,8 @@ export default function SettingsIntegrations() {
     <DashboardLayout className="dashboard-light">
       <div className="space-y-8 max-w-3xl mx-auto">
         <header>
-          <h1 className="text-2xl font-bold text-gray-900">Integrations</h1>
-          <p className="text-gray-500 mt-1">Connect your data sources to unlock insights</p>
+          <h1 className="text-2xl font-bold text-foreground">Integrations</h1>
+          <p className="text-muted-foreground mt-1">Connect your data sources to unlock insights</p>
         </header>
 
         <div className="space-y-6">
@@ -137,12 +137,12 @@ export default function SettingsIntegrations() {
             id="ga4"
             title="Google Analytics (GA4)"
             description="Connect to see traffic and conversion data"
-            icon={<BarChart3 className="w-5 h-5 text-orange-600" />}
+            icon={<BarChart3 className="w-5 h-5 text-gold" />}
             isConnected={ga4Connected}
           >
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="ga4-property" className="text-sm font-medium text-gray-700">
+                <Label htmlFor="ga4-property" className="text-sm font-medium text-foreground">
                   GA4 Property ID
                 </Label>
                 <Input
@@ -155,9 +155,9 @@ export default function SettingsIntegrations() {
                 />
               </div>
 
-              <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                <p className="text-sm font-medium text-gray-700 mb-2">How to find your GA4 Property ID:</p>
-                <ol className="text-sm text-gray-600 space-y-1 list-decimal list-inside">
+              <div className="bg-muted rounded-lg p-4 border border-border">
+                <p className="text-sm font-medium text-foreground mb-2">How to find your GA4 Property ID:</p>
+                <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
                   <li>Go to Google Analytics</li>
                   <li>Click Admin (gear icon) in the bottom left</li>
                   <li>Under Property, click "Property Settings"</li>
@@ -168,7 +168,7 @@ export default function SettingsIntegrations() {
               <Button 
                 onClick={handleSaveGa4} 
                 disabled={ga4Saving}
-                className="bg-violet-600 hover:bg-violet-700"
+                className="bg-primary hover:bg-primary/90"
                 data-testid="button-save-ga4"
               >
                 {ga4Saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
@@ -181,12 +181,12 @@ export default function SettingsIntegrations() {
             id="gsc"
             title="Google Search Console"
             description="Connect to see ranking and indexing data"
-            icon={<Search className="w-5 h-5 text-blue-600" />}
+            icon={<Search className="w-5 h-5 text-semantic-info" />}
             isConnected={gscConnected}
           >
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="gsc-url" className="text-sm font-medium text-gray-700">
+                <Label htmlFor="gsc-url" className="text-sm font-medium text-foreground">
                   Site URL
                 </Label>
                 <Input
@@ -199,9 +199,9 @@ export default function SettingsIntegrations() {
                 />
               </div>
 
-              <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                <p className="text-sm font-medium text-gray-700 mb-2">How to connect Google Search Console:</p>
-                <ol className="text-sm text-gray-600 space-y-1 list-decimal list-inside">
+              <div className="bg-muted rounded-lg p-4 border border-border">
+                <p className="text-sm font-medium text-foreground mb-2">How to connect Google Search Console:</p>
+                <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
                   <li>Go to Google Search Console</li>
                   <li>Select your verified property</li>
                   <li>Copy the exact URL shown (include https://)</li>
@@ -212,7 +212,7 @@ export default function SettingsIntegrations() {
               <Button 
                 onClick={handleSaveGsc} 
                 disabled={gscSaving}
-                className="bg-violet-600 hover:bg-violet-700"
+                className="bg-primary hover:bg-primary/90"
                 data-testid="button-save-gsc"
               >
                 {gscSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
@@ -225,16 +225,16 @@ export default function SettingsIntegrations() {
             id="crawler"
             title="Technical Crawler"
             description="Enable automated technical SEO audits"
-            icon={<Globe className="w-5 h-5 text-emerald-600" />}
+            icon={<Globe className="w-5 h-5 text-semantic-success" />}
             isConnected={crawlerEnabled}
           >
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label htmlFor="crawler-toggle" className="text-sm font-medium text-gray-700">
+                  <Label htmlFor="crawler-toggle" className="text-sm font-medium text-foreground">
                     Allow crawl-based technical insights
                   </Label>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-muted-foreground">
                     Enable automated crawling to detect technical SEO issues
                   </p>
                 </div>
@@ -249,7 +249,7 @@ export default function SettingsIntegrations() {
               {crawlerEnabled && (
                 <>
                   <div className="space-y-2">
-                    <Label htmlFor="crawler-url" className="text-sm font-medium text-gray-700">
+                    <Label htmlFor="crawler-url" className="text-sm font-medium text-foreground">
                       Crawl Base URL
                     </Label>
                     <Input
@@ -260,7 +260,7 @@ export default function SettingsIntegrations() {
                       className="max-w-sm"
                       data-testid="input-crawler-url"
                     />
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-muted-foreground">
                       The crawler will start from this URL and follow internal links
                     </p>
                   </div>

@@ -53,26 +53,26 @@ export function LandingHero() {
   return (
     <section className="px-5 md:px-6 pt-12 pb-8 md:pt-20 md:pb-16">
       <div className="max-w-2xl mx-auto text-center">
-        <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-slate-950 tracking-tight mb-4 leading-tight">
+        <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-foreground tracking-tight mb-4 leading-tight">
           Autonomous SEO for <span className="marketing-gradient-text">local businesses.</span>
         </h1>
-        <p className="text-base md:text-lg text-slate-600 mb-6 max-w-lg mx-auto">
+        <p className="text-base md:text-lg text-muted-foreground mb-6 max-w-lg mx-auto">
           Recover lost traffic. Turn audits into fixes. Stop guessing what's broken — Arclo diagnoses your site and deploys real improvements automatically.
         </p>
         
-        <div className="flex items-center justify-center gap-2 text-sm text-slate-500 mb-8">
+        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-8">
           <span className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            <span className="w-1.5 h-1.5 rounded-full bg-success"></span>
             Scan your site
           </span>
-          <span className="text-slate-300">→</span>
+          <span className="text-muted-foreground">→</span>
           <span className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-violet-500"></span>
+            <span className="w-1.5 h-1.5 rounded-full bg-brand"></span>
             Identify what's holding it back
           </span>
-          <span className="text-slate-300">→</span>
+          <span className="text-muted-foreground">→</span>
           <span className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+            <span className="w-1.5 h-1.5 rounded-full bg-gold"></span>
             Fix issues automatically
           </span>
         </div>
@@ -107,13 +107,13 @@ export function LandingHero() {
         </form>
         
         {error && (
-          <p className="text-sm text-red-600 mb-3" data-testid="text-error">{error}</p>
+          <p className="text-sm text-danger mb-3" data-testid="text-error">{error}</p>
         )}
         
-        <p className="text-sm text-slate-500 mb-2">
+        <p className="text-sm text-muted-foreground mb-2">
           No credit card required.
         </p>
-        <p className="text-xs text-slate-400 mb-4">
+        <p className="text-xs text-muted-foreground mb-4">
           Powered by live crawl, performance, and ranking signals — not guesses.
         </p>
         
@@ -129,7 +129,7 @@ export function LandingHero() {
           </Link>
           <Link 
             href={ROUTES.EXAMPLES}
-            className="text-sm text-slate-600 hover:text-violet-600 underline-offset-2 hover:underline transition-colors"
+            className="text-sm text-muted-foreground hover:text-brand underline-offset-2 hover:underline transition-colors"
             data-testid="link-see-examples"
           >
             See examples

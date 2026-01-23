@@ -38,20 +38,20 @@ export function BenefitCards() {
   return (
     <section className="px-5 md:px-6 py-12 md:py-16">
       <div className="max-w-5xl mx-auto">
-        <h2 className="text-2xl md:text-3xl font-bold text-center text-slate-950 mb-10 tracking-tight">
+        <h2 className="text-2xl md:text-3xl font-bold text-center text-foreground mb-10 tracking-tight">
           Why Local Businesses Choose Arclo
         </h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {BENEFITS.map((benefit) => (
-            <Card key={benefit.title} className="bg-gradient-to-b from-white to-slate-50 border border-slate-100 shadow-[0_20px_40px_rgba(15,23,42,0.08)] transition-all duration-200 hover:-translate-y-1" data-testid={`benefit-card-${benefit.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`}>
+            <Card key={benefit.title} className="bg-gradient-to-b from-card to-muted border border-border shadow-[0_20px_40px_rgba(15,23,42,0.08)] transition-all duration-200 hover:-translate-y-1" data-testid={`benefit-card-${benefit.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`}>
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-100 via-pink-100 to-amber-50 border border-slate-200 flex items-center justify-center shrink-0">
-                    <benefit.icon className="h-5 w-5 text-violet-700" />
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-soft via-pink-100 to-gold-soft border border-border flex items-center justify-center shrink-0">
+                    <benefit.icon className="h-5 w-5 text-brand" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-slate-900 mb-2">{benefit.title}</h3>
-                    <p className="text-sm text-slate-500">{benefit.description}</p>
+                    <h3 className="font-semibold text-foreground mb-2">{benefit.title}</h3>
+                    <p className="text-sm text-muted-foreground">{benefit.description}</p>
                   </div>
                 </div>
               </CardContent>

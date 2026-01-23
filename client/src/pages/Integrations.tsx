@@ -1158,13 +1158,13 @@ export default function Integrations() {
                 Integrations
               </h1>
               {cachedSummary?.isStale && (
-                <Badge variant="outline" className="text-xs border-yellow-500/50 text-yellow-600" data-testid="badge-stale-cache">
+                <Badge variant="outline" className="text-xs border-semantic-warning-border text-semantic-warning" data-testid="badge-stale-cache">
                   <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
                   Updating...
                 </Badge>
               )}
               {cachedSummary?.lastRefreshError && (
-                <Badge variant="outline" className="text-xs border-orange-500/50 text-orange-600" data-testid="badge-cache-error">
+                <Badge variant="outline" className="text-xs border-gold-border text-gold" data-testid="badge-cache-error">
                   <AlertTriangle className="w-3 h-3 mr-1" />
                   Showing cached data
                 </Badge>
