@@ -35,6 +35,7 @@ import { cn } from "@/lib/utils";
 const NAV_ITEMS = [
   { path: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { path: "/app/agents", label: "Agents", icon: Bot },
+  { path: "/app/websites", label: "Websites", icon: Globe },
   { path: "/app/benchmarks", label: "Benchmarks", icon: Target },
   { path: "/app/achievements", label: "Achievements", icon: Award },
 ];
@@ -42,7 +43,6 @@ const NAV_ITEMS = [
 const SETTINGS_ITEMS = [
   { path: "/app/settings", label: "General", icon: Settings },
   { path: "/app/integrations", label: "Integrations", icon: Plug },
-  { path: "/app/domains", label: "Domains", icon: Globe },
   { path: "/app/tickets", label: "Tickets", icon: Ticket },
   { path: "/app/changes", label: "Changes", icon: FileText },
   { path: "/app/runs", label: "Runs", icon: Play },

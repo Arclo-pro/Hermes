@@ -90,6 +90,10 @@ export const ROUTES = {
   SITE_NEW: "/app/sites/new",
   HELP: "/app/help",
   
+  // Managed Websites (target sites Hermes can modify)
+  WEBSITES: "/app/websites",
+  WEBSITE_DETAIL: "/app/websites/:websiteId",
+  
   // Developer pages
   DEV_PALETTE: "/app/dev/palette",
   DEV_LINEAGE: "/app/dev/lineage",
@@ -119,6 +123,7 @@ export const buildRoute = {
   site: (siteId: string) => `/app/sites/${siteId}`,
   settingsTab: (tab: string) => `/app/settings?tab=${tab}`,
   settingsWebsite: (siteId: string) => `/app/settings/websites/${siteId}`,
+  website: (websiteId: string) => `/app/websites/${websiteId}`,
 } as const;
 
 // ============================================
@@ -225,7 +230,7 @@ const ALL_STATIC_ROUTES = new Set([
   ROUTES.USE_CASES,
   ROUTES.PRICING,
   ROUTES.MANAGED_SITE,
-  
+
   // App routes
   ROUTES.HOME,
   ROUTES.DASHBOARD,
@@ -249,9 +254,10 @@ const ALL_STATIC_ROUTES = new Set([
   ROUTES.SITES,
   ROUTES.SITE_NEW,
   ROUTES.HELP,
+  ROUTES.WEBSITES,
   ROUTES.DEV_PALETTE,
   ROUTES.DEV_LINEAGE,
-  
+
   // Legal routes
   ROUTES.TERMS,
   ROUTES.PRIVACY,
@@ -265,12 +271,13 @@ const DYNAMIC_ROUTE_PATTERNS = [
   /^\/report\/free\/[a-zA-Z0-9_-]+\/share\/[a-zA-Z0-9_-]+$/,
   /^\/share\/[a-zA-Z0-9_-]+$/,
   /^\/examples\/[a-zA-Z0-9_-]+$/,
-  
+
   // App dynamic routes
   /^\/app\/agents\/[a-zA-Z0-9_-]+$/,
   /^\/app\/runs\/[a-zA-Z0-9_-]+$/,
   /^\/app\/sites\/[a-zA-Z0-9_-]+$/,
   /^\/app\/settings\/websites\/[a-zA-Z0-9_-]+$/,
+  /^\/app\/websites\/[a-zA-Z0-9_-]+$/,
 ];
 
 export function isValidRoute(path: string): boolean {

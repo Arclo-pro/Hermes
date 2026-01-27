@@ -54,6 +54,7 @@ import {
   type CrewStatus 
 } from "./services/crewStatus";
 import governanceRoutes from './routes/governance';
+import websiteRoutes from './routes/websites';
 import { generatedSites, siteGenerationJobs, crewFindings, insertAgentActionLogSchema, insertOutcomeEventLogSchema, type InsertAgentActionLog, type InsertOutcomeEventLog, seoReports, completedWork, sites, users, seoAgentCompetitors, type InsertSeoReport, findings, serpKeywords, type Finding } from "@shared/schema";
 import { processUnattributedEvents } from "./services/socratesAttribution";
 import { v4 as uuidv4 } from "uuid";
@@ -20857,6 +20858,7 @@ Return JSON in this exact format:
   });
 
   app.use('/api', governanceRoutes);
+  app.use('/api', websiteRoutes);
 
   // ============================================================
   // Internal API Endpoints (Hermes ↔ SERP Worker Communication)

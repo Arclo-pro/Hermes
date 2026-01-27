@@ -3189,3 +3189,91 @@ export const insertJobQueueSchema = createInsertSchema(jobQueue).omit({
 });
 export type InsertJobQueue = z.infer<typeof insertJobQueueSchema>;
 export type JobQueue = typeof jobQueue.$inferSelect;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MANAGED WEBSITES - Target websites that Hermes can orchestrate and modify
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const WebsiteStatuses = {
+  ACTIVE: 'active',
+  PAUSED: 'paused',
+} as const;
+export type WebsiteStatus = typeof WebsiteStatuses[keyof typeof WebsiteStatuses];
+
+export const websites = pgTable("websites", {
+  id: text("id").primaryKey(), // UUID
+  name: text("name").notNull(),
+  domain: text("domain").notNull().unique(),
+  status: text("status").notNull().default("active"), // active, paused
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertWebsiteSchema = createInsertSchema(websites).omit({
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertWebsite = z.infer<typeof insertWebsiteSchema>;
+export type Website = typeof websites.$inferSelect;
+
+// Website Settings - Configuration for each managed website
+export const websiteSettings = pgTable("website_settings", {
+  id: serial("id").primaryKey(),
+  websiteId: text("website_id").notNull().references(() => websites.id, { onDelete: "cascade" }),
+  competitors: jsonb("competitors").$type<string[]>().default([]), // Array of competitor domains
+  targetServicesEnabled: jsonb("target_services_enabled").$type<string[]>().default([]), // Which workers to run
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertWebsiteSettingsSchema = createInsertSchema(websiteSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertWebsiteSettings = z.infer<typeof insertWebsiteSettingsSchema>;
+export type WebsiteSettings = typeof websiteSettings.$inferSelect;
+
+// Managed Website Integrations - Configuration references (NOT raw secrets) for each managed website
+export const managedWebsiteIntegrations = pgTable("managed_website_integrations", {
+  id: serial("id").primaryKey(),
+  websiteId: text("website_id").notNull().references(() => websites.id, { onDelete: "cascade" }),
+  integrationType: text("integration_type").notNull(), // github_pr, cms_api, analytics, etc.
+  config: jsonb("config").$type<Record<string, string>>().default({}), // Secret key NAME references, not raw secrets
+  enabled: boolean("enabled").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertManagedWebsiteIntegrationSchema = createInsertSchema(managedWebsiteIntegrations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertManagedWebsiteIntegration = z.infer<typeof insertManagedWebsiteIntegrationSchema>;
+export type ManagedWebsiteIntegration = typeof managedWebsiteIntegrations.$inferSelect;
+
+// Website Jobs - Track jobs published for each managed website
+export const websiteJobs = pgTable("website_jobs", {
+  id: serial("id").primaryKey(),
+  jobId: text("job_id").notNull().unique(), // UUID
+  websiteId: text("website_id").notNull().references(() => websites.id, { onDelete: "cascade" }),
+  jobType: text("job_type").notNull(), // health_check, crawl_technical_seo, etc.
+  domain: text("domain").notNull(),
+  requestedBy: text("requested_by").notNull(), // hermes, manual, scheduled
+  traceId: text("trace_id").notNull(), // UUID for tracing
+  status: text("status").notNull().default("queued"), // queued, running, completed, failed
+  result: jsonb("result").$type<Record<string, any>>(), // Job result data
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+});
+
+export const insertWebsiteJobSchema = createInsertSchema(websiteJobs).omit({
+  id: true,
+  createdAt: true,
+  completedAt: true,
+});
+export type InsertWebsiteJob = z.infer<typeof insertWebsiteJobSchema>;
+export type WebsiteJob = typeof websiteJobs.$inferSelect;

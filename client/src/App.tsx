@@ -59,6 +59,8 @@ import SharedReport from "@/pages/SharedReport";
 import WebsiteReportPage from "@/pages/WebsiteReportPage";
 import DeveloperReportPage from "@/pages/DeveloperReportPage";
 import SettingsIntegrations from "@/pages/SettingsIntegrations";
+import Websites from "@/pages/Websites";
+import ManagedWebsiteDetail from "@/pages/ManagedWebsiteDetail";
 import { ROUTES, buildRoute, resolveAgentSlug } from "@shared/routes";
 import { useRoute } from "wouter";
 import { useEffect } from "react";
@@ -173,6 +175,10 @@ function Router() {
       <Route path={ROUTES.HELP}><ProtectedRoute component={Help} /></Route>
       <Route path={ROUTES.DEV_PALETTE}><ProtectedRoute component={CrewPalette} /></Route>
       <Route path={ROUTES.DEV_LINEAGE}><ProtectedRoute component={DevLineage} /></Route>
+      
+      {/* Managed Websites (target sites Hermes can modify) */}
+      <Route path={ROUTES.WEBSITES}><ProtectedRoute component={Websites} /></Route>
+      <Route path={ROUTES.WEBSITE_DETAIL}><ProtectedRoute component={ManagedWebsiteDetail} /></Route>
       
       {/* Report review pages */}
       <Route path={ROUTES.WEBSITE_REPORT}><ProtectedRoute component={WebsiteReportPage} /></Route>

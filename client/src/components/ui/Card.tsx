@@ -1,6 +1,92 @@
 import React from "react";
 
-type CardProps = {
+function cx(...xs: Array<string | false | undefined>) {
+  return xs.filter(Boolean).join(" ");
+}
+
+// ============================================
+// Standard shadcn/ui Card components
+// ============================================
+
+const CardRoot = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cx(
+      "rounded-2xl border border-surface-border bg-surface-primary shadow-card",
+      className
+    )}
+    {...props}
+  />
+));
+CardRoot.displayName = "Card";
+
+const CardHeader = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cx("flex flex-col space-y-1.5 p-6", className)}
+    {...props}
+  />
+));
+CardHeader.displayName = "CardHeader";
+
+const CardTitle = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cx("font-semibold leading-none tracking-tight", className)}
+    {...props}
+  />
+));
+CardTitle.displayName = "CardTitle";
+
+const CardDescription = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cx("text-sm text-text-secondary", className)}
+    {...props}
+  />
+));
+CardDescription.displayName = "CardDescription";
+
+const CardContent = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div ref={ref} className={cx("p-6 pt-0", className)} {...props} />
+));
+CardContent.displayName = "CardContent";
+
+const CardFooter = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cx("flex items-center p-6 pt-0", className)}
+    {...props}
+  />
+));
+CardFooter.displayName = "CardFooter";
+
+// Export standard components
+export { CardRoot as Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter };
+
+// ============================================
+// Custom Arclo Card component (optional alternative API)
+// ============================================
+
+type ArcloCardProps = {
   title?: string;
   description?: string;
   rightSlot?: React.ReactNode;
@@ -10,17 +96,13 @@ type CardProps = {
   tone?: "default" | "soft" | "brand";
 };
 
-function cx(...xs: Array<string | false | undefined>) {
-  return xs.filter(Boolean).join(" ");
-}
-
-const toneClasses: Record<NonNullable<CardProps["tone"]>, string> = {
+const toneClasses: Record<NonNullable<ArcloCardProps["tone"]>, string> = {
   default: "bg-surface-primary",
   soft: "bg-surface-primary",
   brand: "bg-surface-primary",
 };
 
-export function Card({ title, description, rightSlot, children, footer, className, tone = "default" }: CardProps) {
+export function ArcloCard({ title, description, rightSlot, children, footer, className, tone = "default" }: ArcloCardProps) {
   return (
     <div
       className={cx(
