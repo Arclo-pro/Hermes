@@ -2384,7 +2384,7 @@ export type InsertWebsiteIntegration = z.infer<typeof insertWebsiteIntegrationSc
 export type WebsiteIntegration = typeof websiteIntegrations.$inferSelect;
 
 export type IntegrationType = typeof integrationTypeEnum[number];
-export type IntegrationStatus = typeof integrationStatusEnum[number];
+export type WebsiteIntegrationStatus = typeof integrationStatusEnum[number];
 
 export interface GitHubDeployConfig {
   repoUrl: string;
@@ -2557,7 +2557,7 @@ export type FreeReport = typeof freeReports.$inferSelect;
 export type ChangeStatus = 'proposed' | 'queued' | 'applied' | 'rolled_back' | 'skipped';
 export type ChangeType = 'content' | 'technical' | 'performance' | 'config';
 export type ChangeScope = 'single_page' | 'template' | 'sitewide';
-export type RiskLevel = 'low' | 'medium' | 'high';
+export type ChangeRiskLevel = 'low' | 'medium' | 'high';
 export type ChangeTrigger = 'scheduled_run' | 'manual' | 'alert';
 
 // Central Change Log - tracks all proposed/applied/rolled-back changes
