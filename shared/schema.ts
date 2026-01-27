@@ -3189,3 +3189,61 @@ export const insertJobQueueSchema = createInsertSchema(jobQueue).omit({
 });
 export type InsertJobQueue = z.infer<typeof insertJobQueueSchema>;
 export type JobQueue = typeof jobQueue.$inferSelect;
+
+// ============================================================
+// Website Registry - Managed target websites
+// ============================================================
+
+export const websiteStatusEnum = ["active", "paused"] as const;
+export type WebsiteStatus = typeof websiteStatusEnum[number];
+
+export const managedWebsites = pgTable("managed_websites", {
+  id: text("id").primaryKey(), // UUID
+  name: text("name").notNull(),
+  domain: text("domain").notNull().unique(),
+  status: text("status").notNull().default("active"), // active | paused
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertManagedWebsiteSchema = createInsertSchema(managedWebsites).omit({
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertManagedWebsite = z.infer<typeof insertManagedWebsiteSchema>;
+export type ManagedWebsite = typeof managedWebsites.$inferSelect;
+
+// Website Settings - Competitors, enabled services, notes
+export const managedWebsiteSettings = pgTable("managed_website_settings", {
+  id: serial("id").primaryKey(),
+  websiteId: text("website_id").notNull().references(() => managedWebsites.id, { onDelete: "cascade" }),
+  competitors: jsonb("competitors").$type<string[]>().default([]),
+  targetServicesEnabled: jsonb("target_services_enabled").$type<string[]>().default([]),
+  notes: text("notes"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertManagedWebsiteSettingsSchema = createInsertSchema(managedWebsiteSettings).omit({
+  id: true,
+  updatedAt: true,
+});
+export type InsertManagedWebsiteSettings = z.infer<typeof insertManagedWebsiteSettingsSchema>;
+export type ManagedWebsiteSettings = typeof managedWebsiteSettings.$inferSelect;
+
+// Website Integrations - References to secrets, not raw values
+export const managedWebsiteIntegrations = pgTable("managed_website_integrations", {
+  id: serial("id").primaryKey(),
+  websiteId: text("website_id").notNull().references(() => managedWebsites.id, { onDelete: "cascade" }),
+  integrationType: text("integration_type").notNull(), // e.g., 'github_pr', 'cms_api', 'vercel_deploy'
+  config: jsonb("config").$type<Record<string, string>>().default({}), // secret key names, NOT raw secrets
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertManagedWebsiteIntegrationSchema = createInsertSchema(managedWebsiteIntegrations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertManagedWebsiteIntegration = z.infer<typeof insertManagedWebsiteIntegrationSchema>;
+export type ManagedWebsiteIntegration = typeof managedWebsiteIntegrations.$inferSelect;

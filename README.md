@@ -237,6 +237,69 @@ When deploying to production:
 4. Run `npm run db:push` to sync database schema
 5. Ensure port 5000 is accessible
 
+## Website Registry
+
+Hermes includes a **Website Registry** for managing target websites that Hermes orchestrates. Managed websites are distinct from the "sites" used for analytics — they represent external websites that Hermes can dispatch worker jobs against.
+
+### Adding a Website
+
+1. Navigate to `/app/websites` in the Hermes UI (or click "Websites" in the sidebar).
+2. Click **Add Website** and enter a name (e.g., "Empathy Health Clinic") and domain (e.g., `empathyhealthclinic.com`).
+3. The website is created in `active` status with default empty settings.
+
+Or via API:
+
+```bash
+curl -X POST http://localhost:5000/api/websites \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Empathy Health Clinic", "domain": "empathyhealthclinic.com"}'
+```
+
+### Running Your First Job
+
+1. Open the website detail page at `/app/websites/<id>`.
+2. Click **Run Health Check** to publish a `health_check` job to the queue.
+3. The job is added to the `job_queue` table with a standardized payload:
+   ```json
+   {
+     "job_type": "health_check",
+     "website_id": "<uuid>",
+     "domain": "empathyhealthclinic.com",
+     "requested_by": "hermes",
+     "requested_at": "2025-01-27T...",
+     "trace_id": "<uuid>"
+   }
+   ```
+4. A worker that polls the `job_queue` table will claim and execute the job.
+
+Or via API:
+
+```bash
+curl -X POST http://localhost:5000/api/websites/<id>/jobs \
+  -H "Content-Type: application/json" \
+  -d '{"job_type": "health_check"}'
+```
+
+### API Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/websites` | Create a managed website |
+| `GET` | `/api/websites` | List all managed websites |
+| `GET` | `/api/websites/:id` | Get website detail + settings |
+| `PATCH` | `/api/websites/:id` | Update name, status, or settings |
+| `POST` | `/api/websites/:id/jobs` | Publish a job to the worker queue |
+
+### Database Tables
+
+- `managed_websites` — id (uuid), name, domain (unique), status (active/paused), timestamps
+- `managed_website_settings` — competitors (json), target_services_enabled (json), notes
+- `managed_website_integrations` — integration_type, config (secret key references only)
+
+### Secrets Rule
+
+Integration configs store **secret key names** (e.g., `"github_token_key": "EMPATHY_GITHUB_TOKEN"`), never raw secret values. Secrets are resolved at runtime from environment variables or Bitwarden.
+
 ## License
 
 MIT

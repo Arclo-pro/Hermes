@@ -88,6 +88,8 @@ export const ROUTES = {
   SITES: "/app/sites",
   SITE_DETAIL: "/app/sites/:siteId",
   SITE_NEW: "/app/sites/new",
+  WEBSITES: "/app/websites",
+  WEBSITE_REGISTRY_DETAIL: "/app/websites/:websiteId",
   HELP: "/app/help",
   
   // Developer pages
@@ -119,6 +121,7 @@ export const buildRoute = {
   site: (siteId: string) => `/app/sites/${siteId}`,
   settingsTab: (tab: string) => `/app/settings?tab=${tab}`,
   settingsWebsite: (siteId: string) => `/app/settings/websites/${siteId}`,
+  websiteDetail: (websiteId: string) => `/app/websites/${websiteId}`,
 } as const;
 
 // ============================================
@@ -248,6 +251,7 @@ const ALL_STATIC_ROUTES = new Set([
   ROUTES.SETTINGS_WEBSITES,
   ROUTES.SITES,
   ROUTES.SITE_NEW,
+  ROUTES.WEBSITES,
   ROUTES.HELP,
   ROUTES.DEV_PALETTE,
   ROUTES.DEV_LINEAGE,
@@ -271,6 +275,7 @@ const DYNAMIC_ROUTE_PATTERNS = [
   /^\/app\/runs\/[a-zA-Z0-9_-]+$/,
   /^\/app\/sites\/[a-zA-Z0-9_-]+$/,
   /^\/app\/settings\/websites\/[a-zA-Z0-9_-]+$/,
+  /^\/app\/websites\/[a-zA-Z0-9_-]+$/,
 ];
 
 export function isValidRoute(path: string): boolean {
