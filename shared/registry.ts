@@ -156,7 +156,7 @@ export const SERVICES: Record<string, ServiceDefinition> = {
   google_ads_connector: {
     id: 'google_ads_connector',
     displayName: 'Google Ads',
-    description: 'Tracks ad performance, spend, and conversions',
+    description: 'Read-only ingestion of Google Ads data for paid search signal monitoring and organic strategy context',
     metricsProduced: ['ads.spend', 'ads.clicks', 'ads.impressions', 'ads.conversions', 'ads.cpc'],
     secretName: 'SEO_Google_Ads',
   },
@@ -415,14 +415,14 @@ export const CREW: Record<string, CrewDefinition> = {
   draper: {
     crewId: 'draper',
     nickname: 'Draper',
-    role: 'Paid Ads',
+    role: 'Paid Search Signal Monitor',
     services: ['google_ads_connector'],
     metricsOwned: ['ads.spend', 'ads.clicks', 'ads.impressions', 'ads.conversions', 'ads.cpc'],
     color: '#FB7185',
     theme: deriveTheme('#FB7185'),
-    primaryMetricId: 'ads.conversions',
-    dependencies: { required: ['google_ads'], optional: ['ga4'] },
-    scoreMetric: { id: 'roas', label: 'ROAS', source: 'google_ads' },
+    primaryMetricId: 'ads.spend',
+    dependencies: { required: ['google_ads'], optional: ['ga4', 'gsc'] },
+    scoreMetric: { id: 'paid_visibility', label: 'Paid Visibility', source: 'google_ads' },
     worker: {
       baseUrlEnvKey: 'GOOGLE_ADS_CONNECTOR_BASE_URL',
       apiKeySecretKey: 'GOOGLE_ADS_CONNECTOR_API_KEY',

@@ -1,11 +1,15 @@
 import { google } from "googleapis";
 import { googleAuth } from "../auth/google-oauth";
 import { storage } from "../storage";
-import { type InsertGSCDaily } from "@shared/schema";
+import { type InsertGSCDaily, type InsertGscUrlInspection, type InsertGscCoverageDaily } from "@shared/schema";
 import { logger } from "../utils/logger";
 import { withRetry, RateLimiter } from "../utils/retry";
 
 const rateLimiter = new RateLimiter(10, 1);
+// Separate rate limiter for URL Inspection API (600 req/min limit, conservative at 5/sec)
+const inspectionRateLimiter = new RateLimiter(5, 5);
+
+const GSC_INSPECTION_DAILY_LIMIT = parseInt(process.env.GSC_INSPECTION_DAILY_LIMIT || '100', 10);
 
 export interface SitemapInfo {
   path: string;
@@ -266,6 +270,154 @@ export class GSCConnector {
       return { success: false, message: error.message || 'GSC connection failed' };
     }
   }
+
+  /**
+   * Returns the top N page URLs by clicks, suitable for batch inspection.
+   */
+  async getTopPagesForInspection(startDate: string, endDate: string, limit: number = GSC_INSPECTION_DAILY_LIMIT): Promise<string[]> {
+    const pages = await this.getPerformanceByPage(startDate, endDate, limit);
+    return pages.map(p => p.page);
+  }
+
+  /**
+   * Classify a URL Inspection result into an error category.
+   */
+  private classifyInspectionResult(status: IndexingStatus): { isIndexed: boolean; hasError: boolean; errorCategory: string | null } {
+    // Check if indexed
+    const isIndexed = status.verdict === 'PASS' ||
+      status.coverageState?.toLowerCase().includes('submitted and indexed') ||
+      status.coverageState?.toLowerCase().includes('indexed');
+
+    if (isIndexed) {
+      return { isIndexed: true, hasError: false, errorCategory: null };
+    }
+
+    // Classify the error
+    if (status.robotsTxtState === 'DISALLOWED' || status.pageFetchState === 'BLOCKED_BY_ROBOTS') {
+      return { isIndexed: false, hasError: true, errorCategory: 'robots_blocked' };
+    }
+    if (status.indexingState === 'BLOCKED_BY_META_TAG') {
+      return { isIndexed: false, hasError: true, errorCategory: 'noindex' };
+    }
+    if (status.pageFetchState === 'SOFT_404' || status.pageFetchState === 'NOT_FOUND') {
+      return { isIndexed: false, hasError: true, errorCategory: 'not_found' };
+    }
+    if (status.pageFetchState === 'SERVER_ERROR') {
+      return { isIndexed: false, hasError: true, errorCategory: 'server_error' };
+    }
+    if (status.pageFetchState === 'REDIRECT_ERROR') {
+      return { isIndexed: false, hasError: true, errorCategory: 'redirect_error' };
+    }
+
+    return { isIndexed: false, hasError: true, errorCategory: 'crawl_error' };
+  }
+
+  /**
+   * Inspect multiple URLs in batch, classify results, and persist to storage.
+   * Respects daily API limits (default 100 URLs/site/day).
+   */
+  async batchUrlInspection(urls: string[], siteId: string): Promise<{
+    inspected: number;
+    indexed: number;
+    errors: number;
+    coveragePercent: number;
+    results: InspectionResult[];
+  }> {
+    if (!this.siteUrl) {
+      throw new Error('GSC_SITE environment variable is required');
+    }
+
+    const capped = urls.slice(0, GSC_INSPECTION_DAILY_LIMIT);
+    logger.info('GSC', `Starting batch URL inspection for ${capped.length} URLs (site: ${siteId})`);
+
+    const today = new Date().toISOString().split('T')[0];
+    const results: InspectionResult[] = [];
+    const inspectionRows: InsertGscUrlInspection[] = [];
+
+    for (const pageUrl of capped) {
+      await inspectionRateLimiter.acquire();
+
+      const status = await this.fetchUrlInspection(pageUrl);
+      if (!status) {
+        // Inspection failed for this URL, skip
+        continue;
+      }
+
+      const classification = this.classifyInspectionResult(status);
+
+      const result: InspectionResult = {
+        pageUrl,
+        coverageState: status.coverageState,
+        verdict: status.verdict || 'UNKNOWN',
+        robotsTxtState: status.robotsTxtState || 'UNKNOWN',
+        indexingState: status.indexingState || 'UNKNOWN',
+        pageFetchState: status.pageFetchState || 'UNKNOWN',
+        ...classification,
+        rawData: status,
+      };
+      results.push(result);
+
+      inspectionRows.push({
+        siteId,
+        date: today,
+        pageUrl,
+        coverageState: status.coverageState,
+        verdict: status.verdict || null,
+        robotsTxtState: status.robotsTxtState || null,
+        indexingState: status.indexingState || null,
+        pageFetchState: status.pageFetchState || null,
+        isIndexed: classification.isIndexed,
+        hasError: classification.hasError,
+        errorCategory: classification.errorCategory,
+        rawData: status,
+      });
+    }
+
+    // Persist individual inspection results
+    await storage.saveUrlInspections(inspectionRows);
+
+    // Compute and persist daily aggregate
+    const indexed = results.filter(r => r.isIndexed).length;
+    const errorCount = results.filter(r => r.hasError).length;
+    const inspected = results.length;
+    const coveragePercent = inspected > 0 ? (indexed / inspected) * 100 : 0;
+
+    const coverageData: InsertGscCoverageDaily = {
+      siteId,
+      date: today,
+      totalInspected: inspected,
+      totalIndexed: indexed,
+      totalNotIndexed: inspected - indexed,
+      totalErrors: errorCount,
+      robotsBlocked: results.filter(r => r.errorCategory === 'robots_blocked').length,
+      noindexDetected: results.filter(r => r.errorCategory === 'noindex').length,
+      crawlErrors: results.filter(r => r.errorCategory === 'crawl_error').length,
+      redirectErrors: results.filter(r => r.errorCategory === 'redirect_error').length,
+      serverErrors: results.filter(r => r.errorCategory === 'server_error').length,
+      notFoundErrors: results.filter(r => r.errorCategory === 'not_found').length,
+      coveragePercent: Math.round(coveragePercent * 10) / 10,
+      rawData: { urlCount: capped.length, successfulInspections: inspected },
+    };
+
+    await storage.saveGscCoverageDaily(coverageData);
+
+    logger.info('GSC', `Batch inspection complete: ${inspected} inspected, ${indexed} indexed, ${errorCount} errors (${coveragePercent.toFixed(1)}% coverage)`);
+
+    return { inspected, indexed, errors: errorCount, coveragePercent, results };
+  }
+}
+
+export interface InspectionResult {
+  pageUrl: string;
+  coverageState: string;
+  verdict: string;
+  robotsTxtState: string;
+  indexingState: string;
+  pageFetchState: string;
+  isIndexed: boolean;
+  hasError: boolean;
+  errorCategory: string | null;
+  rawData: any;
 }
 
 export const gscConnector = new GSCConnector();

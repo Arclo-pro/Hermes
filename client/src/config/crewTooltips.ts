@@ -68,9 +68,9 @@ export const CREW_TOOLTIPS: Record<string, CrewTooltip> = {
   },
   google_ads_connector: {
     name: "Draper",
-    role: "Paid Ads",
-    shortDescription: "Monitors ad campaigns, spend efficiency, and conversion tracking.",
-    handledSignals: ["Ad spend", "CPC", "Conversions", "ROAS"],
+    role: "Paid Search Signal Monitor",
+    shortDescription: "Ingests Google Ads data to surface paid search signals that inform organic strategy—read-only, never manages campaigns.",
+    handledSignals: ["Keyword overlap", "Spend trends", "High-intent signals", "Paid vs. organic conflicts"],
   },
   seo_kbase: {
     name: "Socrates",

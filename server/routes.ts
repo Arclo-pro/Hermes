@@ -16288,6 +16288,179 @@ When answering:
     }
   });
   
+  // Performance context API - compact perf summary for other agents
+  app.get("/api/crew/speedster/context", async (req, res) => {
+    try {
+      const siteId = (req.query.siteId as string) || "site_empathy_health_clinic";
+
+      const cwvDaily = await storage.getLatestCoreWebVitals(siteId);
+      const cwvResult = await storage.getLatestWorkerResultByKey(siteId, 'core_web_vitals');
+      const metricsJson = cwvResult?.metricsJson as Record<string, any> | null;
+      const rawData = (cwvDaily?.rawJson as Record<string, any> | null) ?? (cwvResult?.rawData as Record<string, any> | null);
+
+      const lcp = cwvDaily?.lcp ?? metricsJson?.lcp ?? null;
+      const cls = cwvDaily?.cls ?? metricsJson?.cls ?? null;
+      const inp = cwvDaily?.inp ?? metricsJson?.inp ?? null;
+      const performanceScore = cwvDaily?.overallScore ?? metricsJson?.performance_score ?? null;
+
+      // Determine overall status from the 3 core vitals
+      const lcpOk = lcp !== null && lcp <= 2.5;
+      const clsOk = cls !== null && cls <= 0.1;
+      const inpOk = inp !== null && inp <= 200;
+      const hasData = lcp !== null || cls !== null || inp !== null;
+
+      let overallStatus: 'good' | 'needs-improvement' | 'poor' | 'insufficient-data' = 'insufficient-data';
+      if (hasData) {
+        const anyPoor = (lcp !== null && lcp > 4) || (cls !== null && cls > 0.25) || (inp !== null && inp > 500);
+        const allGood = (lcp === null || lcpOk) && (cls === null || clsOk) && (inp === null || inpOk);
+        overallStatus = anyPoor ? 'poor' : allGood ? 'good' : 'needs-improvement';
+      }
+
+      // Pull recent regressions (lightweight)
+      let recentRegressions: { metric: string; severity: string; delta: number }[] = [];
+      try {
+        const cwvWorkerConfig = await resolveWorkerConfig('seo_core_web_vitals');
+        if (cwvWorkerConfig.valid && cwvWorkerConfig.base_url && cwvWorkerConfig.api_key) {
+          const websitesRes = await fetch(`${cwvWorkerConfig.base_url}/api/v1/websites`, {
+            headers: { 'x-api-key': cwvWorkerConfig.api_key },
+          });
+          if (websitesRes.ok) {
+            const site = await storage.getSiteById(siteId);
+            const websitesData = await websitesRes.json();
+            const workerWebsite = (websitesData.websites || []).find((w: any) =>
+              w.canonicalDomain?.includes(site?.domain) || w.name === site?.name
+            );
+            if (workerWebsite) {
+              const regRes = await fetch(
+                `${cwvWorkerConfig.base_url}/api/v1/websites/${workerWebsite.id}/regressions?days=14&status=open`,
+                { headers: { 'x-api-key': cwvWorkerConfig.api_key } },
+              );
+              if (regRes.ok) {
+                const regData = await regRes.json();
+                recentRegressions = (regData.regressions || []).slice(0, 5).map((r: any) => ({
+                  metric: r.metric,
+                  severity: r.severity,
+                  delta: r.delta ?? 0,
+                }));
+              }
+            }
+          }
+        }
+      } catch (_) { /* non-critical */ }
+
+      const dataSource = rawData?.field ? 'crux' as const :
+                         rawData?.lab ? 'lab' as const : 'none' as const;
+
+      res.json({
+        ok: true,
+        siteId,
+        overallStatus,
+        cwvPassRate: performanceScore,
+        vitals: { lcp, cls, inp },
+        recentRegressions,
+        dataSource,
+        lastMeasuredAt: cwvDaily?.collectedAt?.toISOString() || cwvResult?.createdAt?.toISOString() || null,
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to get speedster context", { error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
+  // Performance-ranking correlation endpoint
+  app.get("/api/crew/speedster/correlations", async (req, res) => {
+    try {
+      const siteId = (req.query.siteId as string) || "site_empathy_health_clinic";
+      const days = Math.min(parseInt(req.query.days as string) || 30, 90);
+
+      // Fetch CWV history
+      const cwvHistory = await storage.getCoreWebVitalsHistory(siteId, days);
+
+      // Fetch GSC daily data for the same period
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - days);
+      const gscDaily = await storage.getGscDailyRange(siteId, cutoffDate, new Date());
+
+      // Compute performance trend (based on overall score)
+      const perfScores = cwvHistory
+        .filter(r => r.overallScore !== null)
+        .map(r => ({ date: r.collectedAt, value: r.overallScore! }));
+
+      // Compute ranking/traffic trend (based on GSC position + clicks)
+      const gscRecords = (gscDaily || []).map((r: any) => ({
+        date: r.date,
+        clicks: r.clicks ?? 0,
+        impressions: r.impressions ?? 0,
+        position: r.position ?? null,
+      }));
+
+      // Simple trend: compare first half vs second half
+      const computeHalfTrend = (values: number[]): 'improving' | 'declining' | 'stable' => {
+        if (values.length < 4) return 'stable';
+        const mid = Math.floor(values.length / 2);
+        const firstHalf = values.slice(0, mid).reduce((a, b) => a + b, 0) / mid;
+        const secondHalf = values.slice(mid).reduce((a, b) => a + b, 0) / (values.length - mid);
+        const change = ((secondHalf - firstHalf) / (firstHalf || 1)) * 100;
+        if (Math.abs(change) < 5) return 'stable';
+        return change > 0 ? 'improving' : 'declining';
+      };
+
+      const perfTrend = computeHalfTrend(perfScores.map(p => p.value));
+      // For position, lower is better, so flip the logic
+      const positionValues = gscRecords.filter((r: any) => r.position !== null).map((r: any) => r.position);
+      const positionTrendRaw = computeHalfTrend(positionValues);
+      const positionTrend = positionTrendRaw === 'improving' ? 'declining' : positionTrendRaw === 'declining' ? 'improving' : 'stable';
+      const clicksTrend = computeHalfTrend(gscRecords.map((r: any) => r.clicks));
+
+      // Build correlation narrative
+      let correlationSignal: 'aligned' | 'diverging' | 'performance-only' | 'ranking-only' | 'insufficient-data' = 'insufficient-data';
+      let narrative = 'Insufficient data to determine correlation.';
+
+      if (perfScores.length >= 4 && gscRecords.length >= 4) {
+        if (perfTrend === 'improving' && (positionTrend === 'improving' || clicksTrend === 'improving')) {
+          correlationSignal = 'aligned';
+          narrative = 'Performance improved and rankings/traffic also improved. Performance gains may be contributing to better search visibility.';
+        } else if (perfTrend === 'declining' && (positionTrend === 'declining' || clicksTrend === 'declining')) {
+          correlationSignal = 'aligned';
+          narrative = 'Performance declined alongside rankings/traffic. Performance issues may be hurting search visibility.';
+        } else if (perfTrend !== 'stable' && positionTrend === 'stable' && clicksTrend === 'stable') {
+          correlationSignal = 'performance-only';
+          narrative = `Performance ${perfTrend === 'improving' ? 'improved' : 'declined'} but rankings/traffic remained stable. Performance changes may not yet be reflected in search results.`;
+        } else if (perfTrend === 'stable' && (positionTrend !== 'stable' || clicksTrend !== 'stable')) {
+          correlationSignal = 'ranking-only';
+          narrative = `Rankings/traffic changed but performance remained stable. Ranking changes are likely driven by factors other than site speed.`;
+        } else {
+          correlationSignal = 'diverging';
+          narrative = `Performance and ranking trends are diverging. Current ranking changes are likely not performance-related.`;
+        }
+      } else if (perfScores.length < 4) {
+        narrative = 'Insufficient performance data to compute correlation. Run more vitals scans to build a baseline.';
+      } else {
+        narrative = 'Insufficient ranking data (GSC). Connect Google Search Console to enable correlation analysis.';
+      }
+
+      res.json({
+        ok: true,
+        siteId,
+        days,
+        correlationSignal,
+        narrative,
+        trends: {
+          performance: perfTrend,
+          position: positionTrend,
+          clicks: clicksTrend,
+        },
+        dataPoints: {
+          performanceRecords: perfScores.length,
+          gscRecords: gscRecords.length,
+        },
+      });
+    } catch (error: any) {
+      logger.error("API", "Failed to get speedster correlations", { error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
   // Ask Speedster - AI-powered performance analysis questions
   app.post("/api/crew/speedster/ask", async (req, res) => {
     try {

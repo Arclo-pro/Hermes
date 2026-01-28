@@ -3,13 +3,13 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { 
-  CheckCircle, 
-  AlertTriangle, 
-  XCircle, 
-  TrendingDown, 
+import {
+  CheckCircle,
+  AlertTriangle,
+  XCircle,
+  TrendingDown,
   TrendingUp,
-  Clock, 
+  Clock,
   Activity,
   RefreshCw,
   Info,
@@ -29,7 +29,12 @@ import {
   FileCode,
   Settings2,
   ListChecks,
-  FileWarning
+  FileWarning,
+  Smartphone,
+  Monitor,
+  ArrowLeftRight,
+  AlertCircle,
+  Link2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSiteContext } from "@/hooks/useSiteContext";
@@ -259,6 +264,7 @@ export default function SpeedsterContent() {
     priorLearningsUsed?: number;
   } | null>(null);
   const [isAskingSpeedster, setIsAskingSpeedster] = useState(false);
+  const [strategy, setStrategy] = useState<'mobile' | 'desktop'>('mobile');
   
   // Handle "Ask Speedster" prompt submission
   const handleAskSpeedster = async (question: string) => {
@@ -410,6 +416,16 @@ export default function SpeedsterContent() {
     queryKey: ["dashboard-stats"],
     queryFn: async () => {
       const res = await fetch("/api/dashboard/stats");
+      if (!res.ok) return null;
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: correlationData } = useQuery({
+    queryKey: ['speedster-correlations', siteId],
+    queryFn: async () => {
+      const res = await fetch(`/api/crew/speedster/correlations?siteId=${siteId}&days=30`);
       if (!res.ok) return null;
       return res.json();
     },
@@ -851,8 +867,81 @@ export default function SpeedsterContent() {
         );
       })(),
     },
+    {
+      id: "regressions",
+      label: "Regressions",
+      icon: <TrendingDown className="w-4 h-4" />,
+      badge: speedsterData?.regressions?.length > 0 ? String(speedsterData.regressions.length) : undefined,
+      content: (() => {
+        const regressions = speedsterData?.regressions || [];
+        if (regressions.length === 0) {
+          return (
+            <div className="p-6 border border-dashed border-muted-foreground/30 rounded-lg bg-muted/20">
+              <div className="flex flex-col items-center text-center gap-3">
+                <CheckCircle className="w-8 h-8 text-semantic-success" />
+                <div>
+                  <h4 className="font-medium text-foreground">No Regressions Detected</h4>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Core Web Vitals are stable. No material performance degradation detected in the last 30 days.
+                  </p>
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        const getSeverityConfig = (severity: string) => {
+          switch (severity) {
+            case 'critical': return { color: 'text-semantic-danger', bg: 'bg-semantic-danger-soft', border: 'border-semantic-danger-border', label: 'Critical' };
+            case 'warn': return { color: 'text-semantic-warning', bg: 'bg-semantic-warning-soft', border: 'border-semantic-warning-border', label: 'Warning' };
+            default: return { color: 'text-muted-foreground', bg: 'bg-muted', border: 'border-border', label: 'Info' };
+          }
+        };
+
+        return (
+          <div className="space-y-3">
+            {regressions.map((reg: any) => {
+              const config = getSeverityConfig(reg.severity);
+              return (
+                <div key={reg.id} className={cn("p-4 rounded-lg border", config.bg, config.border)}>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className={cn("w-5 h-5 mt-0.5", config.color)} />
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm">{reg.metric} Regression</span>
+                          <Badge variant="outline" className={cn("text-xs", config.color, config.border)}>
+                            {config.label}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">{reg.summary}</p>
+                        {reg.baselineValue != null && reg.currentValue != null && (
+                          <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                            <span>Baseline: {reg.baselineValue}</span>
+                            <ArrowLeftRight className="w-3 h-3" />
+                            <span className={config.color}>Current: {reg.currentValue}</span>
+                            {reg.delta != null && (
+                              <span className={config.color}>({reg.delta > 0 ? '+' : ''}{reg.delta})</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {reg.detectedAt && (
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        {new Date(reg.detectedAt).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })(),
+    },
   ], [coreVitals, additionalMetrics, allAdditionalMetricsMissing, missingAdditionalMetrics, isRefetching, refetch, speedsterData]);
-  
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -880,6 +969,12 @@ export default function SpeedsterContent() {
       loading: isScanning,
     },
     {
+      id: "toggle-strategy",
+      icon: strategy === 'mobile' ? <Smartphone className="w-4 h-4" /> : <Monitor className="w-4 h-4" />,
+      tooltip: strategy === 'mobile' ? 'Switch to Desktop' : 'Switch to Mobile',
+      onClick: () => setStrategy(prev => prev === 'mobile' ? 'desktop' : 'mobile'),
+    },
+    {
       id: "export-fix-pack",
       icon: <ExternalLink className="w-4 h-4" />,
       tooltip: "Export Fix Pack",
@@ -902,6 +997,110 @@ export default function SpeedsterContent() {
         isRefreshing={isRefetching || crewIsRefreshing}
         dataUpdatedAt={crewDataUpdatedAt}
       >
+      {/* Data Sufficiency Banner */}
+      {speedsterData?.dataSufficiency?.warning && (
+        <div className="flex items-start gap-3 p-4 rounded-lg bg-semantic-warning-soft border border-semantic-warning-border">
+          <AlertCircle className="w-5 h-5 text-semantic-warning mt-0.5 shrink-0" />
+          <div>
+            <p className="font-medium text-sm text-semantic-warning">Limited Performance Data</p>
+            <p className="text-sm text-muted-foreground mt-1">{speedsterData.dataSufficiency.warning}</p>
+            <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+              <span>Data source: <Badge variant="outline" className="text-xs ml-1">{speedsterData.dataSufficiency.dataSource}</Badge></span>
+              {speedsterData.dataSufficiency.scope && (
+                <span>Scope: <Badge variant="outline" className="text-xs ml-1">{speedsterData.dataSufficiency.scope}</Badge></span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile vs Desktop Comparison */}
+      {speedsterData?.mobileVsDesktop && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <ArrowLeftRight className="w-5 h-5 text-semantic-info" />
+              <div>
+                <CardTitle className="text-base">Mobile vs Desktop</CardTitle>
+                <CardDescription>Side-by-side Core Web Vitals comparison</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-4 gap-3 text-sm">
+              <div className="font-medium text-muted-foreground">Metric</div>
+              <div className="font-medium text-center flex items-center justify-center gap-1"><Smartphone className="w-4 h-4" /> Mobile</div>
+              <div className="font-medium text-center flex items-center justify-center gap-1"><Monitor className="w-4 h-4" /> Desktop</div>
+              <div className="font-medium text-center">Difference</div>
+              {[
+                { label: 'LCP', key: 'lcp', unit: 's', format: (v: number) => `${v.toFixed(2)}s`, threshold: 2.5 },
+                { label: 'CLS', key: 'cls', unit: '', format: (v: number) => v.toFixed(3), threshold: 0.1 },
+                { label: 'INP', key: 'inp', unit: 'ms', format: (v: number) => `${Math.round(v)}ms`, threshold: 200 },
+                { label: 'Score', key: 'performanceScore', unit: '', format: (v: number) => `${Math.round(v)}`, threshold: null },
+              ].map(({ label, key, format, threshold }) => {
+                const mobile = speedsterData.mobileVsDesktop.mobile[key];
+                const desktop = speedsterData.mobileVsDesktop.desktop[key];
+                const diff = mobile != null && desktop != null ? mobile - desktop : null;
+                return (
+                  <React.Fragment key={key}>
+                    <div className="py-2 border-t">{label}</div>
+                    <div className={cn("py-2 border-t text-center", mobile != null && threshold != null && mobile > threshold ? "text-semantic-danger" : "")}>
+                      {mobile != null ? format(mobile) : '—'}
+                    </div>
+                    <div className={cn("py-2 border-t text-center", desktop != null && threshold != null && desktop > threshold ? "text-semantic-danger" : "")}>
+                      {desktop != null ? format(desktop) : '—'}
+                    </div>
+                    <div className={cn("py-2 border-t text-center text-xs", diff != null && diff > 0 ? "text-semantic-danger" : diff != null && diff < 0 ? "text-semantic-success" : "")}>
+                      {diff != null ? `${diff > 0 ? '+' : ''}${key === 'performanceScore' ? Math.round(diff) : diff.toFixed(2)}` : '—'}
+                    </div>
+                  </React.Fragment>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Performance-Ranking Correlation */}
+      {correlationData?.ok && correlationData.correlationSignal !== 'insufficient-data' && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Link2 className="w-5 h-5 text-semantic-info" />
+              <div>
+                <CardTitle className="text-base">Performance & Ranking Correlation</CardTitle>
+                <CardDescription>How performance trends align with search visibility</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className={cn(
+              "p-4 rounded-lg border",
+              correlationData.correlationSignal === 'aligned' ? "bg-semantic-success-soft border-semantic-success-border" :
+              correlationData.correlationSignal === 'diverging' ? "bg-semantic-warning-soft border-semantic-warning-border" :
+              "bg-muted border-border"
+            )}>
+              <p className="text-sm">{correlationData.narrative}</p>
+              <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <Zap className="w-3 h-3" /> Performance: <Badge variant="outline" className="text-xs ml-1">{correlationData.trends.performance}</Badge>
+                </span>
+                <span className="flex items-center gap-1">
+                  <TrendingUp className="w-3 h-3" /> Rankings: <Badge variant="outline" className="text-xs ml-1">{correlationData.trends.position}</Badge>
+                </span>
+                <span className="flex items-center gap-1">
+                  <Eye className="w-3 h-3" /> Clicks: <Badge variant="outline" className="text-xs ml-1">{correlationData.trends.clicks}</Badge>
+                </span>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-3">
+              Based on {correlationData.dataPoints.performanceRecords} performance records and {correlationData.dataPoints.gscRecords} search console records over {correlationData.days} days.
+              Correlation does not imply causation.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {speedsterData?.benchmarks && Object.keys(speedsterData.benchmarks).length > 0 && (
         <Card>
           <CardHeader>

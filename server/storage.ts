@@ -238,8 +238,20 @@ import {
   actionExecutionAudit,
   type ActionExecutionAudit,
   type InsertActionExecutionAudit,
+  gscUrlInspections,
+  type GscUrlInspection,
+  type InsertGscUrlInspection,
+  gscCoverageDaily,
+  type GscCoverageDaily,
+  type InsertGscCoverageDaily,
+  robotsTxtChecks,
+  type RobotsTxtCheck,
+  type InsertRobotsTxtCheck,
+  manualActionChecks,
+  type ManualActionCheck,
+  type InsertManualActionCheck,
 } from "@shared/schema";
-import { eq, desc, and, gte, sql, asc, or, isNull, arrayContains } from "drizzle-orm";
+import { eq, desc, and, gte, lte, sql, asc, or, isNull, arrayContains } from "drizzle-orm";
 
 export interface IStorage {
   // OAuth Token Management
@@ -596,8 +608,11 @@ export interface IStorage {
   
   // Core Web Vitals Daily
   insertCoreWebVitalsDaily(data: InsertCoreWebVitalsDaily): Promise<CoreWebVitalsDaily>;
-  getLatestCoreWebVitals(siteId: string): Promise<CoreWebVitalsDaily | undefined>;
+  getLatestCoreWebVitals(siteId: string, deviceType?: string): Promise<CoreWebVitalsDaily | undefined>;
   getCoreWebVitalsHistory(siteId: string, days: number): Promise<CoreWebVitalsDaily[]>;
+
+  // GSC Daily Range
+  getGscDailyRange(siteId: string, from: Date, to: Date): Promise<GSCDaily[]>;
   
   // Free Reports
   createFreeReport(data: InsertFreeReport): Promise<FreeReport>;
@@ -656,6 +671,26 @@ export interface IStorage {
   createRecommendation(data: InsertHermesRecommendation): Promise<HermesRecommendation>;
   updateRecommendationStatus(id: string, status: string): Promise<void>;
   invalidateRecommendation(id: string, reason?: string): Promise<void>;
+
+  // GSC URL Inspections
+  saveUrlInspections(data: InsertGscUrlInspection[]): Promise<void>;
+  getUrlInspectionsByDate(siteId: string, date: string): Promise<GscUrlInspection[]>;
+  getUrlInspectionHistory(siteId: string, pageUrl: string, limit?: number): Promise<GscUrlInspection[]>;
+
+  // GSC Coverage Daily
+  saveGscCoverageDaily(data: InsertGscCoverageDaily): Promise<void>;
+  getGscCoverageDailyRange(siteId: string, startDate: string, endDate: string): Promise<GscCoverageDaily[]>;
+  getLatestGscCoverage(siteId: string): Promise<GscCoverageDaily | undefined>;
+
+  // Robots.txt Checks
+  saveRobotsTxtCheck(data: InsertRobotsTxtCheck): Promise<void>;
+  getLatestRobotsTxtCheck(siteId: string): Promise<RobotsTxtCheck | undefined>;
+  getRobotsTxtCheckHistory(siteId: string, limit?: number): Promise<RobotsTxtCheck[]>;
+
+  // Manual Action Checks
+  saveManualActionCheck(data: InsertManualActionCheck): Promise<void>;
+  getLatestManualActionCheck(siteId: string, checkType: string): Promise<ManualActionCheck | undefined>;
+  updateManualActionStatus(id: number, status: string, userNotes?: string): Promise<void>;
 }
 
 class DBStorage implements IStorage {
@@ -3429,11 +3464,15 @@ class DBStorage implements IStorage {
     return result;
   }
 
-  async getLatestCoreWebVitals(siteId: string): Promise<CoreWebVitalsDaily | undefined> {
+  async getLatestCoreWebVitals(siteId: string, deviceType?: string): Promise<CoreWebVitalsDaily | undefined> {
+    const conditions = [eq(coreWebVitalsDaily.siteId, siteId)];
+    if (deviceType) {
+      conditions.push(eq(coreWebVitalsDaily.deviceType, deviceType));
+    }
     const [result] = await db
       .select()
       .from(coreWebVitalsDaily)
-      .where(eq(coreWebVitalsDaily.siteId, siteId))
+      .where(and(...conditions))
       .orderBy(desc(coreWebVitalsDaily.collectedAt))
       .limit(1);
     return result;
@@ -3451,6 +3490,20 @@ class DBStorage implements IStorage {
         gte(coreWebVitalsDaily.collectedAt, cutoffDate)
       ))
       .orderBy(asc(coreWebVitalsDaily.collectedAt));
+  }
+
+  async getGscDailyRange(siteId: string, from: Date, to: Date): Promise<GSCDaily[]> {
+    const fromStr = from.toISOString().split('T')[0];
+    const toStr = to.toISOString().split('T')[0];
+    return db
+      .select()
+      .from(gscDaily)
+      .where(and(
+        eq(gscDaily.siteId, siteId),
+        gte(gscDaily.date, fromStr),
+        lte(gscDaily.date, toStr)
+      ))
+      .orderBy(asc(gscDaily.date));
   }
 
   // Free Reports
@@ -4181,6 +4234,116 @@ class DBStorage implements IStorage {
       .where(and(...conditions))
       .orderBy(desc(actionExecutionAudit.executedAt))
       .limit(limit);
+  }
+
+  // --- GSC URL Inspections ---
+
+  async saveUrlInspections(data: InsertGscUrlInspection[]): Promise<void> {
+    if (data.length === 0) return;
+    await db.insert(gscUrlInspections).values(data);
+  }
+
+  async getUrlInspectionsByDate(siteId: string, date: string): Promise<GscUrlInspection[]> {
+    return db
+      .select()
+      .from(gscUrlInspections)
+      .where(and(eq(gscUrlInspections.siteId, siteId), eq(gscUrlInspections.date, date)))
+      .orderBy(desc(gscUrlInspections.createdAt));
+  }
+
+  async getUrlInspectionHistory(siteId: string, pageUrl: string, limit: number = 30): Promise<GscUrlInspection[]> {
+    return db
+      .select()
+      .from(gscUrlInspections)
+      .where(and(eq(gscUrlInspections.siteId, siteId), eq(gscUrlInspections.pageUrl, pageUrl)))
+      .orderBy(desc(gscUrlInspections.date))
+      .limit(limit);
+  }
+
+  // --- GSC Coverage Daily ---
+
+  async saveGscCoverageDaily(data: InsertGscCoverageDaily): Promise<void> {
+    await db.insert(gscCoverageDaily).values(data);
+  }
+
+  async getGscCoverageDailyRange(siteId: string, startDate: string, endDate: string): Promise<GscCoverageDaily[]> {
+    return db
+      .select()
+      .from(gscCoverageDaily)
+      .where(
+        and(
+          eq(gscCoverageDaily.siteId, siteId),
+          gte(gscCoverageDaily.date, startDate),
+        )
+      )
+      .orderBy(asc(gscCoverageDaily.date));
+  }
+
+  async getLatestGscCoverage(siteId: string): Promise<GscCoverageDaily | undefined> {
+    const rows = await db
+      .select()
+      .from(gscCoverageDaily)
+      .where(eq(gscCoverageDaily.siteId, siteId))
+      .orderBy(desc(gscCoverageDaily.date))
+      .limit(1);
+    return rows[0];
+  }
+
+  // --- Robots.txt Checks ---
+
+  async saveRobotsTxtCheck(data: InsertRobotsTxtCheck): Promise<void> {
+    await db.insert(robotsTxtChecks).values(data);
+  }
+
+  async getLatestRobotsTxtCheck(siteId: string): Promise<RobotsTxtCheck | undefined> {
+    const rows = await db
+      .select()
+      .from(robotsTxtChecks)
+      .where(eq(robotsTxtChecks.siteId, siteId))
+      .orderBy(desc(robotsTxtChecks.date))
+      .limit(1);
+    return rows[0];
+  }
+
+  async getRobotsTxtCheckHistory(siteId: string, limit: number = 30): Promise<RobotsTxtCheck[]> {
+    return db
+      .select()
+      .from(robotsTxtChecks)
+      .where(eq(robotsTxtChecks.siteId, siteId))
+      .orderBy(desc(robotsTxtChecks.date))
+      .limit(limit);
+  }
+
+  // --- Manual Action Checks ---
+
+  async saveManualActionCheck(data: InsertManualActionCheck): Promise<void> {
+    await db.insert(manualActionChecks).values(data);
+  }
+
+  async getLatestManualActionCheck(siteId: string, checkType: string): Promise<ManualActionCheck | undefined> {
+    const rows = await db
+      .select()
+      .from(manualActionChecks)
+      .where(
+        and(
+          eq(manualActionChecks.siteId, siteId),
+          eq(manualActionChecks.checkType, checkType),
+        )
+      )
+      .orderBy(desc(manualActionChecks.createdAt))
+      .limit(1);
+    return rows[0];
+  }
+
+  async updateManualActionStatus(id: number, status: string, userNotes?: string): Promise<void> {
+    await db
+      .update(manualActionChecks)
+      .set({
+        status,
+        userNotes: userNotes ?? undefined,
+        lastUserConfirmedAt: new Date(),
+      })
+      .where(eq(manualActionChecks.id, id));
   }
 }
 

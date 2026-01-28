@@ -64,7 +64,7 @@ export const USER_FACING_AGENTS = [
   "ai_optimization",       // Atlas - AI Optimization
   
   // GROWTH (1)
-  "google_ads_connector",  // Draper - Paid Ads
+  "google_ads_connector",  // Draper - Paid Search Signal Monitor
   
   // KNOWLEDGE & MEMORY (1)
   "seo_kbase",             // Socrates - Knowledge Base

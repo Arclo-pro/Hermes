@@ -3964,3 +3964,104 @@ export const insertUsedBlogImageSchema = createInsertSchema(usedBlogImages).omit
 
 export type InsertUsedBlogImage = z.infer<typeof insertUsedBlogImageSchema>;
 export type UsedBlogImage = typeof usedBlogImages.$inferSelect;
+
+// GSC URL Inspections — per-URL indexing/coverage results
+export const gscUrlInspections = pgTable("gsc_url_inspections", {
+  id: serial("id").primaryKey(),
+  siteId: text("site_id").notNull(),
+  date: text("date").notNull(), // YYYY-MM-DD
+  pageUrl: text("page_url").notNull(),
+  coverageState: text("coverage_state").notNull(),
+  verdict: text("verdict"), // PASS, PARTIAL, FAIL, NEUTRAL
+  robotsTxtState: text("robots_txt_state"), // ALLOWED, DISALLOWED
+  indexingState: text("indexing_state"), // INDEXING_ALLOWED, BLOCKED_BY_META_TAG, etc.
+  pageFetchState: text("page_fetch_state"), // SUCCESSFUL, SOFT_404, BLOCKED_BY_ROBOTS, etc.
+  isIndexed: boolean("is_indexed").notNull().default(false),
+  hasError: boolean("has_error").notNull().default(false),
+  errorCategory: text("error_category"), // robots_blocked, noindex, not_found, server_error, redirect_error, crawl_error
+  rawData: jsonb("raw_data"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertGscUrlInspectionSchema = createInsertSchema(gscUrlInspections).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertGscUrlInspection = z.infer<typeof insertGscUrlInspectionSchema>;
+export type GscUrlInspection = typeof gscUrlInspections.$inferSelect;
+
+// GSC Coverage Daily — aggregate rollup of indexing health
+export const gscCoverageDaily = pgTable("gsc_coverage_daily", {
+  id: serial("id").primaryKey(),
+  siteId: text("site_id").notNull(),
+  date: text("date").notNull(), // YYYY-MM-DD
+  totalInspected: integer("total_inspected").notNull(),
+  totalIndexed: integer("total_indexed").notNull(),
+  totalNotIndexed: integer("total_not_indexed").notNull(),
+  totalErrors: integer("total_errors").notNull(),
+  robotsBlocked: integer("robots_blocked").default(0),
+  noindexDetected: integer("noindex_detected").default(0),
+  crawlErrors: integer("crawl_errors").default(0),
+  redirectErrors: integer("redirect_errors").default(0),
+  serverErrors: integer("server_errors").default(0),
+  notFoundErrors: integer("not_found_errors").default(0),
+  coveragePercent: real("coverage_percent").notNull(),
+  rawData: jsonb("raw_data"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertGscCoverageDailySchema = createInsertSchema(gscCoverageDaily).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertGscCoverageDaily = z.infer<typeof insertGscCoverageDailySchema>;
+export type GscCoverageDaily = typeof gscCoverageDaily.$inferSelect;
+
+// Robots.txt Checks — fetch/parse/validation results
+export const robotsTxtChecks = pgTable("robots_txt_checks", {
+  id: serial("id").primaryKey(),
+  siteId: text("site_id").notNull(),
+  date: text("date").notNull(), // YYYY-MM-DD
+  exists: boolean("exists").notNull(),
+  httpStatus: integer("http_status"),
+  contentHash: text("content_hash"), // SHA-256 for change detection
+  content: text("content"),
+  disallowedPaths: jsonb("disallowed_paths").$type<string[]>(),
+  sitemapUrls: jsonb("sitemap_urls").$type<string[]>(),
+  isValid: boolean("is_valid").notNull().default(true),
+  validationErrors: jsonb("validation_errors").$type<{ line: number; error: string }[]>(),
+  sitemapsMissing: jsonb("sitemaps_missing").$type<string[]>(), // In GSC but not in robots.txt
+  sitemapsExtra: jsonb("sitemaps_extra").$type<string[]>(), // In robots.txt but not in GSC
+  blocksImportantPaths: boolean("blocks_important_paths").default(false),
+  blockedImportantPaths: jsonb("blocked_important_paths").$type<string[]>(),
+  rawData: jsonb("raw_data"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertRobotsTxtCheckSchema = createInsertSchema(robotsTxtChecks).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertRobotsTxtCheck = z.infer<typeof insertRobotsTxtCheckSchema>;
+export type RobotsTxtCheck = typeof robotsTxtChecks.$inferSelect;
+
+// Manual Action Checks — advisory records for API-unavailable data
+export const manualActionChecks = pgTable("manual_action_checks", {
+  id: serial("id").primaryKey(),
+  siteId: text("site_id").notNull(),
+  date: text("date").notNull(), // YYYY-MM-DD
+  checkType: text("check_type").notNull(), // 'manual_actions' | 'security_issues'
+  status: text("status").notNull(), // 'api_unavailable' | 'user_confirmed_clear' | 'user_reported_issue'
+  userNotes: text("user_notes"),
+  lastUserConfirmedAt: timestamp("last_user_confirmed_at"),
+  gscWebUiLink: text("gsc_web_ui_link"),
+  rawData: jsonb("raw_data"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertManualActionCheckSchema = createInsertSchema(manualActionChecks).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertManualActionCheck = z.infer<typeof insertManualActionCheckSchema>;
+export type ManualActionCheck = typeof manualActionChecks.$inferSelect;
