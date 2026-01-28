@@ -2983,6 +2983,14 @@ export const agentActionLogs = pgTable("agent_action_logs", {
   expectedImpact: jsonb("expected_impact"), // metrics expected to move
   riskLevel: text("risk_level"), // 'low', 'med', 'high'
   notes: text("notes"),
+  // Ralph Wiggum Learning System additions
+  inputsHash: text("inputs_hash"), // hash of inputs for deduplication
+  outputsSummary: text("outputs_summary"), // short summary of outputs
+  durationMs: integer("duration_ms"), // calculated from timestamps
+  success: boolean("success"), // whether the action succeeded
+  errorCode: text("error_code"), // error code if failed
+  errorMessage: text("error_message"), // error message if failed
+  tags: jsonb("tags"), // array of tags (canonical, internal_links, faq_schema, etc.)
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -3008,6 +3016,8 @@ export const outcomeEventLogs = pgTable("outcome_event_logs", {
   severity: text("severity"), // 'low', 'med', 'high'
   detectionSource: text("detection_source"), // 'scheduler', 'monitor', 'manual'
   context: jsonb("context"), // urls affected, error codes, affected templates
+  // Ralph Wiggum Learning System addition
+  window: text("window"), // time window for analysis: '7d', '28d', 'custom'
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -3041,6 +3051,30 @@ export const insertAttributionRecordSchema = createInsertSchema(attributionRecor
 });
 export type InsertAttributionRecord = z.infer<typeof insertAttributionRecordSchema>;
 export type AttributionRecord = typeof attributionRecords.$inferSelect;
+
+// Interventions - groups of related actions performed together (Ralph Wiggum Learning System)
+export const interventions = pgTable("interventions", {
+  id: serial("id").primaryKey(),
+  interventionId: text("intervention_id").notNull().unique(),
+  siteId: text("site_id").notNull(),
+  runId: text("run_id"),
+  actionIds: jsonb("action_ids").notNull(), // array of actionIds that are part of this intervention
+  servicesInvolved: jsonb("services_involved"), // array of service names
+  changeSummary: text("change_summary").notNull(), // human-readable description
+  changeTags: jsonb("change_tags"), // array of tags: canonical, titles, internal_links, speed, schema, etc.
+  startedAt: timestamp("started_at").notNull(),
+  endedAt: timestamp("ended_at"),
+  expectedOutcome: jsonb("expected_outcome"), // what we expect to happen
+  rollbackPossible: boolean("rollback_possible").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertInterventionSchema = createInsertSchema(interventions).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertIntervention = z.infer<typeof insertInterventionSchema>;
+export type Intervention = typeof interventions.$inferSelect;
 
 // Socrates Knowledge Base Entries - learnings derived from attribution
 export const socratesKbEntries = pgTable("socrates_kb_entries", {

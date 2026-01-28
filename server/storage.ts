@@ -216,6 +216,9 @@ import {
   attributionRecords,
   type AttributionRecord,
   type InsertAttributionRecord,
+  interventions,
+  type Intervention,
+  type InsertIntervention,
   socratesKbEntries,
   type SocratesKbEntry,
   type InsertSocratesKbEntry,
@@ -3744,6 +3747,38 @@ class DBStorage implements IStorage {
       .orderBy(desc(attributionRecords.confidence));
   }
 
+  async getAttributionRecordById(attributionId: string): Promise<AttributionRecord | null> {
+    const [result] = await db
+      .select()
+      .from(attributionRecords)
+      .where(eq(attributionRecords.attributionId, attributionId))
+      .limit(1);
+    return result || null;
+  }
+
+  async getHighConfidenceAttributions(siteId: string, minConfidence: number = 0.8): Promise<AttributionRecord[]> {
+    return db
+      .select()
+      .from(attributionRecords)
+      .where(
+        and(
+          eq(attributionRecords.siteId, siteId),
+          sql`${attributionRecords.confidence} >= ${minConfidence}`
+        )
+      )
+      .orderBy(desc(attributionRecords.confidence));
+  }
+
+  // Socrates: Outcome Event Logs - Additional Methods
+  async getOutcomeEventLogByEventId(eventId: string): Promise<OutcomeEventLog | null> {
+    const [result] = await db
+      .select()
+      .from(outcomeEventLogs)
+      .where(eq(outcomeEventLogs.eventId, eventId))
+      .limit(1);
+    return result || null;
+  }
+
   // Socrates: Knowledge Base Entries
   async createSocratesKbEntry(data: InsertSocratesKbEntry): Promise<SocratesKbEntry> {
     const [result] = await db.insert(socratesKbEntries).values(data).returning();
@@ -3815,6 +3850,61 @@ class DBStorage implements IStorage {
       .from(socratesKbEntries)
       .where(eq(socratesKbEntries.kbId, kbId))
       .limit(1);
+    return result || null;
+  }
+
+  // Socrates: Interventions (Ralph Wiggum Learning System)
+  async createIntervention(data: InsertIntervention): Promise<Intervention> {
+    const [result] = await db.insert(interventions).values(data).returning();
+    return result;
+  }
+
+  async getInterventionById(interventionId: string): Promise<Intervention | null> {
+    const [result] = await db
+      .select()
+      .from(interventions)
+      .where(eq(interventions.interventionId, interventionId))
+      .limit(1);
+    return result || null;
+  }
+
+  async getInterventionsByRunId(runId: string): Promise<Intervention[]> {
+    return db
+      .select()
+      .from(interventions)
+      .where(eq(interventions.runId, runId))
+      .orderBy(desc(interventions.startedAt));
+  }
+
+  async getInterventionsBySite(siteId: string, limit: number = 50): Promise<Intervention[]> {
+    return db
+      .select()
+      .from(interventions)
+      .where(eq(interventions.siteId, siteId))
+      .orderBy(desc(interventions.startedAt))
+      .limit(limit);
+  }
+
+  async getInterventionsByTimeWindow(siteId: string, startTime: Date, endTime: Date): Promise<Intervention[]> {
+    return db
+      .select()
+      .from(interventions)
+      .where(
+        and(
+          eq(interventions.siteId, siteId),
+          gte(interventions.startedAt, startTime),
+          sql`${interventions.startedAt} <= ${endTime}`
+        )
+      )
+      .orderBy(desc(interventions.startedAt));
+  }
+
+  async updateIntervention(interventionId: string, updates: Partial<InsertIntervention>): Promise<Intervention | null> {
+    const [result] = await db
+      .update(interventions)
+      .set(updates)
+      .where(eq(interventions.interventionId, interventionId))
+      .returning();
     return result || null;
   }
 

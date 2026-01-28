@@ -9,6 +9,7 @@ import { randomUUID } from 'crypto';
 import { db } from '../db';
 import { jobQueue, JobQueueStatuses } from '@shared/schema';
 import { logger } from '../utils/logger';
+import { waitForJob, WaitForJobOptions, WaitForJobResult } from './waitForJob';
 
 export interface SubmitJobParams {
   service: string;      // e.g., 'rank-tracker', 'content-analyzer', 'core-web-vitals'
@@ -17,11 +18,20 @@ export interface SubmitJobParams {
   websiteId?: string;   // optional site context
   priority?: number;    // 1-100, higher = more urgent (default: 50)
   runId?: string;       // optional - provide to group jobs in same run
+
+  /** If true, wait for job completion before returning (default: false) */
+  wait?: boolean;
+
+  /** Wait configuration (only used if wait=true) */
+  waitOptions?: Omit<WaitForJobOptions, 'jobId'>;
 }
 
 export interface SubmitJobResult {
   runId: string;
   jobId: string;
+
+  /** Job completion result (only present if wait=true) */
+  completion?: WaitForJobResult;
 }
 
 /**
@@ -38,6 +48,8 @@ export async function submitJob(options: SubmitJobParams): Promise<SubmitJobResu
     websiteId,
     priority = 50,
     runId: providedRunId,
+    wait = false,
+    waitOptions = {},
   } = options;
 
   // Generate IDs
@@ -62,7 +74,25 @@ export async function submitJob(options: SubmitJobParams): Promise<SubmitJobResu
 
   logger.info("submitJob", `Job enqueued successfully: jobId=${jobId}, runId=${runId}`);
 
-  return { runId, jobId };
+  // Return immediately if not waiting
+  if (!wait) {
+    return { runId, jobId };
+  }
+
+  // Wait for completion
+  logger.info("submitJob", `Waiting for job completion: jobId=${jobId}`);
+  const completion = await waitForJob({
+    jobId,
+    ...waitOptions,
+    onStatusChange: (status) => {
+      logger.info("submitJob", `Job status changed: jobId=${jobId}, status=${status}`);
+      waitOptions.onStatusChange?.(status);
+    },
+  });
+
+  logger.info("submitJob", `Job completed: jobId=${jobId}, status=${completion.status}`);
+
+  return { runId, jobId, completion };
 }
 
 /**
