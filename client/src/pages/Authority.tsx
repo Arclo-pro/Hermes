@@ -555,29 +555,45 @@ export default function Authority() {
   const { data: benchmarks, isLoading, refetch } = useQuery({
     queryKey: ['authority-benchmarks', currentSite?.siteId, selectedIndustry],
     queryFn: async () => {
-      return MOCK_BENCHMARKS.map(b => ({
-        ...b,
-        industryAvg: b.industryAvg * (0.9 + Math.random() * 0.2),
-        industryTop10: b.industryTop10 * (0.9 + Math.random() * 0.2),
-      }));
+      try {
+        const res = await fetch(`/api/crew/authority/summary?siteId=${currentSite?.siteId || 'default'}&industry=${selectedIndustry}`);
+        const json = await res.json();
+        if (json.ok && json.benchmarks?.length > 0) {
+          return json.benchmarks as IndustryBenchmark[];
+        }
+      } catch (e) {
+        console.warn('Authority API unavailable, using defaults', e);
+      }
+      return MOCK_BENCHMARKS.map(b => ({ ...b }));
     },
   });
 
   const primaryDomain = currentSite?.domain || 'empathyhealthclinic.com';
 
-  const { 
-    data: competitorData, 
-    isLoading: competitorsLoading, 
+  const {
+    data: competitorData,
+    isLoading: competitorsLoading,
     error: competitorsError,
-    refetch: refetchCompetitors 
+    refetch: refetchCompetitors
   } = useQuery({
-    queryKey: ['competitor-metrics', primaryDomain],
+    queryKey: ['competitor-metrics', primaryDomain, currentSite?.siteId],
     queryFn: async (): Promise<CompetitorMetrics[]> => {
+      try {
+        const res = await fetch(`/api/crew/authority/summary?siteId=${currentSite?.siteId || 'default'}`);
+        const json = await res.json();
+        if (json.ok && json.competitors?.length > 0) {
+          return json.competitors.sort((a: CompetitorMetrics, b: CompetitorMetrics) =>
+            a.isPrimary ? -1 : b.isPrimary ? 1 : b.webAuthorityScore - a.webAuthorityScore
+          );
+        }
+      } catch (e) {
+        console.warn('Authority competitors API unavailable, using defaults', e);
+      }
       const primary = generateMockCompetitorMetrics(primaryDomain, true, 42);
-      const competitors = MOCK_COMPETITORS.slice(0, 10).map((domain, idx) => 
+      const competitors = MOCK_COMPETITORS.slice(0, 10).map((domain, idx) =>
         generateMockCompetitorMetrics(domain, false, idx * 17 + 7)
       );
-      return [primary, ...competitors].sort((a, b) => 
+      return [primary, ...competitors].sort((a, b) =>
         a.isPrimary ? -1 : b.isPrimary ? 1 : b.webAuthorityScore - a.webAuthorityScore
       );
     },

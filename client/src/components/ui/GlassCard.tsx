@@ -1,18 +1,32 @@
 import { cn } from "@/lib/utils";
 import { ReactNode } from "react";
 
+type GlassCardTint = "cyan" | "purple" | "green" | "pink" | "amber" | "red" | "blue";
+
+const tintGradients: Record<GlassCardTint, string> = {
+  cyan: "linear-gradient(135deg, rgba(6,182,212,0.35), rgba(59,130,246,0.18))",
+  purple: "linear-gradient(135deg, rgba(168,85,247,0.30), rgba(236,72,153,0.18))",
+  green: "linear-gradient(135deg, rgba(34,197,94,0.30), rgba(16,185,129,0.18))",
+  pink: "linear-gradient(135deg, rgba(244,63,94,0.30), rgba(236,72,153,0.18))",
+  amber: "linear-gradient(135deg, rgba(245,158,11,0.30), rgba(234,179,8,0.18))",
+  red: "linear-gradient(135deg, rgba(239,68,68,0.30), rgba(244,63,94,0.18))",
+  blue: "linear-gradient(135deg, rgba(59,130,246,0.30), rgba(99,102,241,0.18))",
+};
+
 interface GlassCardProps {
   children: ReactNode;
   className?: string;
   variant?: "default" | "purple" | "white" | "marketing" | "marketing-accent";
   hover?: boolean;
+  tint?: GlassCardTint;
 }
 
 export function GlassCard({
   children,
   className,
   variant = "default",
-  hover = false
+  hover = false,
+  tint,
 }: GlassCardProps) {
   const isMarketing = variant === "marketing" || variant === "marketing-accent";
 
@@ -25,6 +39,33 @@ export function GlassCard({
   };
 
   if (isMarketing) {
+    // When tint is provided, use gradient border technique
+    if (tint) {
+      return (
+        <div
+          className={cn(
+            "rounded-2xl p-[1.5px] transition-all duration-200",
+            hover && "hover:-translate-y-1 cursor-pointer",
+          )}
+          style={{
+            background: tintGradients[tint],
+            boxShadow: "0 4px 24px rgba(15, 23, 42, 0.06)",
+          }}
+        >
+          <div
+            className={cn("rounded-[calc(1rem-1.5px)] h-full", className)}
+            style={{
+              background: variant === "marketing-accent"
+                ? "linear-gradient(180deg, #FAFAFE, #F5F3FF)"
+                : "linear-gradient(180deg, #FFFFFF, #FAFBFF)",
+            }}
+          >
+            {children}
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div
         className={cn(

@@ -1,12 +1,18 @@
 import { Request, Response, NextFunction } from "express";
 import { logger } from "../utils/logger";
 
-// Paths that allow unauthenticated GET access (dashboard/frontend reads)
+// Paths that allow fully unauthenticated GET access (health checks only)
 const DASHBOARD_GET_PATHS = [
-  "/briefing",
   "/api/health",
   "/api/system/health",
   "/api/status",
+  "/api/auth",
+];
+
+// Paths that require session OR API key for GET access (dashboard reads)
+// These were previously unauthenticated — now require at least a valid session or API key
+const AUTHENTICATED_GET_PATHS = [
+  "/briefing",
   "/api/report",
   "/api/tickets",
   "/api/run",
@@ -14,7 +20,6 @@ const DASHBOARD_GET_PATHS = [
   "/api/services",
   "/api/alerts",
   "/api/dashboard",
-  "/api/auth",
   "/api/campaigns",
   "/api/serp",
   "/api/sites",
@@ -125,30 +130,63 @@ export function apiKeyAuth(req: Request, res: Response, next: NextFunction) {
   const isPostRequest = req.method === "POST";
   const isPatchRequest = req.method === "PATCH";
   
-  // Check if path matches dashboard GET paths (for GET requests)
-  const matchesGetPath = DASHBOARD_GET_PATHS.some(path => 
-    req.path === path || 
-    req.path.startsWith(path + "/") || 
+  // Check if path matches fully public GET paths (health checks only)
+  const matchesPublicGetPath = DASHBOARD_GET_PATHS.some(path =>
+    req.path === path ||
+    req.path.startsWith(path + "/") ||
     req.path.startsWith(path + "?")
   );
-  
+
+  // Check if path matches authenticated GET paths (session or API key required)
+  const matchesAuthGetPath = AUTHENTICATED_GET_PATHS.some(path =>
+    req.path === path ||
+    req.path.startsWith(path + "/") ||
+    req.path.startsWith(path + "?")
+  );
+
   // Check if path matches dashboard POST paths (for POST requests)
-  const matchesPostPath = DASHBOARD_POST_PATHS.some(path => 
-    req.path === path || 
-    req.path.startsWith(path + "/") || 
+  const matchesPostPath = DASHBOARD_POST_PATHS.some(path =>
+    req.path === path ||
+    req.path.startsWith(path + "/") ||
     req.path.startsWith(path + "?")
   );
-  
+
   // Check if path matches same-origin POST paths (UI actions)
-  const matchesSameOriginPath = SAME_ORIGIN_POST_PATHS.some(path => 
-    req.path === path || 
-    req.path.startsWith(path + "/") || 
+  const matchesSameOriginPath = SAME_ORIGIN_POST_PATHS.some(path =>
+    req.path === path ||
+    req.path.startsWith(path + "/") ||
     req.path.startsWith(path + "?")
   );
-  
-  // Allow unauthenticated GET on dashboard paths
-  if (isGetRequest && matchesGetPath) {
+
+  // Allow unauthenticated GET on public paths (health/status only)
+  if (isGetRequest && matchesPublicGetPath) {
     return next();
+  }
+
+  // Dashboard GET paths require session auth, API key, or same-origin request
+  if (isGetRequest && matchesAuthGetPath) {
+    const session = (req as any).session;
+    if (session?.userId) {
+      return next();
+    }
+    // Check API key
+    const apiKeyHeader = req.headers["x-api-key"] as string ||
+      (req.headers.authorization?.startsWith("Bearer ")
+        ? req.headers.authorization.slice(7)
+        : null);
+    const configuredKey = process.env.TRAFFIC_DOCTOR_API_KEY;
+    if (apiKeyHeader && configuredKey && apiKeyHeader === configuredKey) {
+      return next();
+    }
+    // Check same-origin (browser UI requests)
+    if (isSameOriginRequest(req)) {
+      return next();
+    }
+    logger.warn("API", "Unauthenticated dashboard GET blocked", { path: req.path });
+    return res.status(401).json({
+      error: "Authentication required",
+      hint: "Provide a valid session, API key, or access from the dashboard UI"
+    });
   }
   
   // Allow unauthenticated POST on specific safe paths

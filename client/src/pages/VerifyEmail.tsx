@@ -4,12 +4,14 @@ import { MarketingLayout } from "@/components/layout/MarketingLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import arcloLogo from "@assets/A_small_logo_1765393189114.png";
 
 export default function VerifyEmail() {
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [message, setMessage] = useState("");
   const [, navigate] = useLocation();
+  const { refreshSession } = useAuth();
   const searchString = useSearch();
   const params = new URLSearchParams(searchString);
   const token = params.get("token");
@@ -26,6 +28,7 @@ export default function VerifyEmail() {
         const res = await fetch("/api/auth/verify-email", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({ token }),
         });
         const data = await res.json();
@@ -33,6 +36,8 @@ export default function VerifyEmail() {
         if (res.ok && data.success) {
           setStatus("success");
           setMessage(data.message || "Email verified successfully!");
+          // Refresh auth state so the session is picked up
+          await refreshSession();
         } else {
           setStatus("error");
           setMessage(data.error || "Verification failed. Please try again.");
@@ -76,13 +81,13 @@ export default function VerifyEmail() {
             </CardContent>
             <CardFooter>
               {status !== "loading" && (
-                <Button 
+                <Button
                   variant="primaryGradient"
                   className="w-full"
-                  onClick={() => navigate("/login")}
+                  onClick={() => navigate(status === "success" ? "/app/dashboard" : "/login")}
                   data-testid="button-go-to-login"
                 >
-                  {status === "success" ? "Sign In" : "Back to Sign In"}
+                  {status === "success" ? "Go to Dashboard" : "Back to Sign In"}
                 </Button>
               )}
             </CardFooter>

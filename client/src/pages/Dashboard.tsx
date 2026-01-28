@@ -1,14 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSiteContext } from "@/hooks/useSiteContext";
+import { useAuth } from "@/hooks/useAuth";
 import {
   GlassCard,
   GlassCardHeader,
   GlassCardTitle,
   GlassCardContent,
 } from "@/components/ui/GlassCard";
-import { ArrowUp, ArrowDown, TrendingUp, AlertTriangle, Trophy, Target, Globe, ArrowRight, Loader2 } from "lucide-react";
+import { ArrowUp, ArrowDown, TrendingUp, AlertTriangle, Trophy, Target, Globe, ArrowRight, Loader2, Settings, ChevronRight, BarChart3, Search, Link2, Zap, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { useLocation } from "wouter";
 
 interface RankingItem {
   keyword: string;
@@ -66,11 +68,189 @@ const DASHBOARD_BG = {
                #FFFFFF`,
 };
 
+const WIZARD_STEPS = [
+  {
+    id: "analytics",
+    title: "Connect Analytics",
+    description: "Link Google Analytics 4 to track traffic, conversions, and user behavior.",
+    icon: BarChart3,
+    color: "#7c3aed",
+  },
+  {
+    id: "search-console",
+    title: "Connect Search Console",
+    description: "Link Google Search Console to monitor keyword rankings and impressions.",
+    icon: Search,
+    color: "#ec4899",
+  },
+  {
+    id: "integrations",
+    title: "Add Integrations",
+    description: "Connect additional tools like Google Ads, Clarity, or your CMS.",
+    icon: Link2,
+    color: "#f59e0b",
+  },
+  {
+    id: "automation",
+    title: "Set Up Automation",
+    description: "Configure crawl schedules, alerts, and automated SEO recommendations.",
+    icon: Zap,
+    color: "#22c55e",
+  },
+];
+
+function ConfigureOverlay({ domain, onClose }: { domain: string; onClose: () => void }) {
+  const [currentStep, setCurrentStep] = useState(0);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: "rgba(15, 23, 42, 0.5)", backdropFilter: "blur(4px)" }}
+    >
+      <div
+        className="max-w-2xl w-full mx-4 rounded-2xl overflow-hidden"
+        style={{
+          background: "linear-gradient(180deg, #FFFFFF, #F8FAFC)",
+          border: "1px solid rgba(15, 23, 42, 0.06)",
+          boxShadow: "0 25px 50px rgba(15, 23, 42, 0.15)",
+        }}
+      >
+        {/* Header */}
+        <div className="px-8 pt-8 pb-6 flex items-start justify-between">
+          <div>
+            <h2 className="text-2xl font-bold mb-2" style={{ color: "#0F172A", letterSpacing: "-0.02em" }}>
+              Configure {domain}
+            </h2>
+            <p style={{ color: "#475569" }}>
+              Complete these steps to unlock full SEO monitoring and insights.
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-xl transition-colors hover:bg-gray-100"
+            style={{ color: "#64748B" }}
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Progress bar */}
+        <div className="px-8 mb-6">
+          <div className="flex gap-2">
+            {WIZARD_STEPS.map((_, idx) => (
+              <div
+                key={idx}
+                className="h-1.5 flex-1 rounded-full transition-all duration-300"
+                style={{
+                  background: idx <= currentStep
+                    ? "linear-gradient(90deg, #7c3aed, #ec4899)"
+                    : "rgba(15, 23, 42, 0.08)",
+                }}
+              />
+            ))}
+          </div>
+          <p className="text-xs mt-2" style={{ color: "#94A3B8" }}>
+            Step {currentStep + 1} of {WIZARD_STEPS.length}
+          </p>
+        </div>
+
+        {/* Steps list */}
+        <div className="px-8 pb-4 space-y-3">
+          {WIZARD_STEPS.map((step, idx) => {
+            const Icon = step.icon;
+            const isActive = idx === currentStep;
+            const isCompleted = idx < currentStep;
+
+            return (
+              <button
+                key={step.id}
+                onClick={() => setCurrentStep(idx)}
+                className="w-full flex items-center gap-4 p-4 rounded-xl text-left transition-all duration-200"
+                style={{
+                  background: isActive ? "#FFFFFF" : "transparent",
+                  border: isActive
+                    ? "1px solid rgba(124, 58, 237, 0.2)"
+                    : "1px solid transparent",
+                  boxShadow: isActive
+                    ? "0 4px 12px rgba(124, 58, 237, 0.08)"
+                    : "none",
+                  opacity: isCompleted ? 0.6 : 1,
+                }}
+              >
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{
+                    background: isCompleted
+                      ? "rgba(34, 197, 94, 0.1)"
+                      : `rgba(${step.color === "#7c3aed" ? "124,58,237" : step.color === "#ec4899" ? "236,72,153" : step.color === "#f59e0b" ? "245,158,11" : "34,197,94"}, 0.1)`,
+                    border: `1px solid ${isCompleted ? "rgba(34, 197, 94, 0.2)" : step.color}20`,
+                  }}
+                >
+                  <Icon className="w-5 h-5" style={{ color: isCompleted ? "#22c55e" : step.color }} />
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold text-sm" style={{ color: "#0F172A" }}>{step.title}</p>
+                  {isActive && (
+                    <p className="text-sm mt-0.5" style={{ color: "#64748B" }}>{step.description}</p>
+                  )}
+                </div>
+                <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: "#94A3B8" }} />
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Footer */}
+        <div className="px-8 py-6 flex items-center justify-between" style={{ borderTop: "1px solid rgba(15, 23, 42, 0.06)" }}>
+          <button
+            onClick={onClose}
+            className="px-5 py-2.5 rounded-xl text-sm font-medium transition-colors hover:bg-gray-50"
+            style={{ color: "#64748B" }}
+          >
+            Skip for now
+          </button>
+          <div className="flex gap-3">
+            {currentStep > 0 && (
+              <button
+                onClick={() => setCurrentStep((s) => s - 1)}
+                className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors hover:bg-gray-50"
+                style={{ color: "#0F172A", border: "1px solid rgba(15, 23, 42, 0.12)" }}
+              >
+                Back
+              </button>
+            )}
+            <button
+              onClick={() => {
+                if (currentStep < WIZARD_STEPS.length - 1) {
+                  setCurrentStep((s) => s + 1);
+                } else {
+                  onClose();
+                }
+              }}
+              className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5"
+              style={{
+                background: "linear-gradient(90deg, #6D28D9 0%, #D946EF 40%, #F59E0B 100%)",
+                boxShadow: "0 8px 16px rgba(124,58,237,.15)",
+                textShadow: "0 1px 2px rgba(0,0,0,0.15)",
+              }}
+            >
+              {currentStep < WIZARD_STEPS.length - 1 ? "Continue" : "Finish Setup"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const { selectedSite, setSelectedSiteId } = useSiteContext();
+  const { authenticated } = useAuth();
+  const [, navigate] = useLocation();
   const siteId = selectedSite?.siteId;
   const [siteName, setSiteName] = useState("");
   const [siteDomain, setSiteDomain] = useState("");
+  const [showConfigOverlay, setShowConfigOverlay] = useState(false);
   const queryClient = useQueryClient();
 
   const createSite = useMutation({
@@ -100,14 +280,19 @@ export default function Dashboard() {
 
   const handleAddSite = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!authenticated) {
+      navigate("/login");
+      return;
+    }
     if (siteName.trim() && siteDomain.trim()) {
       createSite.mutate({ name: siteName.trim(), domain: siteDomain.trim() });
     }
   };
 
-  const { data: dashboardData, isLoading } = useQuery<DashboardData>({
+  const { data: dashboardData, isLoading, isError } = useQuery<DashboardData>({
     queryKey: ["/api/dashboard", siteId],
     enabled: !!siteId,
+    retry: 1,
   });
 
   if (isLoading) {
@@ -124,7 +309,8 @@ export default function Dashboard() {
     );
   }
 
-  if (!siteId || !dashboardData) {
+  // No site selected - show the "Add Your Website" form
+  if (!siteId) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={DASHBOARD_BG}>
         <div
@@ -210,26 +396,232 @@ export default function Dashboard() {
     );
   }
 
-  const { summary, costMetrics, improvingKeywords, decliningKeywords, pagesToOptimize, topPerformers, competitors } = dashboardData;
+  // Site exists but no dashboard data yet (onboarding / no SERP data)
+  const isOnboarding = !dashboardData || isError || (selectedSite?.status === "onboarding");
+  const siteDomainDisplay = selectedSite?.baseUrl?.replace(/^https?:\/\//, "").replace(/\/$/, "") || "";
+
+  if (isOnboarding && (!dashboardData || isError)) {
+    return (
+      <div className="min-h-screen p-6" style={DASHBOARD_BG}>
+        {showConfigOverlay && (
+          <ConfigureOverlay
+            domain={siteDomainDisplay}
+            onClose={() => setShowConfigOverlay(false)}
+          />
+        )}
+        <div className="max-w-7xl mx-auto space-y-6">
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold mb-2" style={{ color: "#0F172A", letterSpacing: "-0.03em" }}>
+              Dash<span
+                style={{
+                  backgroundImage: "linear-gradient(90deg, #7c3aed, #ec4899, #f59e0b)",
+                  WebkitBackgroundClip: "text",
+                  backgroundClip: "text",
+                  color: "transparent",
+                }}
+              >board</span>
+            </h1>
+            <p style={{ color: "#475569" }}>
+              {siteDomainDisplay}
+            </p>
+          </div>
+
+          {/* Configure banner */}
+          <div
+            className="rounded-2xl p-6"
+            style={{
+              background: "linear-gradient(135deg, rgba(124,58,237,0.06), rgba(236,72,153,0.04), rgba(245,158,11,0.04))",
+              border: "1px solid rgba(124, 58, 237, 0.12)",
+            }}
+          >
+            <div className="flex items-start gap-5">
+              <div
+                className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{
+                  background: "linear-gradient(135deg, rgba(124,58,237,0.15), rgba(236,72,153,0.1))",
+                  border: "1px solid rgba(124, 58, 237, 0.15)",
+                }}
+              >
+                <Settings className="w-6 h-6" style={{ color: "#7c3aed" }} />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold mb-1" style={{ color: "#0F172A" }}>
+                  Configure your site to unlock insights
+                </h3>
+                <p className="text-sm mb-4" style={{ color: "#475569" }}>
+                  Connect Google Analytics, Search Console, and other integrations to start seeing real SEO data for {siteDomainDisplay}.
+                </p>
+                <button
+                  onClick={() => setShowConfigOverlay(true)}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 text-white font-semibold rounded-xl transition-all duration-200 hover:-translate-y-0.5"
+                  style={{
+                    background: "linear-gradient(90deg, #6D28D9 0%, #D946EF 40%, #F59E0B 100%)",
+                    boxShadow: "0 8px 16px rgba(124,58,237,.15)",
+                    textShadow: "0 1px 2px rgba(0,0,0,0.15)",
+                  }}
+                >
+                  <Settings className="w-4 h-4" />
+                  Configure
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Empty KPI Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            {[
+              { label: "Total Keywords", icon: Target, color: "#7c3aed", bgGrad: "rgba(124,58,237,0.12), rgba(245,158,11,0.08)", tint: "cyan" as const },
+              { label: "Top 3 Rankings", icon: Trophy, color: "#f59e0b", bgGrad: "rgba(245,158,11,0.12), rgba(236,72,153,0.08)", tint: "purple" as const },
+              { label: "Top 10 Rankings", icon: TrendingUp, color: "#ec4899", bgGrad: "rgba(124,58,237,0.08), rgba(236,72,153,0.12)", tint: "green" as const },
+              { label: "Improved", icon: ArrowUp, color: "#22c55e", bgGrad: "rgba(34,197,94,0.08), rgba(34,197,94,0.04)", tint: "green" as const },
+              { label: "Declined", icon: ArrowDown, color: "#ef4444", bgGrad: "rgba(239,68,68,0.08), rgba(239,68,68,0.04)", tint: "pink" as const },
+            ].map(({ label, icon: Icon, color, bgGrad, tint }) => (
+              <GlassCard key={label} variant="marketing" hover tint={tint}>
+                <GlassCardContent className="p-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-medium" style={{ color: "#475569" }}>{label}</p>
+                    <div
+                      className="w-9 h-9 rounded-xl flex items-center justify-center"
+                      style={{
+                        background: `linear-gradient(135deg, ${bgGrad})`,
+                        border: `1px solid ${color}20`,
+                      }}
+                    >
+                      <Icon className="w-4 h-4" style={{ color }} />
+                    </div>
+                  </div>
+                  <p className="text-3xl font-bold" style={{ color: "#CBD5E1" }}>&mdash;</p>
+                </GlassCardContent>
+              </GlassCard>
+            ))}
+          </div>
+
+          {/* Empty content cards */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <GlassCard variant="marketing">
+              <GlassCardHeader>
+                <GlassCardTitle className="flex items-center gap-2">
+                  <ArrowUp className="w-5 h-5" style={{ color: "#22c55e" }} />
+                  Improving Keywords
+                </GlassCardTitle>
+              </GlassCardHeader>
+              <GlassCardContent>
+                <div className="py-8 text-center">
+                  <p className="text-sm" style={{ color: "#94A3B8" }}>
+                    Data will appear here once integrations are configured.
+                  </p>
+                </div>
+              </GlassCardContent>
+            </GlassCard>
+
+            <GlassCard variant="marketing">
+              <GlassCardHeader>
+                <GlassCardTitle className="flex items-center gap-2">
+                  <ArrowDown className="w-5 h-5" style={{ color: "#ef4444" }} />
+                  Declining Keywords
+                </GlassCardTitle>
+              </GlassCardHeader>
+              <GlassCardContent>
+                <div className="py-8 text-center">
+                  <p className="text-sm" style={{ color: "#94A3B8" }}>
+                    Data will appear here once integrations are configured.
+                  </p>
+                </div>
+              </GlassCardContent>
+            </GlassCard>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <GlassCard variant="marketing">
+              <GlassCardHeader>
+                <GlassCardTitle className="flex items-center gap-2">
+                  <Target className="w-5 h-5" style={{ color: "#7c3aed" }} />
+                  Pages to Optimize
+                </GlassCardTitle>
+              </GlassCardHeader>
+              <GlassCardContent>
+                <div className="py-8 text-center">
+                  <p className="text-sm" style={{ color: "#94A3B8" }}>No data yet</p>
+                </div>
+              </GlassCardContent>
+            </GlassCard>
+
+            <GlassCard variant="marketing">
+              <GlassCardHeader>
+                <GlassCardTitle className="flex items-center gap-2">
+                  <Trophy className="w-5 h-5" style={{ color: "#f59e0b" }} />
+                  Top Performers
+                </GlassCardTitle>
+              </GlassCardHeader>
+              <GlassCardContent>
+                <div className="py-8 text-center">
+                  <p className="text-sm" style={{ color: "#94A3B8" }}>No data yet</p>
+                </div>
+              </GlassCardContent>
+            </GlassCard>
+
+            <GlassCard variant="marketing-accent">
+              <GlassCardHeader>
+                <GlassCardTitle className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5" style={{ color: "#7c3aed" }} />
+                  <span style={{ color: "#0F172A" }}>Competitors</span>
+                </GlassCardTitle>
+              </GlassCardHeader>
+              <GlassCardContent>
+                <div className="py-8 text-center">
+                  <p className="text-sm" style={{ color: "#94A3B8" }}>No data yet</p>
+                </div>
+              </GlassCardContent>
+            </GlassCard>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const { summary, costMetrics, improvingKeywords, decliningKeywords, pagesToOptimize, topPerformers, competitors } = dashboardData!;
 
   return (
     <div className="min-h-screen p-6" style={DASHBOARD_BG}>
+      {showConfigOverlay && (
+        <ConfigureOverlay
+          domain={siteDomainDisplay}
+          onClose={() => setShowConfigOverlay(false)}
+        />
+      )}
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2" style={{ color: "#0F172A", letterSpacing: "-0.03em" }}>
-            Dash<span
+        <div className="mb-8 flex items-start justify-between">
+          <div>
+            <h1 className="text-4xl font-bold mb-2" style={{ color: "#0F172A", letterSpacing: "-0.03em" }}>
+              Dash<span
+                style={{
+                  backgroundImage: "linear-gradient(90deg, #7c3aed, #ec4899, #f59e0b)",
+                  WebkitBackgroundClip: "text",
+                  backgroundClip: "text",
+                  color: "transparent",
+                }}
+              >board</span>
+            </h1>
+            <p style={{ color: "#475569" }}>
+              {dashboardData!.domain} &middot; Last updated: {new Date(dashboardData!.lastUpdated).toLocaleString()}
+            </p>
+          </div>
+          {selectedSite?.status === "onboarding" && (
+            <button
+              onClick={() => setShowConfigOverlay(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5"
               style={{
-                backgroundImage: "linear-gradient(90deg, #7c3aed, #ec4899, #f59e0b)",
-                WebkitBackgroundClip: "text",
-                backgroundClip: "text",
-                color: "transparent",
+                background: "linear-gradient(135deg, rgba(124,58,237,0.08), rgba(236,72,153,0.06))",
+                border: "1px solid rgba(124, 58, 237, 0.15)",
+                color: "#7c3aed",
               }}
-            >board</span>
-          </h1>
-          <p style={{ color: "#475569" }}>
-            {dashboardData.domain} &middot; Last updated: {new Date(dashboardData.lastUpdated).toLocaleString()}
-          </p>
+            >
+              <Settings className="w-4 h-4" />
+              Configure
+            </button>
+          )}
         </div>
 
         {/* Summary KPI Cards */}
@@ -393,6 +785,11 @@ export default function Dashboard() {
                     </div>
                   </div>
                 ))}
+                {improvingKeywords.length === 0 && (
+                  <div className="py-6 text-center">
+                    <p className="text-sm" style={{ color: "#94A3B8" }}>No improving keywords yet</p>
+                  </div>
+                )}
               </div>
             </GlassCardContent>
           </GlassCard>
@@ -434,6 +831,11 @@ export default function Dashboard() {
                     </div>
                   </div>
                 ))}
+                {decliningKeywords.length === 0 && (
+                  <div className="py-6 text-center">
+                    <p className="text-sm" style={{ color: "#94A3B8" }}>No declining keywords</p>
+                  </div>
+                )}
               </div>
             </GlassCardContent>
           </GlassCard>
@@ -470,6 +872,11 @@ export default function Dashboard() {
                     </div>
                   </div>
                 ))}
+                {pagesToOptimize.length === 0 && (
+                  <div className="py-6 text-center">
+                    <p className="text-sm" style={{ color: "#94A3B8" }}>No pages identified yet</p>
+                  </div>
+                )}
               </div>
             </GlassCardContent>
           </GlassCard>
@@ -502,6 +909,11 @@ export default function Dashboard() {
                     <p className="text-xs" style={{ color: "#94A3B8" }}>{performer.searchVolume.toLocaleString()} searches/mo</p>
                   </div>
                 ))}
+                {topPerformers.length === 0 && (
+                  <div className="py-6 text-center">
+                    <p className="text-sm" style={{ color: "#94A3B8" }}>No top performers yet</p>
+                  </div>
+                )}
               </div>
             </GlassCardContent>
           </GlassCard>
@@ -533,6 +945,11 @@ export default function Dashboard() {
                     </div>
                   </div>
                 ))}
+                {competitors.length === 0 && (
+                  <div className="py-6 text-center">
+                    <p className="text-sm" style={{ color: "#94A3B8" }}>No competitors tracked yet</p>
+                  </div>
+                )}
               </div>
             </GlassCardContent>
           </GlassCard>

@@ -270,13 +270,19 @@ export function registerAuthRoutes(app: Express): void {
 
       // Verify user
       await storage.verifyUser(verificationToken.userId);
-      
+
       // Consume the token
       await storage.consumeVerificationToken(verificationToken.id);
 
+      // Auto-login the user so they have a valid session immediately
+      req.session.userId = verificationToken.userId;
+
+      const sessionUser = await getSessionUser(verificationToken.userId);
+
       return res.json({
         success: true,
-        message: "Email verified successfully. You can now sign in.",
+        message: "Email verified successfully!",
+        user: sessionUser,
       });
     } catch (error: any) {
       console.error("[Auth] Verify email error:", error);

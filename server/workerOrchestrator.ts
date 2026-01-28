@@ -9,6 +9,20 @@ import { socratesLogger } from "./services/socratesLogger";
 const TIMEOUT_MS = 30000;
 const STALE_THRESHOLD_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
+// In-flight worker call deduplication: prevents duplicate concurrent calls to the same worker for the same site+run
+const activeWorkerCalls = new Map<string, Promise<WorkerCallResult>>();
+
+// In-flight orchestration run deduplication: prevents duplicate concurrent runs for the same site
+const activeOrchestrationRuns = new Map<string, Promise<OrchestrationResult>>();
+
+function getWorkerCallKey(siteId: string, workerKey: string, runId: string): string {
+  return `${siteId}:${workerKey}:${runId}`;
+}
+
+function getOrchestrationRunKey(siteId: string): string {
+  return `orchestration:${siteId}`;
+}
+
 const WORKER_TO_AGENT_MAP: Record<string, string> = {
   competitive_snapshot: "natasha",
   serp_intel: "lookout",
@@ -91,9 +105,8 @@ export async function callWorker(
   runId: string,
   domain: string
 ): Promise<WorkerCallResult> {
-  const startTime = Date.now();
   const workerKey = mapping.serviceSlug;
-  
+
   if (!config.valid || !config.base_url) {
     return {
       workerKey,
@@ -106,7 +119,34 @@ export async function callWorker(
       errorDetail: config.error,
     };
   }
-  
+
+  // Deduplication: if an identical call is already in-flight, return its result
+  const dedupKey = getWorkerCallKey(siteId, workerKey, runId);
+  const existing = activeWorkerCalls.get(dedupKey);
+  if (existing) {
+    logger.info("WorkerOrchestrator", `Dedup: reusing in-flight call for ${workerKey}`, { siteId, runId });
+    return existing;
+  }
+
+  const callPromise = callWorkerInternal(config, mapping, siteId, runId, domain);
+  activeWorkerCalls.set(dedupKey, callPromise);
+  try {
+    return await callPromise;
+  } finally {
+    activeWorkerCalls.delete(dedupKey);
+  }
+}
+
+async function callWorkerInternal(
+  config: WorkerConfig,
+  mapping: ServiceSecretMapping,
+  siteId: string,
+  runId: string,
+  domain: string
+): Promise<WorkerCallResult> {
+  const startTime = Date.now();
+  const workerKey = mapping.serviceSlug;
+
   const runEndpoint = mapping.workerEndpoints?.run || "/run";
   const url = `${config.base_url}${runEndpoint}`;
   
@@ -1029,8 +1069,30 @@ export async function runWorkerOrchestration(
   siteId: string = "empathyhealthclinic.com",
   domain?: string
 ): Promise<OrchestrationResult> {
+  // Run-level deduplication: prevent concurrent orchestration for the same site
+  const orchKey = getOrchestrationRunKey(siteId);
+  const existingRun = activeOrchestrationRuns.get(orchKey);
+  if (existingRun) {
+    logger.warn("WorkerOrchestrator", `Dedup: orchestration already in-progress for site, returning existing run`, { siteId, runId });
+    return existingRun;
+  }
+
+  const orchPromise = runWorkerOrchestrationInternal(runId, siteId, domain);
+  activeOrchestrationRuns.set(orchKey, orchPromise);
+  try {
+    return await orchPromise;
+  } finally {
+    activeOrchestrationRuns.delete(orchKey);
+  }
+}
+
+async function runWorkerOrchestrationInternal(
+  runId: string,
+  siteId: string,
+  domain?: string
+): Promise<OrchestrationResult> {
   const startedAt = new Date();
-  
+
   let resolvedDomain = domain;
   if (!resolvedDomain) {
     const site = await storage.getSiteById(siteId);
