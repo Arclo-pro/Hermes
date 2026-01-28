@@ -9,7 +9,10 @@
     "build": "tsx script/build.ts",
     "start": "NODE_ENV=production node dist/index.cjs",
     "check": "tsc",
-    "db:push": "drizzle-kit push"
+    "db:push": "drizzle-kit push",
+    "migrate": "tsx scripts/runMigrations.ts run",
+    "migrate:status": "tsx scripts/runMigrations.ts status",
+    "migrate:dry-run": "tsx scripts/runMigrations.ts dry-run"
   },
   "dependencies": {
     "@arclo/kbase-client": "file:../Woker-Knowledge-Base/packages/kbase-client",

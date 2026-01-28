@@ -57,6 +57,8 @@ import governanceRoutes from './routes/governance';
 import websiteRoutes from './routes/websites';
 import billingRoutes from './routes/billing';
 import { synthesisRouter } from './routes/synthesis';
+import orchestrationRouter from './routes/orchestration';
+import systemControlRoutes from './routes/systemControl';
 import { generatedSites, siteGenerationJobs, crewFindings, insertAgentActionLogSchema, insertOutcomeEventLogSchema, type InsertAgentActionLog, type InsertOutcomeEventLog, seoReports, completedWork, sites, users, seoAgentCompetitors, type InsertSeoReport, findings, serpKeywords, type Finding } from "@shared/schema";
 import { processUnattributedEvents } from "./services/socratesAttribution";
 import { v4 as uuidv4 } from "uuid";
@@ -10617,14 +10619,18 @@ Keep responses concise and actionable.`;
     }
   });
 
-  // Get all audit logs (global)
+  // Get audit logs for a specific site (Step 7.1: now requires siteId)
   app.get("/api/audit-logs", async (req, res) => {
     try {
+      const siteId = req.query.siteId as string;
+      if (!siteId) {
+        return res.status(400).json({ error: "siteId query parameter is required" });
+      }
       const limit = parseInt(req.query.limit as string) || 100;
-      const logs = await storage.getAllAuditLogs(limit);
+      const logs = await storage.getAllAuditLogs(siteId, limit);
       res.json(logs);
     } catch (error: any) {
-      logger.error("API", "Failed to fetch global audit logs", { error: error.message });
+      logger.error("API", "Failed to fetch audit logs", { error: error.message });
       res.status(500).json({ error: error.message });
     }
   });
@@ -20558,6 +20564,8 @@ Return JSON in this exact format:
   app.use('/api', governanceRoutes);
   app.use('/api', websiteRoutes);
   app.use('/api/synthesis', synthesisRouter);
+  app.use('/api/orchestration', orchestrationRouter);
+  app.use('/api/system', systemControlRoutes); // Step 10.6: Kill switches & system control
 
   // ============================================================
   // Internal API Endpoints (Hermes ↔ SERP Worker Communication)

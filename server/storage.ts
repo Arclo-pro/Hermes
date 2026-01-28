@@ -225,6 +225,15 @@ import {
   hermesRecommendations,
   type HermesRecommendation,
   type InsertHermesRecommendation,
+  websiteTrustLevels,
+  type WebsiteTrustLevel,
+  type InsertWebsiteTrustLevel,
+  actionRiskRegistry,
+  type ActionRiskRegistry,
+  type InsertActionRiskRegistry,
+  actionExecutionAudit,
+  type ActionExecutionAudit,
+  type InsertActionExecutionAudit,
 } from "@shared/schema";
 import { eq, desc, and, gte, sql, asc, or, isNull, arrayContains } from "drizzle-orm";
 
@@ -341,7 +350,7 @@ export interface IStorage {
   // Audit Logs
   saveAuditLog(log: InsertAuditLog): Promise<AuditLog>;
   getAuditLogsBySite(siteId: string, limit?: number): Promise<AuditLog[]>;
-  getAllAuditLogs(limit?: number): Promise<AuditLog[]>;
+  getAllAuditLogs(siteId: string, limit?: number): Promise<AuditLog[]>; // Step 7.1: Now requires siteId for tenant isolation
   getRecentMissionCompletions(siteId: string, crewId: string, hours: number): Promise<AuditLog[]>;
   saveMissionExecution(params: {
     siteId: string;
@@ -1300,8 +1309,12 @@ class DBStorage implements IStorage {
     return db.select().from(auditLogs).where(eq(auditLogs.siteId, siteId)).orderBy(desc(auditLogs.createdAt)).limit(limit);
   }
 
-  async getAllAuditLogs(limit = 100): Promise<AuditLog[]> {
-    return db.select().from(auditLogs).orderBy(desc(auditLogs.createdAt)).limit(limit);
+  // Step 7.1: Updated to filter by siteId for multi-tenant isolation
+  async getAllAuditLogs(siteId: string, limit = 100): Promise<AuditLog[]> {
+    return db.select().from(auditLogs)
+      .where(eq(auditLogs.siteId, siteId))
+      .orderBy(desc(auditLogs.createdAt))
+      .limit(limit);
   }
 
   async getRecentMissionCompletions(siteId: string, crewId: string, hours: number): Promise<AuditLog[]> {
@@ -3941,11 +3954,181 @@ class DBStorage implements IStorage {
   async invalidateRecommendation(id: string, reason?: string): Promise<void> {
     await db
       .update(hermesRecommendations)
-      .set({ 
-        status: "invalidated", 
-        updatedAt: new Date() 
+      .set({
+        status: "invalidated",
+        updatedAt: new Date()
       })
       .where(eq(hermesRecommendations.id, id));
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TRUST LEVELS - Step 6.1: Trust & Automation Control
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Get trust level for a specific website and action category
+   */
+  async getTrustLevel(websiteId: string, actionCategory: string): Promise<WebsiteTrustLevel | null> {
+    const [result] = await db
+      .select()
+      .from(websiteTrustLevels)
+      .where(
+        and(
+          eq(websiteTrustLevels.websiteId, websiteId),
+          eq(websiteTrustLevels.actionCategory, actionCategory)
+        )
+      )
+      .limit(1);
+    return result || null;
+  }
+
+  /**
+   * Get all trust levels for a website
+   */
+  async getAllTrustLevels(websiteId: string): Promise<WebsiteTrustLevel[]> {
+    return db
+      .select()
+      .from(websiteTrustLevels)
+      .where(eq(websiteTrustLevels.websiteId, websiteId))
+      .orderBy(asc(websiteTrustLevels.actionCategory));
+  }
+
+  /**
+   * Create or update trust level for a website/category
+   */
+  async upsertTrustLevel(data: InsertWebsiteTrustLevel): Promise<WebsiteTrustLevel> {
+    const existing = await this.getTrustLevel(data.websiteId, data.actionCategory);
+
+    if (existing) {
+      const [updated] = await db
+        .update(websiteTrustLevels)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(websiteTrustLevels.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db
+        .insert(websiteTrustLevels)
+        .values(data)
+        .returning();
+      return created;
+    }
+  }
+
+  /**
+   * Increment success count and update trust metrics
+   */
+  async recordTrustSuccess(websiteId: string, actionCategory: string): Promise<void> {
+    const trustLevel = await this.getTrustLevel(websiteId, actionCategory);
+    if (!trustLevel) return;
+
+    const newSuccessCount = trustLevel.successCount + 1;
+    const totalActions = newSuccessCount + trustLevel.failureCount;
+    const successRate = totalActions > 0 ? (newSuccessCount / totalActions) * 100 : 0;
+
+    await db
+      .update(websiteTrustLevels)
+      .set({
+        successCount: newSuccessCount,
+        confidence: Math.round(successRate),
+        lastSuccessAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(websiteTrustLevels.id, trustLevel.id));
+  }
+
+  /**
+   * Increment failure count and update trust metrics
+   */
+  async recordTrustFailure(websiteId: string, actionCategory: string): Promise<void> {
+    const trustLevel = await this.getTrustLevel(websiteId, actionCategory);
+    if (!trustLevel) return;
+
+    const newFailureCount = trustLevel.failureCount + 1;
+    const totalActions = trustLevel.successCount + newFailureCount;
+    const successRate = totalActions > 0 ? (trustLevel.successCount / totalActions) * 100 : 0;
+
+    await db
+      .update(websiteTrustLevels)
+      .set({
+        failureCount: newFailureCount,
+        confidence: Math.round(successRate),
+        lastFailureAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(websiteTrustLevels.id, trustLevel.id));
+  }
+
+  /**
+   * Update trust level (manually adjust automation permission)
+   */
+  async setTrustLevel(websiteId: string, actionCategory: string, trustLevel: number): Promise<void> {
+    const existing = await this.getTrustLevel(websiteId, actionCategory);
+    if (!existing) return;
+
+    await db
+      .update(websiteTrustLevels)
+      .set({
+        trustLevel,
+        lastReviewedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(websiteTrustLevels.id, existing.id));
+  }
+
+  /**
+   * Get action risk metadata from registry
+   */
+  async getActionRisk(actionCode: string): Promise<ActionRiskRegistry | null> {
+    const [result] = await db
+      .select()
+      .from(actionRiskRegistry)
+      .where(eq(actionRiskRegistry.actionCode, actionCode))
+      .limit(1);
+    return result || null;
+  }
+
+  /**
+   * Register a new action type with risk metadata
+   */
+  async registerActionRisk(data: InsertActionRiskRegistry): Promise<ActionRiskRegistry> {
+    const [result] = await db
+      .insert(actionRiskRegistry)
+      .values(data)
+      .returning();
+    return result;
+  }
+
+  /**
+   * Log an action execution for audit trail
+   */
+  async logActionExecution(data: InsertActionExecutionAudit): Promise<ActionExecutionAudit> {
+    const [result] = await db
+      .insert(actionExecutionAudit)
+      .values(data)
+      .returning();
+    return result;
+  }
+
+  /**
+   * Get action execution history for a website
+   */
+  async getActionExecutionHistory(
+    websiteId: string,
+    actionCategory?: string,
+    limit: number = 50
+  ): Promise<ActionExecutionAudit[]> {
+    const conditions = [eq(actionExecutionAudit.websiteId, websiteId)];
+    if (actionCategory) {
+      conditions.push(eq(actionExecutionAudit.actionCategory, actionCategory));
+    }
+
+    return db
+      .select()
+      .from(actionExecutionAudit)
+      .where(and(...conditions))
+      .orderBy(desc(actionExecutionAudit.executedAt))
+      .limit(limit);
   }
 }
 
