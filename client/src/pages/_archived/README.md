@@ -4,6 +4,13 @@ This directory contains page components that were removed from active use during
 
 ## Files
 
+### SiteSelector-dashboard.tsx.2026-01-27 (47 lines)
+- **Archived:** January 27, 2026
+- **Reason:** Duplicate component - superseded by site/SiteSelector.tsx
+- **Description:** Basic Select-based site selector (no variants, simple UI)
+- **Superseded by:** components/site/SiteSelector.tsx (feature-rich with variants)
+- **Can be restored:** Yes - but site/SiteSelector is recommended
+
 ### MyCrew.tsx.2026-01-27 (830 lines)
 - **Archived:** January 27, 2026
 - **Reason:** Not imported in App.tsx or referenced anywhere in the codebase
