@@ -1,5 +1,4 @@
 {
-  "installCommand": "npm install --legacy-peer-deps --ignore-scripts || true",
   "buildCommand": "npx vite build",
   "outputDirectory": "dist/public",
   "rewrites": [
