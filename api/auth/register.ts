@@ -33,26 +33,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   let bodyType = "unknown";
   let bodyPreview = "unknown";
   try {
-    step = "getBodyType";
+    step = "readBody";
+    // Read the raw body manually
+    const chunks: Buffer[] = [];
+    for await (const chunk of req) {
+      chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+    }
+    const rawBody = Buffer.concat(chunks).toString('utf8');
+    bodyPreview = rawBody.substring(0, 200);
+
+    step = "parseBody";
+    let body: any;
     try {
-      bodyType = typeof req.body;
+      body = JSON.parse(rawBody);
     } catch (e) {
-      bodyType = "error: " + (e as Error).message;
+      return res.status(400).json({
+        success: false,
+        error: "Invalid JSON in request body",
+        bodyPreview,
+      });
     }
 
-    step = "getBodyPreview";
-    try {
-      bodyPreview = String(req.body)?.substring(0, 100) || "null";
-    } catch (e) {
-      bodyPreview = "error: " + (e as Error).message;
-    }
-
-    step = "parse";
-    // Vercel should auto-parse JSON body, but let's check
-    let body = req.body;
-    if (typeof body === "string") {
-      body = JSON.parse(body);
-    }
+    step = "validate";
     const parsed = registerSchema.safeParse(body);
     if (!parsed.success) {
       return res.status(400).json({
