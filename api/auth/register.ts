@@ -7,6 +7,7 @@ import {
   hashPassword,
   createVerificationToken,
   setCorsHeaders,
+  parseRequestBody,
 } from "../_lib/auth.js";
 import { sendVerificationEmail } from "../_lib/email.js";
 
@@ -29,32 +30,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ success: false, error: "Method not allowed" });
   }
 
-  let step = "init";
-  let bodyType = "unknown";
-  let bodyPreview = "unknown";
   try {
-    step = "readBody";
-    // Read the raw body manually
-    const chunks: Buffer[] = [];
-    for await (const chunk of req) {
-      chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
-    }
-    const rawBody = Buffer.concat(chunks).toString('utf8');
-    bodyPreview = rawBody.substring(0, 200);
-
-    step = "parseBody";
-    let body: any;
-    try {
-      body = JSON.parse(rawBody);
-    } catch (e) {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid JSON in request body",
-        bodyPreview,
-      });
-    }
-
-    step = "validate";
+    const body = await parseRequestBody(req);
     const parsed = registerSchema.safeParse(body);
     if (!parsed.success) {
       return res.status(400).json({
@@ -65,7 +42,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const { email, password, displayName, scanId } = parsed.data;
 
-    step = "getUserByEmail";
     // Check if user exists
     const existingUser = await getUserByEmail(email);
     if (existingUser) {
@@ -76,11 +52,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    step = "hashPassword";
     // Create user (unverified)
     const passwordHash = await hashPassword(password);
-
-    step = "createUser";
     const user = await createUser({
       email,
       passwordHash,
@@ -117,10 +90,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({
       success: false,
       error: "Registration failed",
-      details: error.message,
-      step,
-      bodyType,
-      bodyPreview,
     });
   }
 }

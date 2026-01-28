@@ -5,6 +5,7 @@ import {
   consumeVerificationToken,
   verifyUser,
   setCorsHeaders,
+  parseRequestBody,
 } from "../_lib/auth.js";
 
 const verifyEmailSchema = z.object({
@@ -23,7 +24,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const parsed = verifyEmailSchema.safeParse(req.body);
+    const body = await parseRequestBody(req);
+    const parsed = verifyEmailSchema.safeParse(body);
     if (!parsed.success) {
       return res.status(400).json({
         success: false,

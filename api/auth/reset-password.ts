@@ -8,6 +8,7 @@ import {
   getUserById,
   verifyUser,
   setCorsHeaders,
+  parseRequestBody,
 } from "../_lib/auth.js";
 
 const resetPasswordSchema = z.object({
@@ -27,7 +28,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const parsed = resetPasswordSchema.safeParse(req.body);
+    const body = await parseRequestBody(req);
+    const parsed = resetPasswordSchema.safeParse(body);
     if (!parsed.success) {
       return res.status(400).json({
         success: false,

@@ -6,6 +6,7 @@ import {
   deleteUserVerificationTokens,
   createVerificationToken,
   setCorsHeaders,
+  parseRequestBody,
 } from "../_lib/auth.js";
 import { sendPasswordResetEmail } from "../_lib/email.js";
 
@@ -25,7 +26,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const parsed = forgotPasswordSchema.safeParse(req.body);
+    const body = await parseRequestBody(req);
+    const parsed = forgotPasswordSchema.safeParse(body);
     if (!parsed.success) {
       return res.status(400).json({
         success: false,

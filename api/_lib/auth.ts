@@ -236,5 +236,15 @@ export function setCorsHeaders(res: VercelResponse): void {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
 
+// Parse request body manually (Vercel body parsing can be unreliable)
+export async function parseRequestBody(req: VercelRequest): Promise<any> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of req) {
+    chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+  }
+  const rawBody = Buffer.concat(chunks).toString('utf8');
+  return JSON.parse(rawBody);
+}
+
 // Re-export types
 export type { User, VerificationToken };

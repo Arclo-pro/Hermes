@@ -6,6 +6,7 @@ import {
   deleteUserVerificationTokens,
   createVerificationToken,
   setCorsHeaders,
+  parseRequestBody,
 } from "../_lib/auth.js";
 import { sendVerificationEmail } from "../_lib/email.js";
 
@@ -25,7 +26,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const parsed = resendVerificationSchema.safeParse(req.body);
+    const body = await parseRequestBody(req);
+    const parsed = resendVerificationSchema.safeParse(body);
     if (!parsed.success) {
       return res.status(400).json({
         success: false,
