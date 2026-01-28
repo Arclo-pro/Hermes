@@ -30,9 +30,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   let step = "init";
+  let bodyType = "";
+  let bodyPreview = "";
   try {
     step = "parse";
-    const parsed = registerSchema.safeParse(req.body);
+    bodyType = typeof req.body;
+    bodyPreview = JSON.stringify(req.body)?.substring(0, 100) || "null";
+
+    // Vercel should auto-parse JSON body, but let's check
+    let body = req.body;
+    if (typeof body === "string") {
+      body = JSON.parse(body);
+    }
+    const parsed = registerSchema.safeParse(body);
     if (!parsed.success) {
       return res.status(400).json({
         success: false,
@@ -95,7 +105,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       success: false,
       error: "Registration failed",
       details: error.message,
-      step: typeof step !== 'undefined' ? step : 'unknown',
+      step,
+      bodyType,
+      bodyPreview,
     });
   }
 }
