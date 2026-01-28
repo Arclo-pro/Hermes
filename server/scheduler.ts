@@ -2,6 +2,7 @@ import cron from 'node-cron';
 import { ga4Connector } from './connectors/ga4';
 import { gscConnector } from './connectors/gsc';
 import { adsConnector } from './connectors/ads';
+import { validateRobotsTxt } from './connectors/robotsTxtValidator';
 import { websiteChecker } from './website_checks';
 import { analysisEngine } from './analysis';
 import { googleAuth } from './auth/google-oauth';
@@ -33,13 +34,14 @@ async function runDailyDiagnostics() {
         ),
       ]);
 
-      await Promise.all([
+      const [, sitemaps] = await Promise.all([
         ga4Connector.checkRealtimeHealth().catch(e =>
           logger.error('Scheduler', 'GA4 realtime check failed', { error: e.message })
         ),
-        gscConnector.fetchSitemaps().catch(e =>
-          logger.error('Scheduler', 'GSC sitemaps fetch failed', { error: e.message })
-        ),
+        gscConnector.fetchSitemaps().catch(e => {
+          logger.error('Scheduler', 'GSC sitemaps fetch failed', { error: e.message });
+          return [] as import('./connectors/gsc').SitemapInfo[];
+        }),
         adsConnector.getCampaignStatuses().catch(e =>
           logger.error('Scheduler', 'Ads campaign status check failed', { error: e.message })
         ),
@@ -47,6 +49,11 @@ async function runDailyDiagnostics() {
           logger.error('Scheduler', 'Ads policy issues check failed', { error: e.message })
         ),
       ]);
+
+      // Run coverage inspection (URL Inspection API + robots.txt validation)
+      await runCoverageInspection(startDate, endDate, sitemaps || []).catch(e =>
+        logger.error('Scheduler', 'Coverage inspection failed', { error: e.message })
+      );
     }
 
     const topPages = await ga4Connector.getLandingPagePerformance(startDate, endDate, 20)
@@ -67,6 +74,67 @@ async function runDailyDiagnostics() {
   } catch (error: any) {
     logger.error('Scheduler', 'Scheduled diagnostic run failed', { error: error.message });
   }
+}
+
+async function runCoverageInspection(
+  startDate: string,
+  endDate: string,
+  sitemaps: import('./connectors/gsc').SitemapInfo[],
+) {
+  logger.info('Scheduler', 'Starting coverage inspection');
+
+  const sites = await storage.getSites(true);
+  const gscSite = process.env.GSC_SITE || '';
+
+  for (const site of sites) {
+    try {
+      // Get top pages for inspection from GSC performance data
+      const topPages = await gscConnector.getTopPagesForInspection(startDate, endDate).catch(() => [] as string[]);
+
+      if (topPages.length > 0) {
+        await gscConnector.batchUrlInspection(topPages, site.siteId);
+        logger.info('Scheduler', `URL inspection complete for ${site.siteId}`, { pages: topPages.length });
+      } else {
+        logger.info('Scheduler', `No pages to inspect for ${site.siteId}`);
+      }
+
+      // Validate robots.txt
+      const domain = site.baseUrl?.replace(/^https?:\/\//, '').replace(/\/$/, '') || process.env.DOMAIN || '';
+      if (domain) {
+        await validateRobotsTxt(domain, site.siteId, sitemaps);
+        logger.info('Scheduler', `Robots.txt validation complete for ${site.siteId}`);
+      }
+
+      // Save manual action advisory (API unavailable)
+      const gscLink = gscSite
+        ? `https://search.google.com/search-console/manual-actions?resource_id=${encodeURIComponent(gscSite)}`
+        : null;
+
+      await storage.saveManualActionCheck({
+        siteId: site.siteId,
+        date: new Date().toISOString().split('T')[0],
+        checkType: 'manual_actions',
+        status: 'api_unavailable',
+        gscWebUiLink: gscLink,
+      });
+
+      await storage.saveManualActionCheck({
+        siteId: site.siteId,
+        date: new Date().toISOString().split('T')[0],
+        checkType: 'security_issues',
+        status: 'api_unavailable',
+        gscWebUiLink: gscSite
+          ? `https://search.google.com/search-console/security-issues?resource_id=${encodeURIComponent(gscSite)}`
+          : null,
+      });
+    } catch (siteError: any) {
+      logger.error('Scheduler', `Coverage inspection failed for site ${site.siteId}`, {
+        error: siteError.message,
+      });
+    }
+  }
+
+  logger.info('Scheduler', 'Coverage inspection completed for all sites');
 }
 
 async function generateWeeklyKBaseSynthesis() {

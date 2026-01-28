@@ -842,13 +842,16 @@ Example format: Service 1, Service 2, Service 3, Service 4, Service 5`;
       const startDateStr = formatDateCompact(startDate7d);
       
       // Fetch real anomalies from the last 30 days
-      const [recentAnomalies, ga4Data, gscData, site] = await Promise.all([
+      const [recentAnomalies, ga4Data, gscData, site, latestCoverage, latestRobots, latestManualAction] = await Promise.all([
         storage.getRecentAnomalies(siteId, 30),
         storage.getGA4DataByDateRange(startDateStr, endDateStr, siteId),
         storage.getGSCDataByDateRange(startDateStr, endDateStr, siteId),
         storage.getSiteById(siteId),
+        storage.getLatestGscCoverage(siteId),
+        storage.getLatestRobotsTxtCheck(siteId),
+        storage.getLatestManualActionCheck(siteId, 'manual_actions'),
       ]);
-      
+
       // Get domain from site or use default
       const domain = site?.baseUrl || "unknown";
       
@@ -983,6 +986,36 @@ Example format: Service 1, Service 2, Service 3, Service 4, Service 5`;
           },
         },
         meta,
+        coverage: latestCoverage ? {
+          percent: latestCoverage.coveragePercent,
+          indexed: latestCoverage.totalIndexed,
+          notIndexed: latestCoverage.totalNotIndexed,
+          errors: latestCoverage.totalErrors,
+          breakdown: {
+            robotsBlocked: latestCoverage.robotsBlocked ?? 0,
+            noindexDetected: latestCoverage.noindexDetected ?? 0,
+            crawlErrors: latestCoverage.crawlErrors ?? 0,
+            redirectErrors: latestCoverage.redirectErrors ?? 0,
+            serverErrors: latestCoverage.serverErrors ?? 0,
+            notFoundErrors: latestCoverage.notFoundErrors ?? 0,
+          },
+          asOf: latestCoverage.date,
+        } : null,
+        robotsTxt: latestRobots ? {
+          exists: latestRobots.exists,
+          isValid: latestRobots.isValid,
+          validationErrors: latestRobots.validationErrors ?? [],
+          blocksImportantPaths: latestRobots.blocksImportantPaths ?? false,
+          sitemapsMissing: latestRobots.sitemapsMissing ?? [],
+          asOf: latestRobots.date,
+        } : null,
+        manualActions: {
+          status: latestManualAction?.status ?? 'api_unavailable',
+          message: 'Manual actions and security issues are only visible in Google Search Console.',
+          gscLink: latestManualAction?.gscWebUiLink ??
+            `https://search.google.com/search-console/manual-actions?resource_id=${encodeURIComponent(process.env.GSC_SITE || '')}`,
+          lastUserConfirmed: latestManualAction?.lastUserConfirmedAt?.toISOString() ?? null,
+        },
       });
     } catch (error) {
       logger.error("Popular", "Dashboard error", { error });
@@ -1073,6 +1106,76 @@ Example format: Service 1, Service 2, Service 3, Service 4, Service 5`;
     } catch (error) {
       logger.error("Popular", "Readiness check error", { error });
       res.status(500).json({ ok: false, error: "Failed to check Popular readiness" });
+    }
+  });
+
+  // GET /api/popular/coverage/history - Coverage trend data for charting
+  app.get("/api/popular/coverage/history", async (req, res) => {
+    try {
+      const siteId = (req.query.site_id as string) || (req.query.siteId as string) || "default";
+      const days = parseInt(req.query.days as string) || 30;
+      const endDate = new Date().toISOString().split("T")[0];
+      const startDate = new Date(Date.now() - days * 86400000).toISOString().split("T")[0];
+      const history = await storage.getGscCoverageDailyRange(siteId, startDate, endDate);
+      res.json({ ok: true, siteId, history });
+    } catch (error) {
+      logger.error("Popular", "Coverage history error", { error });
+      res.status(500).json({ ok: false, error: "Failed to load coverage history" });
+    }
+  });
+
+  // GET /api/popular/inspections/:pageUrl - Inspection history for a specific page
+  app.get("/api/popular/inspections/:pageUrl", async (req, res) => {
+    try {
+      const siteId = (req.query.site_id as string) || (req.query.siteId as string) || "default";
+      const pageUrl = decodeURIComponent(req.params.pageUrl);
+      const history = await storage.getUrlInspectionHistory(siteId, pageUrl, 30);
+      res.json({ ok: true, siteId, pageUrl, history });
+    } catch (error) {
+      logger.error("Popular", "Inspection history error", { error });
+      res.status(500).json({ ok: false, error: "Failed to load inspection history" });
+    }
+  });
+
+  // POST /api/popular/inspect - On-demand single URL inspection
+  app.post("/api/popular/inspect", async (req, res) => {
+    try {
+      const { url, siteId } = req.body;
+      if (!url) {
+        return res.status(400).json({ ok: false, error: "url is required" });
+      }
+      const { gscConnector } = await import("./connectors/gsc");
+      const result = await gscConnector.batchUrlInspection([url], siteId || "default");
+      res.json({ ok: true, result: result.results[0] || null });
+    } catch (error) {
+      logger.error("Popular", "On-demand inspection error", { error });
+      res.status(500).json({ ok: false, error: "Failed to inspect URL" });
+    }
+  });
+
+  // POST /api/popular/manual-actions/confirm - User self-reports manual action status
+  app.post("/api/popular/manual-actions/confirm", async (req, res) => {
+    try {
+      const { siteId, status, notes } = req.body;
+      if (!status || !['user_confirmed_clear', 'user_reported_issue'].includes(status)) {
+        return res.status(400).json({ ok: false, error: "status must be 'user_confirmed_clear' or 'user_reported_issue'" });
+      }
+      const gscSite = process.env.GSC_SITE || '';
+      await storage.saveManualActionCheck({
+        siteId: siteId || "default",
+        date: new Date().toISOString().split("T")[0],
+        checkType: "manual_actions",
+        status,
+        userNotes: notes || null,
+        lastUserConfirmedAt: new Date(),
+        gscWebUiLink: gscSite
+          ? `https://search.google.com/search-console/manual-actions?resource_id=${encodeURIComponent(gscSite)}`
+          : null,
+      });
+      res.json({ ok: true, message: "Manual action status recorded" });
+    } catch (error) {
+      logger.error("Popular", "Manual action confirm error", { error });
+      res.status(500).json({ ok: false, error: "Failed to save manual action status" });
     }
   });
 
