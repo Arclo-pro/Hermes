@@ -7,28 +7,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     timestamp: new Date().toISOString(),
   };
 
-  // Test zod import
-  try {
-    const { z } = await import("zod");
-    results.zod = "ok";
-  } catch (e: any) {
-    results.zod = `error: ${e.message}`;
-  }
+  // Check DATABASE_URL details (redacted for security)
+  const dbUrl = process.env.DATABASE_URL || "";
+  results.dbUrlLength = dbUrl.length;
+  results.dbUrlStart = dbUrl.substring(0, 15); // Show protocol
+  results.dbUrlContainsNeon = dbUrl.includes("neon.tech");
+  results.dbUrlContainsPooler = dbUrl.includes("pooler");
 
-  // Test pg import
+  // Parse the URL to see what's happening
   try {
-    const { Pool } = await import("pg");
-    results.pg = "ok";
+    const url = new URL(dbUrl);
+    results.parsedHost = url.hostname;
+    results.parsedProtocol = url.protocol;
   } catch (e: any) {
-    results.pg = `error: ${e.message}`;
-  }
-
-  // Test SendGrid import
-  try {
-    const sgMail = await import("@sendgrid/mail");
-    results.sendgrid = "ok";
-  } catch (e: any) {
-    results.sendgrid = `error: ${e.message}`;
+    results.urlParseError = e.message;
   }
 
   // Test database connection
