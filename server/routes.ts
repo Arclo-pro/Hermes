@@ -59,6 +59,7 @@ import billingRoutes from './routes/billing';
 import { synthesisRouter } from './routes/synthesis';
 import orchestrationRouter from './routes/orchestration';
 import systemControlRoutes from './routes/systemControl';
+import contentRoutes from './routes/content';
 import { generatedSites, siteGenerationJobs, crewFindings, insertAgentActionLogSchema, insertOutcomeEventLogSchema, type InsertAgentActionLog, type InsertOutcomeEventLog, seoReports, completedWork, sites, users, seoAgentCompetitors, type InsertSeoReport, findings, serpKeywords, type Finding } from "@shared/schema";
 import { processUnattributedEvents } from "./services/socratesAttribution";
 import { v4 as uuidv4 } from "uuid";
@@ -20566,6 +20567,7 @@ Return JSON in this exact format:
   app.use('/api/synthesis', synthesisRouter);
   app.use('/api/orchestration', orchestrationRouter);
   app.use('/api/system', systemControlRoutes); // Step 10.6: Kill switches & system control
+  app.use('/api/content', contentRoutes); // Blog content generation for multi-site
 
   // ============================================================
   // Internal API Endpoints (Hermes ↔ SERP Worker Communication)

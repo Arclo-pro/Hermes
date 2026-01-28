@@ -1,9 +1,6 @@
 import crypto from "crypto";
-import { getDb, schema } from "./db";
-import { eq, and, isNull } from "drizzle-orm";
+import { getPool, User, VerificationToken } from "./db";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-
-const { users, verificationTokens, sites } = schema;
 
 // Password hashing using PBKDF2 (OWASP recommended)
 const ITERATIONS = 100000;
@@ -65,104 +62,82 @@ export function getSessionToken(req: VercelRequest): string | null {
   return match ? match[1] : null;
 }
 
-// User session storage in verification_tokens table (purpose = 'session')
+// Database operations using raw SQL
+const pool = () => getPool();
+
 export async function createSession(userId: number): Promise<string> {
-  const db = getDb();
   const token = generateSessionToken();
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + SESSION_EXPIRY_DAYS);
 
-  await db.insert(verificationTokens).values({
-    userId,
-    token,
-    purpose: "session",
-    expiresAt,
-  });
+  await pool().query(
+    `INSERT INTO verification_tokens (user_id, token, purpose, expires_at) VALUES ($1, $2, $3, $4)`,
+    [userId, token, "session", expiresAt]
+  );
 
   return token;
 }
 
-export async function getSessionUser(req: VercelRequest): Promise<schema.User | null> {
+export async function getSessionUser(req: VercelRequest): Promise<User | null> {
   const token = getSessionToken(req);
   if (!token) return null;
 
-  const db = getDb();
-  const [session] = await db
-    .select()
-    .from(verificationTokens)
-    .where(
-      and(
-        eq(verificationTokens.token, token),
-        eq(verificationTokens.purpose, "session"),
-        isNull(verificationTokens.consumedAt)
-      )
-    )
-    .limit(1);
+  const sessionResult = await pool().query(
+    `SELECT * FROM verification_tokens WHERE token = $1 AND purpose = 'session' AND consumed_at IS NULL`,
+    [token]
+  );
 
-  if (!session || new Date() > session.expiresAt) {
+  const session = sessionResult.rows[0];
+  if (!session || new Date() > new Date(session.expires_at)) {
     return null;
   }
 
-  const [user] = await db
-    .select()
-    .from(users)
-    .where(eq(users.id, session.userId))
-    .limit(1);
+  const userResult = await pool().query(`SELECT * FROM users WHERE id = $1`, [
+    session.user_id,
+  ]);
 
-  return user || null;
+  return userResult.rows[0] || null;
 }
 
 export async function deleteSession(token: string): Promise<void> {
-  const db = getDb();
-  await db
-    .update(verificationTokens)
-    .set({ consumedAt: new Date() })
-    .where(
-      and(
-        eq(verificationTokens.token, token),
-        eq(verificationTokens.purpose, "session")
-      )
-    );
+  await pool().query(
+    `UPDATE verification_tokens SET consumed_at = NOW() WHERE token = $1 AND purpose = 'session'`,
+    [token]
+  );
 }
 
 // Build session user response object
-export async function buildSessionUserResponse(user: schema.User) {
-  const db = getDb();
-
-  // Get user's websites
-  const allSites = await db.select({ siteId: sites.siteId }).from(sites);
-  const websites = allSites.map((s) => s.siteId);
+export async function buildSessionUserResponse(user: User) {
+  const sitesResult = await pool().query(`SELECT site_id FROM sites`);
+  const websites = sitesResult.rows.map((s: any) => s.site_id);
 
   return {
     user_id: user.id,
     email: user.email,
-    display_name: user.displayName,
+    display_name: user.display_name,
     websites,
-    default_website_id: user.defaultWebsiteId,
+    default_website_id: user.default_website_id,
     plan: user.plan,
-    addons: {
-      content_growth: user.addons?.content_growth ?? false,
-      competitive_intel: user.addons?.competitive_intel ?? false,
-      authority_signals: user.addons?.authority_signals ?? false,
+    addons: user.addons || {
+      content_growth: false,
+      competitive_intel: false,
+      authority_signals: false,
     },
   };
 }
 
 // Storage helpers
-export async function getUserByEmail(email: string): Promise<schema.User | null> {
-  const db = getDb();
-  const [user] = await db
-    .select()
-    .from(users)
-    .where(eq(users.email, email.toLowerCase()))
-    .limit(1);
-  return user || null;
+export async function getUserByEmail(email: string): Promise<User | null> {
+  const result = await pool().query(
+    `SELECT * FROM users WHERE LOWER(email) = LOWER($1)`,
+    [email]
+  );
+  return result.rows[0] || null;
 }
 
-export async function getUserById(id: number): Promise<schema.User | null> {
-  const db = getDb();
-  const [user] = await db.select().from(users).where(eq(users.id, id)).limit(1);
-  return user || null;
+export async function getUserById(id: number): Promise<User | null> {
+  const result = await pool().query(`SELECT * FROM users WHERE id = $1`, [id]);
+  return result.rows[0] || null;
 }
 
 export async function createUser(data: {
@@ -172,47 +147,44 @@ export async function createUser(data: {
   role?: string;
   plan?: string;
   addons?: Record<string, boolean>;
-}): Promise<schema.User> {
-  const db = getDb();
-  const [user] = await db
-    .insert(users)
-    .values({
-      email: data.email.toLowerCase(),
-      passwordHash: data.passwordHash,
-      displayName: data.displayName || data.email.split("@")[0],
-      role: data.role || "user",
-      plan: data.plan || "free",
-      addons: data.addons || {},
-    })
-    .returning();
-  return user;
+}): Promise<User> {
+  const result = await pool().query(
+    `INSERT INTO users (email, password_hash, display_name, role, plan, addons)
+     VALUES (LOWER($1), $2, $3, $4, $5, $6) RETURNING *`,
+    [
+      data.email,
+      data.passwordHash,
+      data.displayName || data.email.split("@")[0],
+      data.role || "user",
+      data.plan || "free",
+      JSON.stringify(data.addons || {}),
+    ]
+  );
+  return result.rows[0];
 }
 
 export async function updateUserLogin(userId: number): Promise<void> {
-  const db = getDb();
-  await db
-    .update(users)
-    .set({ lastLoginAt: new Date(), updatedAt: new Date() })
-    .where(eq(users.id, userId));
+  await pool().query(
+    `UPDATE users SET last_login_at = NOW(), updated_at = NOW() WHERE id = $1`,
+    [userId]
+  );
 }
 
 export async function verifyUser(userId: number): Promise<void> {
-  const db = getDb();
-  await db
-    .update(users)
-    .set({ verifiedAt: new Date(), updatedAt: new Date() })
-    .where(eq(users.id, userId));
+  await pool().query(
+    `UPDATE users SET verified_at = NOW(), updated_at = NOW() WHERE id = $1`,
+    [userId]
+  );
 }
 
 export async function updateUserPassword(
   userId: number,
   passwordHash: string
 ): Promise<void> {
-  const db = getDb();
-  await db
-    .update(users)
-    .set({ passwordHash, updatedAt: new Date() })
-    .where(eq(users.id, userId));
+  await pool().query(
+    `UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2`,
+    [passwordHash, userId]
+  );
 }
 
 // Verification token helpers
@@ -222,50 +194,38 @@ export async function createVerificationToken(data: {
   purpose: string;
   expiresAt: Date;
 }): Promise<void> {
-  const db = getDb();
-  await db.insert(verificationTokens).values(data);
+  await pool().query(
+    `INSERT INTO verification_tokens (user_id, token, purpose, expires_at) VALUES ($1, $2, $3, $4)`,
+    [data.userId, data.token, data.purpose, data.expiresAt]
+  );
 }
 
 export async function getVerificationToken(
   token: string,
   purpose: string
-): Promise<schema.VerificationToken | null> {
-  const db = getDb();
-  const [result] = await db
-    .select()
-    .from(verificationTokens)
-    .where(
-      and(
-        eq(verificationTokens.token, token),
-        eq(verificationTokens.purpose, purpose),
-        isNull(verificationTokens.consumedAt)
-      )
-    )
-    .limit(1);
-  return result || null;
+): Promise<VerificationToken | null> {
+  const result = await pool().query(
+    `SELECT * FROM verification_tokens WHERE token = $1 AND purpose = $2 AND consumed_at IS NULL`,
+    [token, purpose]
+  );
+  return result.rows[0] || null;
 }
 
 export async function consumeVerificationToken(tokenId: number): Promise<void> {
-  const db = getDb();
-  await db
-    .update(verificationTokens)
-    .set({ consumedAt: new Date() })
-    .where(eq(verificationTokens.id, tokenId));
+  await pool().query(
+    `UPDATE verification_tokens SET consumed_at = NOW() WHERE id = $1`,
+    [tokenId]
+  );
 }
 
 export async function deleteUserVerificationTokens(
   userId: number,
   purpose: string
 ): Promise<void> {
-  const db = getDb();
-  await db
-    .delete(verificationTokens)
-    .where(
-      and(
-        eq(verificationTokens.userId, userId),
-        eq(verificationTokens.purpose, purpose)
-      )
-    );
+  await pool().query(
+    `DELETE FROM verification_tokens WHERE user_id = $1 AND purpose = $2`,
+    [userId, purpose]
+  );
 }
 
 // CORS headers for API responses
@@ -275,3 +235,6 @@ export function setCorsHeaders(res: VercelResponse): void {
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
+
+// Re-export types
+export type { User, VerificationToken };

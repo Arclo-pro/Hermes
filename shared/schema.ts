@@ -1,4 +1,5 @@
-import { pgTable, text, serial, timestamp, jsonb, integer, boolean, real } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, jsonb, integer, boolean, real, varchar } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -3829,3 +3830,68 @@ export const ErrorTypes = {
   UNKNOWN: 'unknown',
 } as const;
 export type ErrorType = typeof ErrorTypes[keyof typeof ErrorTypes];
+
+// ============================================
+// Blog Content Tables (Multi-Site Support)
+// ============================================
+
+// Blog posts table - supports multiple sites via siteId
+export const blogPosts = pgTable("blog_posts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  siteId: text("site_id").notNull().default("empathy-health-clinic"), // Multi-tenant support
+  title: text("title").notNull(),
+  slug: text("slug").notNull(),
+  excerpt: text("excerpt").notNull(),
+  content: text("content").notNull(),
+  author: text("author").notNull().default("Empathy Health Clinic"),
+  publishedDate: text("published_date").notNull(),
+  category: text("category").notNull().default("Mental Health"),
+  featuredImage: text("featured_image"),
+  isFeatured: boolean("is_featured").notNull().default(false),
+  // Scheduled publishing fields
+  status: text("status").notNull().default("published"), // draft|scheduled|published
+  scheduledPublishAt: text("scheduled_publish_at"),
+  publishedAt: text("published_at"),
+  // SEO fields
+  metaTitle: text("meta_title"),
+  metaDescription: text("meta_description"),
+  keywords: text("keywords").array(),
+  ogImage: text("og_image"),
+  canonicalSlug: text("canonical_slug"),
+  lastUpdated: text("last_updated"),
+  // AggregateRating fields for SERP features
+  averageRating: real("average_rating"),
+  ratingCount: integer("rating_count"),
+  bestRating: integer("best_rating"),
+  worstRating: integer("worst_rating"),
+  order: integer("order").notNull().default(0),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const insertBlogPostSchema = createInsertSchema(blogPosts).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertBlogPost = z.infer<typeof insertBlogPostSchema>;
+export type BlogPost = typeof blogPosts.$inferSelect;
+
+// Blog Image Tracking (for global deduplication across all blogs)
+export const usedBlogImages = pgTable("used_blog_images", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  siteId: text("site_id").notNull().default("empathy-health-clinic"), // Multi-tenant support
+  imageUrl: text("image_url").notNull().unique(),
+  description: text("description").notNull(),
+  altText: text("alt_text").notNull(),
+  source: text("source").notNull().default("unsplash"),
+  usedInBlogPostId: varchar("used_in_blog_post_id"),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const insertUsedBlogImageSchema = createInsertSchema(usedBlogImages).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertUsedBlogImage = z.infer<typeof insertUsedBlogImageSchema>;
+export type UsedBlogImage = typeof usedBlogImages.$inferSelect;
