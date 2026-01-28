@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSiteContext } from "@/hooks/useSiteContext";
 import {
   GlassCard,
@@ -6,9 +6,9 @@ import {
   GlassCardTitle,
   GlassCardContent,
 } from "@/components/ui/GlassCard";
-import { ArrowUp, ArrowDown, TrendingUp, AlertTriangle, Trophy, Target, Plus, Globe } from "lucide-react";
+import { ArrowUp, ArrowDown, TrendingUp, AlertTriangle, Trophy, Target, Globe, ArrowRight, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Link } from "wouter";
+import { useState } from "react";
 
 interface RankingItem {
   keyword: string;
@@ -60,8 +60,41 @@ interface DashboardData {
 }
 
 export default function Dashboard() {
-  const { selectedSite } = useSiteContext();
+  const { selectedSite, setSelectedSiteId } = useSiteContext();
   const siteId = selectedSite?.siteId;
+  const [siteName, setSiteName] = useState("");
+  const [siteDomain, setSiteDomain] = useState("");
+  const queryClient = useQueryClient();
+
+  const createSite = useMutation({
+    mutationFn: async ({ name, domain }: { name: string; domain: string }) => {
+      const cleanDomain = domain.replace(/^https?:\/\//, "").replace(/\/+$/, "");
+      const baseUrl = `https://${cleanDomain}`;
+      const res = await fetch("/api/sites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ displayName: name, baseUrl, status: "onboarding" }),
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => null);
+        const message = errBody?.details?.join(", ") || errBody?.error || "Failed to create site";
+        throw new Error(message);
+      }
+      return res.json();
+    },
+    onSuccess: async (data) => {
+      await queryClient.invalidateQueries({ queryKey: ["sites"] });
+      setSelectedSiteId(data.siteId);
+    },
+  });
+
+  const handleAddSite = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (siteName.trim() && siteDomain.trim()) {
+      createSite.mutate({ name: siteName.trim(), domain: siteDomain.trim() });
+    }
+  };
 
   const { data: dashboardData, isLoading } = useQuery<DashboardData>({
     queryKey: ["/api/dashboard", siteId],
@@ -82,16 +115,52 @@ export default function Dashboard() {
   if (!siteId || !dashboardData) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-50 flex items-center justify-center">
-        <GlassCard className="max-w-md p-8 text-center">
-          <Globe className="w-12 h-12 text-purple-600 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">No Site Selected</h2>
-          <p className="text-gray-600 mb-6">Add a website to start tracking your SEO performance and rankings.</p>
-          <Link href="/app/sites/new">
-            <button className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition-colors">
-              <Plus className="w-5 h-5" />
+        <GlassCard className="max-w-lg w-full p-10">
+          <div className="text-center mb-8">
+            <Globe className="w-14 h-14 text-purple-600 mx-auto mb-5" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-3">Add Your Website</h2>
+            <p className="text-gray-700">Start tracking your SEO performance, keyword rankings, and more.</p>
+          </div>
+          <form onSubmit={handleAddSite} className="space-y-5">
+            <div>
+              <label className="block text-sm font-semibold text-purple-700 mb-2">Website Name</label>
+              <input
+                type="text"
+                value={siteName}
+                onChange={(e) => setSiteName(e.target.value)}
+                placeholder="Empathy Health Clinic"
+                className="w-full px-4 py-3 rounded-lg border-2 border-purple-200 bg-white text-gray-900 placeholder-purple-300 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200 text-base"
+                disabled={createSite.isPending}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-purple-700 mb-2">Domain</label>
+              <input
+                type="text"
+                value={siteDomain}
+                onChange={(e) => setSiteDomain(e.target.value)}
+                placeholder="www.yoursite.com"
+                className="w-full px-4 py-3 rounded-lg border-2 border-purple-200 bg-white text-gray-900 placeholder-purple-300 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200 text-base"
+                disabled={createSite.isPending}
+              />
+              <p className="mt-1.5 text-sm text-gray-500">Enter the domain without http:// or https://</p>
+            </div>
+            <button
+              type="submit"
+              disabled={!siteName.trim() || !siteDomain.trim() || createSite.isPending}
+              className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {createSite.isPending ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <ArrowRight className="w-5 h-5" />
+              )}
               Add Website
             </button>
-          </Link>
+          </form>
+          {createSite.isError && (
+            <p className="mt-4 text-red-600 text-sm text-center">{createSite.error.message}</p>
+          )}
         </GlassCard>
       </div>
     );
