@@ -88,6 +88,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({
       success: false,
       error: "Registration failed",
+      details: error.message,
     });
   }
 }
