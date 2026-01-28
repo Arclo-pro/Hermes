@@ -64,10 +64,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       expiresAt,
     });
 
-    // Send reset email
-    sendPasswordResetEmail(email, token, user.display_name || undefined).catch((err) =>
-      console.error("[Auth] Error sending password reset email:", err)
-    );
+    // Send reset email (must await so Vercel doesn't kill the function)
+    try {
+      await sendPasswordResetEmail(email, token, user.display_name || undefined);
+    } catch (err) {
+      console.error("[Auth] Error sending password reset email:", err);
+    }
 
     return res.json(genericResponse);
   } catch (error: any) {

@@ -65,10 +65,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       expiresAt,
     });
 
-    // Send verification email
-    sendVerificationEmail(email, token, user.display_name || undefined).catch((err) =>
-      console.error("[Auth] Error sending verification email:", err)
-    );
+    // Send verification email (must await so Vercel doesn't kill the function)
+    try {
+      await sendVerificationEmail(email, token, user.display_name || undefined);
+    } catch (err) {
+      console.error("[Auth] Error sending verification email:", err);
+    }
 
     return res.json(genericResponse);
   } catch (error: any) {
