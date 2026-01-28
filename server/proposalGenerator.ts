@@ -116,7 +116,7 @@ export async function createSecretFormatFixProposal(params: {
   testJobId?: string;
 }): Promise<{ proposalId: string; isNew: boolean }> {
   const expectedEnvelope = {
-    base_url: "https://your-service.replit.app",
+    base_url: "https://your-service.vercel.app",
     api_key: "your-api-key"
   };
 
@@ -202,7 +202,7 @@ export async function createMissingBaseUrlProposal(params: {
     preview: {
       field: "baseUrl",
       currentValue: null,
-      suggestedFormat: "https://your-service.replit.app",
+      suggestedFormat: "https://your-service.vercel.app",
     },
     verificationPlan: {
       steps: [

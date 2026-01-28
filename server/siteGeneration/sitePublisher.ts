@@ -1,5 +1,11 @@
-import { objectStorageClient } from "../replit_integrations/object_storage";
+import { Storage } from "@google-cloud/storage";
 import type { SiteBundle } from "./siteBuilder";
+
+// Initialize Google Cloud Storage client with standard authentication
+// Uses GOOGLE_APPLICATION_CREDENTIALS env var or GCP metadata service
+const storageClient = new Storage({
+  projectId: process.env.GCP_PROJECT_ID,
+});
 
 function getPublicBasePath(): string {
   const pathsStr = process.env.PUBLIC_OBJECT_SEARCH_PATHS || "";
@@ -10,8 +16,8 @@ function getPublicBasePath(): string {
 
   if (paths.length === 0) {
     throw new Error(
-      "PUBLIC_OBJECT_SEARCH_PATHS not set. Create a bucket in 'Object Storage' " +
-        "tool and set PUBLIC_OBJECT_SEARCH_PATHS env var."
+      "PUBLIC_OBJECT_SEARCH_PATHS not set. Set up a GCS bucket " +
+        "and configure PUBLIC_OBJECT_SEARCH_PATHS env var."
     );
   }
 
@@ -46,7 +52,7 @@ export async function publishSiteBundle(
   const basePath = getPublicBasePath();
   const sitePath = `${basePath}/sites/${siteId}`;
   const { bucketName } = parseObjectPath(sitePath);
-  const bucket = objectStorageClient.bucket(bucketName);
+  const bucket = storageClient.bucket(bucketName);
 
   console.log(`[SitePublisher] Starting publish for site ${siteId}`);
   console.log(`[SitePublisher] Publishing ${bundle.files.length} files to ${sitePath}`);
@@ -95,7 +101,7 @@ export async function uploadSiteAsset(
   const fullPath = `${assetPath}/${filename}`;
   const { bucketName, objectName } = parseObjectPath(fullPath);
 
-  const bucket = objectStorageClient.bucket(bucketName);
+  const bucket = storageClient.bucket(bucketName);
   const objectFile = bucket.file(objectName);
 
   const contentType = getContentTypeFromFilename(filename);

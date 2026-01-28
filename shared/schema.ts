@@ -521,9 +521,9 @@ export const sites = pgTable("sites", {
   baseUrl: text("base_url").notNull(),
   category: text("category"), // clinic, seo_tool, property_mgmt, farm_shop, etc.
   techStack: text("tech_stack"), // nextjs, remix, react-static, wordpress, webflow, unknown
-  repoProvider: text("repo_provider"), // github, replit, other
-  repoIdentifier: text("repo_identifier"), // GitHub org/repo OR Replit project id
-  deployMethod: text("deploy_method"), // replit_deploy, vercel, netlify, cloudflare_pages, manual
+  repoProvider: text("repo_provider"), // github, other
+  repoIdentifier: text("repo_identifier"), // GitHub org/repo
+  deployMethod: text("deploy_method"), // vercel, netlify, cloudflare_pages, manual
   crawlSettings: jsonb("crawl_settings"), // { crawl_depth_limit, max_pages, respect_robots, user_agent }
   sitemaps: text("sitemaps").array(), // Array of sitemap URLs
   keyPages: text("key_pages").array(), // login, pricing, contact, location pages
@@ -863,8 +863,8 @@ export const integrations = pgTable("integrations", {
   receivedSignals: jsonb("received_signals"), // Object mapping signal -> { received: boolean, stale: boolean, lastValue: any }
   configJson: jsonb("config_json"), // Non-sensitive configuration
   // Service Inventory Fields
-  replitProjectUrl: text("replit_project_url"), // URL to Replit project
-  baseUrl: text("base_url"), // Service base URL (e.g., https://service.replit.app)
+  projectUrl: text("replit_project_url"), // URL to project repo (deprecated field name)
+  baseUrl: text("base_url"), // Service base URL (e.g., https://service.vercel.app)
   healthEndpoint: text("health_endpoint").default("/health"), // Health check endpoint
   metaEndpoint: text("meta_endpoint").default("/meta"), // Metadata endpoint
   deploymentStatus: text("deployment_status").default("not_built"), // not_built, building, built, deploying, deployed, failed

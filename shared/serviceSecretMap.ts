@@ -101,7 +101,7 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
     type: "worker",
     requiresBaseUrl: true,
     category: "analysis",
-    fallbackEnvVar: "SERP_INTELLIGENCE_API_KEY",  // Replit secret for API key
+    fallbackEnvVar: "SERP_INTELLIGENCE_API_KEY",  // Environment variable for API key
     fallbackBaseUrlEnvVar: "SERP_INTELLIGENCE_BASE_URL",  // Env var for base URL
     workerEndpoints: {
       health: "/api/health",
@@ -128,7 +128,7 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
     type: "worker",
     requiresBaseUrl: true,
     category: "analysis",
-    fallbackEnvVar: "SEO_TECHNICAL_CRAWLER_API_KEY",  // Replit secret for API key
+    fallbackEnvVar: "SEO_TECHNICAL_CRAWLER_API_KEY",  // Environment variable for API key
     fallbackBaseUrlEnvVar: "SEO_TECHNICAL_CRAWLER_BASE_URL",  // Env var for base URL
     workerEndpoints: {
       health: "/api/health",
@@ -147,7 +147,7 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
     type: "worker",
     requiresBaseUrl: true,
     category: "analysis",
-    fallbackEnvVar: "SEO_CORE_WEB_VITALS_API_KEY",  // Replit secret for API key
+    fallbackEnvVar: "SEO_CORE_WEB_VITALS_API_KEY",  // Environment variable for API key
     fallbackBaseUrlEnvVar: "SEO_CORE_WEB_VITALS_BASE_URL",  // Env var for base URL
     workerEndpoints: {
       health: "/api/health",
@@ -210,7 +210,7 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
     type: "worker",
     requiresBaseUrl: true,
     category: "content",
-    fallbackEnvVar: "SEO_BLOG_WRITER_API_KEY",  // Replit secret for API key
+    fallbackEnvVar: "SEO_BLOG_WRITER_API_KEY",  // Environment variable for API key
     fallbackBaseUrlEnvVar: "SEO_BLOG_WRITER_BASE_URL",  // Env var for base URL
     workerEndpoints: {
       health: "/health",  // base_url already includes /api
@@ -227,7 +227,7 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
     type: "worker",
     requiresBaseUrl: true,
     category: "content",
-    fallbackEnvVar: "SEO_CONTENT_DECAY_MONITOR_API_KEY",  // Replit secret for API key
+    fallbackEnvVar: "SEO_CONTENT_DECAY_MONITOR_API_KEY",  // Environment variable for API key
     fallbackBaseUrlEnvVar: "SEO_CONTENT_DECAY_MONITOR_BASE_URL",  // Env var for base URL
     workerEndpoints: {
       health: "/health",

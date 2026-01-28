@@ -169,7 +169,7 @@ export async function resolveWorkerConfig(
   }
 
   if (!mapping.bitwardenSecret) {
-    // Check for fallback env vars (Replit secrets)
+    // Check for fallback env vars
     if (mapping.fallbackEnvVar || mapping.fallbackBaseUrlEnvVar) {
       return resolveFromFallbackEnvVars(mapping);
     }

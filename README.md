@@ -47,7 +47,7 @@ ADS_CUSTOMER_ID=123-456-7890
 # Microsoft Clarity (optional, for session recordings)
 CLARITY_PROJECT_ID=your_clarity_project_id
 
-# Database (automatically set by Replit)
+# Database
 DATABASE_URL=postgresql://...
 ```
 
@@ -214,7 +214,7 @@ See `/examples` directory for:
 ## Troubleshooting
 
 **Service won't start:**
-- Ensure `DATABASE_URL` is set (auto-configured in Replit)
+- Ensure `DATABASE_URL` is set in environment variables
 - Check Google OAuth credentials are valid
 
 **No data in dashboard:**

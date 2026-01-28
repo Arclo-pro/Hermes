@@ -34,9 +34,9 @@ function getBaseUrl(): string {
   if (process.env.NODE_ENV === 'production') {
     return process.env.APP_BASE_URL || 'https://arclo.pro';
   }
-  // Use REPLIT_DEV_DOMAIN for development (the webview URL)
-  if (process.env.REPLIT_DEV_DOMAIN) {
-    return `https://${process.env.REPLIT_DEV_DOMAIN}`;
+  // Use VERCEL_URL for Vercel preview deployments
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
   }
   return process.env.DEV_BASE_URL || 'https://arclo.pro';
 }

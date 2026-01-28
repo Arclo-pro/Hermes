@@ -438,7 +438,7 @@ export const servicesCatalog: ServiceDefinition[] = [
     slug: "postgres_db",
     displayName: "PostgreSQL Database",
     category: "platform_dependency",
-    description: "Primary data store for all collected metrics, reports, tickets, and configuration. Managed by Replit with automatic backups.",
+    description: "Primary data store for all collected metrics, reports, tickets, and configuration.",
     purpose: "Store metrics, reports, and configuration",
     inputs: ["database_url"],
     outputs: ["db_connected", "query_latency"],

@@ -2091,7 +2091,7 @@ Example format: Service 1, Service 2, Service 3, Service 4, Service 5`;
       const getVaultHint = () => {
         if (vaultHealth.bitwarden.connected) return null;
         if (!process.env.BWS_ACCESS_TOKEN) {
-          return { code: "MISSING_TOKEN", message: "Bitwarden access token not set", hint: "Add BWS_ACCESS_TOKEN secret in Replit Secrets", keys: ["BWS_ACCESS_TOKEN"] };
+          return { code: "MISSING_TOKEN", message: "Bitwarden access token not set", hint: "Add BWS_ACCESS_TOKEN to environment variables", keys: ["BWS_ACCESS_TOKEN"] };
         }
         if (!process.env.BWS_PROJECT_ID) {
           return { code: "MISSING_PROJECT", message: "Bitwarden project ID not set", hint: "Add BWS_PROJECT_ID secret", keys: ["BWS_PROJECT_ID"] };
@@ -5578,7 +5578,7 @@ Format your response as JSON with these keys:
       }
 
       md += `---\n\n`;
-      md += `## 4. Implementation Instructions (Replit Prompt)\n\n`;
+      md += `## 4. Implementation Instructions\n\n`;
       md += `Copy the following instructions to implement fixes:\n\n`;
       md += `\`\`\`\n`;
       md += `TASK: Implement SEO fixes for ${domain}\n`;
@@ -20483,9 +20483,9 @@ Return JSON in this exact format:
 
       const shareToken = await storage.createShareToken(reportId);
       
-      const baseUrl = process.env.REPLIT_DEV_DOMAIN 
-        ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
-        : "http://localhost:5000";
+      const baseUrl = process.env.APP_URL
+        || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
+        || "http://localhost:5000";
       const shareUrl = `${baseUrl}/api/report/free/${reportId}/share/${shareToken}`;
 
       logger.info("FreeReport", "Created share token", { reportId, shareToken: shareToken.slice(0, 8) + "..." });
