@@ -29,7 +29,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.json({
       authenticated: true,
       user: sessionUser,
-      active_website_id: user.defaultWebsiteId || null,
+      active_website_id: user.default_website_id || null,
     });
   } catch (error: any) {
     console.error("[Auth] Session check error:", error);
