@@ -47,7 +47,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Check if token is expired
-    if (new Date() > resetToken.expiresAt) {
+    if (new Date() > resetToken.expires_at) {
       return res.status(400).json({
         success: false,
         error: "Reset link has expired. Please request a new one.",
@@ -56,14 +56,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Update password
     const passwordHash = await hashPassword(password);
-    await updateUserPassword(resetToken.userId, passwordHash);
+    await updateUserPassword(resetToken.user_id, passwordHash);
 
     // Consume the token
     await consumeVerificationToken(resetToken.id);
 
     // Also verify user if not verified (user proved they own the email)
-    const user = await getUserById(resetToken.userId);
-    if (user && !user.verifiedAt) {
+    const user = await getUserById(resetToken.user_id);
+    if (user && !user.verified_at) {
       await verifyUser(user.id);
     }
 

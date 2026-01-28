@@ -63,7 +63,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     // Send reset email
-    sendPasswordResetEmail(email, token, user.displayName || undefined).catch((err) =>
+    sendPasswordResetEmail(email, token, user.display_name || undefined).catch((err) =>
       console.error("[Auth] Error sending password reset email:", err)
     );
 

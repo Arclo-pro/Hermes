@@ -43,7 +43,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const user = await getUserByEmail(email);
 
-    if (!user || user.verifiedAt) {
+    if (!user || user.verified_at) {
       // User doesn't exist or is already verified
       return res.json(genericResponse);
     }
@@ -64,7 +64,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     // Send verification email
-    sendVerificationEmail(email, token, user.displayName || undefined).catch((err) =>
+    sendVerificationEmail(email, token, user.display_name || undefined).catch((err) =>
       console.error("[Auth] Error sending verification email:", err)
     );
 

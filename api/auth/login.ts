@@ -45,7 +45,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    const validPassword = await verifyPassword(password, user.passwordHash);
+    const validPassword = await verifyPassword(password, user.password_hash);
     if (!validPassword) {
       return res.status(401).json({
         success: false,
@@ -54,7 +54,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Check if user is verified
-    if (!user.verifiedAt) {
+    if (!user.verified_at) {
       return res.status(403).json({
         success: false,
         error: "Please verify your email before signing in",
