@@ -64,7 +64,7 @@ export default function ForgotPassword() {
               </CardContent>
               <CardFooter>
                 <Button 
-                  variant="outline" 
+                  variant="secondary"
                   className="w-full"
                   onClick={() => navigate("/login")}
                   data-testid="button-back-to-login"
