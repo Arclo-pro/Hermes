@@ -499,7 +499,7 @@ export default function Dashboard() {
 
           {/* Empty content cards */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <GlassCard variant="marketing">
+            <GlassCard variant="marketing" tint="green">
               <GlassCardHeader>
                 <GlassCardTitle className="flex items-center gap-2">
                   <ArrowUp className="w-5 h-5" style={{ color: "#22c55e" }} />
@@ -515,7 +515,7 @@ export default function Dashboard() {
               </GlassCardContent>
             </GlassCard>
 
-            <GlassCard variant="marketing">
+            <GlassCard variant="marketing" tint="pink">
               <GlassCardHeader>
                 <GlassCardTitle className="flex items-center gap-2">
                   <ArrowDown className="w-5 h-5" style={{ color: "#ef4444" }} />
@@ -533,7 +533,7 @@ export default function Dashboard() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <GlassCard variant="marketing">
+            <GlassCard variant="marketing" tint="purple">
               <GlassCardHeader>
                 <GlassCardTitle className="flex items-center gap-2">
                   <Target className="w-5 h-5" style={{ color: "#7c3aed" }} />
@@ -547,7 +547,7 @@ export default function Dashboard() {
               </GlassCardContent>
             </GlassCard>
 
-            <GlassCard variant="marketing">
+            <GlassCard variant="marketing" tint="amber">
               <GlassCardHeader>
                 <GlassCardTitle className="flex items-center gap-2">
                   <Trophy className="w-5 h-5" style={{ color: "#f59e0b" }} />
@@ -561,7 +561,7 @@ export default function Dashboard() {
               </GlassCardContent>
             </GlassCard>
 
-            <GlassCard variant="marketing-accent">
+            <GlassCard variant="marketing-accent" tint="purple">
               <GlassCardHeader>
                 <GlassCardTitle className="flex items-center gap-2">
                   <TrendingUp className="w-5 h-5" style={{ color: "#7c3aed" }} />
