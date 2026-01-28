@@ -626,7 +626,7 @@ export default function Dashboard() {
 
         {/* Summary KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          <GlassCard variant="marketing" hover>
+          <GlassCard variant="marketing" hover tint="cyan">
             <GlassCardContent className="p-6">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-sm font-medium" style={{ color: "#475569" }}>Total Keywords</p>
@@ -644,7 +644,7 @@ export default function Dashboard() {
             </GlassCardContent>
           </GlassCard>
 
-          <GlassCard variant="marketing" hover>
+          <GlassCard variant="marketing" hover tint="purple">
             <GlassCardContent className="p-6">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-sm font-medium" style={{ color: "#475569" }}>Top 3 Rankings</p>
@@ -662,7 +662,7 @@ export default function Dashboard() {
             </GlassCardContent>
           </GlassCard>
 
-          <GlassCard variant="marketing" hover>
+          <GlassCard variant="marketing" hover tint="green">
             <GlassCardContent className="p-6">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-sm font-medium" style={{ color: "#475569" }}>Top 10 Rankings</p>
@@ -680,7 +680,7 @@ export default function Dashboard() {
             </GlassCardContent>
           </GlassCard>
 
-          <GlassCard variant="marketing" hover>
+          <GlassCard variant="marketing" hover tint="green">
             <GlassCardContent className="p-6">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-sm font-medium" style={{ color: "#475569" }}>Improved</p>
@@ -698,7 +698,7 @@ export default function Dashboard() {
             </GlassCardContent>
           </GlassCard>
 
-          <GlassCard variant="marketing" hover>
+          <GlassCard variant="marketing" hover tint="pink">
             <GlassCardContent className="p-6">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-sm font-medium" style={{ color: "#475569" }}>Declined</p>
@@ -718,7 +718,7 @@ export default function Dashboard() {
         </div>
 
         {/* Cost Metrics */}
-        <GlassCard variant="marketing-accent">
+        <GlassCard variant="marketing-accent" tint="purple">
           <GlassCardHeader>
             <GlassCardTitle>
               <span style={{ color: "#0F172A" }}>At-Risk Metrics</span>
