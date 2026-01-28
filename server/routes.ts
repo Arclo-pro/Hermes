@@ -56,6 +56,7 @@ import {
 import governanceRoutes from './routes/governance';
 import websiteRoutes from './routes/websites';
 import billingRoutes from './routes/billing';
+import { synthesisRouter } from './routes/synthesis';
 import { generatedSites, siteGenerationJobs, crewFindings, insertAgentActionLogSchema, insertOutcomeEventLogSchema, type InsertAgentActionLog, type InsertOutcomeEventLog, seoReports, completedWork, sites, users, seoAgentCompetitors, type InsertSeoReport, findings, serpKeywords, type Finding } from "@shared/schema";
 import { processUnattributedEvents } from "./services/socratesAttribution";
 import { v4 as uuidv4 } from "uuid";
@@ -20556,6 +20557,7 @@ Return JSON in this exact format:
 
   app.use('/api', governanceRoutes);
   app.use('/api', websiteRoutes);
+  app.use('/api/synthesis', synthesisRouter);
 
   // ============================================================
   // Internal API Endpoints (Hermes ↔ SERP Worker Communication)

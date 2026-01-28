@@ -12,6 +12,7 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
+    "@arclo/kbase-client": "file:../Woker-Knowledge-Base/packages/kbase-client",
     "@bitwarden/sdk-napi": "^1.0.0",
     "@google-cloud/storage": "^7.18.0",
     "@hookform/resolvers": "^3.10.0",
