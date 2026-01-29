@@ -49,7 +49,7 @@ export interface OutcomeSnapshot {
     // Errors
     errorRate4xx?: number;
     errorRate5xx?: number;
-    pagesLosing Traffic?: number;
+    pagesLosingTraffic?: number;
   };
 }
 
