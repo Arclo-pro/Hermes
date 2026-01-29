@@ -286,13 +286,7 @@ export const CREW: Record<string, CrewDefinition> = {
     primaryMetricId: 'ga4.sessions',
     dependencies: { required: ['ga4', 'gsc'], optional: [] },
     scoreMetric: { id: 'health_score', label: 'Health Score', source: 'issues' },
-    worker: {
-      baseUrlEnvKey: 'GOOGLE_DATA_CONNECTOR_BASE_URL',
-      apiKeySecretKey: 'GOOGLE_DATA_CONNECTOR_API_KEY',
-      healthPath: '/api/health',
-      runPath: '/api/run',
-      requiredOutputs: ['ga4_summary', 'gsc_summary', 'kpis'],
-    },
+    // Infrastructure service — no external worker (consolidated into Hermes)
     integrationId: 'popular',
     dashboardRoute: '/app/agents/popular',
   },
@@ -391,13 +385,7 @@ export const CREW: Record<string, CrewDefinition> = {
     primaryMetricId: 'content.decay_signals',
     dependencies: { required: ['ga4'], optional: ['gsc'] },
     scoreMetric: { id: 'content_freshness', label: 'Content Freshness', source: 'decay' },
-    worker: {
-      baseUrlEnvKey: 'CONTENT_DECAY_BASE_URL',
-      apiKeySecretKey: 'CONTENT_DECAY_API_KEY',
-      healthPath: '/api/health',
-      runPath: '/api/run',
-      requiredOutputs: ['decay_summary', 'issues', 'kpis'],
-    },
+    // Infrastructure service — no external worker (consolidated into Hermes)
     integrationId: 'sentinel',
     dashboardRoute: '/app/agents/sentinel',
   },
@@ -454,13 +442,7 @@ export const CREW: Record<string, CrewDefinition> = {
     primaryMetricId: null,
     dependencies: { required: ['openai'], optional: ['seo_kbase'] },
     scoreMetric: { id: 'content_quality_score', label: 'Content Quality Score', source: 'hemingway' },
-    worker: {
-      baseUrlEnvKey: 'CONTENT_GENERATOR_BASE_URL',
-      apiKeySecretKey: 'CONTENT_GENERATOR_API_KEY',
-      healthPath: '/api/health',
-      runPath: '/api/run',
-      requiredOutputs: ['content_summary', 'generated_content'],
-    },
+    // Infrastructure service — no external worker (consolidated into Hermes)
     integrationId: 'hemingway',
     dashboardRoute: '/app/agents/hemingway',
   },
@@ -475,13 +457,7 @@ export const CREW: Record<string, CrewDefinition> = {
     primaryMetricId: 'kb.insights_written',
     dependencies: { required: ['kbase_api'], optional: [] },
     scoreMetric: { id: 'knowledge_coverage', label: 'Knowledge Coverage', source: 'kbase' },
-    worker: {
-      baseUrlEnvKey: 'SEO_KBASE_BASE_URL',
-      apiKeySecretKey: 'SEO_KBASE_API_KEY',
-      healthPath: '/api/health',
-      runPath: '/api/run',
-      requiredOutputs: ['kbase_summary', 'insights', 'kpis'],
-    },
+    // Infrastructure service — no external worker (consolidated into Hermes)
     integrationId: 'socrates',
     dashboardRoute: '/app/agents/socrates',
   },
@@ -517,13 +493,7 @@ export const CREW: Record<string, CrewDefinition> = {
     primaryMetricId: null,
     dependencies: { required: [], optional: [] },
     scoreMetric: null,
-    worker: {
-      baseUrlEnvKey: 'ORCHESTRATOR_BASE_URL',
-      apiKeySecretKey: 'ORCHESTRATOR_API_KEY',
-      healthPath: '/api/health',
-      runPath: '/api/run',
-      requiredOutputs: ['orchestration_summary'],
-    },
+    // Infrastructure service — no external worker (consolidated into Hermes)
     integrationId: 'major_tom',
     dashboardRoute: '/app/mission-control',
   },
@@ -541,13 +511,7 @@ export const CREW: Record<string, CrewDefinition> = {
     primaryMetricId: 'technicalHealthScore',
     dependencies: { required: ['crawler'], optional: ['gsc'] },
     scoreMetric: { id: 'technicalHealthScore', label: 'Technical Health', source: 'technical_seo' },
-    worker: {
-      baseUrlEnvKey: 'TECHNICAL_SEO_BASE_URL',
-      apiKeySecretKey: 'TECHNICAL_SEO_API_KEY',
-      healthPath: '/api/health',
-      runPath: '/api/run',
-      requiredOutputs: ['crawl_summary', 'findings', 'indexability_report'],
-    },
+    // Infrastructure service — meta-agent orchestrating crawl_render, core_web_vitals, content_decay
     integrationId: 'technical_seo',
     dashboardRoute: '/app/agents/technical-seo',
   },

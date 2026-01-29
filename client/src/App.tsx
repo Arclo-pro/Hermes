@@ -56,6 +56,7 @@ import SelectSite from "@/pages/SelectSite";
 import Examples from "@/pages/Examples";
 import ExamplePreview from "@/pages/ExamplePreview";
 import SharedReport from "@/pages/SharedReport";
+import Contact from "@/pages/Contact";
 import WebsiteRegistry from "@/pages/WebsiteRegistry";
 import WebsiteRegistryDetail from "@/pages/WebsiteRegistryDetail";
 import WebsiteReportPage from "@/pages/WebsiteReportPage";
@@ -134,6 +135,7 @@ function Router() {
       <Route path={ROUTES.SITE_PREVIEW} component={SitePreview} />
       <Route path={ROUTES.TERMS} component={Terms} />
       <Route path={ROUTES.PRIVACY} component={Privacy} />
+      <Route path={ROUTES.CONTACT} component={Contact} />
       <Route path={ROUTES.REPORT} component={Report} />
       <Route path={ROUTES.FREE_REPORT_SHARE} component={FreeReport} />
       <Route path={ROUTES.FREE_REPORT} component={FreeReport} />

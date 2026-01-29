@@ -99,6 +99,7 @@ export const ROUTES = {
   // Legal pages (public)
   TERMS: "/terms",
   PRIVACY: "/privacy",
+  CONTACT: "/contact",
 } as const;
 
 // ============================================
@@ -259,6 +260,7 @@ const ALL_STATIC_ROUTES = new Set([
   // Legal routes
   ROUTES.TERMS,
   ROUTES.PRIVACY,
+  ROUTES.CONTACT,
 ]);
 
 const DYNAMIC_ROUTE_PATTERNS = [
@@ -354,6 +356,7 @@ export function isMarketingRoute(path: string): boolean {
     ROUTES.MANAGED_SITE,
     ROUTES.TERMS,
     ROUTES.PRIVACY,
+    ROUTES.CONTACT,
   ];
   
   if (marketingPaths.includes(basePath as typeof marketingPaths[number])) return true;

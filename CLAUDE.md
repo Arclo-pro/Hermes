@@ -59,7 +59,7 @@ Email/password authentication with PostgreSQL session store, using PBKDF2 for pa
 - **Migrations**: Drizzle Kit
 
 ### Data Connectors
-Modular connectors integrate with various data sources: GA4, Google Search Console, Google Ads, and custom Website Checker for HTTP-based health checks.
+Modular connectors integrate with various data sources: GA4, Google Search Console, Google Ads, and custom Website Checker for HTTP-based health checks. Each connector supports per-site OAuth credentials (stored in `site_google_credentials` table) with fallback to global env vars for legacy mode.
 
 ### Analysis Engine
 Detects data drops using 7-day rolling averages and z-scores, generating ranked root cause hypotheses (e.g., Tracking, Server Errors, Indexing) with multi-source diagnostic context. Creates actionable tickets for SEO/Dev/Ads teams.
@@ -145,12 +145,25 @@ Returns page-specific, varied, copy/paste-ready actions with deterministic varia
 ### Bitwarden Secrets Manager
 Used for secure credential storage via `@bitwarden/sdk-napi`.
 
-### Required Environment Variables
-- `DOMAIN`
+### Environment Variable Tiers
+
+**Tier 1 — Platform Secrets** (set once in Vercel):
+- `DATABASE_URL`, `APP_URL`
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`
-- `GA4_PROPERTY_ID`, `GSC_SITE`, `ADS_CUSTOMER_ID`
-- `DATABASE_URL`
-- `BWS_ACCESS_TOKEN`, `BWS_PROJECT_ID`, `BWS_ORGANIZATION_ID`
+- `OPENAI_API_KEY`, `SENDGRID_API_KEY`, `SENDGRID_FROM_EMAIL`
+- `GITHUB_TOKEN`, `GCP_PROJECT_ID`
+- `GOOGLE_ADS_DEVELOPER_TOKEN`
+
+**Tier 2 — External Worker Connections** (5 separate services):
+- `SEO_TECHNICAL_CRAWLER_API_KEY` / `SEO_TECHNICAL_CRAWLER_BASE_URL`
+- `SEO_CORE_WEB_VITALS_API_KEY` / `SEO_CORE_WEB_VITALS_BASE_URL`
+- `SERP_INTELLIGENCE_API_KEY` / `SERP_INTELLIGENCE_BASE_URL`
+- `SEO_BACKLINKS_API_KEY` / `SEO_BACKLINKS_BASE_URL`
+- `SEO_COMPETITIVE_INTEL_API_KEY` / `SEO_COMPETITIVE_INTEL_BASE_URL`
+
+**Tier 3 — Per-Client Credentials** (stored in DB, NOT env vars):
+- GA4 Property IDs, GSC sites, Ads customer IDs → `site_google_credentials` table
+- Each site connects its own Google account via OAuth
 
 ### Stale-While-Revalidate (SWR) Caching
 Implements client-side caching with persistence using `@tanstack/react-query` and `@tanstack/query-sync-storage-persister` to prevent blank states during navigation and improve perceived performance.
@@ -162,31 +175,22 @@ Implements client-side caching with persistence using `@tanstack/react-query` an
 - `express`
 - `@tanstack/react-query`
 - `recharts`
-## Runtime Configuration (from .replit)
+## Runtime Configuration
 
 - **Dev command**: `npm run dev`
 - **Build command**: `npm run build`
 - **Production command**: `node ./dist/index.cjs`
-- **Deployment target**: autoscale
 - **Port**: 5000
 
-### Environment Variables
-- `PORT`: `5000`
-- `GOOGLE_REDIRECT_URI`: `https://b4e16f48-8d48-42ea-921a-7d6fa71e03be-00-3r1scxqb8rygj.picard.replit.dev/api/auth/callback`
-- `CLARITY_PROJECT_ID`: *(not set)*
-- `DOMAIN`: `empathyhealthclinic.com`
-- `BWS_ORGANIZATION_ID`: `3d753bd4-6e76-4c24-9d7c-b3b901313616`
-- `SEO_TECHNICAL_CRAWLER_BASE_URL`: `https://crawl-render-service--providers2.replit.app`
-- `SEO_CORE_WEB_VITALS_BASE_URL`: `https://vital-monitor--providers2.replit.app`
-- `SEO_BLOG_WRITER_BASE_URL`: `https://worker-blog-writer--providers2.replit.app/api`
-- `SEO_CONTENT_DECAY_MONITOR_BASE_URL`: `https://decay-monitor--providers2.replit.app/api`
-- `SEO_BACKLINKS_BASE_URL`: `https://backlink-blaster--providers2.replit.app/api`
-- `SEO_NOTIFICATIONS_BASE_URL`: `https://notification-system--providers2.replit.app/api`
-- `SEO_AUDIT_LOG_BASE_URL`: `https://service-audit--providers2.replit.app`
-- `SEO_COMPETITIVE_INTEL_BASE_URL`: `https://worker-competitive-intelligence--providers2.replit.app/api`
-- `SERP_INTELLIGENCE_BASE_URL`: `https://seo-scheduler-providers2.replit.app`
-- `SEO_ORCHESTRATOR_BASE_URL`: `https://orchestrator-job-spec--providers2.replit.app`
-- `REMOVE_BG_API_KEY`: `CLNUCboZSfZSu8K6BQRoE6jT`
-- `SEO_DEPLOYER_BASE_URL`: `https://site-change-executor--providers2.replit.app`
-- `SENDGRID_FROM_EMAIL`: `noreply@arclo.pro`
-- `SERP_WORKER_BASE_URL`: `https://seo-scheduler-providers2.replit.app`
+### Consolidated Infrastructure Services
+The following services run inside Hermes (no external workers):
+- Content Generator, Content Decay, Content QA, Notifications
+- Audit Log, Google Data Connector, SEO Knowledge Base
+- Site Executor, Orchestrator, Technical SEO (meta-agent)
+
+### External Workers (5 separate services)
+- Technical SEO Crawler (Playwright-based, heavy compute)
+- Core Web Vitals (long-running PageSpeed Insights)
+- SERP Intelligence (scraping infrastructure)
+- Backlink Authority (analysis-heavy)
+- Competitive Intelligence (analysis-heavy)

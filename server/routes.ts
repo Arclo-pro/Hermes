@@ -12868,7 +12868,7 @@ When answering:
             if (!genConfig.valid || !genConfig.base_url) {
               checkResult = {
                 status: "fail",
-                summary: genConfig.error || "Worker not configured - set SEO_BLOG_WRITER_BASE_URL environment variable",
+                summary: genConfig.error || "Content generator is an infrastructure service (no external worker needed)",
                 metrics: { secret_found: genConfig.rawValueType !== "null", outputs_missing: expectedOutputs.length },
                 details: { debug, actualOutputs: [], missingOutputs: expectedOutputs },
               };
@@ -13276,7 +13276,7 @@ When answering:
             if (!decayConfig.valid || !decayConfig.base_url) {
               checkResult = {
                 status: "fail",
-                summary: decayConfig.error || "Worker not configured - set SEO_CONTENT_DECAY_BASE_URL environment variable",
+                summary: decayConfig.error || "Content decay is an infrastructure service (no external worker needed)",
                 metrics: { secret_found: decayConfig.rawValueType !== "null", outputs_missing: expectedOutputs.length },
                 details: { debug, actualOutputs: [], missingOutputs: expectedOutputs },
               };
