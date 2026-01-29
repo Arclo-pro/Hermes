@@ -162,3 +162,31 @@ Implements client-side caching with persistence using `@tanstack/react-query` an
 - `express`
 - `@tanstack/react-query`
 - `recharts`
+## Runtime Configuration (from .replit)
+
+- **Dev command**: `npm run dev`
+- **Build command**: `npm run build`
+- **Production command**: `node ./dist/index.cjs`
+- **Deployment target**: autoscale
+- **Port**: 5000
+
+### Environment Variables
+- `PORT`: `5000`
+- `GOOGLE_REDIRECT_URI`: `https://b4e16f48-8d48-42ea-921a-7d6fa71e03be-00-3r1scxqb8rygj.picard.replit.dev/api/auth/callback`
+- `CLARITY_PROJECT_ID`: *(not set)*
+- `DOMAIN`: `empathyhealthclinic.com`
+- `BWS_ORGANIZATION_ID`: `3d753bd4-6e76-4c24-9d7c-b3b901313616`
+- `SEO_TECHNICAL_CRAWLER_BASE_URL`: `https://crawl-render-service--providers2.replit.app`
+- `SEO_CORE_WEB_VITALS_BASE_URL`: `https://vital-monitor--providers2.replit.app`
+- `SEO_BLOG_WRITER_BASE_URL`: `https://worker-blog-writer--providers2.replit.app/api`
+- `SEO_CONTENT_DECAY_MONITOR_BASE_URL`: `https://decay-monitor--providers2.replit.app/api`
+- `SEO_BACKLINKS_BASE_URL`: `https://backlink-blaster--providers2.replit.app/api`
+- `SEO_NOTIFICATIONS_BASE_URL`: `https://notification-system--providers2.replit.app/api`
+- `SEO_AUDIT_LOG_BASE_URL`: `https://service-audit--providers2.replit.app`
+- `SEO_COMPETITIVE_INTEL_BASE_URL`: `https://worker-competitive-intelligence--providers2.replit.app/api`
+- `SERP_INTELLIGENCE_BASE_URL`: `https://seo-scheduler-providers2.replit.app`
+- `SEO_ORCHESTRATOR_BASE_URL`: `https://orchestrator-job-spec--providers2.replit.app`
+- `REMOVE_BG_API_KEY`: `CLNUCboZSfZSu8K6BQRoE6jT`
+- `SEO_DEPLOYER_BASE_URL`: `https://site-change-executor--providers2.replit.app`
+- `SENDGRID_FROM_EMAIL`: `noreply@arclo.pro`
+- `SERP_WORKER_BASE_URL`: `https://seo-scheduler-providers2.replit.app`

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { MarketingLayout } from "@/components/layout/MarketingLayout";
 import { Button } from "@/components/ui/button";
@@ -28,20 +28,31 @@ export default function ScanPreview() {
   const scanId = params.scanId;
   const [, navigate] = useLocation();
   const reportTriggered = useRef(false);
+  const [reportError, setReportError] = useState("");
+  const reportRetries = useRef(0);
 
   const statusQuery = useQuery<ScanStatus>({
     queryKey: ["scan-status", scanId],
     queryFn: async () => {
       const res = await fetch(`/api/scan/${scanId}/status`);
-      if (!res.ok) throw new Error("Failed to fetch scan status");
+      if (res.status === 404) {
+        throw new Error("Scan not found. It may have expired — please start a new scan.");
+      }
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.message || data?.error || `Server error (${res.status})`);
+      }
       return res.json();
     },
     refetchInterval: (query) => {
+      if (query.state.error) return false;
       const data = query.state.data;
       if (!data) return 2000;
       if (data.status === "queued" || data.status === "running") return 2000;
       return false;
     },
+    retry: 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
     enabled: !!scanId,
   });
 
@@ -52,11 +63,13 @@ export default function ScanPreview() {
     statusQuery.data?.status === "preview_ready" ||
     statusQuery.data?.status === "completed";
   const isFailed = statusQuery.data?.status === "failed";
+  const isNetworkError = statusQuery.isError && !statusQuery.data;
 
   // Auto-generate report and navigate to results when scan completes
   useEffect(() => {
     if (!isReady || reportTriggered.current) return;
     reportTriggered.current = true;
+    setReportError("");
 
     (async () => {
       try {
@@ -65,15 +78,29 @@ export default function ScanPreview() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ scanId }),
         });
-        const data = await res.json();
+
+        let data: any;
+        try {
+          data = await res.json();
+        } catch {
+          throw new Error("Invalid response from report service.");
+        }
+
         if (data.ok && data.reportId) {
           navigate(buildRoute.freeReport(data.reportId));
         } else {
-          // Allow retry on failure
-          reportTriggered.current = false;
+          throw new Error(data?.message || "Report generation failed.");
         }
-      } catch {
+      } catch (err: any) {
+        reportRetries.current += 1;
         reportTriggered.current = false;
+
+        if (reportRetries.current >= 3) {
+          setReportError(
+            err?.message || "Could not generate your report after multiple attempts."
+          );
+        }
+        // Otherwise the effect will auto-retry on next render since reportTriggered is reset
       }
     })();
   }, [isReady, scanId, navigate]);
@@ -85,6 +112,38 @@ export default function ScanPreview() {
     STAGE_MESSAGES.length - 1,
   );
 
+  // No scanId in URL
+  if (!scanId) {
+    return (
+      <MarketingLayout>
+        <div className="min-h-screen bg-gradient-to-b from-muted via-background to-muted/50">
+          <div className="container mx-auto px-4 md:px-6 py-8 md:py-12">
+            <div className="max-w-3xl mx-auto text-center space-y-8">
+              <div className="w-20 h-20 rounded-full bg-semantic-danger-soft flex items-center justify-center mx-auto">
+                <AlertTriangle className="w-10 h-10 text-semantic-danger" />
+              </div>
+              <div className="space-y-4">
+                <h1 className="text-3xl md:text-4xl font-bold text-foreground">
+                  Missing Scan ID
+                </h1>
+                <p className="text-xl text-muted-foreground">
+                  No scan was specified. Please start a new analysis from the home page.
+                </p>
+              </div>
+              <Button
+                variant="primaryGradient"
+                onClick={() => navigate(ROUTES.LANDING)}
+                size="lg"
+              >
+                Go to Home
+              </Button>
+            </div>
+          </div>
+        </div>
+      </MarketingLayout>
+    );
+  }
+
   return (
     <MarketingLayout>
       <div className="min-h-screen bg-gradient-to-b from-muted via-background to-muted/50">
@@ -92,7 +151,7 @@ export default function ScanPreview() {
           <div className="max-w-3xl mx-auto">
 
             {/* Scanning / Generating State */}
-            {(isScanning || isReady) && (
+            {(isScanning || (isReady && !reportError)) && (
               <div className="text-center space-y-8">
                 <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary-soft to-purple-soft flex items-center justify-center mx-auto shadow-lg shadow-purple-glow">
                   <Loader2 className="w-10 h-10 text-primary animate-spin" />
@@ -116,7 +175,7 @@ export default function ScanPreview() {
               </div>
             )}
 
-            {/* Failed State */}
+            {/* Failed State — scan itself failed */}
             {isFailed && (
               <div className="text-center space-y-8">
                 <div className="w-20 h-20 rounded-full bg-semantic-danger-soft flex items-center justify-center mx-auto">
@@ -139,6 +198,77 @@ export default function ScanPreview() {
                 >
                   Try Again
                 </Button>
+              </div>
+            )}
+
+            {/* Network / polling error — couldn't reach server */}
+            {isNetworkError && (
+              <div className="text-center space-y-8">
+                <div className="w-20 h-20 rounded-full bg-semantic-danger-soft flex items-center justify-center mx-auto">
+                  <AlertTriangle className="w-10 h-10 text-semantic-danger" />
+                </div>
+                <div className="space-y-4">
+                  <h1 className="text-3xl md:text-4xl font-bold text-foreground">
+                    Connection Problem
+                  </h1>
+                  <p className="text-xl text-muted-foreground">
+                    {statusQuery.error?.message ||
+                      "Could not check scan progress. Please verify your connection."}
+                  </p>
+                </div>
+                <div className="flex gap-4 justify-center">
+                  <Button
+                    variant="primaryGradient"
+                    onClick={() => statusQuery.refetch()}
+                    size="lg"
+                  >
+                    Retry
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate(ROUTES.LANDING)}
+                    size="lg"
+                  >
+                    Start Over
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Report generation failed after retries */}
+            {reportError && (
+              <div className="text-center space-y-8">
+                <div className="w-20 h-20 rounded-full bg-semantic-danger-soft flex items-center justify-center mx-auto">
+                  <AlertTriangle className="w-10 h-10 text-semantic-danger" />
+                </div>
+                <div className="space-y-4">
+                  <h1 className="text-3xl md:text-4xl font-bold text-foreground">
+                    Report Generation Failed
+                  </h1>
+                  <p className="text-xl text-muted-foreground">
+                    {reportError}
+                  </p>
+                </div>
+                <div className="flex gap-4 justify-center">
+                  <Button
+                    variant="primaryGradient"
+                    onClick={() => {
+                      reportRetries.current = 0;
+                      setReportError("");
+                      reportTriggered.current = false;
+                    }}
+                    size="lg"
+                  >
+                    Retry Report
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate(ROUTES.LANDING)}
+                    size="lg"
+                  >
+                    Start Over
+                  </Button>
+                </div>
               </div>
             )}
 

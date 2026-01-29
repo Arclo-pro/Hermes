@@ -36,9 +36,23 @@ export default function WhiteHero() {
     e.preventDefault();
     setError("");
 
-    const normalizedUrl = normalizeUrl(url);
-    if (!normalizedUrl || !normalizedUrl.includes(".")) {
-      setError("Please enter a valid website.");
+    const trimmed = url.trim();
+    if (!trimmed) {
+      setError("Please enter a website URL.");
+      return;
+    }
+
+    const normalizedUrl = normalizeUrl(trimmed);
+    if (!normalizedUrl.includes(".")) {
+      setError("Please enter a valid domain (e.g. example.com).");
+      return;
+    }
+
+    // Basic domain format check
+    try {
+      new URL(normalizedUrl);
+    } catch {
+      setError("That doesn't look like a valid URL. Try something like example.com.");
       return;
     }
 
@@ -50,14 +64,31 @@ export default function WhiteHero() {
         body: JSON.stringify({ url: normalizedUrl }),
       });
 
-      if (!res.ok) {
-        throw new Error("Failed to start scan");
+      let data: any;
+      try {
+        data = await res.json();
+      } catch {
+        setError("Unexpected server response. Please try again.");
+        setLoading(false);
+        return;
       }
 
-      const data = await res.json();
-      navigate(`/scan/preview/${data.scanId || data.id}`);
+      if (!res.ok) {
+        setError(data?.message || "Failed to start scan. Please try again.");
+        setLoading(false);
+        return;
+      }
+
+      const id = data.scanId || data.id;
+      if (!id) {
+        setError("Scan started but no ID was returned. Please try again.");
+        setLoading(false);
+        return;
+      }
+
+      navigate(`/scan/preview/${id}`);
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError("Could not reach the server. Please check your connection and try again.");
       setLoading(false);
     }
   };

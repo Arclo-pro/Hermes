@@ -20002,7 +20002,11 @@ Return JSON in this exact format:
       });
     } catch (error: any) {
       logger.error("Scan", "Failed to start scan", { error: error.message, requestId });
-      res.status(500).json({ ok: false, message: "Failed to start scan" });
+      const isDbError = error.message?.includes("does not exist") || error.code === "42P01";
+      const message = isDbError
+        ? "Database is not ready. Please try again in a moment."
+        : "Failed to start scan. Please try again.";
+      res.status(500).json({ ok: false, message });
     }
   });
 
