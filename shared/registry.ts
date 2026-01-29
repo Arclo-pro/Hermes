@@ -316,13 +316,7 @@ export const CREW: Record<string, CrewDefinition> = {
     primaryMetricId: 'serp.keywords_top10',
     dependencies: { required: ['serp_api'], optional: ['gsc'] },
     scoreMetric: { id: 'ranking_coverage', label: 'Ranking Coverage', source: 'serp' },
-    worker: {
-      baseUrlEnvKey: 'SERP_INTEL_BASE_URL',
-      apiKeySecretKey: 'SERP_INTEL_API_KEY',
-      healthPath: '/api/health',
-      runPath: '/api/run',
-      requiredOutputs: ['serp_summary', 'rankings', 'kpis'],
-    },
+    // Infrastructure service — SERP Intelligence consolidated into Hermes (calls SERPAPI.com directly)
     integrationId: 'lookout',
     dashboardRoute: '/app/agents/lookout',
   },
@@ -337,13 +331,7 @@ export const CREW: Record<string, CrewDefinition> = {
     primaryMetricId: 'technicalHealthScore',
     dependencies: { required: ['crawler'], optional: ['gsc'] },
     scoreMetric: { id: 'technicalHealthScore', label: 'Technical Health', source: 'crawler' },
-    worker: {
-      baseUrlEnvKey: 'CRAWL_RENDER_BASE_URL',
-      apiKeySecretKey: 'CRAWL_RENDER_API_KEY',
-      healthPath: '/api/health',
-      runPath: '/api/run',
-      requiredOutputs: ['crawl_summary', 'issues', 'kpis'],
-    },
+    // Infrastructure service — HTTP crawler consolidated into Hermes (cheerio-based, no external worker)
     integrationId: 'scotty',
     dashboardRoute: '/app/agents/scotty',
   },
@@ -388,13 +376,7 @@ export const CREW: Record<string, CrewDefinition> = {
     primaryMetricId: 'competitive.gaps',
     dependencies: { required: ['serp_api'], optional: ['backlink_api'] },
     scoreMetric: { id: 'competitive_position', label: 'Competitive Position', source: 'competitive' },
-    worker: {
-      baseUrlEnvKey: 'COMPETITIVE_SNAPSHOT_BASE_URL',
-      apiKeySecretKey: 'COMPETITIVE_SNAPSHOT_API_KEY',
-      healthPath: '/api/health',
-      runPath: '/api/run',
-      requiredOutputs: ['competitive_summary', 'gaps', 'kpis'],
-    },
+    // Infrastructure service — competitive analysis consolidated into Hermes (cheerio-based gap detection)
     integrationId: 'natasha',
     dashboardRoute: '/app/agents/natasha',
   },

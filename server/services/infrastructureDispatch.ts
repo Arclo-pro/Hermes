@@ -15,6 +15,9 @@ import { runContentDecayAnalysis } from "./contentDecayService";
 import { isSendGridConfigured } from "./notificationService";
 import { runCoreWebVitalsAnalysis } from "./coreWebVitalsService";
 import { runBacklinkAuthorityAnalysis } from "./backlinkAuthorityService";
+import { runTechnicalCrawl } from "./technicalCrawler";
+import { runSerpAnalysis } from "./serpIntelligence";
+import { runCompetitiveAnalysis } from "./competitiveIntel";
 
 export interface InfrastructureRunContext {
   siteId: string;
@@ -54,6 +57,15 @@ export async function runInfrastructureWorker(
 
     case "site_executor":
       return runSiteExecutor(ctx);
+
+    case "serp_intel":
+      return runSerpIntel(ctx);
+
+    case "crawl_render":
+      return runCrawlRender(ctx);
+
+    case "competitive_snapshot":
+      return runCompetitiveSnapshot(ctx);
 
     case "core_web_vitals":
       return runCoreWebVitals(ctx);
@@ -224,6 +236,73 @@ async function runSiteExecutor(ctx: InfrastructureRunContext): Promise<Record<st
     service: "site_executor",
     message: "Site executor is demand-driven (triggered via deploy API)",
   };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SERP INTELLIGENCE (lookout) — SERPAPI.com rankings + Cost of Inaction
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function runSerpIntel(ctx: InfrastructureRunContext): Promise<Record<string, any>> {
+  // Fetch active keywords for this site from the DB
+  try {
+    const keywords = await storage.getSerpKeywords();
+    const keywordInputs = keywords
+      .filter(k => k.active)
+      .map(k => ({
+        keyword: k.keyword,
+        volume: k.volume ?? undefined,
+        targetUrl: k.targetUrl ?? undefined,
+      }));
+
+    return runSerpAnalysis(ctx.domain, keywordInputs);
+  } catch (error: any) {
+    logger.error("InfrastructureDispatch", `serp_intel failed for site ${ctx.siteId}`, { error: error.message });
+    return {
+      ok: false,
+      service: "serp_intel",
+      error: error.message,
+    };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TECHNICAL SEO CRAWLER (scotty) — HTTP-based crawl + 17 finding rules
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function runCrawlRender(ctx: InfrastructureRunContext): Promise<Record<string, any>> {
+  return runTechnicalCrawl(ctx.domain);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// COMPETITIVE INTELLIGENCE (natasha) — gap detection + findings pipeline
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function runCompetitiveSnapshot(ctx: InfrastructureRunContext): Promise<Record<string, any>> {
+  try {
+    // Build ranking history from SERP keywords data
+    const keywords = await storage.getSerpKeywords();
+    const activeKeywords = keywords.filter(k => k.active);
+
+    // For competitive analysis, we need current vs previous rankings
+    // Build ranking entries from the keywords table
+    const rankingEntries = activeKeywords.map(k => ({
+      keyword: k.keyword,
+      currentPosition: null as number | null,  // Will be filled from latest SERP data
+      previousPosition: null as number | null,
+      url: k.targetUrl,
+    }));
+
+    return runCompetitiveAnalysis(ctx.domain, ctx.siteId, {
+      rankings: rankingEntries,
+    });
+  } catch (error: any) {
+    logger.error("InfrastructureDispatch", `competitive_snapshot failed for site ${ctx.siteId}`, { error: error.message });
+    return {
+      ok: false,
+      service: "competitive_snapshot",
+      error: error.message,
+    };
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

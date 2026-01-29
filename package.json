@@ -15,7 +15,7 @@
     "migrate:dry-run": "tsx scripts/runMigrations.ts dry-run"
   },
   "dependencies": {
-"@google-cloud/storage": "^7.18.0",
+    "@google-cloud/storage": "^7.18.0",
     "@hookform/resolvers": "^3.10.0",
     "@jridgewell/trace-mapping": "^0.3.25",
     "@radix-ui/react-accordion": "^1.2.12",
@@ -55,6 +55,7 @@
     "@uppy/dashboard": "^5.1.0",
     "@uppy/react": "^5.1.1",
     "@vitest/coverage-v8": "^4.0.17",
+    "cheerio": "^1.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",

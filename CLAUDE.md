@@ -154,12 +154,9 @@ Used for secure credential storage via `@bitwarden/sdk-napi`.
 - `GITHUB_TOKEN`, `GCP_PROJECT_ID`
 - `GOOGLE_ADS_DEVELOPER_TOKEN`
 
-**Tier 2 — External Worker Connections** (5 separate services):
-- `SEO_TECHNICAL_CRAWLER_API_KEY` / `SEO_TECHNICAL_CRAWLER_BASE_URL`
-- `SEO_CORE_WEB_VITALS_API_KEY` / `SEO_CORE_WEB_VITALS_BASE_URL`
-- `SERP_INTELLIGENCE_API_KEY` / `SERP_INTELLIGENCE_BASE_URL`
-- `SEO_BACKLINKS_API_KEY` / `SEO_BACKLINKS_BASE_URL`
-- `SEO_COMPETITIVE_INTEL_API_KEY` / `SEO_COMPETITIVE_INTEL_BASE_URL`
+**Tier 2 — Consolidated Service API Keys** (external APIs used by infrastructure services):
+- `GOOGLE_PAGESPEED_API_KEY` — Core Web Vitals (PageSpeed Insights API)
+- `SERPAPI_API_KEY` — SERP Intelligence (live Google rankings from SERPAPI.com)
 
 **Tier 3 — Per-Client Credentials** (stored in DB, NOT env vars):
 - GA4 Property IDs, GSC sites, Ads customer IDs → `site_google_credentials` table
@@ -187,10 +184,8 @@ The following services run inside Hermes (no external workers):
 - Content Generator, Content Decay, Content QA, Notifications
 - Audit Log, Google Data Connector, SEO Knowledge Base
 - Site Executor, Orchestrator, Technical SEO (meta-agent)
-
-### External Workers (5 separate services)
-- Technical SEO Crawler (Playwright-based, heavy compute)
-- Core Web Vitals (long-running PageSpeed Insights)
-- SERP Intelligence (scraping infrastructure)
-- Backlink Authority (analysis-heavy)
-- Competitive Intelligence (analysis-heavy)
+- Core Web Vitals (calls Google PageSpeed Insights API directly)
+- Backlink Authority (AAI scoring with mock/Ahrefs/Moz providers)
+- Technical SEO Crawler (HTTP-based with cheerio, 17 SEO finding rules, no Playwright)
+- SERP Intelligence (calls SERPAPI.com for live Google rankings, Cost of Inaction calculator)
+- Competitive Intelligence (5-stage gap detection pipeline with cheerio)

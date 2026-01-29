@@ -7,8 +7,8 @@
  * - "worker": Remote HTTP services (need BASE_URL + API_KEY env vars in Vercel)
  * - "planned": Not yet built
  *
- * Only 3 external workers remain: crawl_render, serp_intel, competitive_snapshot.
- * All others (including core_web_vitals and backlink_authority) are consolidated into Hermes.
+ * Zero external workers remain.
+ * All services (including competitive_snapshot, serp_intel, crawl_render, core_web_vitals and backlink_authority) are consolidated into Hermes.
  *
  * IMPORTANT: Never use fuzzy matching or string inference.
  * All mappings must be explicit.
@@ -74,44 +74,16 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
   {
     serviceSlug: "serp_intel",  // Matches catalog
     displayName: "SERP & Keyword Intelligence",
-    type: "worker",
-    requiresBaseUrl: true,
+    type: "infrastructure",  // Consolidated — calls SERPAPI.com directly from Hermes
+    requiresBaseUrl: false,
     category: "analysis",
-    envVar: "SERP_INTELLIGENCE_API_KEY",
-    baseUrlEnvVar: "SERP_INTELLIGENCE_BASE_URL",
-    workerEndpoints: {
-      health: "/api/health",
-      smokeTest: "/api/serp/sites",
-      capabilities: "/api/capabilities",
-      sites: "/api/serp/sites",
-      summary: "/api/serp/summary",
-      movers: "/api/serp/movers",
-      keywords: "/api/serp/keywords",
-      rankingsOverTime: "/api/serp/rankings-over-time",
-      competitors: "/api/serp/competitors",
-      scanMetadata: "/api/serp/scan-metadata",
-      topKeywords: "/api/serp/top-keywords",
-      snapshot: "/api/serp/snapshot",
-      tasks: "/api/tasks",
-      artifacts: "/api/artifacts"
-    }
   },
   {
     serviceSlug: "crawl_render",  // Matches catalog
     displayName: "Technical SEO",
-    type: "worker",
-    requiresBaseUrl: true,
+    type: "infrastructure",  // Consolidated — HTTP crawler runs directly in Hermes (cheerio-based, no Playwright)
+    requiresBaseUrl: false,
     category: "analysis",
-    envVar: "SEO_TECHNICAL_CRAWLER_API_KEY",
-    baseUrlEnvVar: "SEO_TECHNICAL_CRAWLER_BASE_URL",
-    workerEndpoints: {
-      health: "/api/health",
-      smokeTest: "/api/smoke-test",
-      capabilities: "/api/capabilities",
-      run: "/api/run",
-      crawlStart: "/api/crawl/start",
-      crawlStatus: "/api/crawl/status"
-    }
   },
   {
     serviceSlug: "core_web_vitals",  // Matches catalog
@@ -130,19 +102,9 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
   {
     serviceSlug: "competitive_snapshot",  // Matches catalog
     displayName: "Competitive Intelligence",
-    type: "worker",
-    requiresBaseUrl: true,
+    type: "infrastructure",  // Consolidated — 5-stage gap detection pipeline runs directly in Hermes
+    requiresBaseUrl: false,
     category: "analysis",
-    envVar: "SEO_COMPETITIVE_INTEL_API_KEY",
-    baseUrlEnvVar: "SEO_COMPETITIVE_INTEL_BASE_URL",
-    workerEndpoints: {
-      health: "/health",
-      smokeTest: "/health",
-      capabilities: "/capabilities",
-      run: "/run",
-      authCheck: "/auth/check",
-      report: "/report"
-    }
   },
 
   // Content Workers (consolidated into Hermes)
