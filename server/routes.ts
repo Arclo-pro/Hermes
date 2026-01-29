@@ -16132,7 +16132,7 @@ When answering:
       let performanceScore = cwvDaily?.overallScore ?? metricsJson?.score ?? metricsJson?.performance_score ?? snapshotMetrics?.['vitals.performance_score'] ?? null;
       
       // Get raw data from daily table or worker result
-      const rawData = (cwvDaily?.rawJson as Record<string, any> | null) ?? (cwvResult?.rawData as Record<string, any> | null);
+      const rawData = (cwvDaily?.rawJson as Record<string, any> | null) ?? (cwvResult?.payloadJson as Record<string, any> | null);
       
       const metrics = {
         'vitals.lcp': lcpValue,
@@ -16171,7 +16171,7 @@ When answering:
       
       // Fetch industry benchmarks for CWV metrics
       const site = await storage.getSiteById(siteId);
-      const industry = site?.industry || 'healthcare';
+      const industry = site?.category || 'healthcare';
       const allBenchmarks = await storage.getBenchmarksByIndustry(industry);
       
       // Filter to just CWV benchmarks and build comparison
@@ -16234,8 +16234,9 @@ When answering:
           });
           if (websitesRes.ok) {
             const websitesData = await websitesRes.json();
+            const siteDomain = site?.baseUrl ? new URL(site.baseUrl).hostname : '';
             const workerWebsite = (websitesData.websites || []).find((w: any) =>
-              w.canonicalDomain?.includes(site?.domain) || w.name === site?.name
+              w.canonicalDomain?.includes(siteDomain) || w.name === site?.displayName
             );
             if (workerWebsite) {
               const regRes = await fetch(
@@ -16399,7 +16400,7 @@ When answering:
       const cwvDaily = await storage.getLatestCoreWebVitals(siteId);
       const cwvResult = await storage.getLatestWorkerResultByKey(siteId, 'core_web_vitals');
       const metricsJson = cwvResult?.metricsJson as Record<string, any> | null;
-      const rawData = (cwvDaily?.rawJson as Record<string, any> | null) ?? (cwvResult?.rawData as Record<string, any> | null);
+      const rawData = (cwvDaily?.rawJson as Record<string, any> | null) ?? (cwvResult?.payloadJson as Record<string, any> | null);
 
       const lcp = cwvDaily?.lcp ?? metricsJson?.lcp ?? null;
       const cls = cwvDaily?.cls ?? metricsJson?.cls ?? null;
@@ -16430,8 +16431,9 @@ When answering:
           if (websitesRes.ok) {
             const site = await storage.getSiteById(siteId);
             const websitesData = await websitesRes.json();
+            const siteDomain = site?.baseUrl ? new URL(site.baseUrl).hostname : '';
             const workerWebsite = (websitesData.websites || []).find((w: any) =>
-              w.canonicalDomain?.includes(site?.domain) || w.name === site?.name
+              w.canonicalDomain?.includes(siteDomain) || w.name === site?.displayName
             );
             if (workerWebsite) {
               const regRes = await fetch(

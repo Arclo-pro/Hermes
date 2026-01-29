@@ -12,6 +12,7 @@
 
 import { join } from 'path';
 import { runMigrations, checkMigrationStatus } from '../server/db/migrationRunner';
+import { initializeDatabase } from '../server/db';
 
 const MIGRATIONS_DIR = join(process.cwd(), 'migrations');
 
@@ -19,6 +20,8 @@ async function main() {
   const command = process.argv[2] || 'run';
 
   console.log('🔧 ARQLO Migration Tool - Step 10.5\n');
+
+  await initializeDatabase();
 
   try {
     switch (command) {

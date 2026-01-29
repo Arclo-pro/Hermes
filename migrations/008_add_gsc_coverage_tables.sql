@@ -1,4 +1,4 @@
-CREATE TABLE "achievement_milestones" (
+CREATE TABLE IF NOT EXISTS "achievement_milestones" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"site_id" text NOT NULL,
 	"track_id" integer NOT NULL,
@@ -12,7 +12,7 @@ CREATE TABLE "achievement_milestones" (
 	"achieved_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "blog_posts" (
+CREATE TABLE IF NOT EXISTS "blog_posts" (
 	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"site_id" text DEFAULT 'empathy-health-clinic' NOT NULL,
 	"title" text NOT NULL,
@@ -41,7 +41,7 @@ CREATE TABLE "blog_posts" (
 	"created_at" text DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "gsc_coverage_daily" (
+CREATE TABLE IF NOT EXISTS "gsc_coverage_daily" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"site_id" text NOT NULL,
 	"date" text NOT NULL,
@@ -60,7 +60,7 @@ CREATE TABLE "gsc_coverage_daily" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "gsc_url_inspections" (
+CREATE TABLE IF NOT EXISTS "gsc_url_inspections" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"site_id" text NOT NULL,
 	"date" text NOT NULL,
@@ -77,7 +77,7 @@ CREATE TABLE "gsc_url_inspections" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "manual_action_checks" (
+CREATE TABLE IF NOT EXISTS "manual_action_checks" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"site_id" text NOT NULL,
 	"date" text NOT NULL,
@@ -90,7 +90,7 @@ CREATE TABLE "manual_action_checks" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "robots_txt_checks" (
+CREATE TABLE IF NOT EXISTS "robots_txt_checks" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"site_id" text NOT NULL,
 	"date" text NOT NULL,
@@ -110,7 +110,7 @@ CREATE TABLE "robots_txt_checks" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "used_blog_images" (
+CREATE TABLE IF NOT EXISTS "used_blog_images" (
 	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"site_id" text DEFAULT 'empathy-health-clinic' NOT NULL,
 	"image_url" text NOT NULL,
@@ -122,7 +122,10 @@ CREATE TABLE "used_blog_images" (
 	CONSTRAINT "used_blog_images_image_url_unique" UNIQUE("image_url")
 );
 --> statement-breakpoint
-ALTER TABLE "digest_schedule" ADD COLUMN "alert_preferences" jsonb;--> statement-breakpoint
-ALTER TABLE "sites" ADD COLUMN "user_id" integer;--> statement-breakpoint
-ALTER TABLE "sites" ADD COLUMN "business_details" jsonb;--> statement-breakpoint
-ALTER TABLE "sites" ADD CONSTRAINT "sites_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "digest_schedule" ADD COLUMN IF NOT EXISTS "alert_preferences" jsonb;--> statement-breakpoint
+ALTER TABLE "sites" ADD COLUMN IF NOT EXISTS "user_id" integer;--> statement-breakpoint
+ALTER TABLE "sites" ADD COLUMN IF NOT EXISTS "business_details" jsonb;--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "sites" ADD CONSTRAINT "sites_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
