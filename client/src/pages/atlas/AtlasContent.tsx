@@ -309,7 +309,7 @@ function getAtlasMeta(result: AtlasApiResult): MetaStatus {
       userMessage: "Connect Atlas worker to see AI optimization insights",
       developerMessage: "API key required for /api/atlas/data endpoint",
       actions: [
-        { id: "configure", label: "Configure Atlas", kind: "route", route: "/settings/integrations", priority: 1 },
+        { id: "configure", label: "Configure Atlas", kind: "route", route: "/app/settings/integrations", priority: 1 },
         { id: "docs", label: "View Setup Guide", kind: "href", href: "#atlas-setup", priority: 2 },
       ],
     };
@@ -1313,7 +1313,7 @@ export default function AtlasContent() {
             size="sm"
             variant="outline"
             className="border-semantic-warning-border text-semantic-warning hover:bg-semantic-warning-soft"
-            onClick={() => navigate("/settings/integrations")}
+            onClick={() => navigate("/app/settings/integrations")}
             data-testid="button-configure-atlas"
           >
             <Plug className="w-3 h-3 mr-1.5" />

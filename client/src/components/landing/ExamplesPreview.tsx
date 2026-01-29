@@ -1,79 +1,196 @@
 import { Link } from "wouter";
-import { Card, CardContent } from "@/components/ui/card";
-import { ROUTES } from "@shared/routes";
-import { Wrench, Wind, Stethoscope, Trees, ExternalLink } from "lucide-react";
+import { ROUTES, buildRoute } from "@shared/routes";
+import { Phone, Star, MapPin, ChevronRight, ExternalLink } from "lucide-react";
+
+import plumbingImage from "@assets/generated_images/plumbing_hero_diverse_female.png";
+import hvacImage from "@assets/generated_images/hvac_hero_diverse_asian_woman.png";
+import dentalImage from "@assets/generated_images/dental_hero_diverse_team.png";
+import landscapingImage from "@assets/generated_images/landscaping_hero_diverse_latino.png";
 
 const EXAMPLES = [
   {
     id: "plumbing",
+    business: "Austin Pro Plumbers",
     industry: "Plumbing",
     city: "Austin, TX",
-    icon: Wrench,
-    color: "from-info to-info",
-    bgColor: "bg-info-soft",
+    image: plumbingImage,
+    tagline: "Fast, reliable plumbing for your home and business",
+    phone: "(512) 555-0147",
+    rating: 4.9,
+    reviewCount: 312,
+    services: ["Emergency Repairs", "Water Heater Installation", "Drain Cleaning"],
   },
   {
     id: "hvac",
+    business: "Denver Climate Control",
     industry: "HVAC",
     city: "Denver, CO",
-    icon: Wind,
-    color: "from-gold to-gold",
-    bgColor: "bg-gold-soft",
+    image: hvacImage,
+    tagline: "Keep your home comfortable year-round",
+    phone: "(720) 555-0283",
+    rating: 4.8,
+    reviewCount: 247,
+    services: ["AC Repair", "Furnace Installation", "Duct Cleaning"],
   },
   {
     id: "dental",
+    business: "Evergreen Family Dental",
     industry: "Dental Clinic",
     city: "Seattle, WA",
-    icon: Stethoscope,
-    color: "from-success to-success",
-    bgColor: "bg-success-soft",
+    image: dentalImage,
+    tagline: "Gentle, comprehensive dental care for the whole family",
+    phone: "(206) 555-0419",
+    rating: 4.9,
+    reviewCount: 189,
+    services: ["General Dentistry", "Cosmetic Procedures", "Emergency Care"],
   },
   {
     id: "landscaping",
+    business: "Desert Bloom Landscaping",
     industry: "Landscaping",
     city: "Phoenix, AZ",
-    icon: Trees,
-    color: "from-success to-success",
-    bgColor: "bg-success-soft",
+    image: landscapingImage,
+    tagline: "Beautiful, water-smart landscapes for the desert Southwest",
+    phone: "(480) 555-0362",
+    rating: 4.7,
+    reviewCount: 156,
+    services: ["Lawn Care", "Irrigation Systems", "Landscape Design"],
   },
 ];
+
+function MiniSitePreview({ example }: { example: typeof EXAMPLES[number] }) {
+  return (
+    <Link href={buildRoute.examplePreview(example.id)}>
+      <div
+        className="group relative bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+        data-testid={`mini-preview-${example.id}`}
+      >
+        {/* Browser chrome */}
+        <div className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 border-b border-gray-200">
+          <span className="w-2 h-2 rounded-full bg-red-400" />
+          <span className="w-2 h-2 rounded-full bg-yellow-400" />
+          <span className="w-2 h-2 rounded-full bg-green-400" />
+          <span className="ml-2 flex-1 h-4 bg-white rounded text-[8px] text-gray-400 flex items-center px-2 truncate">
+            {example.business.toLowerCase().replace(/\s+/g, "")}.com
+          </span>
+        </div>
+
+        {/* Mini site content */}
+        <div className="relative">
+          {/* Mini nav bar */}
+          <div className="flex items-center justify-between px-3 py-1.5 bg-gray-900">
+            <span className="text-[9px] font-bold text-white truncate">{example.business}</span>
+            <div className="hidden sm:flex items-center gap-2">
+              <span className="text-[7px] text-gray-400">Services</span>
+              <span className="text-[7px] text-gray-400">About</span>
+              <span className="text-[7px] text-gray-400">Contact</span>
+            </div>
+            <span className="flex items-center gap-0.5 bg-white text-gray-900 text-[7px] font-semibold px-1.5 py-0.5 rounded">
+              <Phone className="h-2 w-2" />
+              <span className="hidden sm:inline">{example.phone}</span>
+              <span className="sm:hidden">Call</span>
+            </span>
+          </div>
+
+          {/* Mini hero */}
+          <div className="relative h-28 sm:h-32 overflow-hidden">
+            <img
+              src={example.image}
+              alt={`${example.business} website preview`}
+              loading="lazy"
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-black/30" />
+            <div className="absolute inset-0 flex items-center px-3 sm:px-4">
+              <div>
+                <p className="text-[7px] sm:text-[8px] text-white/80 uppercase tracking-wider font-medium">
+                  {example.industry} · {example.city}
+                </p>
+                <p className="text-[11px] sm:text-sm font-bold text-white leading-tight mt-0.5">
+                  {example.business}
+                </p>
+                <p className="text-[8px] sm:text-[9px] text-white/80 mt-0.5 hidden sm:block">
+                  {example.tagline}
+                </p>
+                <div className="flex gap-1.5 mt-1.5">
+                  <span className="bg-white text-gray-900 text-[7px] font-semibold px-2 py-0.5 rounded">
+                    Call Now
+                  </span>
+                  <span className="bg-white/20 text-white text-[7px] font-semibold px-2 py-0.5 rounded border border-white/30">
+                    Free Quote
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Mini trust bar */}
+          <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50 border-y border-gray-200">
+            <div className="flex items-center gap-1">
+              <div className="flex">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="h-2 w-2 fill-yellow-400 text-yellow-400" />
+                ))}
+              </div>
+              <span className="text-[8px] font-medium text-gray-900">{example.rating}</span>
+              <span className="text-[7px] text-gray-500">({example.reviewCount})</span>
+            </div>
+            <div className="flex items-center gap-0.5 text-[7px] text-gray-500">
+              <MapPin className="h-2 w-2" />
+              {example.city}
+            </div>
+          </div>
+
+          {/* Mini services */}
+          <div className="px-3 py-2">
+            <p className="text-[8px] font-semibold text-gray-900 mb-1.5">Our Services</p>
+            <div className="space-y-1">
+              {example.services.map((service) => (
+                <div key={service} className="flex items-center justify-between">
+                  <span className="text-[7px] sm:text-[8px] text-gray-700">{service}</span>
+                  <ChevronRight className="h-2 w-2 text-gray-400" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Mini footer */}
+          <div className="px-3 py-1.5 bg-gray-900">
+            <span className="text-[7px] text-gray-400">
+              © {example.business} · {example.city}
+            </span>
+          </div>
+        </div>
+
+        {/* Hover overlay */}
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+          <span className="bg-white/95 backdrop-blur-sm text-gray-900 text-xs font-semibold px-4 py-2 rounded-full shadow-lg flex items-center gap-1.5">
+            <ExternalLink className="h-3 w-3" />
+            View full preview
+          </span>
+        </div>
+      </div>
+    </Link>
+  );
+}
 
 export function ExamplesPreview() {
   return (
     <section className="px-4 sm:px-5 md:px-6 py-12 md:py-16">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-center text-foreground mb-4 tracking-tight">
           See What Arclo Builds
         </h2>
         <p className="text-center text-sm sm:text-base text-muted-foreground mb-8 sm:mb-10 max-w-xl mx-auto">
-          Real examples of websites generated for local businesses.
+          Real examples of websites generated for local businesses — fully optimized for SEO and conversions.
         </p>
 
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {EXAMPLES.map((example) => (
-            <Card 
-              key={example.id}
-              className="bg-card border border-border shadow-[0_20px_40px_rgba(15,23,42,0.08)] transition-all duration-200 hover:-translate-y-1 overflow-hidden"
-              data-testid={`card-example-${example.id}`}
-            >
-              <div className={`h-24 sm:h-32 ${example.bgColor} flex items-center justify-center`}>
-                <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-gradient-to-br ${example.color} flex items-center justify-center`}>
-                  <example.icon className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
-                </div>
-              </div>
-              <CardContent className="p-3 sm:p-4 text-center">
-                <h3 className="text-sm sm:text-base font-semibold text-foreground mb-1">{example.industry}</h3>
-                <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3">{example.city}</p>
-                <Link href={`${ROUTES.EXAMPLES}?demo=${example.id}`}>
-                  <span className="inline-flex items-center gap-1 text-sm font-medium text-brand hover:opacity-80 cursor-pointer">
-                    View demo <ExternalLink className="h-3 w-3" />
-                  </span>
-                </Link>
-              </CardContent>
-            </Card>
+            <MiniSitePreview key={example.id} example={example} />
           ))}
         </div>
-        
+
         <div className="text-center mt-8">
           <Link href={ROUTES.EXAMPLES}>
             <span className="text-sm font-medium text-brand hover:opacity-80 underline-offset-2 hover:underline cursor-pointer" data-testid="link-see-all-examples">

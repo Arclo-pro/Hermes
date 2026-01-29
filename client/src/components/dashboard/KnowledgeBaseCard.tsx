@@ -221,7 +221,7 @@ export function KnowledgeBaseCard() {
                 </Button>
               </Link>
               {summary?.lastKbaseRunId && (
-                <Link href={`/diagnostics?runId=${summary.lastKbaseRunId}`}>
+                <Link href={buildRoute.run(summary.lastKbaseRunId)}>
                   <Button variant="outline" size="sm" className="gap-1 text-xs">
                     <ExternalLink className="w-3 h-3" />
                     Run Details

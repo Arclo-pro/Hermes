@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { ROUTES } from "@shared/routes";
 import { getCrewMember } from "@/config/agents";
 import { useSiteContext } from "@/hooks/useSiteContext";
 import { useCrewStatus } from "@/hooks/useCrewStatus";
@@ -251,7 +252,7 @@ function getDraperMeta(result: DraperApiResult): MetaStatus {
       userMessage: "Connect Draper worker to see Google Ads insights",
       developerMessage: "API key required for /api/draper endpoints",
       actions: [
-        { id: "configure", label: "Configure Draper", kind: "route", route: "/settings/integrations", priority: 1 },
+        { id: "configure", label: "Configure Draper", kind: "route", route: "/app/settings/integrations", priority: 1 },
         { id: "docs", label: "View Setup Guide", kind: "href", href: "#draper-setup", priority: 2 },
       ],
     };
@@ -274,7 +275,7 @@ function getDraperMeta(result: DraperApiResult): MetaStatus {
       reasonCode: "NO_DRAPER_DATA",
       userMessage: "No Google Ads data yet. Connect your Google Ads account to get started.",
       actions: [
-        { id: "connect", label: "Connect Google Ads", kind: "route", route: "/settings/integrations", priority: 1 },
+        { id: "connect", label: "Connect Google Ads", kind: "route", route: "/app/settings/integrations", priority: 1 },
       ],
     };
   }
@@ -454,7 +455,7 @@ export default function DraperContent() {
         enqueueAction.mutate({ action_type: "full_scan", note: "Full campaign scan" });
         break;
       case "view_logs":
-        navigate("/settings/logs");
+        navigate(ROUTES.RUNS);
         break;
       default:
         break;

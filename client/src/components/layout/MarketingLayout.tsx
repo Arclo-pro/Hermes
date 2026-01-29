@@ -107,7 +107,7 @@ export function MarketingLayout({ children }: MarketingLayoutProps) {
               <Button
                 size="sm"
                 className="gap-2 font-medium text-white hover:opacity-90"
-                style={{ background: "#7C3AED" }}
+                style={{ background: "linear-gradient(90deg, #2563EB, #0EA5E9, #06B6D4)" }}
                 data-testid="button-generate-site"
               >
                 <Sparkles className="h-4 w-4" />
@@ -176,7 +176,7 @@ export function MarketingLayout({ children }: MarketingLayoutProps) {
                 <Button
                   size="lg"
                   className="w-full gap-2 font-medium text-white hover:opacity-90"
-                  style={{ background: "#7C3AED" }}
+                  style={{ background: "linear-gradient(90deg, #2563EB, #0EA5E9, #06B6D4)" }}
                   data-testid="mobile-button-generate-site"
                 >
                   <Sparkles className="h-4 w-4" />

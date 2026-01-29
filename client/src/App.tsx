@@ -59,6 +59,7 @@ import SharedReport from "@/pages/SharedReport";
 import Contact from "@/pages/Contact";
 import WebsiteRegistry from "@/pages/WebsiteRegistry";
 import WebsiteRegistryDetail from "@/pages/WebsiteRegistryDetail";
+import Notifications from "@/pages/Notifications";
 import WebsiteReportPage from "@/pages/WebsiteReportPage";
 import DeveloperReportPage from "@/pages/DeveloperReportPage";
 import SettingsIntegrations from "@/pages/SettingsIntegrations";
@@ -165,6 +166,7 @@ function Router() {
       <Route path={ROUTES.BENCHMARKS}><ProtectedRoute component={Benchmarks} /></Route>
       <Route path={ROUTES.ACHIEVEMENTS}><ProtectedRoute component={Achievements} /></Route>
       <Route path={ROUTES.INTEGRATIONS}><ProtectedRoute component={Integrations} /></Route>
+      <Route path={ROUTES.NOTIFICATIONS}><ProtectedRoute component={Notifications} /></Route>
       <Route path="/app/settings/integrations"><ProtectedRoute component={SettingsIntegrations} lightMode /></Route>
       <Route path={ROUTES.SETTINGS}><ProtectedRoute component={Settings} /></Route>
       <Route path={ROUTES.SETTINGS_WEBSITES}><ProtectedRoute component={WebsitesSettings} /></Route>

@@ -246,7 +246,7 @@ function getHemingwayMeta(result: HemingwayApiResult): MetaStatus {
       userMessage: "Connect Hemingway worker to see content quality insights",
       developerMessage: "API key required for /api/hemingway/data endpoint",
       actions: [
-        { id: "configure", label: "Configure Hemingway", kind: "route", route: "/settings/integrations", priority: 1 },
+        { id: "configure", label: "Configure Hemingway", kind: "route", route: "/app/settings/integrations", priority: 1 },
         { id: "docs", label: "View Setup Guide", kind: "href", href: "#hemingway-setup", priority: 2 },
       ],
     };
@@ -1106,7 +1106,7 @@ export default function HemingwayContent() {
             size="sm"
             variant="outline"
             className="ml-auto"
-            onClick={() => setLocation("/settings/integrations")}
+            onClick={() => setLocation("/app/settings/integrations")}
           >
             <Settings className="w-3 h-3 mr-1" />
             Configure

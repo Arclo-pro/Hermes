@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { LucideIcon } from "lucide-react";
 
 interface BrandButtonProps {
-  variant?: "primary" | "secondary" | "accent" | "link";
+  variant?: "primary" | "secondary" | "accent" | "blue" | "link";
   size?: "sm" | "md" | "lg";
   icon?: LucideIcon;
   children: ReactNode;
@@ -58,6 +58,14 @@ export function BrandButton({
       hover:-translate-y-0.5
       focus:outline-none focus:ring-4 focus:ring-[#10B981]/20
     `,
+    blue: `
+      rounded-xl text-white
+      bg-gradient-to-r from-[#2563EB] via-[#0EA5E9] to-[#06B6D4]
+      shadow-[0_14px_30px_rgba(37,99,235,0.20)]
+      hover:shadow-[0_18px_40px_rgba(14,165,233,0.22)]
+      hover:-translate-y-0.5
+      focus:outline-none focus:ring-4 focus:ring-[#2563EB]/20
+    `,
     link: `
       text-brand hover:text-pink-500
       font-medium
@@ -70,7 +78,7 @@ export function BrandButton({
       onClick={onClick}
       disabled={disabled}
       className={`${baseClasses} ${sizeClasses[size]} ${variantClasses[variant]} ${className}`}
-      style={variant === "primary" || variant === "accent" ? { textShadow: "0 1px 2px rgba(0,0,0,0.15)" } : undefined}
+      style={variant === "primary" || variant === "accent" || variant === "blue" ? { textShadow: "0 1px 2px rgba(0,0,0,0.15)" } : undefined}
       data-testid={testId}
     >
       {Icon && <Icon className={size === "lg" ? "w-5 h-5" : "w-4 h-4"} />}

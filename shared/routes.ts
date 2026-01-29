@@ -82,6 +82,7 @@ export const ROUTES = {
   
   // Settings & Configuration
   INTEGRATIONS: "/app/integrations",
+  NOTIFICATIONS: "/app/notifications",
   SETTINGS: "/app/settings",
   SETTINGS_WEBSITES: "/app/settings/websites",
   SETTINGS_WEBSITE_DETAIL: "/app/settings/websites/:siteId",
@@ -248,6 +249,7 @@ const ALL_STATIC_ROUTES = new Set([
   ROUTES.BENCHMARKS,
   ROUTES.ACHIEVEMENTS,
   ROUTES.INTEGRATIONS,
+  ROUTES.NOTIFICATIONS,
   ROUTES.SETTINGS,
   ROUTES.SETTINGS_WEBSITES,
   ROUTES.SITES,

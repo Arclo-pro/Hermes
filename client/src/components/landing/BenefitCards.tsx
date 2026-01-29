@@ -44,7 +44,7 @@ export function BenefitCards() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {BENEFITS.map((benefit) => (
             <Card key={benefit.title} className="bg-gradient-to-b from-card to-muted border border-border shadow-[0_20px_40px_rgba(15,23,42,0.08)] transition-all duration-200 hover:-translate-y-1" data-testid={`benefit-card-${benefit.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`}>
-              <CardContent className="p-6">
+              <CardContent className="p-6 pt-6">
                 <div className="flex items-start gap-4">
                   <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-soft via-pink-100 to-gold-soft border border-border flex items-center justify-center shrink-0">
                     <benefit.icon className="h-5 w-5 text-brand" />

@@ -293,7 +293,7 @@ function getPopularMeta(result: PopularApiResult): MetaStatus {
       userMessage: "Connect Google Analytics and Search Console to see traffic insights",
       developerMessage: "OAuth required for /api/popular endpoints",
       actions: [
-        { id: "configure", label: "Connect Google", kind: "route", route: "/settings/integrations", priority: 1 },
+        { id: "configure", label: "Connect Google", kind: "route", route: "/app/settings/integrations", priority: 1 },
         { id: "docs", label: "View Setup Guide", kind: "href", href: "#popular-setup", priority: 2 },
       ],
     };
@@ -316,7 +316,7 @@ function getPopularMeta(result: PopularApiResult): MetaStatus {
       reasonCode: "NO_POPULAR_DATA",
       userMessage: "No analytics data yet. Connect your Google accounts to get started.",
       actions: [
-        { id: "connect", label: "Connect Google", kind: "route", route: "/settings/integrations", priority: 1 },
+        { id: "connect", label: "Connect Google", kind: "route", route: "/app/settings/integrations", priority: 1 },
       ],
     };
   }

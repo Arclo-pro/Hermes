@@ -49,8 +49,8 @@ export function HowItWorks() {
         
         <div className="text-center">
           <Link href={ROUTES.WEBSITE_GENERATOR}>
-            <BrandButton 
-              variant="primary"
+            <BrandButton
+              variant="blue"
               size="lg"
               data-testid="button-generate-site-cta"
             >

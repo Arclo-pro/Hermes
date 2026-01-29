@@ -48,7 +48,7 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { getCrewMember } from "@/config/agents";
 import { Link } from "wouter";
-import { buildRoute } from "@shared/routes";
+import { buildRoute, ROUTES } from "@shared/routes";
 import {
   CrewDashboardShell,
   type CrewIdentity,
@@ -476,7 +476,7 @@ function ConfigurationWarning({ error }: { error?: string | null }) {
               {error || "The SEO_KBASE secret is not configured. Add the secret to Bitwarden (or set SEO_KBASE_API_KEY and SEO_KBASE_BASE_URL env vars) to enable full Knowledge Base functionality."}
             </p>
             <div className="flex gap-2 mt-3">
-              <Link href="/admin/integrations" data-testid="link-integrations">
+              <Link href={ROUTES.INTEGRATIONS} data-testid="link-integrations">
                 <Button variant="outline" size="sm" className="gap-2" data-testid="btn-go-to-integrations">
                   <Settings className="w-4 h-4" />
                   Integrations
