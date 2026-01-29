@@ -13,6 +13,8 @@ import { storage } from "../storage";
 import { blogContentService } from "./blogContentService";
 import { runContentDecayAnalysis } from "./contentDecayService";
 import { isSendGridConfigured } from "./notificationService";
+import { runCoreWebVitalsAnalysis } from "./coreWebVitalsService";
+import { runBacklinkAuthorityAnalysis } from "./backlinkAuthorityService";
 
 export interface InfrastructureRunContext {
   siteId: string;
@@ -52,6 +54,12 @@ export async function runInfrastructureWorker(
 
     case "site_executor":
       return runSiteExecutor(ctx);
+
+    case "core_web_vitals":
+      return runCoreWebVitals(ctx);
+
+    case "backlink_authority":
+      return runBacklinkAuthority(ctx);
 
     case "technical_seo":
       return runTechnicalSeo(ctx);
@@ -216,6 +224,22 @@ async function runSiteExecutor(ctx: InfrastructureRunContext): Promise<Record<st
     service: "site_executor",
     message: "Site executor is demand-driven (triggered via deploy API)",
   };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CORE WEB VITALS (speedster) — PageSpeed Insights API
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function runCoreWebVitals(ctx: InfrastructureRunContext): Promise<Record<string, any>> {
+  return runCoreWebVitalsAnalysis(ctx.domain);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BACKLINK AUTHORITY (beacon) — domain authority scoring
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function runBacklinkAuthority(ctx: InfrastructureRunContext): Promise<Record<string, any>> {
+  return runBacklinkAuthorityAnalysis(ctx.domain);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

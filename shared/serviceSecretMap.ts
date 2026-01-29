@@ -7,8 +7,8 @@
  * - "worker": Remote HTTP services (need BASE_URL + API_KEY env vars in Vercel)
  * - "planned": Not yet built
  *
- * Only 5 external workers remain: crawl_render, core_web_vitals, serp_intel,
- * backlink_authority, competitive_snapshot. All others are consolidated into Hermes.
+ * Only 3 external workers remain: crawl_render, serp_intel, competitive_snapshot.
+ * All others (including core_web_vitals and backlink_authority) are consolidated into Hermes.
  *
  * IMPORTANT: Never use fuzzy matching or string inference.
  * All mappings must be explicit.
@@ -116,40 +116,16 @@ export const SERVICE_SECRET_MAP: ServiceSecretMapping[] = [
   {
     serviceSlug: "core_web_vitals",  // Matches catalog
     displayName: "Core Web Vitals Monitor",
-    type: "worker",
-    requiresBaseUrl: true,
+    type: "infrastructure",  // Consolidated — calls Google PSI API directly from Hermes
+    requiresBaseUrl: false,
     category: "analysis",
-    envVar: "SEO_CORE_WEB_VITALS_API_KEY",
-    baseUrlEnvVar: "SEO_CORE_WEB_VITALS_BASE_URL",
-    workerEndpoints: {
-      health: "/api/health",
-      smokeTest: "/api/health",
-      capabilities: "/api/capabilities",
-      authCheck: "/api/auth/check",
-      websites: "/api/v1/websites",
-      triggerRun: "/api/v1/runs",
-      getRun: "/api/v1/runs",
-      results: "/api/v1/websites/:website_id/results/latest",
-      timeseries: "/api/v1/websites/:website_id/results/timeseries",
-      regressions: "/api/v1/websites/:website_id/regressions",
-      summary: "/api/v1/websites/:website_id/summary"
-    }
   },
   {
     serviceSlug: "backlink_authority",  // Matches catalog
     displayName: "Backlink & Authority Signals",
-    type: "worker",
-    requiresBaseUrl: true,
+    type: "infrastructure",  // Consolidated — runs AAI scoring directly in Hermes
+    requiresBaseUrl: false,
     category: "analysis",
-    envVar: "SEO_BACKLINKS_API_KEY",
-    baseUrlEnvVar: "SEO_BACKLINKS_BASE_URL",
-    workerEndpoints: {
-      health: "/health",
-      smokeTest: "/health",
-      capabilities: "/capabilities",
-      authCheck: "/auth/check",
-      run: "/backlinks/authority/refresh"
-    }
   },
   {
     serviceSlug: "competitive_snapshot",  // Matches catalog

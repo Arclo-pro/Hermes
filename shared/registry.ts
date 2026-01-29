@@ -301,13 +301,7 @@ export const CREW: Record<string, CrewDefinition> = {
     primaryMetricId: 'vitals.performance_score',
     dependencies: { required: ['pagespeed'], optional: [] },
     scoreMetric: { id: 'cwv_pass_rate', label: 'CWV Pass Rate', source: 'pagespeed' },
-    worker: {
-      baseUrlEnvKey: 'CORE_WEB_VITALS_BASE_URL',
-      apiKeySecretKey: 'CORE_WEB_VITALS_API_KEY',
-      healthPath: '/api/health',
-      runPath: '/api/run',
-      requiredOutputs: ['vitals_summary', 'issues', 'kpis'],
-    },
+    // Infrastructure service — no external worker (consolidated into Hermes)
     integrationId: 'speedster',
     dashboardRoute: '/app/agents/speedster',
   },
@@ -364,13 +358,7 @@ export const CREW: Record<string, CrewDefinition> = {
     primaryMetricId: 'links.domain_authority',
     dependencies: { required: ['backlink_api'], optional: [] },
     scoreMetric: { id: 'domain_authority', label: 'Domain Authority', source: 'backlinks' },
-    worker: {
-      baseUrlEnvKey: 'BACKLINK_AUTHORITY_BASE_URL',
-      apiKeySecretKey: 'BACKLINK_AUTHORITY_API_KEY',
-      healthPath: '/api/health',
-      runPath: '/api/run',
-      requiredOutputs: ['backlink_summary', 'issues', 'kpis'],
-    },
+    // Infrastructure service — no external worker (consolidated into Hermes)
     integrationId: 'beacon',
     dashboardRoute: '/app/agents/beacon',
   },
