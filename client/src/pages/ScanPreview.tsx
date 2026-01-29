@@ -1,14 +1,11 @@
-import { useState } from "react";
+import { useEffect, useRef } from "react";
 import { useParams, useLocation } from "wouter";
 import { MarketingLayout } from "@/components/layout/MarketingLayout";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { AlertTriangle, Loader2, CheckCircle2 } from "lucide-react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { AlertTriangle, Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { ROUTES, buildRoute } from "@shared/routes";
-import { GeoScopeSelector, type GeoScopeValue } from "@/components/site/GeoScopeSelector";
 
 interface ScanStatus {
   scanId: string;
@@ -17,25 +14,20 @@ interface ScanStatus {
   message?: string;
 }
 
-interface FreeReportResponse {
-  ok: boolean;
-  reportId?: string;
-  message?: string;
-}
+const STAGE_MESSAGES = [
+  "Crawling your site structure...",
+  "Checking page speed and Core Web Vitals...",
+  "Analyzing keyword rankings...",
+  "Scanning competitor landscape...",
+  "Evaluating backlink profile...",
+  "Compiling your results...",
+];
 
 export default function ScanPreview() {
   const params = useParams<{ scanId: string }>();
   const scanId = params.scanId;
   const [, navigate] = useLocation();
-
-  const [geoScope, setGeoScope] = useState<GeoScopeValue>({
-    scope: 'local',
-    city: '',
-    state: '',
-    country: 'United States',
-  });
-  const [email, setEmail] = useState('');
-  const [validationError, setValidationError] = useState('');
+  const reportTriggered = useRef(false);
 
   const statusQuery = useQuery<ScanStatus>({
     queryKey: ["scan-status", scanId],
@@ -53,155 +45,72 @@ export default function ScanPreview() {
     enabled: !!scanId,
   });
 
-  const generateReportMutation = useMutation<FreeReportResponse, Error>({
-    mutationFn: async () => {
-      const res = await fetch("/api/report/free", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          scanId,
-          geoScope: geoScope.scope,
-          geoLocation: geoScope.scope === 'local' ? {
-            city: geoScope.city,
-            state: geoScope.state,
-            country: geoScope.country || 'United States',
-          } : null,
-          email: email || undefined,
-        }),
-      });
-      return res.json();
-    },
-    onSuccess: (data) => {
-      if (data.ok && data.reportId) {
-        navigate(buildRoute.freeReport(data.reportId));
-      }
-    },
-  });
-
-  const isScanning = statusQuery.data?.status === "queued" || statusQuery.data?.status === "running";
-  const isReady = statusQuery.data?.status === "preview_ready" || statusQuery.data?.status === "completed";
+  const isScanning =
+    statusQuery.data?.status === "queued" ||
+    statusQuery.data?.status === "running";
+  const isReady =
+    statusQuery.data?.status === "preview_ready" ||
+    statusQuery.data?.status === "completed";
   const isFailed = statusQuery.data?.status === "failed";
 
-  const validateAndSubmit = () => {
-    setValidationError('');
-    
-    if (geoScope.scope === 'local') {
-      if (!geoScope.city?.trim()) {
-        setValidationError('Please enter your city.');
-        return;
+  // Auto-generate report and navigate to results when scan completes
+  useEffect(() => {
+    if (!isReady || reportTriggered.current) return;
+    reportTriggered.current = true;
+
+    (async () => {
+      try {
+        const res = await fetch("/api/report/free", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ scanId }),
+        });
+        const data = await res.json();
+        if (data.ok && data.reportId) {
+          navigate(buildRoute.freeReport(data.reportId));
+        } else {
+          // Allow retry on failure
+          reportTriggered.current = false;
+        }
+      } catch {
+        reportTriggered.current = false;
       }
-      if (!geoScope.state?.trim()) {
-        setValidationError('Please enter your state.');
-        return;
-      }
-    }
-    
-    generateReportMutation.mutate();
-  };
+    })();
+  }, [isReady, scanId, navigate]);
+
+  // Rotate through stage messages while scanning
+  const progress = statusQuery.data?.progress || 30;
+  const stageIndex = Math.min(
+    Math.floor((progress / 100) * STAGE_MESSAGES.length),
+    STAGE_MESSAGES.length - 1,
+  );
 
   return (
     <MarketingLayout>
       <div className="min-h-screen bg-gradient-to-b from-muted via-background to-muted/50">
         <div className="container mx-auto px-4 md:px-6 py-8 md:py-12">
           <div className="max-w-3xl mx-auto">
-            
-            {/* Scanning State */}
-            {isScanning && (
+
+            {/* Scanning / Generating State */}
+            {(isScanning || isReady) && (
               <div className="text-center space-y-8">
                 <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary-soft to-purple-soft flex items-center justify-center mx-auto shadow-lg shadow-purple-glow">
                   <Loader2 className="w-10 h-10 text-primary animate-spin" />
                 </div>
                 <div className="space-y-4">
                   <h1 className="text-3xl md:text-4xl font-bold text-foreground">
-                    Analyzing Your Site
+                    {isReady ? "Generating Your Report" : "Analyzing Your Site"}
                   </h1>
                   <p className="text-xl text-muted-foreground">
-                    {statusQuery.data?.message || "Checking structure, content, and performance..."}
+                    {isReady
+                      ? "Preparing your SEO analysis..."
+                      : statusQuery.data?.message || STAGE_MESSAGES[stageIndex]}
                   </p>
                 </div>
                 <div className="max-w-md mx-auto">
-                  <Progress value={statusQuery.data?.progress || 30} className="h-2" />
+                  <Progress value={isReady ? 95 : progress} className="h-2" />
                   <p className="text-sm text-muted-foreground mt-2">
-                    {statusQuery.data?.progress || 30}% complete
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Scan Complete - Show Geo Scope Selection */}
-            {isReady && !generateReportMutation.isPending && !generateReportMutation.isSuccess && (
-              <div className="space-y-8">
-                <div className="text-center space-y-4">
-                  <div className="w-20 h-20 rounded-full bg-semantic-success-soft flex items-center justify-center mx-auto shadow-lg">
-                    <CheckCircle2 className="w-10 h-10 text-semantic-success" />
-                  </div>
-                  <h1 className="text-3xl md:text-4xl font-bold text-foreground">
-                    Scan Complete
-                  </h1>
-                  <p className="text-lg text-muted-foreground">
-                    One more step to generate your personalized SEO report.
-                  </p>
-                </div>
-
-                <div className="bg-card rounded-xl border border-border shadow-sm p-6 md:p-8 space-y-6">
-                  <GeoScopeSelector 
-                    value={geoScope} 
-                    onChange={setGeoScope} 
-                  />
-
-                  <div className="space-y-2 pt-2">
-                    <Label htmlFor="email" className="text-sm text-muted-foreground">
-                      Email (optional — we'll send you a copy)
-                    </Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="you@company.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="max-w-md"
-                      data-testid="input-email"
-                    />
-                  </div>
-
-                  {validationError && (
-                    <p className="text-sm text-semantic-danger" data-testid="text-validation-error">
-                      {validationError}
-                    </p>
-                  )}
-
-                  {generateReportMutation.isError && (
-                    <p className="text-sm text-semantic-danger" data-testid="text-error">
-                      Failed to generate report. Please try again.
-                    </p>
-                  )}
-
-                  <Button
-                    variant="primaryGradient"
-                    size="lg"
-                    onClick={validateAndSubmit}
-                    disabled={generateReportMutation.isPending}
-                    className="w-full md:w-auto"
-                    data-testid="button-generate-report"
-                  >
-                    Generate My Report
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Generating Report State */}
-            {isReady && generateReportMutation.isPending && (
-              <div className="text-center space-y-8">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary-soft to-purple-soft flex items-center justify-center mx-auto shadow-lg shadow-purple-glow">
-                  <Loader2 className="w-10 h-10 text-primary animate-spin" />
-                </div>
-                <div className="space-y-4">
-                  <h1 className="text-3xl md:text-4xl font-bold text-foreground">
-                    Generating Your Report
-                  </h1>
-                  <p className="text-xl text-muted-foreground">
-                    Preparing your SEO analysis...
+                    {isReady ? 95 : progress}% complete
                   </p>
                 </div>
               </div>
@@ -218,15 +127,21 @@ export default function ScanPreview() {
                     Scan Failed
                   </h1>
                   <p className="text-xl text-muted-foreground">
-                    {statusQuery.data?.message || "We couldn't complete the scan. Please try again."}
+                    {statusQuery.data?.message ||
+                      "We couldn't complete the scan. Please try again."}
                   </p>
                 </div>
-                <Button variant="primaryGradient" onClick={() => navigate(ROUTES.LANDING)} size="lg" data-testid="button-retry">
+                <Button
+                  variant="primaryGradient"
+                  onClick={() => navigate(ROUTES.LANDING)}
+                  size="lg"
+                  data-testid="button-retry"
+                >
                   Try Again
                 </Button>
               </div>
             )}
-            
+
           </div>
         </div>
       </div>
