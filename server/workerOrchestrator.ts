@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import { InsertSeoWorkerResult, InsertSeoSuggestion, InsertSeoKbaseInsight, InsertSeoRun } from "@shared/schema";
 import { createHash } from "crypto";
 import { socratesLogger } from "./services/socratesLogger";
+import { runInfrastructureWorker } from "./services/infrastructureDispatch";
 
 const TIMEOUT_MS = 30000;
 const STALE_THRESHOLD_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
@@ -108,6 +109,10 @@ export async function callWorker(
   const workerKey = mapping.serviceSlug;
 
   if (!config.valid || !config.base_url) {
+    // Infrastructure services run internally instead of being skipped
+    if (mapping.type === "infrastructure") {
+      return callInfrastructureWorker(workerKey, siteId, runId, domain);
+    }
     return {
       workerKey,
       status: "skipped",
@@ -241,9 +246,54 @@ async function callWorkerInternal(
 }
 
 /**
+ * Dispatch an infrastructure service to its internal implementation.
+ * Returns a WorkerCallResult with the same shape as an HTTP worker call.
+ */
+async function callInfrastructureWorker(
+  workerKey: string,
+  siteId: string,
+  runId: string,
+  domain: string
+): Promise<WorkerCallResult> {
+  const startTime = Date.now();
+
+  try {
+    const data = await runInfrastructureWorker(workerKey, { siteId, runId, domain });
+    const durationMs = Date.now() - startTime;
+    const metrics = extractMetrics(workerKey, { data });
+    const summary = generateSummary(workerKey, { data }, metrics);
+
+    return {
+      workerKey,
+      status: "success",
+      durationMs,
+      payload: { data },
+      metrics,
+      summary,
+      errorCode: null,
+      errorDetail: null,
+    };
+  } catch (error: any) {
+    const durationMs = Date.now() - startTime;
+    logger.error("WorkerOrchestrator", `Infrastructure worker ${workerKey} failed`, { error: error.message });
+
+    return {
+      workerKey,
+      status: "failed",
+      durationMs,
+      payload: null,
+      metrics: {},
+      summary: `Error: ${error.message}`,
+      errorCode: "INTERNAL_ERROR",
+      errorDetail: error.message,
+    };
+  }
+}
+
+/**
  * Track worker run result and update agent health state.
  * Implements 3-consecutive-failure degraded logic per PRD Section 11.
- * 
+ *
  * @param serviceId - The worker/service identifier (e.g., "serp_intel", "crawl_render")
  * @param siteId - The site identifier
  * @param success - Whether the run succeeded
