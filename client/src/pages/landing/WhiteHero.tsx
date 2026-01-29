@@ -1,5 +1,6 @@
-import React from "react";
-import { Building2, CalendarX, ClipboardList, Sparkles } from "lucide-react";
+import React, { useState } from "react";
+import { useLocation } from "wouter";
+import { Building2, CalendarX, ClipboardList, Loader2, Sparkles } from "lucide-react";
 
 /**
  * White Hero (high-contrast) — matches the approved "clean white" mock.
@@ -17,6 +18,50 @@ const TRUST_PILLS = [
 ];
 
 export default function WhiteHero() {
+  const [url, setUrl] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [, navigate] = useLocation();
+
+  const normalizeUrl = (input: string): string => {
+    let normalized = input.trim().toLowerCase();
+    if (!normalized) return "";
+    if (!normalized.startsWith("http://") && !normalized.startsWith("https://")) {
+      normalized = "https://" + normalized;
+    }
+    return normalized;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    const normalizedUrl = normalizeUrl(url);
+    if (!normalizedUrl || !normalizedUrl.includes(".")) {
+      setError("Please enter a valid website.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch("/api/scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: normalizedUrl }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to start scan");
+      }
+
+      const data = await res.json();
+      navigate(`/scan/preview/${data.scanId || data.id}`);
+    } catch {
+      setError("Something went wrong. Please try again.");
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="arclo-hero-wrap">
       <div className="arclo-hero-glow" />
@@ -82,10 +127,31 @@ export default function WhiteHero() {
             </div>
           </div>
 
-          <div className="arclo-cta">
-            <input className="arclo-input" placeholder="Enter your website (example.com)" />
-            <button className="arclo-btn arclo-btn-primary arclo-primary-cta">Analyze My Website</button>
-          </div>
+          <form className="arclo-cta" onSubmit={handleSubmit}>
+            <input
+              className="arclo-input"
+              placeholder="Enter your website (example.com)"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              aria-label="Website URL"
+            />
+            <button
+              className="arclo-btn arclo-btn-primary arclo-primary-cta"
+              type="submit"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="arclo-spinner" size={16} />
+                  Analyzing…
+                </>
+              ) : (
+                "Analyze My Website"
+              )}
+            </button>
+          </form>
+
+          {error && <div className="arclo-error">{error}</div>}
 
           <div className="arclo-micro">Free scan • No credit card • Takes ~60 seconds</div>
 
