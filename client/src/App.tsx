@@ -109,9 +109,20 @@ function ProtectedRoute({ component: Component, lightMode = false }: { component
   );
 }
 
+function DebugLocation() {
+  const [loc] = useLocation();
+  useEffect(() => {
+    console.log("[DEBUG] Wouter location:", JSON.stringify(loc), "| window.pathname:", JSON.stringify(window.location.pathname), "| match?", loc === window.location.pathname);
+  }, [loc]);
+  return null;
+}
+
 function Router() {
+  const [location] = useLocation();
   return (
-    <Switch>
+    <>
+    <DebugLocation />
+    <Switch location={location}>
       {/* ============================================ */}
       {/* MARKETING ROUTES - Public funnel pages */}
       {/* ============================================ */}
@@ -253,6 +264,7 @@ function Router() {
       {/* 404 catch-all */}
       <Route component={NotFound} />
     </Switch>
+    </>
   );
 }
 

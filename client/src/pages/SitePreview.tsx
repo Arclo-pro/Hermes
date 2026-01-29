@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRoute, useLocation } from "wouter";
+import { ROUTES } from "@shared/routes";
 import { MarketingLayout } from "@/components/layout/MarketingLayout";
 import { MarketingCard } from "@/components/marketing/MarketingCard";
 import { BrandButton } from "@/components/marketing/BrandButton";
@@ -366,7 +367,7 @@ export default function SitePreview() {
                 <BrandButton 
                   variant="primary"
                   icon={Sparkles}
-                  onClick={() => navigate(`/claim/${siteId}?token=${token}`)}
+                  onClick={() => navigate(`${ROUTES.SIGNUP}?siteId=${siteId}&token=${token}`)}
                   data-testid="button-claim-site"
                 >
                   Claim Your Site
