@@ -12,7 +12,8 @@ import AppShell from "@/components/AppShell";
 import NotFound from "@/pages/not-found";
 import { ROUTES, buildRoute, resolveAgentSlug } from "@shared/routes";
 import { useRoute } from "wouter";
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, Component } from "react";
+import type { ErrorInfo, ReactNode } from "react";
 import { useLocation } from "wouter";
 
 // Landing page loaded eagerly (critical for LCP)
@@ -112,26 +113,51 @@ function ProtectedRoute({ component: Component, lightMode = false }: { component
   );
 }
 
-function DebugLocation() {
-  const [loc] = useLocation();
-  useEffect(() => {
-    console.log("[DEBUG] Wouter location:", JSON.stringify(loc), "| window.pathname:", JSON.stringify(window.location.pathname), "| match?", loc === window.location.pathname);
-  }, [loc]);
-  return null;
+class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state: { error: Error | null } = { error: null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("[ErrorBoundary]", error, info.componentStack);
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#fff", padding: "2rem" }}>
+          <div style={{ maxWidth: 480, textAlign: "center" }}>
+            <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "#0F172A", marginBottom: "1rem" }}>Something went wrong</h1>
+            <p style={{ color: "#475569", marginBottom: "1.5rem" }}>{this.state.error.message}</p>
+            <button
+              onClick={() => { this.setState({ error: null }); window.location.href = "/"; }}
+              style={{ padding: "0.75rem 1.5rem", background: "#2563EB", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: "1rem" }}
+            >
+              Go Home
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 function Router() {
   const [location] = useLocation();
   return (
+    <ErrorBoundary>
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-b from-muted via-background to-muted/50 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="w-12 h-12 rounded-full border-4 border-primary border-t-transparent animate-spin mx-auto" />
-          <p className="text-muted-foreground">Loading...</p>
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#fff" }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ width: 48, height: 48, border: "4px solid #2563EB", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 1s linear infinite", margin: "0 auto 1rem" }} />
+          <p style={{ color: "#475569" }}>Loading...</p>
+          <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
         </div>
       </div>
     }>
-    <DebugLocation />
     <Switch location={location}>
       {/* ============================================ */}
       {/* MARKETING ROUTES - Public funnel pages */}
@@ -275,6 +301,7 @@ function Router() {
       <Route component={NotFound} />
     </Switch>
     </Suspense>
+    </ErrorBoundary>
   );
 }
 
