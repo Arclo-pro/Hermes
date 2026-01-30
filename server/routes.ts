@@ -19328,10 +19328,23 @@ Return JSON in this exact format:
       const geoScope = geoLocation ? "local" : null;
       const geoLocationJson = geoLocation ? JSON.stringify(geoLocation) : null;
 
-      await db.execute(sql`
-        INSERT INTO scan_requests (scan_id, target_url, normalized_url, status, geo_scope, geo_location, created_at, updated_at)
-        VALUES (${scanId}, ${url}, ${normalizedUrl}, 'queued', ${geoScope}, ${geoLocationJson}::jsonb, NOW(), NOW())
-      `);
+      try {
+        await db.execute(sql`
+          INSERT INTO scan_requests (scan_id, target_url, normalized_url, status, geo_scope, geo_location, created_at, updated_at)
+          VALUES (${scanId}, ${url}, ${normalizedUrl}, 'queued', ${geoScope}, ${geoLocationJson}::jsonb, NOW(), NOW())
+        `);
+      } catch (insertErr: any) {
+        // Fallback: if geo columns don't exist yet, insert without them
+        if (insertErr.message?.includes("geo_scope") || insertErr.message?.includes("geo_location") || insertErr.code === "42703") {
+          logger.warn("Scan", "geo columns missing, inserting without geo data", { scanId });
+          await db.execute(sql`
+            INSERT INTO scan_requests (scan_id, target_url, normalized_url, status, created_at, updated_at)
+            VALUES (${scanId}, ${url}, ${normalizedUrl}, 'queued', NOW(), NOW())
+          `);
+        } else {
+          throw insertErr;
+        }
+      }
 
       setTimeout(async () => {
         try {
@@ -19341,86 +19354,7 @@ Return JSON in this exact format:
             WHERE scan_id = ${scanId}
           `);
 
-          const WORKER_TIMEOUT = 30000;
-          
-          const crawlerConfig = await resolveWorkerConfig("crawl_render");
-          const cwvConfig = await resolveWorkerConfig("core_web_vitals");
-          const serpConfig = await resolveWorkerConfig("serp_intel");
-          const competitiveConfig = await resolveWorkerConfig("competitive_snapshot");
-          const backlinkConfig = await resolveWorkerConfig("backlink_authority");
-          
-          interface CrawlerPage {
-            url: string;
-            title?: string;
-            description?: string;
-            h1?: string;
-            statusCode?: number;
-            issues?: Array<{ type: string; message: string; severity?: string }>;
-          }
-          
-          interface CrawlerResponse {
-            ok: boolean;
-            pages?: CrawlerPage[];
-            error?: string;
-          }
-          
-          interface CWVResponse {
-            ok: boolean;
-            lcp?: number;
-            cls?: number;
-            inp?: number;
-            ttfb?: number;
-            fcp?: number;
-            error?: string;
-          }
-          
-          const callWorker = async <T>(
-            config: typeof crawlerConfig,
-            endpoint: string,
-            body: any,
-            workerName: string
-          ): Promise<{ ok: boolean; data: T | null; error: string | null }> => {
-            if (!config.valid || !config.base_url) {
-              logger.warn("Scan", `${workerName} worker not configured`, { error: config.error });
-              return { ok: false, data: null, error: config.error || "Worker not configured" };
-            }
-            
-            const workerUrl = `${config.base_url}${endpoint}`;
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), WORKER_TIMEOUT);
-            
-            try {
-              const headers: Record<string, string> = { "Content-Type": "application/json" };
-              if (config.api_key) {
-                headers["X-API-Key"] = config.api_key;
-              }
-              
-              const response = await fetch(workerUrl, {
-                method: "POST",
-                headers,
-                body: JSON.stringify(body),
-                signal: controller.signal,
-              });
-              
-              clearTimeout(timeoutId);
-              
-              if (!response.ok) {
-                const errorText = await response.text().catch(() => "Unknown error");
-                logger.warn("Scan", `${workerName} returned ${response.status}`, { errorText });
-                return { ok: false, data: null, error: `HTTP ${response.status}: ${errorText}` };
-              }
-              
-              const data = await response.json() as T;
-              return { ok: true, data, error: null };
-            } catch (err: any) {
-              clearTimeout(timeoutId);
-              const errorMsg = err.name === "AbortError" ? "Timeout after 30s" : err.message;
-              logger.warn("Scan", `${workerName} call failed`, { error: errorMsg });
-              return { ok: false, data: null, error: errorMsg };
-            }
-          };
-          
-          // Extract domain from URL for workers that need it
+          // Extract domain from URL for internal services
           let targetDomain = normalizedUrl;
           try {
             const urlObj = new URL(normalizedUrl);
@@ -19429,47 +19363,79 @@ Return JSON in this exact format:
             targetDomain = normalizedUrl.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
           }
 
-          const [crawlerResult, cwvResult, serpResult, competitiveResult, backlinkResult] = await Promise.allSettled([
-            callWorker<CrawlerResponse>(
-              crawlerConfig,
-              crawlerConfig.start_path || "/api/crawl/start",
-              { site_domain: targetDomain, url: normalizedUrl, depth: 2, limit: 20 },
-              "Technical Crawler"
-            ),
-            callWorker<CWVResponse>(
-              cwvConfig,
-              "/api/run",
-              { url: normalizedUrl },
-              "Core Web Vitals"
-            ),
-            callWorker<any>(
-              serpConfig,
-              "/api/serp/summary",
-              { site_domain: targetDomain, location: geoLocation ? `${geoLocation.city}, ${geoLocation.state}` : undefined },
-              "SERP Intel"
-            ),
-            callWorker<any>(
-              competitiveConfig,
-              "/run",
-              { 
-                target: { domain: targetDomain },
-                options: { max_competitors: 5 }
-              },
-              "Competitive"
-            ),
-            callWorker<any>(
-              backlinkConfig,
-              "/backlinks/authority/refresh",
-              { domain: targetDomain },
-              "Backlinks"
-            ),
+          // Import and call internal infrastructure services directly
+          const { runTechnicalCrawl } = await import("./services/technicalCrawler");
+          const { runCoreWebVitalsAnalysis } = await import("./services/coreWebVitalsService");
+          const { runSerpAnalysis } = await import("./services/serpIntelligence");
+          const { runBacklinkAuthorityAnalysis } = await import("./services/backlinkAuthorityService");
+
+          const WORKER_TIMEOUT = 60000;
+          const withTimeout = <T>(promise: Promise<T>, name: string): Promise<T> =>
+            Promise.race([
+              promise,
+              new Promise<T>((_, reject) =>
+                setTimeout(() => reject(new Error(`${name} timed out after 60s`)), WORKER_TIMEOUT)
+              ),
+            ]);
+
+          // Build keyword list for SERP analysis from domain name
+          const domainBase = targetDomain.replace(/\.(com|net|org|io|co|us|biz|info)$/i, "").replace(/[-_]/g, " ");
+          const locationStr = geoLocation ? `${geoLocation.city}, ${geoLocation.state}` : undefined;
+          const baseKeywords = [
+            { keyword: `${domainBase}`, volume: 500 },
+            { keyword: `${domainBase} near me`, volume: 800 },
+            { keyword: `${domainBase} services`, volume: 600 },
+            { keyword: `best ${domainBase}`, volume: 1200 },
+            { keyword: `${domainBase} reviews`, volume: 400 },
+            { keyword: `${domainBase} cost`, volume: 350 },
+            { keyword: `${domainBase} pricing`, volume: 450 },
+            { keyword: `${domainBase} company`, volume: 300 },
+            { keyword: `top ${domainBase}`, volume: 900 },
+            { keyword: `${domainBase} online`, volume: 250 },
+            { keyword: `affordable ${domainBase}`, volume: 600 },
+            { keyword: `${domainBase} quotes`, volume: 400 },
+            { keyword: `${domainBase} pros`, volume: 350 },
+            { keyword: `hire ${domainBase}`, volume: 500 },
+            { keyword: `${domainBase} experts`, volume: 300 },
+          ];
+          const locationKeywords = locationStr ? [
+            { keyword: `${domainBase} ${geoLocation!.city}`, volume: 700 },
+            { keyword: `${domainBase} ${geoLocation!.state}`, volume: 500 },
+            { keyword: `${domainBase} ${geoLocation!.city} ${geoLocation!.state}`, volume: 300 },
+            { keyword: `best ${domainBase} ${geoLocation!.city}`, volume: 600 },
+            { keyword: `${domainBase} near ${geoLocation!.city}`, volume: 400 },
+            { keyword: `${domainBase} services ${geoLocation!.city}`, volume: 350 },
+            { keyword: `affordable ${domainBase} ${geoLocation!.city}`, volume: 250 },
+            { keyword: `top ${domainBase} ${geoLocation!.city}`, volume: 300 },
+            { keyword: `${domainBase} company ${geoLocation!.city}`, volume: 200 },
+            { keyword: `${domainBase} ${geoLocation!.city} reviews`, volume: 250 },
+          ] : [];
+          const serpKeywords = [...baseKeywords, ...locationKeywords].slice(0, 25);
+
+          logger.info("Scan", `Running internal services for ${targetDomain}`, { scanId });
+
+          const [crawlerResult, cwvResult, serpResult, backlinkResult] = await Promise.allSettled([
+            withTimeout(runTechnicalCrawl(targetDomain, { maxPages: 20, maxDepth: 2 }), "Technical Crawler"),
+            withTimeout(runCoreWebVitalsAnalysis(targetDomain), "Core Web Vitals"),
+            withTimeout(runSerpAnalysis(targetDomain, serpKeywords, undefined, locationStr), "SERP Intel"),
+            withTimeout(runBacklinkAuthorityAnalysis(targetDomain), "Backlinks"),
           ]);
-          
-          const crawlerData = crawlerResult.status === "fulfilled" ? crawlerResult.value : { ok: false, data: null, error: "Promise rejected" };
-          const cwvData = cwvResult.status === "fulfilled" ? cwvResult.value : { ok: false, data: null, error: "Promise rejected" };
-          const serpData = serpResult.status === "fulfilled" ? serpResult.value : { ok: false, data: null, error: "Promise rejected" };
-          const competitiveData = competitiveResult.status === "fulfilled" ? competitiveResult.value : { ok: false, data: null, error: "Promise rejected" };
-          const backlinkData = backlinkResult.status === "fulfilled" ? backlinkResult.value : { ok: false, data: null, error: "Promise rejected" };
+
+          const extractResult = (result: PromiseSettledResult<Record<string, any>>, name: string) => {
+            if (result.status === "fulfilled") {
+              const data = result.value;
+              logger.info("Scan", `${name} completed`, { ok: data.ok !== false });
+              return { ok: data.ok !== false, data, error: data.error || null };
+            }
+            logger.warn("Scan", `${name} failed`, { error: (result as PromiseRejectedResult).reason?.message });
+            return { ok: false, data: null, error: (result as PromiseRejectedResult).reason?.message || "Failed" };
+          };
+
+          const crawlerData = extractResult(crawlerResult, "Technical Crawler");
+          const cwvData = extractResult(cwvResult, "Core Web Vitals");
+          const serpData = extractResult(serpResult, "SERP Intel");
+          const competitiveData = { ok: false, data: null, error: "Deferred to report phase" };
+          const backlinkData = extractResult(backlinkResult, "Backlinks");
           
           interface Finding {
             id: string;
@@ -19489,22 +19455,25 @@ Return JSON in this exact format:
           let missingH1Count = 0;
           let brokenLinksCount = 0;
           
-          if (crawlerData.ok && crawlerData.data?.pages) {
-            const pages = crawlerData.data.pages;
-            
-            for (const page of pages) {
-              if (!page.description) missingMetaCount++;
-              if (!page.h1) missingH1Count++;
-              if (page.statusCode && page.statusCode >= 400) brokenLinksCount++;
-              
-              if (page.issues) {
-                for (const issue of page.issues) {
-                  technicalIssueCount++;
-                  if (issue.type === "meta" || issue.type === "content") {
-                    contentIssueCount++;
-                  }
-                }
-              }
+          if (crawlerData.ok && crawlerData.data) {
+            const crawlData = crawlerData.data;
+            // Use the crawler's own summary and findings directly
+            const crawlFindings = crawlData.findings || [];
+            const pagesSummary = crawlData.pages_summary || [];
+            const crawlSummary = crawlData.summary || {};
+
+            // Count issues from the crawler's findings array
+            technicalIssueCount = crawlFindings.length;
+            brokenLinksCount = crawlSummary.errors || pagesSummary.filter((p: any) => p.status >= 400 || p.status === 0).length;
+
+            // Count content issues from findings by category
+            const findingsByCategory = crawlData.findings_by_category || {};
+            contentIssueCount = (findingsByCategory.meta || 0) + (findingsByCategory.content || 0);
+
+            // Count missing meta/h1 from findings by rule
+            for (const f of crawlFindings) {
+              if (f.ruleId === "RULE_META_DESC_MISSING" || f.ruleId === "RULE_META_DESC_TOO_LONG") missingMetaCount++;
+              if (f.ruleId === "RULE_H1_MISSING" || f.ruleId === "RULE_H1_MULTIPLE") missingH1Count++;
             }
             
             if (missingMetaCount > 0) {
@@ -19558,8 +19527,8 @@ Return JSON in this exact format:
           
           if (cwvData.ok && cwvData.data) {
             const cwv = cwvData.data;
-            lcpValue = cwv.lcp || null;
-            clsValue = cwv.cls || null;
+            lcpValue = cwv.lab?.lcp_ms || cwv.lcp || null;
+            clsValue = cwv.lab?.cls ?? cwv.cls ?? null;
             
             let lcpScore = 100;
             if (lcpValue) {
@@ -19575,7 +19544,12 @@ Return JSON in this exact format:
               else clsScore = 90;
             }
             
-            performanceScore = Math.round((lcpScore * 0.6 + clsScore * 0.4));
+            // Use Google's own performance score if available, otherwise our approximation
+            if (cwv.performance_score !== null && cwv.performance_score !== undefined) {
+              performanceScore = Math.round(cwv.performance_score);
+            } else {
+              performanceScore = Math.round((lcpScore * 0.6 + clsScore * 0.4));
+            }
             
             if (lcpValue && lcpValue > 2500) {
               findings.push({
@@ -19621,17 +19595,18 @@ Return JSON in this exact format:
           
           if (serpData.ok && serpData.data) {
             const serp = serpData.data;
-            
-            if (serp.keywords && Array.isArray(serp.keywords)) {
-              quickWinKeywords = serp.keywords.filter((kw: any) => 
+            const serpKeywordList = serp.rankings || serp.keywords || [];
+
+            if (Array.isArray(serpKeywordList) && serpKeywordList.length > 0) {
+              quickWinKeywords = serpKeywordList.filter((kw: any) =>
                 kw.position >= 11 && kw.position <= 20
               );
-              decliningKeywords = serp.keywords.filter((kw: any) => 
+              decliningKeywords = serpKeywordList.filter((kw: any) =>
                 kw.change && kw.change < 0
               );
             }
-            
-            const avgPosition = serp.avgPosition || serp.average_position;
+
+            const avgPosition = serp.avg_position || serp.avgPosition || serp.average_position;
             if (avgPosition) {
               if (avgPosition <= 10) serpScore = 85;
               else if (avgPosition <= 20) serpScore = 65;
@@ -19713,9 +19688,9 @@ Return JSON in this exact format:
           
           if (backlinkData.ok && backlinkData.data) {
             const backlinks = backlinkData.data;
-            
-            domainAuthority = backlinks.domainAuthority || backlinks.domain_authority || backlinks.authority || null;
-            referringDomains = backlinks.referringDomains || backlinks.referring_domains || null;
+
+            domainAuthority = backlinks.authority_score || backlinks.domainAuthority || backlinks.domain_authority || null;
+            referringDomains = backlinks.metrics?.referring_domains || backlinks.referringDomains || backlinks.referring_domains || null;
             
             if (domainAuthority !== null) {
               if (domainAuthority >= 60) authorityScore = 90;
@@ -19748,7 +19723,7 @@ Return JSON in this exact format:
             }
           }
           
-          const totalPages = crawlerData.data?.pages?.length || 10;
+          const totalPages = crawlerData.data?.pages_crawled || crawlerData.data?.pages_summary?.length || 10;
           const technicalScore = Math.max(20, 100 - (technicalIssueCount * 5) - (brokenLinksCount * 10));
           const contentScore = Math.max(20, 100 - (missingMetaCount * 8) - (missingH1Count * 6) - (contentIssueCount * 3));
           
@@ -19788,8 +19763,9 @@ Return JSON in this exact format:
           const TARGET_POSITION = 3;
           
           // Calculate from real SERP data if available
-          if (serpData.ok && serpData.data?.keywords && Array.isArray(serpData.data.keywords)) {
-            const keywords = serpData.data.keywords;
+          const serpRankingsForCOI = serpData.ok ? (serpData.data?.rankings || serpData.data?.keywords) : null;
+          if (serpRankingsForCOI && Array.isArray(serpRankingsForCOI) && serpRankingsForCOI.length > 0) {
+            const keywords = serpRankingsForCOI;
             
             for (const kw of keywords) {
               const volume = kw.volume || kw.search_volume || 0;

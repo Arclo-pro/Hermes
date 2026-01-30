@@ -1,6 +1,6 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { Link, useLocation } from "wouter";
-import { Building2, CalendarX, ClipboardList, Sparkles, Menu, X, Loader2 } from "lucide-react";
+import { Building2, CalendarX, ClipboardList, Sparkles, Menu, X, Loader2, MapPin, ChevronDown } from "lucide-react";
 import { ROUTES } from "@shared/routes";
 import { BrandButton } from "@/components/marketing/BrandButton";
 
@@ -11,6 +11,7 @@ import { BrandButton } from "@/components/marketing/BrandButton";
  * - Reduced copy (no redundant paragraph)
  * - Clear primary vs secondary CTAs
  * - Mobile hamburger menu for small screens
+ * - URL-only form → location popup before scan starts
  */
 
 const TRUST_PILLS = [
@@ -20,15 +21,94 @@ const TRUST_PILLS = [
   { icon: Sparkles, text: "Best practices, automated" },
 ];
 
+const US_STATES: { abbr: string; name: string }[] = [
+  { abbr: "AL", name: "Alabama" }, { abbr: "AK", name: "Alaska" }, { abbr: "AZ", name: "Arizona" },
+  { abbr: "AR", name: "Arkansas" }, { abbr: "CA", name: "California" }, { abbr: "CO", name: "Colorado" },
+  { abbr: "CT", name: "Connecticut" }, { abbr: "DE", name: "Delaware" }, { abbr: "FL", name: "Florida" },
+  { abbr: "GA", name: "Georgia" }, { abbr: "HI", name: "Hawaii" }, { abbr: "ID", name: "Idaho" },
+  { abbr: "IL", name: "Illinois" }, { abbr: "IN", name: "Indiana" }, { abbr: "IA", name: "Iowa" },
+  { abbr: "KS", name: "Kansas" }, { abbr: "KY", name: "Kentucky" }, { abbr: "LA", name: "Louisiana" },
+  { abbr: "ME", name: "Maine" }, { abbr: "MD", name: "Maryland" }, { abbr: "MA", name: "Massachusetts" },
+  { abbr: "MI", name: "Michigan" }, { abbr: "MN", name: "Minnesota" }, { abbr: "MS", name: "Mississippi" },
+  { abbr: "MO", name: "Missouri" }, { abbr: "MT", name: "Montana" }, { abbr: "NE", name: "Nebraska" },
+  { abbr: "NV", name: "Nevada" }, { abbr: "NH", name: "New Hampshire" }, { abbr: "NJ", name: "New Jersey" },
+  { abbr: "NM", name: "New Mexico" }, { abbr: "NY", name: "New York" }, { abbr: "NC", name: "North Carolina" },
+  { abbr: "ND", name: "North Dakota" }, { abbr: "OH", name: "Ohio" }, { abbr: "OK", name: "Oklahoma" },
+  { abbr: "OR", name: "Oregon" }, { abbr: "PA", name: "Pennsylvania" }, { abbr: "RI", name: "Rhode Island" },
+  { abbr: "SC", name: "South Carolina" }, { abbr: "SD", name: "South Dakota" }, { abbr: "TN", name: "Tennessee" },
+  { abbr: "TX", name: "Texas" }, { abbr: "UT", name: "Utah" }, { abbr: "VT", name: "Vermont" },
+  { abbr: "VA", name: "Virginia" }, { abbr: "WA", name: "Washington" }, { abbr: "WV", name: "West Virginia" },
+  { abbr: "WI", name: "Wisconsin" }, { abbr: "WY", name: "Wyoming" }, { abbr: "DC", name: "Washington D.C." },
+];
+
+// Major cities per state (top cities by population)
+const STATE_CITIES: Record<string, string[]> = {
+  AL: ["Birmingham", "Montgomery", "Huntsville", "Mobile", "Tuscaloosa"],
+  AK: ["Anchorage", "Fairbanks", "Juneau", "Sitka", "Wasilla"],
+  AZ: ["Phoenix", "Tucson", "Mesa", "Chandler", "Scottsdale", "Gilbert", "Tempe", "Glendale"],
+  AR: ["Little Rock", "Fort Smith", "Fayetteville", "Springdale", "Jonesboro"],
+  CA: ["Los Angeles", "San Francisco", "San Diego", "San Jose", "Sacramento", "Fresno", "Oakland", "Long Beach", "Irvine", "Anaheim"],
+  CO: ["Denver", "Colorado Springs", "Aurora", "Fort Collins", "Lakewood", "Boulder"],
+  CT: ["Bridgeport", "New Haven", "Hartford", "Stamford", "Waterbury"],
+  DE: ["Wilmington", "Dover", "Newark", "Middletown", "Bear"],
+  FL: ["Miami", "Orlando", "Tampa", "Jacksonville", "St. Petersburg", "Fort Lauderdale", "Tallahassee", "Naples", "Sarasota"],
+  GA: ["Atlanta", "Savannah", "Augusta", "Columbus", "Macon", "Athens"],
+  HI: ["Honolulu", "Hilo", "Kailua", "Kapolei", "Pearl City"],
+  ID: ["Boise", "Meridian", "Nampa", "Idaho Falls", "Caldwell"],
+  IL: ["Chicago", "Aurora", "Naperville", "Rockford", "Springfield", "Peoria"],
+  IN: ["Indianapolis", "Fort Wayne", "Evansville", "South Bend", "Carmel"],
+  IA: ["Des Moines", "Cedar Rapids", "Davenport", "Sioux City", "Iowa City"],
+  KS: ["Wichita", "Overland Park", "Kansas City", "Olathe", "Topeka"],
+  KY: ["Louisville", "Lexington", "Bowling Green", "Owensboro", "Covington"],
+  LA: ["New Orleans", "Baton Rouge", "Shreveport", "Lafayette", "Lake Charles"],
+  ME: ["Portland", "Lewiston", "Bangor", "Auburn", "South Portland"],
+  MD: ["Baltimore", "Columbia", "Germantown", "Silver Spring", "Annapolis"],
+  MA: ["Boston", "Worcester", "Springfield", "Cambridge", "Lowell"],
+  MI: ["Detroit", "Grand Rapids", "Warren", "Sterling Heights", "Ann Arbor", "Lansing"],
+  MN: ["Minneapolis", "St. Paul", "Rochester", "Bloomington", "Duluth"],
+  MS: ["Jackson", "Gulfport", "Southaven", "Biloxi", "Hattiesburg"],
+  MO: ["Kansas City", "St. Louis", "Springfield", "Columbia", "Independence"],
+  MT: ["Billings", "Missoula", "Great Falls", "Bozeman", "Helena"],
+  NE: ["Omaha", "Lincoln", "Bellevue", "Grand Island", "Kearney"],
+  NV: ["Las Vegas", "Henderson", "Reno", "North Las Vegas", "Sparks"],
+  NH: ["Manchester", "Nashua", "Concord", "Dover", "Rochester"],
+  NJ: ["Newark", "Jersey City", "Paterson", "Elizabeth", "Trenton", "Princeton"],
+  NM: ["Albuquerque", "Las Cruces", "Rio Rancho", "Santa Fe", "Roswell"],
+  NY: ["New York City", "Buffalo", "Rochester", "Albany", "Syracuse", "Yonkers"],
+  NC: ["Charlotte", "Raleigh", "Durham", "Greensboro", "Winston-Salem", "Asheville"],
+  ND: ["Fargo", "Bismarck", "Grand Forks", "Minot", "West Fargo"],
+  OH: ["Columbus", "Cleveland", "Cincinnati", "Toledo", "Akron", "Dayton"],
+  OK: ["Oklahoma City", "Tulsa", "Norman", "Broken Arrow", "Edmond"],
+  OR: ["Portland", "Salem", "Eugene", "Gresham", "Hillsboro", "Bend"],
+  PA: ["Philadelphia", "Pittsburgh", "Allentown", "Erie", "Reading", "Scranton"],
+  RI: ["Providence", "Warwick", "Cranston", "Pawtucket", "East Providence"],
+  SC: ["Charleston", "Columbia", "Greenville", "Rock Hill", "Myrtle Beach"],
+  SD: ["Sioux Falls", "Rapid City", "Aberdeen", "Brookings", "Watertown"],
+  TN: ["Nashville", "Memphis", "Knoxville", "Chattanooga", "Clarksville"],
+  TX: ["Houston", "Dallas", "San Antonio", "Austin", "Fort Worth", "El Paso", "Plano", "Arlington"],
+  UT: ["Salt Lake City", "West Valley City", "Provo", "West Jordan", "Orem", "St. George"],
+  VT: ["Burlington", "South Burlington", "Rutland", "Montpelier", "Barre"],
+  VA: ["Virginia Beach", "Norfolk", "Chesapeake", "Richmond", "Arlington", "Alexandria"],
+  WA: ["Seattle", "Spokane", "Tacoma", "Vancouver", "Bellevue", "Kent"],
+  WV: ["Charleston", "Huntington", "Morgantown", "Parkersburg", "Wheeling"],
+  WI: ["Milwaukee", "Madison", "Green Bay", "Kenosha", "Racine"],
+  WY: ["Cheyenne", "Casper", "Laramie", "Gillette", "Rock Springs"],
+  DC: ["Washington"],
+};
+
 export default function WhiteHero() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const toggleMenu = useCallback(() => setMobileMenuOpen((prev) => !prev), []);
   const [url, setUrl] = useState("");
-  const [city, setCity] = useState("");
-  const [state, setState] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [, navigate] = useLocation();
+
+  // Location modal state
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [selectedState, setSelectedState] = useState("");
+  const [selectedCity, setSelectedCity] = useState("");
+  const [normalizedUrlForModal, setNormalizedUrlForModal] = useState("");
 
   const normalizeUrl = (input: string): string => {
     let normalized = input.trim().toLowerCase();
@@ -39,31 +119,45 @@ export default function WhiteHero() {
     return normalized;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const cityOptions = useMemo(() => {
+    if (!selectedState) return [];
+    return STATE_CITIES[selectedState] || [];
+  }, [selectedState]);
+
+  const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    const normalizedUrl = normalizeUrl(url);
-    if (!normalizedUrl || !normalizedUrl.includes(".")) {
+    const normalized = normalizeUrl(url);
+    if (!normalized || !normalized.includes(".")) {
       setError("Please enter a valid website.");
       return;
     }
 
-    const trimmedCity = city.trim();
-    const trimmedState = state.trim();
-    if (!trimmedCity || !trimmedState) {
-      setError("Please enter your target city and state.");
+    setNormalizedUrlForModal(normalized);
+    setSelectedState("");
+    setSelectedCity("");
+    setShowLocationModal(true);
+  };
+
+  const handleLocationSubmit = async () => {
+    if (!selectedState || !selectedCity) {
+      setError("Please select your state and city.");
       return;
     }
 
+    setError("");
     setLoading(true);
+    setShowLocationModal(false);
+
     try {
+      const stateName = US_STATES.find((s) => s.abbr === selectedState)?.name || selectedState;
       const res = await fetch("/api/scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          url: normalizedUrl,
-          geoLocation: { city: trimmedCity, state: trimmedState },
+          url: normalizedUrlForModal,
+          geoLocation: { city: selectedCity, state: stateName },
         }),
       });
 
@@ -159,7 +253,7 @@ export default function WhiteHero() {
             <span className="arrow">→</span>
             <div className="step">
               <span className="bullet purple" />
-              <span>Identify what’s holding rankings back</span>
+              <span>Identify what's holding rankings back</span>
             </div>
             <span className="arrow">→</span>
             <div className="step">
@@ -168,27 +262,13 @@ export default function WhiteHero() {
             </div>
           </div>
 
-          <form className="arclo-cta" onSubmit={handleSubmit}>
+          <form className="arclo-cta" onSubmit={handleFormSubmit}>
             <input
               className="arclo-input"
-              placeholder="Enter your website (example.com)"
+              placeholder="Add your site here"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
             />
-            <div className="arclo-location-row">
-              <input
-                className="arclo-input arclo-input-half"
-                placeholder="City (e.g. Austin)"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-              />
-              <input
-                className="arclo-input arclo-input-half"
-                placeholder="State (e.g. TX)"
-                value={state}
-                onChange={(e) => setState(e.target.value)}
-              />
-            </div>
             <button
               type="submit"
               className="arclo-btn arclo-btn-primary arclo-primary-cta"
@@ -230,6 +310,82 @@ export default function WhiteHero() {
           <div className="arclo-hairline" />
         </main>
       </div>
+
+      {/* Location selection modal */}
+      {showLocationModal && (
+        <div className="arclo-modal-overlay" onClick={() => setShowLocationModal(false)}>
+          <div className="arclo-modal" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="arclo-modal-close"
+              onClick={() => setShowLocationModal(false)}
+              aria-label="Close"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="arclo-modal-icon">
+              <MapPin size={28} />
+            </div>
+
+            <h2 className="arclo-modal-title">Where do you want to rank?</h2>
+            <p className="arclo-modal-subtitle">
+              Select the location where your customers search for your business.
+            </p>
+
+            <div className="arclo-modal-fields">
+              <label className="arclo-modal-label">
+                State
+                <div className="arclo-select-wrap">
+                  <select
+                    className="arclo-select"
+                    value={selectedState}
+                    onChange={(e) => {
+                      setSelectedState(e.target.value);
+                      setSelectedCity("");
+                    }}
+                  >
+                    <option value="">Select a state</option>
+                    {US_STATES.map((s) => (
+                      <option key={s.abbr} value={s.abbr}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={16} className="arclo-select-icon" />
+                </div>
+              </label>
+
+              <label className="arclo-modal-label">
+                City
+                <div className="arclo-select-wrap">
+                  <select
+                    className="arclo-select"
+                    value={selectedCity}
+                    onChange={(e) => setSelectedCity(e.target.value)}
+                    disabled={!selectedState}
+                  >
+                    <option value="">{selectedState ? "Select a city" : "Select a state first"}</option>
+                    {cityOptions.map((city) => (
+                      <option key={city} value={city}>
+                        {city}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={16} className="arclo-select-icon" />
+                </div>
+              </label>
+            </div>
+
+            <button
+              className="arclo-btn arclo-btn-primary arclo-modal-submit"
+              onClick={handleLocationSubmit}
+              disabled={!selectedState || !selectedCity}
+            >
+              Start Analysis
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

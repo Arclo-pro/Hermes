@@ -105,6 +105,132 @@
   width: auto;
 }
 
+/* Location modal */
+.arclo-modal-overlay{
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(4px);
+  padding: 16px;
+}
+
+.arclo-modal{
+  position: relative;
+  background: #fff;
+  border-radius: 20px;
+  padding: 36px 32px 28px;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 24px 48px rgba(0,0,0,0.18);
+  text-align: center;
+}
+
+.arclo-modal-close{
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: none;
+  border: none;
+  color: rgba(15,23,42,0.4);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 8px;
+  transition: color 0.15s;
+}
+.arclo-modal-close:hover{ color: rgba(15,23,42,0.8); }
+
+.arclo-modal-icon{
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #7c3aed 0%, #ec4899 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.arclo-modal-title{
+  font-size: 20px;
+  font-weight: 700;
+  color: #0b1220;
+  margin-bottom: 6px;
+}
+
+.arclo-modal-subtitle{
+  font-size: 14px;
+  color: rgba(11,18,32,0.55);
+  margin-bottom: 24px;
+}
+
+.arclo-modal-fields{
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: left;
+  margin-bottom: 24px;
+}
+
+.arclo-modal-label{
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0b1220;
+}
+
+.arclo-select-wrap{
+  position: relative;
+}
+
+.arclo-select{
+  appearance: none;
+  width: 100%;
+  height: 48px;
+  border-radius: 12px;
+  border: 1px solid rgba(15,23,42,0.18);
+  background: #fff;
+  padding: 0 36px 0 14px;
+  font-size: 15px;
+  color: #0b1220;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.arclo-select:focus{ border-color: #7c3aed; }
+.arclo-select:disabled{
+  background: rgba(15,23,42,0.04);
+  color: rgba(11,18,32,0.35);
+  cursor: not-allowed;
+}
+
+.arclo-select-icon{
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: rgba(11,18,32,0.35);
+}
+
+.arclo-modal-submit{
+  width: 100%;
+  height: 48px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+}
+.arclo-modal-submit:disabled{
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .arclo-primary-cta{
   height: 54px;
   padding: 0 22px;
