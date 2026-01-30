@@ -289,6 +289,12 @@ export default function WhiteHero() {
 
           {error && <div className="arclo-error">{error}</div>}
 
+          {window.location.hostname === "localhost" && (
+            <div style={{ background: "#22c55e", color: "#fff", padding: "4px 12px", borderRadius: "6px", fontSize: "12px", fontWeight: 600, marginBottom: "8px" }}>
+              DEV SERVER — localhost:{window.location.port}
+            </div>
+          )}
+
           <div className="arclo-micro">Free scan • No credit card • Takes ~60 seconds</div>
 
           <Link href={ROUTES.WEBSITE_GENERATOR} className="arclo-secondary-cta">
