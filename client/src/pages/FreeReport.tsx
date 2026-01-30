@@ -1116,6 +1116,10 @@ export default function FreeReport() {
     queryKey: ["free-report", reportId, shareToken],
     queryFn: async () => {
       const res = await fetch(apiUrl);
+      if (res.status === 202) {
+        // Report is still being generated — throw so react-query retries
+        throw new Error("__GENERATING__");
+      }
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || "Failed to load report");
@@ -1124,9 +1128,70 @@ export default function FreeReport() {
       if (!data.ok || !data.report) {
         throw new Error(data.message || "Invalid report response");
       }
-      return data.report as FreeReportData;
+      const r = data.report;
+
+      // Normalize summary.top_issues and top_opportunities to IssueOpportunity[]
+      const normalizeIssue = (item: any): IssueOpportunity => {
+        if (typeof item === "string") {
+          return { title: item, explanation: "", severity: "medium", impact: "both", mapped_section: "technical" };
+        }
+        return {
+          title: item.title || "Issue",
+          explanation: item.explanation || item.description || "",
+          severity: item.severity || "medium",
+          impact: item.impact || "both",
+          mapped_section: item.mapped_section || "technical",
+        };
+      };
+      if (r.summary) {
+        r.summary.top_issues = Array.isArray(r.summary.top_issues)
+          ? r.summary.top_issues.map(normalizeIssue) : [];
+        r.summary.top_opportunities = Array.isArray(r.summary.top_opportunities)
+          ? r.summary.top_opportunities.map(normalizeIssue) : [];
+      }
+
+      // Normalize next_steps
+      if (r.next_steps) {
+        if (!Array.isArray(r.next_steps.if_do_nothing)) r.next_steps.if_do_nothing = [];
+        if (!Array.isArray(r.next_steps.if_you_fix_this)) r.next_steps.if_you_fix_this = [];
+        if (!Array.isArray(r.next_steps.ctas)) r.next_steps.ctas = [];
+      }
+
+      // Normalize keyword targets
+      if (r.keywords?.targets) {
+        r.keywords.targets = r.keywords.targets.map((kw: any) => ({
+          ...kw,
+          volume_range: kw.volume_range || (kw.volume ? { min: kw.volume, max: kw.volume } : null),
+          current_bucket: kw.current_bucket || "not_ranking",
+          position: kw.position ?? kw.rank ?? null,
+        }));
+      }
+
+      // Normalize technical findings
+      if (r.technical?.buckets) {
+        r.technical.buckets = r.technical.buckets.map((b: any) => ({
+          ...b,
+          status: b.status === "ok" ? "good" : b.status === "warning" ? "needs_attention" : b.status,
+          findings: (b.findings || []).map((f: any) => ({
+            ...f,
+            detail: f.detail || f.description || "",
+            example_urls: f.example_urls || f.evidence || [],
+          })),
+        }));
+      }
+
+      return r as FreeReportData;
     },
     enabled: !!reportId,
+    retry: (failureCount, error) => {
+      // Keep retrying if still generating, up to 30 attempts (~60s)
+      if (error instanceof Error && error.message === "__GENERATING__") return failureCount < 30;
+      return failureCount < 2;
+    },
+    retryDelay: (attempt, error) => {
+      if (error instanceof Error && error.message === "__GENERATING__") return 2000;
+      return Math.min(1000 * 2 ** attempt, 8000);
+    },
   });
 
   useEffect(() => {
@@ -1185,12 +1250,19 @@ export default function FreeReport() {
     });
   }, [reportId, report]);
 
-  if (isLoading) {
+  const isGenerating = error instanceof Error && error.message === "__GENERATING__";
+
+  if (isLoading || isGenerating) {
     return (
       <MarketingLayout>
         <div className="container mx-auto px-4 py-20 flex flex-col items-center justify-center min-h-[60vh]">
           <Loader2 className="w-12 h-12 animate-spin text-primary mb-4" />
-          <p className="text-lg text-muted-foreground">Loading report...</p>
+          <p className="text-lg text-muted-foreground">
+            {isGenerating ? "Your report is still being generated..." : "Loading report..."}
+          </p>
+          {isGenerating && (
+            <p className="text-sm text-muted-foreground mt-2">This page will refresh automatically.</p>
+          )}
         </div>
       </MarketingLayout>
     );

@@ -50,28 +50,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const scoreSummary = scan.score_summary || {};
     const fullReport = scan.full_report || {};
 
-    // Build technical buckets
+    // Build technical buckets — match client TechnicalBucket/Finding interfaces
     const bucketMap: Record<string, any[]> = {};
     for (const f of previewFindings) {
       const cat = f.category || (f.title?.toLowerCase().includes("meta") ? "meta" : "errors");
       if (!bucketMap[cat]) bucketMap[cat] = [];
       bucketMap[cat].push({
-        id: f.id || `f_${Math.random().toString(36).slice(2, 8)}`,
         title: f.title || "Issue found",
         severity: f.severity || "medium",
-        description: f.summary || f.description || "",
-        evidence: [],
+        detail: f.summary || f.description || "",
+        impact: f.impact || "both",
+        example_urls: f.evidence || f.example_urls || [],
       });
     }
 
+    const mapStatus = (findings: any[]) => {
+      if (findings.some((f: any) => f.severity === "high")) return "critical";
+      if (findings.some((f: any) => f.severity === "medium")) return "needs_attention";
+      return "good";
+    };
+
     const technicalBuckets = Object.entries(bucketMap).map(([name, findings]) => ({
       name: name.charAt(0).toUpperCase() + name.slice(1).replace(/_/g, " "),
-      status: findings.some((f: any) => f.severity === "high") ? "critical" : findings.some((f: any) => f.severity === "medium") ? "warning" : "ok",
+      status: mapStatus(findings),
       findings,
     }));
 
     if (technicalBuckets.length === 0) {
-      technicalBuckets.push({ name: "General", status: "ok", findings: [{ id: "f_none", title: "No major issues detected", severity: "low", description: "Initial scan looks good.", evidence: [] }] });
+      technicalBuckets.push({ name: "General", status: "good", findings: [{ title: "No major issues detected", severity: "low", detail: "Initial scan looks good.", impact: "both", example_urls: [] }] });
     }
 
     // Performance
@@ -88,38 +94,73 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       performanceUrls = [{ url: scan.normalized_url, lcp_status: "good", cls_status: "good", inp_status: "not_available", overall: "good" }];
     }
 
-    // Keywords (placeholder)
+    // Keywords — match client KeywordTarget interface
+    const baseName = domain.replace("www.", "").split(".")[0];
     const keywordTargets = [
-      { keyword: `${domain.replace("www.", "")} services`, intent: "high_intent", rank: null, volume: 500, winner_domain: null },
-      { keyword: `best ${domain.split(".")[0]}`, intent: "informational", rank: null, volume: 1200, winner_domain: null },
-      { keyword: `${domain.split(".")[0]} near me`, intent: "high_intent", rank: null, volume: 800, winner_domain: null },
+      { keyword: `${domain.replace("www.", "")} services`, intent: "high_intent", volume_range: { min: 300, max: 700 }, current_bucket: "not_ranking" as const, position: null, winner_domain: null },
+      { keyword: `best ${baseName}`, intent: "informational", volume_range: { min: 800, max: 1500 }, current_bucket: "not_ranking" as const, position: null, winner_domain: null },
+      { keyword: `${baseName} near me`, intent: "high_intent", volume_range: { min: 500, max: 1000 }, current_bucket: "not_ranking" as const, position: null, winner_domain: null },
     ];
 
-    // Competitors (placeholder)
+    // Competitors — match client Competitor interface
     const competitorItems = [
-      { domain: `competitor1-${domain.split(".")[0]}.com`, overlap_pct: 0, shared_keywords: 0, example_pages: [] },
-      { domain: `competitor2-${domain.split(".")[0]}.com`, overlap_pct: 0, shared_keywords: 0, example_pages: [] },
+      { domain: `competitor1-${baseName}.com`, visibility_index: 0, keyword_overlap_count: 0, example_pages: [] as string[], notes: "Competitor data requires SERP API integration." },
+      { domain: `competitor2-${baseName}.com`, visibility_index: 0, keyword_overlap_count: 0, example_pages: [] as string[], notes: "Competitor data requires SERP API integration." },
     ];
 
-    // Summary
+    // Summary — match client IssueOpportunity interface: { title, explanation, severity, impact, mapped_section }
     const healthScore = scoreSummary.overall ?? 65;
-    const topIssues = previewFindings
+    const topIssueObjects = previewFindings
       .filter((f: any) => f.severity === "high" || f.severity === "medium")
       .slice(0, 3)
-      .map((f: any) => f.title || f.summary || "Issue found");
+      .map((f: any) => ({
+        title: f.title || f.summary || "Issue found",
+        explanation: f.description || f.summary || "This issue may affect your search rankings.",
+        severity: f.severity || "medium",
+        impact: f.impact || "both",
+        mapped_section: f.category === "performance" ? "performance" : f.category === "keywords" ? "keywords" : "technical",
+      }));
+
+    if (topIssueObjects.length === 0) {
+      topIssueObjects.push({
+        title: "Review site SEO fundamentals",
+        explanation: "A comprehensive review of your site's SEO foundation is recommended to identify quick wins.",
+        severity: "medium",
+        impact: "both",
+        mapped_section: "technical",
+      });
+    }
+
+    const topOpportunities = [
+      { title: "Optimize meta descriptions", explanation: "Well-crafted meta descriptions improve click-through rates from search results.", severity: "medium" as const, impact: "traffic" as const, mapped_section: "technical" as const },
+      { title: "Improve page speed", explanation: "Faster pages rank higher and convert more visitors into customers.", severity: "medium" as const, impact: "both" as const, mapped_section: "performance" as const },
+      { title: "Build quality backlinks", explanation: "Authoritative backlinks remain the strongest ranking signal for competitive keywords.", severity: "medium" as const, impact: "traffic" as const, mapped_section: "competitors" as const },
+    ];
+
+    const firstIssueTitle = topIssueObjects[0]?.title || "Looking solid overall.";
 
     const summary = {
       health_score: healthScore,
-      top_issues: topIssues.length > 0 ? topIssues : ["Review site SEO fundamentals"],
-      top_opportunities: ["Optimize meta descriptions", "Improve page speed", "Build quality backlinks"],
-      one_liner: `Your site scores ${healthScore}/100. ${topIssues.length > 0 ? `Key issue: ${topIssues[0]}.` : "Looking solid overall."}`,
+      top_issues: topIssueObjects,
+      top_opportunities: topOpportunities,
+      one_liner: `Your site scores ${healthScore}/100. ${topIssueObjects.length > 0 ? `Key issue: ${firstIssueTitle}` : "Looking solid overall."}`,
     };
 
+    // NextSteps — match client NextSteps interface: { if_do_nothing, if_you_fix_this, ctas }
     const nextSteps = {
+      if_do_nothing: [
+        "Rankings will continue to stagnate or decline as competitors optimize",
+        "Technical issues will compound, making future fixes more expensive",
+        "You'll miss out on high-intent local search traffic every month",
+      ],
+      if_you_fix_this: [
+        "Improved visibility for high-intent keywords in your market",
+        "Better page speed scores leading to higher conversion rates",
+        "Stronger domain authority from a clean technical foundation",
+      ],
       ctas: [
-        { id: "cta_1", label: "Fix Technical Issues", action: "signup", description: "Address the technical SEO issues found in your scan" },
-        { id: "cta_2", label: "Track Keywords", action: "signup", description: "Monitor your keyword rankings over time" },
-        { id: "cta_3", label: "Get Full Report", action: "signup", description: "Unlock the complete SEO analysis with actionable recommendations" },
+        { id: "view_full_report" as const, label: "Fix Technical Issues", action: "route" as const, target: "/signup" },
+        { id: "send_to_dev" as const, label: "Track Keywords", action: "route" as const, target: "/signup" },
       ],
     };
 
