@@ -189,7 +189,7 @@ export default function WebsiteGenerator() {
           existingWebsite: formData.existingWebsite,
           description: formData.description,
           services: formData.services.split(",").map(s => s.trim()).filter(Boolean),
-          stylePreference: formData.stylePreference,
+          brandPreference: formData.stylePreference,
           colorTheme: formData.colorTheme,
           logoUrl: formData.logoUrl,
           heroImageUrl: formData.heroImageUrl,
@@ -206,7 +206,7 @@ export default function WebsiteGenerator() {
       setTimeout(() => setGenerationStep("generating_assets"), 4000);
       setTimeout(() => setGenerationStep("publishing"), 6000);
       setTimeout(() => {
-        navigate(`/preview/${data.siteId}?token=${data.token || ""}`);
+        navigate(`/preview/${data.siteId}?token=${data.previewToken || ""}`);
       }, 8000);
 
     } catch (err) {
@@ -280,11 +280,13 @@ export default function WebsiteGenerator() {
 
           <MarketingCard className="mt-8">
             {wizardStep === 1 && (
-              <Step1BusinessInfo 
-                formData={formData} 
-                updateField={updateField} 
+              <Step1BusinessInfo
+                formData={formData}
+                updateField={updateField}
                 error={error}
                 onNext={handleNext}
+                isGeneratingServices={isGeneratingServices}
+                onGenerateServices={generateServicesWithAI}
               />
             )}
             
@@ -334,9 +336,11 @@ interface Step1Props {
   updateField: (field: keyof FormData, value: string) => void;
   error: string;
   onNext: () => void;
+  isGeneratingServices: boolean;
+  onGenerateServices: () => void;
 }
 
-function Step1BusinessInfo({ formData, updateField, error, onNext }: Step1Props) {
+function Step1BusinessInfo({ formData, updateField, error, onNext, isGeneratingServices, onGenerateServices }: Step1Props) {
   return (
     <div className="space-y-6">
       <div>
@@ -466,15 +470,36 @@ function Step1BusinessInfo({ formData, updateField, error, onNext }: Step1Props)
         </div>
 
         <div className="md:col-span-2">
-          <Label htmlFor="services" className="text-foreground font-medium">
-            Primary services <span className="text-muted-foreground">(comma-separated, optional)</span>
-          </Label>
+          <div className="flex items-center justify-between mb-1.5">
+            <Label htmlFor="services" className="text-foreground font-medium">
+              Primary services <span className="text-muted-foreground">(comma-separated, optional)</span>
+            </Label>
+            <button
+              type="button"
+              onClick={onGenerateServices}
+              disabled={isGeneratingServices || !formData.businessName.trim() || !formData.businessCategory}
+              className="inline-flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 hover:bg-primary/5 disabled:opacity-50 disabled:cursor-not-allowed px-2 py-1 rounded-md transition-colors"
+              data-testid="button-generate-services"
+            >
+              {isGeneratingServices ? (
+                <>
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Wand2 className="h-3 w-3" />
+                  Generate with AI
+                </>
+              )}
+            </button>
+          </div>
           <Textarea
             id="services"
             value={formData.services}
             onChange={(e) => updateField("services", e.target.value)}
             placeholder="Drain cleaning, water heater repair, emergency plumbing"
-            className="mt-1.5 min-h-[80px]"
+            className="min-h-[80px]"
             data-testid="input-services"
           />
         </div>
