@@ -9,6 +9,130 @@ function setCorsHeaders(res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
 
+/** Ensure scan_requests table exists (idempotent) */
+async function ensureTable(pool: ReturnType<typeof getPool>) {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS scan_requests (
+      id SERIAL PRIMARY KEY,
+      scan_id TEXT NOT NULL UNIQUE,
+      target_url TEXT NOT NULL,
+      normalized_url TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'queued',
+      email TEXT,
+      preview_findings JSONB,
+      full_report JSONB,
+      score_summary JSONB,
+      geo_scope TEXT,
+      geo_location JSONB,
+      error_message TEXT,
+      started_at TIMESTAMP,
+      completed_at TIMESTAMP,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+  `);
+}
+
+/** Ensure free_reports table exists (idempotent) */
+async function ensureReportsTable(pool: ReturnType<typeof getPool>) {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS free_reports (
+      id SERIAL PRIMARY KEY,
+      report_id TEXT NOT NULL UNIQUE,
+      scan_id TEXT NOT NULL,
+      website_url TEXT NOT NULL,
+      website_domain TEXT NOT NULL,
+      report_version INTEGER DEFAULT 1,
+      status TEXT DEFAULT 'generating',
+      summary JSONB,
+      competitors JSONB,
+      keywords JSONB,
+      technical JSONB,
+      performance JSONB,
+      next_steps JSONB,
+      meta JSONB,
+      visibility_mode TEXT DEFAULT 'full',
+      limited_visibility_reason TEXT,
+      limited_visibility_steps JSONB,
+      share_token TEXT,
+      share_token_expires_at TIMESTAMP,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+  `);
+}
+
+/** Simple fetch with timeout for external APIs */
+async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 15000): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Lightweight PageSpeed Insights check (no heavy deps) */
+async function checkPageSpeed(targetUrl: string): Promise<{ ok: boolean; data: any }> {
+  try {
+    const apiKey = process.env.GOOGLE_PAGESPEED_API_KEY || "";
+    const psiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(`https://${targetUrl}`)}&strategy=mobile${apiKey ? `&key=${apiKey}` : ""}`;
+    const res = await fetchWithTimeout(psiUrl, {}, 20000);
+    if (!res.ok) return { ok: false, data: null };
+    const json = await res.json();
+    const lhr = json.lighthouseResult;
+    return {
+      ok: true,
+      data: {
+        performance_score: lhr?.categories?.performance?.score != null ? Math.round(lhr.categories.performance.score * 100) : null,
+        lab: {
+          lcp_ms: lhr?.audits?.["largest-contentful-paint"]?.numericValue || null,
+          cls: lhr?.audits?.["cumulative-layout-shift"]?.numericValue || null,
+        },
+        url: `https://${targetUrl}`,
+      },
+    };
+  } catch {
+    return { ok: false, data: null };
+  }
+}
+
+/** Simple HTTP check for basic technical signals */
+async function checkTechnical(targetUrl: string): Promise<{ ok: boolean; data: any }> {
+  try {
+    const fullUrl = `https://${targetUrl}`;
+    const res = await fetchWithTimeout(fullUrl, {
+      headers: { "User-Agent": "Arclo-SEO-Scanner/1.0" },
+      redirect: "follow",
+    }, 10000);
+    const html = await res.text();
+    const hasTitle = /<title[^>]*>.+<\/title>/i.test(html);
+    const hasMetaDesc = /<meta[^>]*name=["']description["'][^>]*>/i.test(html);
+    const hasH1 = /<h1[^>]*>/i.test(html);
+    const hasCanonical = /<link[^>]*rel=["']canonical["'][^>]*>/i.test(html);
+    const hasRobotsMeta = /<meta[^>]*name=["']robots["'][^>]*>/i.test(html);
+    const findings: any[] = [];
+    if (!hasTitle) findings.push({ ruleId: "RULE_TITLE_MISSING", category: "meta", severity: "high", summary: "Page is missing a title tag" });
+    if (!hasMetaDesc) findings.push({ ruleId: "RULE_META_DESC_MISSING", category: "meta", severity: "medium", summary: "Page is missing a meta description" });
+    if (!hasH1) findings.push({ ruleId: "RULE_H1_MISSING", category: "content", severity: "medium", summary: "Page is missing an H1 heading" });
+    if (!hasCanonical) findings.push({ ruleId: "RULE_CANONICAL_MISSING", category: "indexability", severity: "low", summary: "Page is missing a canonical tag" });
+    return {
+      ok: true,
+      data: {
+        ok: true,
+        pages_crawled: 1,
+        findings,
+        findings_by_category: { meta: findings.filter(f => f.category === "meta").length, content: findings.filter(f => f.category === "content").length },
+        summary: { total_pages: 1, errors: res.status >= 400 ? 1 : 0 },
+        pages_summary: [{ url: fullUrl, status: res.status }],
+      },
+    };
+  } catch {
+    return { ok: false, data: null };
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCorsHeaders(res);
 
@@ -20,10 +144,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ ok: false, message: "Method not allowed" });
   }
 
-  const pool = getPool();
+  let pool: ReturnType<typeof getPool>;
   let scanId = "";
 
   try {
+    pool = getPool();
+  } catch (dbErr: any) {
+    console.error("[Scan] Database pool error:", dbErr);
+    return res.status(500).json({ ok: false, message: "Database connection failed: " + (dbErr.message || "unknown") });
+  }
+
+  try {
+    // Ensure tables exist
+    await ensureTable(pool);
+    await ensureReportsTable(pool);
+
     const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
 
     if (!body?.url || typeof body.url !== "string") {
@@ -46,24 +181,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const geoScope = geoLocation ? "local" : null;
     const geoLocationJson = geoLocation ? JSON.stringify(geoLocation) : null;
 
-    // Insert scan request
-    try {
-      await pool.query(
-        `INSERT INTO scan_requests (scan_id, target_url, normalized_url, status, geo_scope, geo_location, created_at, updated_at)
-         VALUES ($1, $2, $3, 'queued', $4, $5::jsonb, NOW(), NOW())`,
-        [scanId, body.url, normalizedUrl, geoScope, geoLocationJson]
-      );
-    } catch (insertErr: any) {
-      if (insertErr.message?.includes("geo_scope") || insertErr.message?.includes("geo_location") || insertErr.code === "42703") {
-        await pool.query(
-          `INSERT INTO scan_requests (scan_id, target_url, normalized_url, status, created_at, updated_at)
-           VALUES ($1, $2, $3, 'queued', NOW(), NOW())`,
-          [scanId, body.url, normalizedUrl]
-        );
-      } else {
-        throw insertErr;
-      }
-    }
+    // Insert scan
+    await pool.query(
+      `INSERT INTO scan_requests (scan_id, target_url, normalized_url, status, geo_scope, geo_location, created_at, updated_at)
+       VALUES ($1, $2, $3, 'queued', $4, $5::jsonb, NOW(), NOW())`,
+      [scanId, body.url, normalizedUrl, geoScope, geoLocationJson]
+    );
 
     // Update to running
     await pool.query(
@@ -71,7 +194,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       [scanId]
     );
 
-    // Run analysis services
+    // Extract domain
     let targetDomain: string;
     try {
       targetDomain = new URL(normalizedUrl).hostname.replace(/^www\./, "");
@@ -79,85 +202,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       targetDomain = normalizedUrl.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0];
     }
 
-    const WORKER_TIMEOUT = 50000; // 50s budget (Vercel Pro max is 60s)
-    const withTimeout = <T>(promise: Promise<T>, name: string): Promise<T> =>
-      Promise.race([
-        promise,
-        new Promise<T>((_, reject) =>
-          setTimeout(() => reject(new Error(`${name} timed out`)), WORKER_TIMEOUT)
-        ),
-      ]);
+    // Run lightweight analysis (no heavy server imports needed)
+    const [technicalResult, cwvResult] = await Promise.allSettled([
+      checkTechnical(targetDomain),
+      checkPageSpeed(targetDomain),
+    ]);
 
-    // Dynamic imports of analysis services
-    let crawlerResult: PromiseSettledResult<any>;
-    let cwvResult: PromiseSettledResult<any>;
-    let serpResult: PromiseSettledResult<any>;
-    let backlinkResult: PromiseSettledResult<any>;
-
-    try {
-      const [technicalMod, cwvMod, serpMod, backlinkMod] = await Promise.all([
-        import("../server/services/technicalCrawler/index.js").catch(() => null),
-        import("../server/services/coreWebVitalsService.js").catch(() => null),
-        import("../server/services/serpIntelligence/index.js").catch(() => null),
-        import("../server/services/backlinkAuthorityService.js").catch(() => null),
-      ]);
-
-      const domainBase = targetDomain.replace(/\.(com|net|org|io|co|us|biz|info)$/i, "").replace(/[-_]/g, " ");
-      const locationStr = geoLocation ? `${geoLocation.city}, ${geoLocation.state}` : undefined;
-      const baseKeywords = [
-        { keyword: domainBase, volume: 500 },
-        { keyword: `${domainBase} near me`, volume: 800 },
-        { keyword: `${domainBase} services`, volume: 600 },
-        { keyword: `best ${domainBase}`, volume: 1200 },
-        { keyword: `${domainBase} reviews`, volume: 400 },
-        { keyword: `${domainBase} cost`, volume: 350 },
-        { keyword: `${domainBase} pricing`, volume: 450 },
-        { keyword: `${domainBase} company`, volume: 300 },
-        { keyword: `top ${domainBase}`, volume: 900 },
-        { keyword: `${domainBase} online`, volume: 250 },
-      ];
-      const locationKeywords = locationStr && geoLocation ? [
-        { keyword: `${domainBase} ${geoLocation.city}`, volume: 700 },
-        { keyword: `${domainBase} ${geoLocation.state}`, volume: 500 },
-        { keyword: `best ${domainBase} ${geoLocation.city}`, volume: 600 },
-      ] : [];
-      const serpKeywords = [...baseKeywords, ...locationKeywords].slice(0, 25);
-
-      const promises: Promise<any>[] = [
-        technicalMod?.runTechnicalCrawl
-          ? withTimeout(technicalMod.runTechnicalCrawl(targetDomain, { maxPages: 20, maxDepth: 2 }), "Crawler")
-          : Promise.reject(new Error("Module not loaded")),
-        cwvMod?.runCoreWebVitalsAnalysis
-          ? withTimeout(cwvMod.runCoreWebVitalsAnalysis(targetDomain), "CWV")
-          : Promise.reject(new Error("Module not loaded")),
-        serpMod?.runSerpAnalysis
-          ? withTimeout(serpMod.runSerpAnalysis(targetDomain, serpKeywords, undefined, locationStr), "SERP")
-          : Promise.reject(new Error("Module not loaded")),
-        backlinkMod?.runBacklinkAuthorityAnalysis
-          ? withTimeout(backlinkMod.runBacklinkAuthorityAnalysis(targetDomain), "Backlinks")
-          : Promise.reject(new Error("Module not loaded")),
-      ];
-
-      [crawlerResult, cwvResult, serpResult, backlinkResult] = await Promise.allSettled(promises);
-    } catch {
-      // If imports fail entirely, all results are rejected
-      crawlerResult = { status: "rejected", reason: new Error("Import failed") };
-      cwvResult = { status: "rejected", reason: new Error("Import failed") };
-      serpResult = { status: "rejected", reason: new Error("Import failed") };
-      backlinkResult = { status: "rejected", reason: new Error("Import failed") };
-    }
-
-    const extractResult = (result: PromiseSettledResult<any>) => {
-      if (result.status === "fulfilled") {
-        return { ok: result.value?.ok !== false, data: result.value, error: null };
-      }
-      return { ok: false, data: null, error: (result as PromiseRejectedResult).reason?.message || "Failed" };
-    };
-
-    const crawlerData = extractResult(crawlerResult!);
-    const cwvData = extractResult(cwvResult!);
-    const serpData = extractResult(serpResult!);
-    const backlinkData = extractResult(backlinkResult!);
+    const crawlerData = technicalResult.status === "fulfilled" ? technicalResult.value : { ok: false, data: null };
+    const cwvData = cwvResult.status === "fulfilled" ? cwvResult.value : { ok: false, data: null };
 
     // Build findings
     const findings: any[] = [];
@@ -167,19 +219,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (crawlerData.ok && crawlerData.data) {
       const cd = crawlerData.data;
       const crawlFindings = cd.findings || [];
-      const crawlSummary = cd.summary || {};
-      const pagesSummary = cd.pages_summary || [];
       technicalIssueCount = crawlFindings.length;
-      brokenLinksCount = crawlSummary.errors || pagesSummary.filter((p: any) => p.status >= 400 || p.status === 0).length;
+      brokenLinksCount = (cd.summary?.errors) || 0;
       const fbc = cd.findings_by_category || {};
       contentIssueCount = (fbc.meta || 0) + (fbc.content || 0);
       for (const f of crawlFindings) {
-        if (f.ruleId === "RULE_META_DESC_MISSING" || f.ruleId === "RULE_META_DESC_TOO_LONG") missingMetaCount++;
-        if (f.ruleId === "RULE_H1_MISSING" || f.ruleId === "RULE_H1_MULTIPLE") missingH1Count++;
+        if (f.ruleId?.includes("META_DESC")) missingMetaCount++;
+        if (f.ruleId?.includes("H1")) missingH1Count++;
       }
-      if (missingMetaCount > 0) findings.push({ id: `finding_${findingIndex++}`, title: "Missing Meta Descriptions", severity: missingMetaCount > 5 ? "high" : "medium", impact: missingMetaCount > 5 ? "High" : "Medium", effort: "Low", summary: `${missingMetaCount} page(s) missing meta descriptions.` });
-      if (missingH1Count > 0) findings.push({ id: `finding_${findingIndex++}`, title: "Missing H1 Tags", severity: missingH1Count > 3 ? "high" : "medium", impact: missingH1Count > 3 ? "High" : "Medium", effort: "Low", summary: `${missingH1Count} page(s) missing H1 tags.` });
-      if (brokenLinksCount > 0) findings.push({ id: `finding_${findingIndex++}`, title: "Broken Links Detected", severity: brokenLinksCount > 3 ? "high" : "medium", impact: brokenLinksCount > 3 ? "High" : "Medium", effort: "Medium", summary: `${brokenLinksCount} page(s) return error status codes.` });
+      if (missingMetaCount > 0) findings.push({ id: `finding_${findingIndex++}`, title: "Missing Meta Descriptions", severity: "medium", impact: "Medium", effort: "Low", summary: `${missingMetaCount} page(s) missing meta descriptions.` });
+      if (missingH1Count > 0) findings.push({ id: `finding_${findingIndex++}`, title: "Missing H1 Tags", severity: "medium", impact: "Medium", effort: "Low", summary: `${missingH1Count} page(s) missing H1 tags.` });
+      if (brokenLinksCount > 0) findings.push({ id: `finding_${findingIndex++}`, title: "Broken Links Detected", severity: "high", impact: "High", effort: "Medium", summary: `${brokenLinksCount} page(s) return error status codes.` });
     } else {
       missingMetaCount = 5; missingH1Count = 2;
       findings.push({ id: `finding_${findingIndex++}`, title: "Missing Meta Descriptions", severity: "high", impact: "High", effort: "Low", summary: "Some pages may be missing meta descriptions." });
@@ -188,44 +238,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let performanceScore = 85;
     if (cwvData.ok && cwvData.data) {
       const cwv = cwvData.data;
-      const lcpValue = cwv.lab?.lcp_ms || cwv.lcp || null;
-      const clsValue = cwv.lab?.cls ?? cwv.cls ?? null;
-      if (cwv.performance_score != null) performanceScore = Math.round(cwv.performance_score);
+      const lcpValue = cwv.lab?.lcp_ms || null;
+      const clsValue = cwv.lab?.cls ?? null;
+      if (cwv.performance_score != null) performanceScore = cwv.performance_score;
       else {
         const lcpS = lcpValue ? (lcpValue > 4000 ? 30 : lcpValue > 2500 ? 60 : 90) : 100;
         const clsS = clsValue !== null ? (clsValue > 0.25 ? 30 : clsValue > 0.1 ? 60 : 90) : 100;
         performanceScore = Math.round(lcpS * 0.6 + clsS * 0.4);
       }
       if (lcpValue && lcpValue > 2500) findings.push({ id: `finding_${findingIndex++}`, title: "Slow Page Speed", severity: lcpValue > 4000 ? "high" : "medium", impact: lcpValue > 4000 ? "High" : "Medium", effort: "Medium", summary: `LCP is ${(lcpValue / 1000).toFixed(1)}s on mobile.` });
+      if (clsValue !== null && clsValue > 0.1) findings.push({ id: `finding_${findingIndex++}`, title: "Layout Shifts Detected", severity: clsValue > 0.25 ? "high" : "medium", impact: clsValue > 0.25 ? "High" : "Medium", effort: "Medium", summary: `CLS is ${clsValue.toFixed(2)}.` });
     } else {
       performanceScore = 70;
       findings.push({ id: `finding_${findingIndex++}`, title: "Performance Analysis Limited", severity: "low", impact: "Medium", effort: "Low", summary: "Core Web Vitals analysis was limited." });
     }
 
-    let serpScore = 50, authorityScore = 50;
-    let quickWinKeywords: any[] = [], decliningKeywords: any[] = [];
-    let domainAuthority: number | null = null, referringDomains: number | null = null;
-
-    if (serpData.ok && serpData.data) {
-      const kws = serpData.data.rankings || serpData.data.keywords || [];
-      if (Array.isArray(kws) && kws.length > 0) {
-        quickWinKeywords = kws.filter((kw: any) => kw.position >= 11 && kw.position <= 20);
-        decliningKeywords = kws.filter((kw: any) => kw.change && kw.change < 0);
-      }
-      const avgP = serpData.data.avg_position || serpData.data.avgPosition;
-      if (avgP) serpScore = avgP <= 10 ? 85 : avgP <= 20 ? 65 : avgP <= 50 ? 45 : 25;
-    }
-
-    if (backlinkData.ok && backlinkData.data) {
-      domainAuthority = backlinkData.data.authority_score || backlinkData.data.domainAuthority || null;
-      referringDomains = backlinkData.data.metrics?.referring_domains || backlinkData.data.referringDomains || null;
-      if (domainAuthority !== null) authorityScore = domainAuthority >= 60 ? 90 : domainAuthority >= 40 ? 70 : domainAuthority >= 20 ? 50 : 30;
-    }
-
-    if (quickWinKeywords.length === 0 && decliningKeywords.length === 0) quickWinKeywords = [{ keyword: "Keyword analysis pending", position: 0 }];
-
     const technicalScore = Math.max(20, 100 - technicalIssueCount * 5 - brokenLinksCount * 10);
     const contentScore = Math.max(20, 100 - missingMetaCount * 8 - missingH1Count * 6 - contentIssueCount * 3);
+    const serpScore = 50;
+    const authorityScore = 50;
     const overallScore = Math.round(technicalScore * 0.25 + performanceScore * 0.25 + contentScore * 0.20 + serpScore * 0.15 + authorityScore * 0.15);
 
     const severity = 100 - overallScore;
@@ -237,8 +268,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       technical: Math.min(100, Math.max(0, technicalScore)),
       content: Math.min(100, Math.max(0, contentScore)),
       performance: Math.min(100, Math.max(0, performanceScore)),
-      serp: Math.min(100, Math.max(0, serpScore)),
-      authority: Math.min(100, Math.max(0, authorityScore)),
+      serp: serpScore,
+      authority: authorityScore,
       costOfInaction: {
         trafficAtRisk, clicksLost,
         leadsMin: Math.max(5, Math.round(clicksLost * 0.025 * 0.6)),
@@ -250,17 +281,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const visibilityMode = crawlerData.ok ? "full" : "limited";
     const fullReport = {
       visibilityMode,
-      limitedVisibilityReason: !crawlerData.ok ? (crawlerData.error || "Crawl was blocked or failed") : null,
-      limitedVisibilitySteps: !crawlerData.ok ? ["Allow our crawler access", "Submit your sitemap", "Review robots.txt"] : [],
+      limitedVisibilityReason: !crawlerData.ok ? "Crawl was limited" : null,
+      limitedVisibilitySteps: !crawlerData.ok ? ["Allow our crawler access", "Submit your sitemap"] : [],
       technical: crawlerData.data || null,
       performance: cwvData.data || null,
-      serp: serpData.data || null,
+      serp: null,
       competitive: null,
-      backlinks: backlinkData.data || null,
-      keywords: { quickWins: quickWinKeywords, declining: decliningKeywords },
+      backlinks: null,
+      keywords: { quickWins: [{ keyword: "Keyword analysis pending", position: 0 }], declining: [] },
       competitors: [{ domain: "Competitor analysis pending", overlap: 0 }],
       contentGaps: [],
-      authority: { domainAuthority, referringDomains },
+      authority: { domainAuthority: null, referringDomains: null },
     };
 
     await pool.query(
@@ -282,21 +313,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       message: "Scan started successfully",
     });
   } catch (error: any) {
-    console.error("[Scan] Failed:", error);
+    console.error("[Scan] Failed:", error?.message, error?.stack);
 
-    // Try to mark scan as failed
-    if (scanId) {
-      await pool.query(
+    // Try to mark scan as failed in DB
+    if (scanId && pool!) {
+      await pool!.query(
         `UPDATE scan_requests SET status = 'failed', error_message = $1, updated_at = NOW() WHERE scan_id = $2`,
-        [error.message?.slice(0, 500) || "Scan failed", scanId]
+        [error?.message?.slice(0, 500) || "Scan failed", scanId]
       ).catch(() => {});
     }
 
     if (!res.headersSent) {
-      const isDbError = error.message?.includes("does not exist") || error.code === "42P01";
       return res.status(500).json({
         ok: false,
-        message: isDbError ? "Database is not ready. Please try again in a moment." : "Failed to start scan. Please try again.",
+        message: error?.message || "Failed to start scan. Please try again.",
       });
     }
   }

@@ -32,7 +32,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Get scan data
     const scanResult = await pool.query(
-      `SELECT scan_id, target_url, normalized_url, status, preview_findings, full_report, score_summary, geo_scope, geo_location
+      `SELECT scan_id, target_url, normalized_url, status, preview_findings, full_report, score_summary
        FROM scan_requests WHERE scan_id = $1`,
       [scanId]
     );
@@ -55,46 +55,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       domain = (scan.normalized_url || scan.target_url).replace(/^https?:\/\//, "").split("/")[0];
     }
 
-    // Import the transformers (pure functions, no server dependency)
-    const {
-      transformToSummary,
-      transformToCompetitors,
-      transformToKeywords,
-      transformToTechnical,
-      transformToPerformance,
-      transformToNextSteps,
-    } = await import("../../server/services/freeReportTransformers.js");
-
     const previewFindings = scan.preview_findings || [];
     const scoreSummary = scan.score_summary || {};
     const fullReport = scan.full_report || {};
 
-    // Build crawler findings
-    const rawCrawlerFindings = fullReport.technical?.findings || [];
-    const crawlFindings = rawCrawlerFindings.length > 0
-      ? rawCrawlerFindings.map((f: any) => ({
-          category: f.category || "errors",
-          severity: f.severity || "medium",
-          title: f.ruleId || f.title || "Unknown issue",
-          description: f.summary || f.description || f.detail,
-          evidence: f.evidence ? [f.evidence] : [],
-        }))
-      : previewFindings.map((f: any) => ({
-          category: f.category || "errors",
-          severity: f.severity || "medium",
-          title: f.title || f.issue || "Unknown issue",
-          description: f.description || f.detail,
-          evidence: f.evidence || [],
-        }));
+    // Build technical buckets from findings
+    const bucketMap: Record<string, any[]> = {};
+    for (const f of previewFindings) {
+      const cat = f.category || (f.title?.toLowerCase().includes("meta") ? "meta" : "errors");
+      if (!bucketMap[cat]) bucketMap[cat] = [];
+      bucketMap[cat].push({
+        id: f.id || `f_${Math.random().toString(36).slice(2, 8)}`,
+        title: f.title || "Issue found",
+        severity: f.severity || "medium",
+        description: f.summary || f.description || "",
+        evidence: [],
+      });
+    }
+    const technicalBuckets = Object.entries(bucketMap).map(([name, findings]) => ({
+      name: name.charAt(0).toUpperCase() + name.slice(1).replace(/_/g, " "),
+      status: findings.some(f => f.severity === "high") ? "critical" : findings.some(f => f.severity === "medium") ? "warning" : "ok",
+      findings,
+    }));
+    if (technicalBuckets.length === 0) {
+      technicalBuckets.push({ name: "General", status: "ok", findings: [{ id: "f_none", title: "No major issues detected", severity: "low", description: "Initial scan looks good.", evidence: [] }] });
+    }
 
-    const technical = transformToTechnical(crawlFindings);
-    const allTechnicalFindings = technical.buckets.flatMap((b: any) => b.findings);
+    const allFindings = technicalBuckets.flatMap(b => b.findings);
 
     // Performance
     const cwvFromScan = fullReport.performance || {};
     let performanceUrls: any[] = [];
-
-    if (cwvFromScan.ok && cwvFromScan.lab) {
+    if (cwvFromScan && cwvFromScan.ok && cwvFromScan.lab) {
       const lcpMs = cwvFromScan.lab?.lcp_ms;
       const cls = cwvFromScan.lab?.cls;
       const lcpStatus = lcpMs && lcpMs > 4000 ? "poor" : lcpMs && lcpMs > 2500 ? "needs_work" : "good";
@@ -103,70 +95,47 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         lcpStatus === "needs_work" || clsStatus === "needs_work" ? "needs_attention" : "good";
       performanceUrls = [{ url: cwvFromScan.url || scan.normalized_url, lcp_status: lcpStatus, cls_status: clsStatus, inp_status: "not_available", overall }];
     } else {
-      performanceUrls = [{
-        url: scan.normalized_url || scan.target_url,
-        lcp_status: allTechnicalFindings.some((f: any) => f.severity === "high") ? "needs_work" : "good",
-        cls_status: "good", inp_status: "not_available",
-        overall: allTechnicalFindings.some((f: any) => f.severity === "high") ? "needs_attention" : "good",
-      }];
+      performanceUrls = [{ url: scan.normalized_url, lcp_status: "good", cls_status: "good", inp_status: "not_available", overall: "good" }];
     }
 
-    const performance = {
-      urls: performanceUrls,
-      global_insight: performanceUrls.some((u: any) => u.overall === "critical")
-        ? "Performance issues detected that may impact rankings."
-        : performanceUrls.some((u: any) => u.overall === "needs_attention")
-        ? "Some pages need performance improvements."
-        : "Page performance appears acceptable.",
-    };
-
     // Keywords
-    const serpFromScan = fullReport.serp || {};
-    let serpKeywords = serpFromScan.rankings || [];
-    const validSerpKeywords = serpKeywords.filter((kw: any) => {
-      const kwText = kw.keyword || kw.query || "";
-      return typeof kwText === "string" && kwText.trim().length > 0;
-    });
-
-    const keywordData = validSerpKeywords.length > 0
-      ? validSerpKeywords.map((kw: any) => ({
-          keyword: (kw.keyword || kw.query || "").trim(),
-          intent: kw.priority === "money" || kw.category === "transactional" ? "high_intent" : "informational",
-          position: kw.currentPosition || kw.position || null,
-          volume: kw.volume || kw.searchVolume || 0,
-          winnerDomain: undefined,
-        }))
-      : [
-          { keyword: `${domain.replace("www.", "")} services`, intent: "high_intent", position: null, volume: 500, winnerDomain: undefined },
-          { keyword: `best ${domain.split(".")[0]}`, intent: "informational", position: null, volume: 1200, winnerDomain: undefined },
-          { keyword: `${domain.split(".")[0]} near me`, intent: "high_intent", position: null, volume: 800, winnerDomain: undefined },
-        ];
-
-    const keywords = transformToKeywords(keywordData);
-    keywords.insight = validSerpKeywords.length > 0
-      ? `Tracking ${validSerpKeywords.length} keywords.`
-      : "Keyword data requires Search Console integration.";
+    const keywordTargets = [
+      { keyword: `${domain.replace("www.", "")} services`, intent: "high_intent", rank: null, volume: 500, winner_domain: null },
+      { keyword: `best ${domain.split(".")[0]}`, intent: "informational", rank: null, volume: 1200, winner_domain: null },
+      { keyword: `${domain.split(".")[0]} near me`, intent: "high_intent", rank: null, volume: 800, winner_domain: null },
+    ];
 
     // Competitors
-    const competitorData = [
-      { domain: `competitor1-${domain.split(".")[0]}.com`, keywordCount: 0, positions: [], examplePages: [] },
-      { domain: `competitor2-${domain.split(".")[0]}.com`, keywordCount: 0, positions: [], examplePages: [] },
+    const competitorItems = [
+      { domain: `competitor1-${domain.split(".")[0]}.com`, overlap_pct: 0, shared_keywords: 0, example_pages: [] },
+      { domain: `competitor2-${domain.split(".")[0]}.com`, overlap_pct: 0, shared_keywords: 0, example_pages: [] },
     ];
-    const competitors = transformToCompetitors(competitorData, { domain });
-    competitors.insight = "Competitor analysis requires SERP API integration.";
 
     // Summary
-    const baseScore = scoreSummary.overall ?? scoreSummary.overall_score ?? null;
-    const summary = transformToSummary(allTechnicalFindings, performanceUrls, keywords.targets, { domain });
-    if (typeof baseScore === "number") summary.health_score = baseScore;
+    const healthScore = scoreSummary.overall ?? 65;
+    const topIssues = previewFindings.filter((f: any) => f.severity === "high" || f.severity === "medium").slice(0, 3).map((f: any) => f.title || f.summary || "Issue found");
+    const topOpportunities = ["Optimize meta descriptions", "Improve page speed", "Build quality backlinks"].slice(0, 3);
+
+    const summary = {
+      health_score: healthScore,
+      top_issues: topIssues.length > 0 ? topIssues : ["Review site SEO fundamentals"],
+      top_opportunities: topOpportunities,
+      one_liner: `Your site scores ${healthScore}/100. ${topIssues.length > 0 ? `Key issue: ${topIssues[0]}.` : "Looking solid overall."}`,
+    };
 
     // Next steps
-    const nextSteps = transformToNextSteps(allTechnicalFindings, performanceUrls, keywords.targets, summary.health_score);
+    const nextSteps = {
+      ctas: [
+        { id: "cta_1", label: "Fix Technical Issues", action: "signup", description: "Address the technical SEO issues found in your scan" },
+        { id: "cta_2", label: "Track Keywords", action: "signup", description: "Monitor your keyword rankings over time" },
+        { id: "cta_3", label: "Get Full Report", action: "signup", description: "Unlock the complete SEO analysis with actionable recommendations" },
+      ],
+    };
 
     // Meta
     const meta = {
-      generation_status: validSerpKeywords.length > 0 ? "complete" : "partial",
-      missing: validSerpKeywords.length > 0 ? {} : { keywords: "Requires Search Console", competitors: "Requires SERP API" },
+      generation_status: "partial",
+      missing: { keywords: "Requires Search Console", competitors: "Requires SERP API" },
       scores: {
         overall: scoreSummary.overall ?? null,
         technical: scoreSummary.technical ?? null,
@@ -180,7 +149,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const scanVisibilityMode = fullReport.visibilityMode || "full";
 
-    // Insert report into free_reports table
+    // Insert report
     await pool.query(
       `INSERT INTO free_reports (
         report_id, scan_id, website_url, website_domain, report_version, status,
@@ -192,17 +161,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         reportId, scanId,
         scan.normalized_url || scan.target_url, domain,
         1, "ready",
-        JSON.stringify(summary), JSON.stringify(competitors), JSON.stringify(keywords),
-        scanVisibilityMode === "limited" ? null : JSON.stringify(technical),
-        JSON.stringify(performance), JSON.stringify(nextSteps), JSON.stringify(meta),
-        scanVisibilityMode, fullReport.limitedVisibilityReason || null,
+        JSON.stringify(summary),
+        JSON.stringify({ items: competitorItems, insight: "Competitor data requires SERP API integration." }),
+        JSON.stringify({ targets: keywordTargets, bucket_counts: { rank_1: 0, top_3: 0, "4_10": 0, "11_30": 0, not_ranking: keywordTargets.length }, insight: "Keyword data requires Search Console integration." }),
+        scanVisibilityMode === "limited" ? null : JSON.stringify({ buckets: technicalBuckets }),
+        JSON.stringify({ urls: performanceUrls, global_insight: "Connect Google Search Console for detailed Core Web Vitals data." }),
+        JSON.stringify(nextSteps),
+        JSON.stringify(meta),
+        scanVisibilityMode,
+        fullReport.limitedVisibilityReason || null,
         JSON.stringify(fullReport.limitedVisibilitySteps || []),
       ]
     );
 
     return res.json({ ok: true, reportId });
   } catch (error: any) {
-    console.error("[FreeReport] Failed to create report:", error);
-    return res.status(500).json({ ok: false, message: "Failed to create free report" });
+    console.error("[FreeReport] Failed:", error?.message, error?.stack);
+    return res.status(500).json({ ok: false, message: error?.message || "Failed to create free report" });
   }
 }
