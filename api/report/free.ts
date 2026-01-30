@@ -95,18 +95,78 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Keywords — match client KeywordTarget interface
+    // Use real SERP data from scan if available, else fall back to placeholders
     const baseName = domain.replace("www.", "").split(".")[0];
-    const keywordTargets = [
-      { keyword: `${domain.replace("www.", "")} services`, intent: "high_intent", volume_range: { min: 300, max: 700 }, current_bucket: "not_ranking" as const, position: null, winner_domain: null },
-      { keyword: `best ${baseName}`, intent: "informational", volume_range: { min: 800, max: 1500 }, current_bucket: "not_ranking" as const, position: null, winner_domain: null },
-      { keyword: `${baseName} near me`, intent: "high_intent", volume_range: { min: 500, max: 1000 }, current_bucket: "not_ranking" as const, position: null, winner_domain: null },
-    ];
+    const serpResultsData: any[] = fullReport.serp_results || [];
+    const hasSerpData = serpResultsData.length > 0;
 
-    // Competitors — match client Competitor interface
-    const competitorItems = [
-      { domain: `competitor1-${baseName}.com`, visibility_index: 0, keyword_overlap_count: 0, example_pages: [] as string[], notes: "Competitor data requires SERP API integration." },
-      { domain: `competitor2-${baseName}.com`, visibility_index: 0, keyword_overlap_count: 0, example_pages: [] as string[], notes: "Competitor data requires SERP API integration." },
-    ];
+    let keywordTargets: any[];
+    if (hasSerpData) {
+      keywordTargets = serpResultsData.map((r: any) => {
+        const pos = r.position as number | null;
+        let bucket: string;
+        if (pos === null) bucket = "not_ranking";
+        else if (pos === 1) bucket = "rank_1";
+        else if (pos <= 3) bucket = "top_3";
+        else if (pos <= 10) bucket = "4_10";
+        else if (pos <= 30) bucket = "11_30";
+        else bucket = "not_ranking";
+
+        // Derive winner_domain from top competitor
+        const winnerDomain = pos === null && r.competitors?.[0]?.domain
+          ? r.competitors[0].domain
+          : null;
+
+        return {
+          keyword: r.keyword,
+          intent: r.intent === "local" ? "high_intent" : r.intent || "informational",
+          volume_range: null,
+          current_bucket: bucket,
+          position: pos,
+          winner_domain: winnerDomain,
+        };
+      });
+    } else {
+      keywordTargets = [
+        { keyword: `${domain.replace("www.", "")} services`, intent: "high_intent", volume_range: { min: 300, max: 700 }, current_bucket: "not_ranking" as const, position: null, winner_domain: null },
+        { keyword: `best ${baseName}`, intent: "informational", volume_range: { min: 800, max: 1500 }, current_bucket: "not_ranking" as const, position: null, winner_domain: null },
+        { keyword: `${baseName} near me`, intent: "high_intent", volume_range: { min: 500, max: 1000 }, current_bucket: "not_ranking" as const, position: null, winner_domain: null },
+      ];
+    }
+
+    // Compute bucket counts from keyword targets
+    const bucketCounts = { rank_1: 0, top_3: 0, "4_10": 0, "11_30": 0, not_ranking: 0 };
+    for (const kt of keywordTargets) {
+      const b = kt.current_bucket as keyof typeof bucketCounts;
+      if (b in bucketCounts) bucketCounts[b]++;
+    }
+
+    // Competitors — derive from SERP results if available, else placeholder
+    const competitorFrequency: Record<string, number> = {};
+    if (hasSerpData) {
+      for (const r of serpResultsData) {
+        for (const c of (r.competitors || []).slice(0, 3)) {
+          competitorFrequency[c.domain] = (competitorFrequency[c.domain] || 0) + 1;
+        }
+      }
+    }
+    const topCompetitorDomains = Object.entries(competitorFrequency)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+
+    const competitorItems = topCompetitorDomains.length > 0
+      ? topCompetitorDomains.map(([compDomain, overlapCount]) => ({
+          domain: compDomain,
+          visibility_index: 0,
+          keyword_overlap_count: overlapCount,
+          example_pages: [] as string[],
+          notes: `Appears in ${overlapCount} of your keyword SERPs.`,
+        }))
+      : [
+          { domain: `competitor1-${baseName}.com`, visibility_index: 0, keyword_overlap_count: 0, example_pages: [] as string[], notes: "Competitor data requires SERP API integration." },
+          { domain: `competitor2-${baseName}.com`, visibility_index: 0, keyword_overlap_count: 0, example_pages: [] as string[], notes: "Competitor data requires SERP API integration." },
+          { domain: `competitor3-${baseName}.com`, visibility_index: 0, keyword_overlap_count: 0, example_pages: [] as string[], notes: "Competitor data requires SERP API integration." },
+        ];
 
     // Summary — match client IssueOpportunity interface: { title, explanation, severity, impact, mapped_section }
     const healthScore = scoreSummary.overall ?? 65;
@@ -164,9 +224,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ],
     };
 
+    // Extract service scan metadata for transparency
+    const extractedServices: string[] = fullReport.homepage_scan?.services || [];
+    const keywordListUsed: string[] = (fullReport.serp_keywords || []).map((k: any) => k.keyword);
+
     const meta = {
-      generation_status: "partial",
-      missing: { keywords: "Requires Search Console", competitors: "Requires SERP API" },
+      generation_status: hasSerpData ? "complete" : "partial",
+      missing: hasSerpData
+        ? {}
+        : { keywords: "Requires Search Console", competitors: "Requires SERP API" },
       scores: {
         overall: scoreSummary.overall ?? null,
         technical: scoreSummary.technical ?? null,
@@ -176,6 +242,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         authority: scoreSummary.authority ?? null,
       },
       costOfInaction: scoreSummary.costOfInaction || null,
+      extracted_services: extractedServices,
+      keyword_list_used: keywordListUsed,
+      serviceDetectionWarning: fullReport.serviceDetectionWarning || false,
     };
 
     const visMode = fullReport.visibilityMode || "full";
@@ -192,8 +261,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         scan.normalized_url || scan.target_url, domain,
         1, "ready",
         JSON.stringify(summary),
-        JSON.stringify({ items: competitorItems, insight: "Competitor data requires SERP API integration." }),
-        JSON.stringify({ targets: keywordTargets, bucket_counts: { rank_1: 0, top_3: 0, "4_10": 0, "11_30": 0, not_ranking: keywordTargets.length }, insight: "Keyword data requires Search Console integration." }),
+        JSON.stringify({
+          items: competitorItems,
+          insight: topCompetitorDomains.length > 0
+            ? `Found ${topCompetitorDomains.length} competitors across your keyword SERPs.`
+            : "Competitor data requires SERP API integration.",
+        }),
+        JSON.stringify({
+          targets: keywordTargets,
+          bucket_counts: bucketCounts,
+          insight: hasSerpData
+            ? `Checked ${keywordTargets.length} service-derived keywords. ${bucketCounts.rank_1 + bucketCounts.top_3} in top 3, ${bucketCounts["4_10"]} in 4-10, ${bucketCounts.not_ranking} not ranking.`
+            : "Keyword data requires Search Console integration.",
+        }),
         visMode === "limited" ? null : JSON.stringify({ buckets: technicalBuckets }),
         JSON.stringify({ urls: performanceUrls, global_insight: "Connect Google Search Console for detailed Core Web Vitals data." }),
         JSON.stringify(nextSteps),

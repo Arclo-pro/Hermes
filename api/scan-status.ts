@@ -22,7 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const pool = getPool();
     const result = await pool.query(
-      `SELECT scan_id, status, error_message, created_at, started_at, completed_at
+      `SELECT scan_id, status, error_message, full_report, created_at, started_at, completed_at
        FROM scan_requests WHERE scan_id = $1`,
       [scanId]
     );
@@ -35,10 +35,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let progress = 0;
     let message = "Starting scan...";
 
-    if (scan.status === "queued") { progress = 10; message = "Queued for scanning..."; }
-    else if (scan.status === "running") { progress = 50; message = "Analyzing SEO, performance, and content..."; }
-    else if (scan.status === "preview_ready" || scan.status === "completed") { progress = 100; message = "Scan complete!"; }
-    else if (scan.status === "failed") { progress = 0; message = scan.error_message || "Scan failed"; }
+    if (scan.status === "queued") {
+      progress = 10; message = "Queued for scanning...";
+    } else if (scan.status === "running") {
+      // Infer progress detail from elapsed time (scan runs synchronously in scan.ts)
+      const elapsed = scan.started_at ? Date.now() - new Date(scan.started_at).getTime() : 0;
+      if (elapsed < 5000) {
+        progress = 20; message = "Fetching homepage and scanning services...";
+      } else if (elapsed < 15000) {
+        progress = 40; message = "Building keyword targets from detected services...";
+      } else if (elapsed < 40000) {
+        progress = 60; message = "Checking SERP rankings for your keywords...";
+      } else {
+        progress = 80; message = "Running performance analysis...";
+      }
+    } else if (scan.status === "preview_ready" || scan.status === "completed") {
+      progress = 100; message = "Scan complete!";
+    } else if (scan.status === "failed") {
+      progress = 0; message = scan.error_message || "Scan failed";
+    }
 
     return res.json({ scanId: scan.scan_id, status: scan.status, progress, message });
   } catch (error: any) {

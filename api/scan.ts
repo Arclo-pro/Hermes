@@ -1,6 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getPool } from "./_lib/db.js";
 import { randomUUID } from "crypto";
+import { scanHomepageServices, type HomepageScanResult } from "./_lib/homepageServiceScan.js";
+import { buildSerpKeywords, buildFallbackKeywords, type SerpKeyword } from "./_lib/serpKeywordBuilder.js";
 
 function setCorsHeaders(res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Credentials", "true");
@@ -94,6 +96,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let technicalOk = false;
     let hasTitle = true, hasMetaDesc = true, hasH1 = true, hasCanonical = true;
     let httpStatus = 200;
+    let rawHtml = "";
 
     try {
       const htmlRes = await fetch(`https://${domain}`, {
@@ -102,11 +105,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         signal: controller.signal,
       });
       httpStatus = htmlRes.status;
-      const html = await htmlRes.text();
-      hasTitle = /<title[^>]*>.+<\/title>/i.test(html);
-      hasMetaDesc = /<meta[^>]*name=["']description["'][^>]*>/i.test(html);
-      hasH1 = /<h1[^>]*>/i.test(html);
-      hasCanonical = /<link[^>]*rel=["']canonical["'][^>]*>/i.test(html);
+      rawHtml = await htmlRes.text();
+      hasTitle = /<title[^>]*>.+<\/title>/i.test(rawHtml);
+      hasMetaDesc = /<meta[^>]*name=["']description["'][^>]*>/i.test(rawHtml);
+      hasH1 = /<h1[^>]*>/i.test(rawHtml);
+      hasCanonical = /<link[^>]*rel=["']canonical["'][^>]*>/i.test(rawHtml);
       technicalOk = true;
     } catch (e) {
       console.log("[Scan] Technical check failed:", (e as Error)?.message);
@@ -141,6 +144,168 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.log("[Scan] PSI check failed:", (e as Error)?.message);
     }
 
+    // ── Homepage Service Scan ──────────────────────────────────────
+    let homepageScan: HomepageScanResult | null = null;
+    let serpKeywordList: SerpKeyword[] = [];
+    let serpResults: any[] = [];
+    let serpRunOk = false;
+    let serviceDetectionWarning = false;
+
+    // Derive a location string from geoLocation payload (if provided)
+    const locationStr: string | null = geoLocation
+      ? (geoLocation.city && geoLocation.region
+          ? `${geoLocation.city}, ${geoLocation.region}`
+          : geoLocation.city || geoLocation.region || geoLocation.label || null)
+      : null;
+
+    if (technicalOk && rawHtml) {
+      try {
+        console.log("[HomepageScan] homepage_scan_started", { domain });
+        homepageScan = scanHomepageServices(rawHtml, `https://${domain}`);
+        console.log("[HomepageScan] homepage_scan_completed", {
+          domain,
+          servicesCount: homepageScan.services.length,
+          confidence: homepageScan.confidence,
+          services: homepageScan.services.slice(0, 5),
+        });
+
+        if (homepageScan.services.length > 0) {
+          // Use location from scan payload, or from homepage cues
+          const effectiveLocation = locationStr
+            || (homepageScan.locationCues.length > 0
+                ? homepageScan.locationCues.join(", ")
+                : null);
+          serpKeywordList = buildSerpKeywords(homepageScan.services, effectiveLocation, domain);
+        } else {
+          // Fallback: use meta title/description
+          serviceDetectionWarning = true;
+          console.log("[HomepageScan] No services detected, falling back to meta signals", { domain });
+          serpKeywordList = buildFallbackKeywords(
+            homepageScan.evidence.meta.title,
+            homepageScan.evidence.meta.description,
+            locationStr,
+            domain,
+          );
+        }
+
+        console.log("[SerpKeywords] serp_keywords_built", { domain, count: serpKeywordList.length });
+      } catch (e) {
+        serviceDetectionWarning = true;
+        console.log("[HomepageScan] homepage_scan_failed", { domain, error: (e as Error)?.message });
+        // Build minimal fallback keywords from domain
+        serpKeywordList = buildFallbackKeywords(null, null, locationStr, domain);
+        console.log("[SerpKeywords] serp_keywords_built (fallback)", { domain, count: serpKeywordList.length });
+      }
+    } else {
+      // Homepage unreachable — build domain-based fallback
+      serviceDetectionWarning = true;
+      serpKeywordList = buildFallbackKeywords(null, null, locationStr, domain);
+      console.log("[SerpKeywords] serp_keywords_built (no-html fallback)", { domain, count: serpKeywordList.length });
+    }
+
+    // ── SERP Ranking Check ──────────────────────────────────────────
+    if (serpKeywordList.length > 0 && process.env.SERPAPI_API_KEY) {
+      try {
+        console.log("[SerpRun] serp_run_started", { domain, keywordCount: serpKeywordList.length });
+
+        const SERP_TIMEOUT_MS = 45_000;
+        const SERP_DELAY_MS = 1500;
+        const serpCtrl = new AbortController();
+        const serpTimer = setTimeout(() => serpCtrl.abort(), SERP_TIMEOUT_MS);
+
+        const apiKey = process.env.SERPAPI_API_KEY;
+        const serpBase = "https://serpapi.com/search";
+        const baseDomain = domain.replace(/^www\./, "").toLowerCase();
+
+        for (let i = 0; i < serpKeywordList.length; i++) {
+          if (serpCtrl.signal.aborted) {
+            console.log("[SerpRun] serp_run_timeout — processed", i, "of", serpKeywordList.length);
+            break;
+          }
+
+          const kw = serpKeywordList[i];
+          try {
+            const params = new URLSearchParams({
+              api_key: apiKey,
+              engine: "google",
+              q: kw.keyword,
+              ...(locationStr ? { location: locationStr } : {}),
+              google_domain: "google.com",
+              gl: "us",
+              hl: "en",
+              num: "20",
+            });
+            const resp = await fetch(`${serpBase}?${params}`, {
+              signal: AbortSignal.timeout(30_000),
+            });
+
+            if (resp.ok) {
+              const data = await resp.json();
+              const organicResults = data.organic_results || [];
+              let position: number | null = null;
+              let url: string | null = null;
+              const competitors: any[] = [];
+
+              for (const result of organicResults) {
+                let resultDomain: string | null = null;
+                try { resultDomain = new URL(result.link).hostname.toLowerCase().replace(/^www\./, ""); } catch {}
+                if (!resultDomain) continue;
+
+                if (resultDomain === baseDomain || resultDomain === `www.${baseDomain}`) {
+                  if (position === null) {
+                    position = result.position;
+                    url = result.link;
+                  }
+                } else {
+                  competitors.push({ domain: resultDomain, url: result.link, title: result.title, position: result.position });
+                }
+              }
+              serpResults.push({ keyword: kw.keyword, intent: kw.intent, source: kw.source, position, url, competitors: competitors.slice(0, 5) });
+            } else {
+              serpResults.push({ keyword: kw.keyword, intent: kw.intent, source: kw.source, position: null, url: null, competitors: [] });
+            }
+          } catch (kwErr) {
+            serpResults.push({ keyword: kw.keyword, intent: kw.intent, source: kw.source, position: null, url: null, competitors: [] });
+          }
+
+          // Rate limit between requests
+          if (i < serpKeywordList.length - 1 && !serpCtrl.signal.aborted) {
+            await new Promise(r => setTimeout(r, SERP_DELAY_MS));
+          }
+        }
+
+        clearTimeout(serpTimer);
+        serpRunOk = true;
+
+        const ranking = serpResults.filter(r => r.position !== null).length;
+        console.log("[SerpRun] serp_run_completed", { domain, checked: serpResults.length, ranking });
+      } catch (e) {
+        console.log("[SerpRun] serp_run_failed", { domain, error: (e as Error)?.message });
+      }
+    } else if (!process.env.SERPAPI_API_KEY) {
+      console.log("[SerpRun] SERPAPI_API_KEY not configured — skipping SERP checks");
+    }
+
+    // ── Compute SERP score from actual rankings ─────────────────────
+    let serpScore = 50; // default if no SERP data
+    if (serpRunOk && serpResults.length > 0) {
+      const total = serpResults.length;
+      const top3 = serpResults.filter(r => r.position !== null && r.position <= 3).length;
+      const top10 = serpResults.filter(r => r.position !== null && r.position <= 10).length;
+      const top20 = serpResults.filter(r => r.position !== null && r.position <= 20).length;
+      const ranking = serpResults.filter(r => r.position !== null).length;
+
+      // Score: weighted by bucket quality
+      serpScore = Math.round(
+        Math.min(100, Math.max(0,
+          (top3 / total) * 100 * 0.4 +
+          (top10 / total) * 100 * 0.3 +
+          (top20 / total) * 100 * 0.2 +
+          (ranking / total) * 100 * 0.1
+        ))
+      );
+    }
+
     // Build findings
     const findings: any[] = [];
     let idx = 1;
@@ -169,7 +334,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const techIssueCount = findings.filter(f => f.severity === "high" || f.severity === "medium").length;
     const technicalScore = Math.max(20, 100 - techIssueCount * 10 - brokenLinks * 15);
     const contentScore = Math.max(20, 100 - missingMeta * 8 - missingH1 * 6);
-    const serpScore = 50;
+    // serpScore is computed above from real SERP data (or defaults to 50)
     const authorityScore = 50;
     const overall = Math.round(technicalScore * 0.25 + performanceScore * 0.25 + contentScore * 0.2 + serpScore * 0.15 + authorityScore * 0.15);
 
@@ -200,13 +365,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       limitedVisibilitySteps: !technicalOk ? ["Allow our crawler access", "Submit your sitemap"] : [],
       technical: technicalOk ? { ok: true, pages_crawled: 1, findings: findings.filter(f => f.title !== "Performance Analysis Limited" && f.title !== "Slow Page Speed" && f.title !== "Layout Shifts Detected") } : null,
       performance: psiOk ? { ok: true, performance_score: performanceScore, lab: { lcp_ms: lcpMs, cls: clsValue }, url: `https://${domain}` } : null,
-      serp: null,
+      serp: serpRunOk ? { ok: true, results: serpResults } : null,
       competitive: null,
       backlinks: null,
-      keywords: { quickWins: [{ keyword: "Keyword analysis pending", position: 0 }], declining: [] },
+      keywords: serpRunOk
+        ? { quickWins: serpResults.filter(r => r.position !== null && r.position <= 20).map(r => ({ keyword: r.keyword, position: r.position })), declining: [] }
+        : { quickWins: [{ keyword: "Keyword analysis pending", position: 0 }], declining: [] },
       competitors: [{ domain: "Competitor analysis pending", overlap: 0 }],
       contentGaps: [],
       authority: { domainAuthority: null, referringDomains: null },
+      // New: homepage service scan + SERP keyword data
+      homepage_scan: homepageScan,
+      serp_keywords: serpKeywordList.map(k => ({ keyword: k.keyword, intent: k.intent, source: k.source })),
+      serp_results: serpResults,
+      serviceDetectionWarning,
     };
 
     // Update scan to preview_ready

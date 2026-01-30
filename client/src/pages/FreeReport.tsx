@@ -34,8 +34,19 @@ import {
   Layout,
   Brain,
   ShieldAlert,
+  UserPlus,
+  LogIn,
 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -480,6 +491,66 @@ function ExecutiveSummarySection({ summary }: { summary: Summary }) {
   );
 }
 
+function TopCompetitorsBlock({
+  competitors,
+  scanId,
+}: {
+  competitors?: CompetitorData;
+  scanId?: string;
+}) {
+  // Silently omit if no competitor data available
+  if (!competitors?.items?.length) return null;
+
+  // Show 3–5 competitor domains, ordered by the existing relevance sort
+  const topDomains = competitors.items.slice(0, 5).map((c) => c.domain);
+  if (topDomains.length === 0) return null;
+
+  const signupUrl = scanId ? `/signup?scanId=${scanId}` : "/signup";
+
+  return (
+    <Card className="border-border" data-testid="top-competitors-block">
+      <CardContent className="pt-6 space-y-4">
+        <div className="flex items-center gap-2">
+          <Users className="w-5 h-5 text-primary" />
+          <h3 className="text-lg font-semibold text-foreground">
+            Top Competitors
+          </h3>
+        </div>
+
+        <p className="text-sm text-muted-foreground">
+          These sites are currently competing with you for visibility in search
+          results.
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {topDomains.map((domain, idx) => (
+            <div
+              key={idx}
+              className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border"
+              data-testid={`top-competitor-${idx}`}
+            >
+              <Globe className="w-4 h-4 text-muted-foreground shrink-0" />
+              <span className="text-sm font-medium text-foreground truncate">
+                {domain}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <p className="text-xs text-muted-foreground pt-2">
+          <a
+            href={signupUrl}
+            className="underline underline-offset-2 hover:text-foreground transition-colors"
+            data-testid="top-competitors-upgrade-link"
+          >
+            Unlock competitor keyword overlap and ranking comparisons
+          </a>
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
 function CompetitorSection({ competitors, missingReason }: { competitors?: CompetitorData; missingReason?: string }) {
   if (!competitors || !competitors.items?.length) {
     return (
@@ -587,36 +658,36 @@ function KeywordSection({ keywords, missingReason }: { keywords?: KeywordData; m
       </p>
 
       {keywords.bucket_counts && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <Card className="bg-emerald-50 border-emerald-300">
-            <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-emerald-700" data-testid="bucket-rank-1">{keywords.bucket_counts.rank_1 || 0}</p>
-              <p className="text-sm text-muted-foreground">Ranking #1</p>
+            <CardContent className="p-5 flex flex-col items-center justify-center min-h-[100px]">
+              <p className="text-3xl font-bold text-emerald-700" data-testid="bucket-rank-1">{keywords.bucket_counts.rank_1 || 0}</p>
+              <p className="text-sm text-muted-foreground mt-1">Ranking #1</p>
             </CardContent>
           </Card>
           <Card className="bg-semantic-success-soft border-semantic-success-border">
-            <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-semantic-success" data-testid="bucket-top-3">{keywords.bucket_counts.top_3}</p>
-              <p className="text-sm text-muted-foreground">Top 3</p>
+            <CardContent className="p-5 flex flex-col items-center justify-center min-h-[100px]">
+              <p className="text-3xl font-bold text-semantic-success" data-testid="bucket-top-3">{keywords.bucket_counts.top_3}</p>
+              <p className="text-sm text-muted-foreground mt-1">Top 3</p>
             </CardContent>
           </Card>
           <Card className="bg-semantic-info-soft border-semantic-info-border">
-            <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-semantic-info" data-testid="bucket-top-10">{topTenCount}</p>
-              <p className="text-sm text-muted-foreground">Top 10</p>
+            <CardContent className="p-5 flex flex-col items-center justify-center min-h-[100px]">
+              <p className="text-3xl font-bold text-semantic-info" data-testid="bucket-top-10">{topTenCount}</p>
+              <p className="text-sm text-muted-foreground mt-1">Top 10</p>
             </CardContent>
           </Card>
           <Card className="bg-semantic-warning-soft border-semantic-warning-border">
-            <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-semantic-warning" data-testid="bucket-11-30">{keywords.bucket_counts["11_30"]}</p>
-              <p className="text-sm text-muted-foreground">Pos 11-30</p>
+            <CardContent className="p-5 flex flex-col items-center justify-center min-h-[100px]">
+              <p className="text-3xl font-bold text-semantic-warning" data-testid="bucket-11-30">{keywords.bucket_counts["11_30"]}</p>
+              <p className="text-sm text-muted-foreground mt-1">Pos 11-30</p>
             </CardContent>
           </Card>
-          <Card className="bg-red-50 border-red-300 ring-2 ring-red-200">
-            <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-red-600" data-testid="bucket-not-ranking">{keywords.bucket_counts.not_ranking}</p>
-              <p className="text-sm font-semibold text-red-600">Not Ranking</p>
-              <p className="text-xs text-red-500 mt-1">Biggest Opportunity</p>
+          <Card className="bg-red-50/60 border-red-200 ring-1 ring-red-100">
+            <CardContent className="p-5 flex flex-col items-center justify-center min-h-[100px]">
+              <p className="text-3xl font-bold text-red-600" data-testid="bucket-not-ranking">{keywords.bucket_counts.not_ranking}</p>
+              <p className="text-sm font-medium text-red-600 mt-1">Not Ranking</p>
+              <p className="text-xs text-red-400 mt-0.5">Biggest Opportunity</p>
             </CardContent>
           </Card>
         </div>
@@ -1287,9 +1358,9 @@ export default function FreeReport() {
 
   return (
     <MarketingLayout>
-      <div className="container mx-auto px-4 md:px-6 py-8 md:py-12 max-w-5xl" id="arclo-report">
+      <div className="container mx-auto px-4 md:px-6 py-6 max-w-5xl" id="arclo-report">
         {/* Arclo-branded report header */}
-        <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-violet-600 via-pink-500 to-amber-500 text-white">
+        <div className="mb-6 p-5 rounded-2xl bg-gradient-to-r from-violet-600 via-pink-500 to-amber-500 text-white">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="flex items-center gap-3">
               <svg width="36" height="36" viewBox="0 0 48 48" aria-hidden="true">
@@ -1306,8 +1377,8 @@ export default function FreeReport() {
             </div>
             <div className="flex gap-2 flex-wrap">
               <Button
-                variant="secondary"
                 size="sm"
+                className="bg-white/20 hover:bg-white/30 text-white border-0"
                 onClick={() => window.print()}
                 data-testid="btn-download-pdf"
               >
@@ -1316,8 +1387,8 @@ export default function FreeReport() {
               </Button>
               {!shareToken && (
                 <Button
-                  variant="secondary"
                   size="sm"
+                  className="bg-white/20 hover:bg-white/30 text-white border-0"
                   onClick={() => shareMutation.mutate()}
                   disabled={shareMutation.isPending}
                   data-testid="btn-share"
@@ -1337,7 +1408,7 @@ export default function FreeReport() {
         </div>
 
         {shareUrl && (
-          <Card className="mb-8 bg-primary/5 border-primary/20" data-testid="share-url-card">
+          <Card className="mb-6 bg-primary/5 border-primary/20" data-testid="share-url-card">
             <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
               <Info className="w-5 h-5 text-primary shrink-0" />
               <div className="flex-1 min-w-0">
@@ -1367,6 +1438,11 @@ export default function FreeReport() {
           )}
           
           <ExecutiveSummarySection summary={report.summary} />
+
+          <TopCompetitorsBlock
+            competitors={report.competitors}
+            scanId={report.source_scan_id}
+          />
 
           <CompetitorSection
             competitors={report.competitors}

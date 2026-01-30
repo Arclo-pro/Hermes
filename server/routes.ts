@@ -20718,6 +20718,7 @@ Return JSON in this exact format:
         : [
             { domain: `competitor1-${domain.split(".")[0]}.com`, keywordCount: 0, positions: [], examplePages: [] },
             { domain: `competitor2-${domain.split(".")[0]}.com`, keywordCount: 0, positions: [], examplePages: [] },
+            { domain: `competitor3-${domain.split(".")[0]}.com`, keywordCount: 0, positions: [], examplePages: [] },
           ];
 
       const competitors = transformToCompetitors(competitorData, { domain });
