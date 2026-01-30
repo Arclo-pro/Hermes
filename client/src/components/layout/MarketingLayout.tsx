@@ -110,11 +110,12 @@ export function MarketingLayout({ children }: MarketingLayoutProps) {
               </BrandButton>
             </Link>
             <Link href={ROUTES.SCAN} className="hidden md:block">
-              <Button 
-                size="sm" 
-                className="gap-2 text-white font-medium"
+              <Button
+                size="sm"
+                className="gap-2 font-medium"
                 style={{
-                  background: "linear-gradient(135deg, #8B5CF6, #EC4899, #F59E0B)"
+                  background: "linear-gradient(135deg, #8B5CF6, #EC4899, #F59E0B)",
+                  color: "#FFFFFF",
                 }}
                 data-testid="button-analyze-site"
               >
@@ -173,11 +174,12 @@ export function MarketingLayout({ children }: MarketingLayoutProps) {
                 </BrandButton>
               </Link>
               <Link href={ROUTES.SCAN} onClick={closeMobileMenu}>
-                <Button 
-                  size="lg" 
-                  className="w-full gap-2 text-white font-medium"
+                <Button
+                  size="lg"
+                  className="w-full gap-2 font-medium"
                   style={{
-                    background: "linear-gradient(135deg, #8B5CF6, #EC4899, #F59E0B)"
+                    background: "linear-gradient(135deg, #8B5CF6, #EC4899, #F59E0B)",
+                    color: "#FFFFFF",
                   }}
                   data-testid="mobile-button-analyze-site"
                 >

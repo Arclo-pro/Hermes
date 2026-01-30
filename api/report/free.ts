@@ -162,11 +162,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           example_pages: [] as string[],
           notes: `Appears in ${overlapCount} of your keyword SERPs.`,
         }))
-      : [
-          { domain: `competitor1-${baseName}.com`, visibility_index: 0, keyword_overlap_count: 0, example_pages: [] as string[], notes: "Competitor data requires SERP API integration." },
-          { domain: `competitor2-${baseName}.com`, visibility_index: 0, keyword_overlap_count: 0, example_pages: [] as string[], notes: "Competitor data requires SERP API integration." },
-          { domain: `competitor3-${baseName}.com`, visibility_index: 0, keyword_overlap_count: 0, example_pages: [] as string[], notes: "Competitor data requires SERP API integration." },
-        ];
+      : [];
 
     // Summary — match client IssueOpportunity interface: { title, explanation, severity, impact, mapped_section }
     const healthScore = scoreSummary.overall ?? 65;
@@ -245,6 +241,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       extracted_services: extractedServices,
       keyword_list_used: keywordListUsed,
       serviceDetectionWarning: fullReport.serviceDetectionWarning || false,
+      scan_mode: fullReport.scan_mode || "light",
+      ai_search: fullReport.ai_search || null,
     };
 
     const visMode = fullReport.visibilityMode || "full";

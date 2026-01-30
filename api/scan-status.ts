@@ -8,6 +8,14 @@ function setCorsHeaders(res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
 
+const AGENT_LABELS: Record<string, string> = {
+  technical_crawl: "Scanning homepage...",
+  cwv: "Running performance analysis...",
+  serp: "Checking SERP rankings...",
+  competitive: "Analyzing competitors...",
+  atlas_ai: "Evaluating AI search readiness...",
+};
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     setCorsHeaders(res);
@@ -34,20 +42,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const scan = result.rows[0];
     let progress = 0;
     let message = "Starting scan...";
+    let agents: { agent_step: string; status: string; duration_ms: number | null }[] = [];
 
     if (scan.status === "queued") {
       progress = 10; message = "Queued for scanning...";
     } else if (scan.status === "running") {
-      // Infer progress detail from elapsed time (scan runs synchronously in scan.ts)
-      const elapsed = scan.started_at ? Date.now() - new Date(scan.started_at).getTime() : 0;
-      if (elapsed < 5000) {
-        progress = 20; message = "Fetching homepage and scanning services...";
-      } else if (elapsed < 15000) {
-        progress = 40; message = "Building keyword targets from detected services...";
-      } else if (elapsed < 40000) {
-        progress = 60; message = "Checking SERP rankings for your keywords...";
+      // Query real agent_runs for progress
+      const agentResult = await pool.query(
+        `SELECT agent_step, status, duration_ms FROM agent_runs WHERE scan_id = $1 ORDER BY id`,
+        [scanId]
+      );
+      agents = agentResult.rows;
+
+      if (agents.length === 0) {
+        // Agents haven't been created yet — scan just started
+        progress = 10;
+        message = "Initializing scan agents...";
       } else {
-        progress = 80; message = "Running performance analysis...";
+        const total = agents.length;
+        const completed = agents.filter(a => a.status === "completed" || a.status === "failed" || a.status === "skipped").length;
+        progress = Math.round((completed / total) * 90) + 10; // 10-100 range
+
+        // Find currently running agent for message
+        const running = agents.find(a => a.status === "running");
+        if (running) {
+          message = AGENT_LABELS[running.agent_step] || `Running ${running.agent_step}...`;
+        } else if (completed === total) {
+          progress = 95;
+          message = "Finalizing report...";
+        } else {
+          const pending = agents.find(a => a.status === "pending");
+          if (pending) {
+            message = AGENT_LABELS[pending.agent_step] || `Preparing ${pending.agent_step}...`;
+          }
+        }
       }
     } else if (scan.status === "preview_ready" || scan.status === "completed") {
       progress = 100; message = "Scan complete!";
@@ -55,7 +83,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       progress = 0; message = scan.error_message || "Scan failed";
     }
 
-    return res.json({ scanId: scan.scan_id, status: scan.status, progress, message });
+    return res.json({
+      scanId: scan.scan_id,
+      status: scan.status,
+      progress,
+      message,
+      ...(agents.length > 0 ? { agents } : {}),
+    });
   } catch (error: any) {
     console.error("[ScanStatus] Error:", error?.message);
     if (!res.headersSent) {

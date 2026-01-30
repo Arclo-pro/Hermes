@@ -70,6 +70,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         visibilityMode: report.visibility_mode || "full",
         limitedVisibilityReason: report.limited_visibility_reason || null,
         limitedVisibilitySteps: report.limited_visibility_steps || [],
+        scan_mode: report.meta?.scan_mode || "light",
+        ai_search: report.meta?.ai_search || null,
       },
     });
   } catch (error: any) {

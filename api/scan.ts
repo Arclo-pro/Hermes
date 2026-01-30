@@ -6,6 +6,7 @@ import { buildSerpKeywords, buildFallbackKeywords, type SerpKeyword } from "./_l
 import { runAgent, skipAgent, finalizeAgentSummary } from "./_lib/agentRunner.js";
 import { isNatashaConfigured, runNatashaCompetitors, type NatashaResult } from "./_lib/natashaClient.js";
 import { analyzePageForAtlas, type AtlasResult } from "./_lib/atlasAnalyzer.js";
+import { updateRollup } from "./_lib/rollupAggregator.js";
 
 function setCorsHeaders(res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Credentials", "true");
@@ -486,6 +487,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Finalize agent summary
     await finalizeAgentSummary(scanId, pool);
+
+    // Update rollup aggregation
+    await updateRollup(pool, domain, scanId, scanMode, {
+      overall: scoreSummary.overall,
+      technical: scoreSummary.technical,
+      performance: scoreSummary.performance,
+      serp: scoreSummary.serp,
+      content: scoreSummary.content,
+    });
 
     // Update scan to preview_ready
     await pool.query(

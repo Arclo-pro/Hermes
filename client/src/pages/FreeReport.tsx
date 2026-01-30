@@ -970,6 +970,74 @@ function PerformanceSection({ performance, missingReason }: { performance?: Perf
   );
 }
 
+function AISearchSection({ aiSearch }: { aiSearch: FreeReportData["ai_search"] }) {
+  if (!aiSearch) return null;
+
+  const scoreColor = aiSearch.ai_visibility_score >= 70
+    ? "text-semantic-success"
+    : aiSearch.ai_visibility_score >= 40
+    ? "text-semantic-warning"
+    : "text-semantic-danger";
+
+  return (
+    <section data-testid="section-ai-search" className="space-y-4">
+      <div className="flex items-center gap-3">
+        <Brain className="w-6 h-6 text-primary" />
+        <h2 className="text-2xl font-bold text-foreground">AI Search Readiness</h2>
+        <Badge variant="outline" className="text-xs">Beta</Badge>
+      </div>
+
+      <Card>
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="text-center">
+              <div className={`text-3xl font-bold ${scoreColor}`}>{aiSearch.ai_visibility_score}</div>
+              <div className="text-xs text-muted-foreground mt-1">AI Visibility</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-foreground">{aiSearch.structured_data_coverage}</div>
+              <div className="text-xs text-muted-foreground mt-1">Structured Data</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-foreground">{aiSearch.entity_coverage}</div>
+              <div className="text-xs text-muted-foreground mt-1">Entity Coverage</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-foreground">{aiSearch.llm_answerability}</div>
+              <div className="text-xs text-muted-foreground mt-1">LLM Answerability</div>
+            </div>
+          </div>
+
+          {aiSearch.checklist.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Checklist</h3>
+              {aiSearch.checklist.map((item, i) => (
+                <div key={i} className="flex items-start gap-3 py-2 border-b last:border-0">
+                  {item.status === "pass" ? (
+                    <CheckCircle2 className="w-4 h-4 text-semantic-success mt-0.5 shrink-0" />
+                  ) : item.status === "warning" ? (
+                    <AlertTriangle className="w-4 h-4 text-semantic-warning mt-0.5 shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 text-semantic-danger mt-0.5 shrink-0" />
+                  )}
+                  <div>
+                    <span className="text-sm font-medium">{item.title}</span>
+                    <p className="text-xs text-muted-foreground mt-0.5">{item.detail}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <p className="text-xs text-muted-foreground italic">
+        AI Search Optimization analysis is in beta. Scores reflect homepage-only analysis.
+      </p>
+    </section>
+  );
+}
+
 function NextStepsSection({ nextSteps, onCtaClick, scanId }: { nextSteps: NextSteps; onCtaClick: (cta: CTA) => void; scanId?: string }) {
   return (
     <section data-testid="section-next-steps" className="space-y-4">
@@ -1420,16 +1488,16 @@ export default function FreeReport() {
               </svg>
               <div>
                 <div className="flex items-center gap-2">
-                  <h1 className="text-2xl md:text-3xl font-bold" data-testid="report-title">
+                  <h1 className="text-2xl md:text-3xl font-bold" style={{ color: "#FFFFFF" }} data-testid="report-title">
                     Arclo Pro — Ranking Snapshot
                   </h1>
                   {report.scan_mode === "light" && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-white/20 text-white">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-white/20" style={{ color: "#FFFFFF" }}>
                       Light Scan
                     </span>
                   )}
                 </div>
-                <p className="text-white/80 text-sm mt-1" data-testid="report-url">
+                <p className="text-sm mt-1" style={{ color: "rgba(255,255,255,0.8)" }} data-testid="report-url">
                   {report.inputs?.target_url}
                 </p>
               </div>
@@ -1515,16 +1583,34 @@ export default function FreeReport() {
           />
 
           {report.visibilityMode !== "limited" && (
-            <TechnicalSection
-              technical={report.technical}
-              missingReason={report.meta?.missing?.technical_reason}
-            />
+            <div className="space-y-1">
+              <TechnicalSection
+                technical={report.technical}
+                missingReason={report.meta?.missing?.technical_reason}
+              />
+              {report.scan_mode === "light" && (
+                <p className="text-xs text-muted-foreground italic pl-1">
+                  Light scan — homepage only. Create an account for a full site-wide audit.
+                </p>
+              )}
+            </div>
           )}
 
-          <PerformanceSection
-            performance={report.performance}
-            missingReason={report.meta?.missing?.performance_reason}
-          />
+          <div className="space-y-1">
+            <PerformanceSection
+              performance={report.performance}
+              missingReason={report.meta?.missing?.performance_reason}
+            />
+            {report.scan_mode === "light" && (
+              <p className="text-xs text-muted-foreground italic pl-1">
+                Light scan — homepage only. Upgrade for multi-page performance analysis.
+              </p>
+            )}
+          </div>
+
+          {report.ai_search && (
+            <AISearchSection aiSearch={report.ai_search} />
+          )}
 
           <NextStepsSection nextSteps={report.next_steps} onCtaClick={handleCtaClick} scanId={report.source_scan_id} />
 
