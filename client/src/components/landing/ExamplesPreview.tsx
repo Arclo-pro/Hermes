@@ -2,10 +2,10 @@ import { Link } from "wouter";
 import { ROUTES, buildRoute } from "@shared/routes";
 import { Phone, Star, MapPin, ChevronRight, ExternalLink } from "lucide-react";
 
-import plumbingImage from "@assets/generated_images/plumbing_hero_diverse_female.png";
-import hvacImage from "@assets/generated_images/hvac_hero_diverse_asian_woman.png";
-import dentalImage from "@assets/generated_images/dental_hero_diverse_team.png";
-import landscapingImage from "@assets/generated_images/landscaping_hero_diverse_latino.png";
+import plumbingImage from "@assets/generated_images/plumbing_hero_diverse_female.webp";
+import hvacImage from "@assets/generated_images/hvac_hero_diverse_asian_woman.webp";
+import dentalImage from "@assets/generated_images/dental_hero_diverse_team.webp";
+import landscapingImage from "@assets/generated_images/landscaping_hero_diverse_latino.webp";
 
 const EXAMPLES = [
   {
@@ -98,6 +98,9 @@ function MiniSitePreview({ example }: { example: typeof EXAMPLES[number] }) {
               src={example.image}
               alt={`${example.business} website preview`}
               loading="lazy"
+              width={600}
+              height={400}
+              decoding="async"
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-black/30" />

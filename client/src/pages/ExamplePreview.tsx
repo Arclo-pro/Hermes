@@ -5,14 +5,14 @@ import { SEOHead } from "@/components/marketing/SEOHead";
 import { ROUTES } from "@shared/routes";
 import { ArrowLeft, Phone, MapPin, Clock, Star, Sparkles, ChevronRight, Mail, Shield, CheckCircle2 } from "lucide-react";
 
-import plumbingImage from "@assets/generated_images/plumbing_hero_diverse_female.png";
-import hvacImage from "@assets/generated_images/hvac_hero_diverse_asian_woman.png";
-import dentalImage from "@assets/generated_images/dental_hero_diverse_team.png";
-import landscapingImage from "@assets/generated_images/landscaping_hero_diverse_latino.png";
-import electricalImage from "@assets/generated_images/electrician_hero_diverse_black_woman.png";
-import autoImage from "@assets/generated_images/auto_mechanic_hero_diverse_middle_eastern.png";
-import roofingImage from "@assets/generated_images/roofing_hero_diverse_asian_male.png";
-import contractorImage from "@assets/generated_images/contractor_hero_diverse_hispanic_woman.png";
+import plumbingImage from "@assets/generated_images/plumbing_hero_diverse_female.webp";
+import hvacImage from "@assets/generated_images/hvac_hero_diverse_asian_woman.webp";
+import dentalImage from "@assets/generated_images/dental_hero_diverse_team.webp";
+import landscapingImage from "@assets/generated_images/landscaping_hero_diverse_latino.webp";
+import electricalImage from "@assets/generated_images/electrician_hero_diverse_black_woman.webp";
+import autoImage from "@assets/generated_images/auto_mechanic_hero_diverse_middle_eastern.webp";
+import roofingImage from "@assets/generated_images/roofing_hero_diverse_asian_male.webp";
+import contractorImage from "@assets/generated_images/contractor_hero_diverse_hispanic_woman.webp";
 
 const EXAMPLES: Record<string, {
   id: string;
@@ -281,6 +281,10 @@ export default function ExamplePreview() {
             <img
               src={example.image}
               alt={`${example.business} hero`}
+              width={1200}
+              height={800}
+              fetchPriority="high"
+              decoding="async"
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/65 to-black/40" />

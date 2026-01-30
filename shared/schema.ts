@@ -3410,3 +3410,463 @@ export const insertSiteGoogleCredentialsSchema = createInsertSchema(siteGoogleCr
 });
 export type InsertSiteGoogleCredentials = z.infer<typeof insertSiteGoogleCredentialsSchema>;
 export type SiteGoogleCredentials = typeof siteGoogleCredentials.$inferSelect;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Step 9 tables (previously in schema-step9-additions.ts)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Core websites table
+export const websites = pgTable("websites", {
+  id: text("id").primaryKey(),
+  domain: text("domain").notNull(),
+  name: text("name"),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }),
+  status: text("status").notNull().default("active"),
+  automationMode: text("automation_mode").notNull().default("observe"),
+  trustLevel: integer("trust_level").notNull().default(1),
+  verificationStatus: text("verification_status").notNull().default("unverified"),
+  verificationMethod: text("verification_method"),
+  gscPropertyUrl: text("gsc_property_url"),
+  ga4PropertyId: text("ga4_property_id"),
+  ga4StreamId: text("ga4_stream_id"),
+  runFrequencyHours: integer("run_frequency_hours").notNull().default(24),
+  maxCrawlDepth: integer("max_crawl_depth").notNull().default(100),
+  maxKeywordsTracked: integer("max_keywords_tracked").notNull().default(50),
+  notificationCadence: text("notification_cadence").notNull().default("weekly"),
+  lastAutoRunAt: timestamp("last_auto_run_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+export const insertWebsiteSchema = createInsertSchema(websites).omit({ createdAt: true, updatedAt: true });
+export type InsertWebsite = z.infer<typeof insertWebsiteSchema>;
+export type Website = typeof websites.$inferSelect;
+
+// Website policies
+export const websitePolicies = pgTable("website_policies", {
+  id: serial("id").primaryKey(),
+  websiteId: text("website_id").notNull(),
+  canAutoFixTechnical: boolean("can_auto_fix_technical").notNull().default(false),
+  canAutoPublishContent: boolean("can_auto_publish_content").notNull().default(false),
+  canAutoUpdateContent: boolean("can_auto_update_content").notNull().default(false),
+  canAutoOptimizeImages: boolean("can_auto_optimize_images").notNull().default(false),
+  canAutoUpdateCode: boolean("can_auto_update_code").notNull().default(false),
+  maxAutoRiskLevel: integer("max_auto_risk_level").notNull().default(3),
+  blockedPaths: jsonb("blocked_paths").$type<string[]>().default([]),
+  blockedFileTypes: jsonb("blocked_file_types").$type<string[]>().default([]),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+export const insertWebsitePolicySchema = createInsertSchema(websitePolicies).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertWebsitePolicy = z.infer<typeof insertWebsitePolicySchema>;
+export type WebsitePolicy = typeof websitePolicies.$inferSelect;
+
+// Website settings
+export const websiteSettings = pgTable("website_settings", {
+  id: serial("id").primaryKey(),
+  websiteId: text("website_id").notNull(),
+  settings: jsonb("settings").$type<Record<string, any>>().default({}),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+export type WebsiteSettings = typeof websiteSettings.$inferSelect;
+
+// Website verifications
+export const websiteVerifications = pgTable("website_verifications", {
+  id: serial("id").primaryKey(),
+  websiteId: text("website_id").notNull(),
+  method: text("method").notNull(),
+  token: text("token").notNull(),
+  verified: boolean("verified").notNull().default(false),
+  verifiedAt: timestamp("verified_at"),
+  expiresAt: timestamp("expires_at"),
+  metadata: jsonb("metadata").$type<Record<string, any>>(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type WebsiteVerification = typeof websiteVerifications.$inferSelect;
+
+// Website trust levels
+export const websiteTrustLevels = pgTable("website_trust_levels", {
+  id: serial("id").primaryKey(),
+  websiteId: text("website_id").notNull(),
+  actionCategory: text("action_category").notNull(),
+  trustLevel: integer("trust_level").notNull().default(1),
+  successCount: integer("success_count").notNull().default(0),
+  failureCount: integer("failure_count").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+export type InsertWebsiteTrustLevel = typeof websiteTrustLevels.$inferInsert;
+export type WebsiteTrustLevel = typeof websiteTrustLevels.$inferSelect;
+
+// Action execution audit
+export const actionExecutionAudit = pgTable("action_execution_audit", {
+  id: serial("id").primaryKey(),
+  websiteId: text("website_id").notNull(),
+  actionCategory: text("action_category").notNull(),
+  actionType: text("action_type").notNull(),
+  riskLevel: integer("risk_level").notNull().default(1),
+  status: text("status").notNull().default("pending"),
+  executedAt: timestamp("executed_at"),
+  result: jsonb("result").$type<Record<string, any>>(),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type InsertActionExecutionAudit = typeof actionExecutionAudit.$inferInsert;
+export type ActionExecutionAudit = typeof actionExecutionAudit.$inferSelect;
+
+// Digest schedule
+export const digestSchedule = pgTable("digest_schedule", {
+  id: serial("id").primaryKey(),
+  websiteId: text("website_id").notNull(),
+  userId: integer("user_id").notNull(),
+  frequency: text("frequency").notNull(),
+  dayOfWeek: integer("day_of_week"),
+  dayOfMonth: integer("day_of_month"),
+  includeOnlyIfChanges: boolean("include_only_if_changes").notNull().default(true),
+  minActionsToSend: integer("min_actions_to_send").notNull().default(1),
+  lastSentAt: timestamp("last_sent_at"),
+  nextScheduledAt: timestamp("next_scheduled_at"),
+  deliveryCount: integer("delivery_count").notNull().default(0),
+  enabled: boolean("enabled").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+export const insertDigestScheduleSchema = createInsertSchema(digestSchedule).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertDigestSchedule = z.infer<typeof insertDigestScheduleSchema>;
+export type DigestSchedule = typeof digestSchedule.$inferSelect;
+
+// Digest history
+export const digestHistory = pgTable("digest_history", {
+  id: serial("id").primaryKey(),
+  digestScheduleId: integer("digest_schedule_id").notNull(),
+  websiteId: text("website_id").notNull(),
+  userId: integer("user_id").notNull(),
+  periodStart: timestamp("period_start").notNull(),
+  periodEnd: timestamp("period_end").notNull(),
+  summaryData: jsonb("summary_data").$type<Record<string, any>>(),
+  sentAt: timestamp("sent_at").notNull(),
+  emailSentTo: text("email_sent_to").notNull(),
+  sendgridMessageId: text("sendgrid_message_id"),
+  opened: boolean("opened").notNull().default(false),
+  clicked: boolean("clicked").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export const insertDigestHistorySchema = createInsertSchema(digestHistory).omit({ id: true, createdAt: true });
+export type InsertDigestHistory = z.infer<typeof insertDigestHistorySchema>;
+export type DigestHistory = typeof digestHistory.$inferSelect;
+
+// First run results
+export const firstRunResults = pgTable("first_run_results", {
+  id: serial("id").primaryKey(),
+  websiteId: text("website_id").notNull().unique(),
+  runId: text("run_id").notNull(),
+  fixesApplied: integer("fixes_applied").notNull().default(0),
+  fixTypes: jsonb("fix_types").$type<string[]>().default([]),
+  fixDetails: jsonb("fix_details").$type<{ type: string; count: number; description: string }[]>(),
+  completedSuccessfully: boolean("completed_successfully").notNull(),
+  durationMs: integer("duration_ms"),
+  userReaction: text("user_reaction"),
+  userReactedAt: timestamp("user_reacted_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type FirstRunResult = typeof firstRunResults.$inferSelect;
+
+// Approval queue
+export const approvalQueue = pgTable("approval_queue", {
+  id: serial("id").primaryKey(),
+  websiteId: text("website_id").notNull(),
+  runId: text("run_id").notNull(),
+  actionType: text("action_type").notNull(),
+  actionCategory: text("action_category").notNull(),
+  riskLevel: integer("risk_level").notNull(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  diffPreview: text("diff_preview"),
+  affectedFiles: jsonb("affected_files").$type<string[]>(),
+  estimatedImpact: text("estimated_impact"),
+  executionPayload: jsonb("execution_payload").$type<Record<string, any>>().notNull(),
+  status: text("status").notNull().default("pending"),
+  decidedAt: timestamp("decided_at"),
+  decidedBy: integer("decided_by"),
+  executedAt: timestamp("executed_at"),
+  executionError: text("execution_error"),
+  userFeedback: text("user_feedback"),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type ApprovalQueue = typeof approvalQueue.$inferSelect;
+
+// Achievement categories constant
+export const ACHIEVEMENT_CATEGORIES: Record<string, { name: string; description: string; icon: string }> = {
+  technical_seo: { name: "Technical SEO", description: "Fix technical issues", icon: "wrench" },
+  content: { name: "Content", description: "Content creation and optimization", icon: "pen" },
+  authority: { name: "Authority", description: "Domain authority building", icon: "shield" },
+  performance: { name: "Performance", description: "Site speed and performance", icon: "zap" },
+  rankings: { name: "Rankings", description: "Keyword ranking improvements", icon: "trending-up" },
+  traffic: { name: "Traffic", description: "Organic traffic growth", icon: "bar-chart" },
+};
+
+// Step 9 enums
+export const AutomationModes = {
+  OBSERVE: "observe",
+  RECOMMEND: "recommend",
+  ASSISTED: "assisted",
+  AUTO: "auto",
+} as const;
+export type AutomationMode = typeof AutomationModes[keyof typeof AutomationModes];
+
+export const VerificationStatuses = {
+  UNVERIFIED: "unverified",
+  DNS_VERIFIED: "dns_verified",
+  FILE_VERIFIED: "file_verified",
+  GSC_VERIFIED: "gsc_verified",
+} as const;
+export type VerificationStatus = typeof VerificationStatuses[keyof typeof VerificationStatuses];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Additional missing table stubs (required for server boot)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const achievementMilestones = pgTable("achievement_milestones", {
+  id: serial("id").primaryKey(),
+  trackId: integer("track_id").notNull(),
+  tier: text("tier").notNull(),
+  label: text("label").notNull(),
+  threshold: integer("threshold").notNull(),
+  reachedAt: timestamp("reached_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type AchievementMilestone = typeof achievementMilestones.$inferSelect;
+
+export const blogPosts = pgTable("blog_posts", {
+  id: serial("id").primaryKey(),
+  websiteId: text("website_id").notNull(),
+  title: text("title").notNull(),
+  slug: text("slug").notNull(),
+  content: text("content"),
+  status: text("status").notNull().default("draft"),
+  publishedAt: timestamp("published_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+export type BlogPost = typeof blogPosts.$inferSelect;
+
+export const usedBlogImages = pgTable("used_blog_images", {
+  id: serial("id").primaryKey(),
+  blogPostId: integer("blog_post_id"),
+  imageUrl: text("image_url").notNull(),
+  altText: text("alt_text"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type UsedBlogImage = typeof usedBlogImages.$inferSelect;
+
+export const conversations = pgTable("conversations", {
+  id: serial("id").primaryKey(),
+  websiteId: text("website_id"),
+  userId: integer("user_id"),
+  title: text("title"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+export type Conversation = typeof conversations.$inferSelect;
+
+export const messages = pgTable("messages", {
+  id: serial("id").primaryKey(),
+  conversationId: integer("conversation_id").notNull(),
+  role: text("role").notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type Message = typeof messages.$inferSelect;
+
+export const websiteJobs = pgTable("website_jobs", {
+  id: serial("id").primaryKey(),
+  websiteId: text("website_id").notNull(),
+  jobType: text("job_type").notNull(),
+  status: text("status").notNull().default("pending"),
+  payload: jsonb("payload").$type<Record<string, any>>(),
+  result: jsonb("result").$type<Record<string, any>>(),
+  errorMessage: text("error_message"),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type WebsiteJob = typeof websiteJobs.$inferSelect;
+
+export const systemConfig = pgTable("system_config", {
+  id: serial("id").primaryKey(),
+  key: text("key").notNull().unique(),
+  value: jsonb("value").$type<any>(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+export type SystemConfig = typeof systemConfig.$inferSelect;
+
+export const systemAuditLog = pgTable("system_audit_log", {
+  id: serial("id").primaryKey(),
+  action: text("action").notNull(),
+  actor: text("actor"),
+  details: jsonb("details").$type<Record<string, any>>(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type SystemAuditLog = typeof systemAuditLog.$inferSelect;
+
+export const schemaMigrations = pgTable("schema_migrations", {
+  id: serial("id").primaryKey(),
+  version: text("version").notNull(),
+  appliedAt: timestamp("applied_at").defaultNow().notNull(),
+});
+export type SchemaMigration = typeof schemaMigrations.$inferSelect;
+
+export const SystemModes = {
+  NORMAL: "normal",
+  MAINTENANCE: "maintenance",
+  EMERGENCY: "emergency",
+} as const;
+export type SystemMode = typeof SystemModes[keyof typeof SystemModes];
+
+// GSC coverage & inspection tables
+export const gscCoverageDaily = pgTable("gsc_coverage_daily", {
+  id: serial("id").primaryKey(),
+  websiteId: text("website_id").notNull(),
+  date: timestamp("date").notNull(),
+  valid: integer("valid").default(0),
+  warning: integer("warning").default(0),
+  error: integer("error").default(0),
+  excluded: integer("excluded").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export const insertGscCoverageDailySchema = createInsertSchema(gscCoverageDaily).omit({ id: true, createdAt: true });
+export type InsertGscCoverageDaily = z.infer<typeof insertGscCoverageDailySchema>;
+
+export const gscUrlInspection = pgTable("gsc_url_inspection", {
+  id: serial("id").primaryKey(),
+  websiteId: text("website_id").notNull(),
+  url: text("url").notNull(),
+  verdict: text("verdict"),
+  crawledAs: text("crawled_as"),
+  indexingState: text("indexing_state"),
+  inspectedAt: timestamp("inspected_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export const insertGscUrlInspectionSchema = createInsertSchema(gscUrlInspection).omit({ id: true, createdAt: true });
+export type InsertGscUrlInspection = z.infer<typeof insertGscUrlInspectionSchema>;
+
+export const robotsTxtChecks = pgTable("robots_txt_checks", {
+  id: serial("id").primaryKey(),
+  websiteId: text("website_id").notNull(),
+  url: text("url").notNull(),
+  isBlocked: boolean("is_blocked").notNull().default(false),
+  reason: text("reason"),
+  checkedAt: timestamp("checked_at").defaultNow().notNull(),
+});
+export const insertRobotsTxtCheckSchema = createInsertSchema(robotsTxtChecks).omit({ id: true });
+export type InsertRobotsTxtCheck = z.infer<typeof insertRobotsTxtCheckSchema>;
+export type RobotsTxtCheck = typeof robotsTxtChecks.$inferSelect;
+
+// Additional types from gsc tables
+export type GscCoverageDaily = typeof gscCoverageDaily.$inferSelect;
+export type GscUrlInspection = typeof gscUrlInspection.$inferSelect;
+export const gscUrlInspections = gscUrlInspection; // alias
+
+// Achievement milestone insert type
+export const insertAchievementMilestoneSchema = createInsertSchema(achievementMilestones).omit({ id: true, createdAt: true });
+export type InsertAchievementMilestone = z.infer<typeof insertAchievementMilestoneSchema>;
+
+// Website settings insert type
+export const insertWebsiteSettingsSchema = createInsertSchema(websiteSettings).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertWebsiteSettings = z.infer<typeof insertWebsiteSettingsSchema>;
+
+// Website verification insert type
+export const insertWebsiteVerificationSchema = createInsertSchema(websiteVerifications).omit({ id: true, createdAt: true });
+export type InsertWebsiteVerification = z.infer<typeof insertWebsiteVerificationSchema>;
+
+// Approval queue insert type
+export const insertApprovalQueueSchema = createInsertSchema(approvalQueue).omit({ id: true, createdAt: true });
+export type InsertApprovalQueue = z.infer<typeof insertApprovalQueueSchema>;
+
+// Run errors table
+export const runErrors = pgTable("run_errors", {
+  id: serial("id").primaryKey(),
+  websiteId: text("website_id").notNull(),
+  runId: text("run_id").notNull(),
+  service: text("service").notNull(),
+  errorType: text("error_type").notNull(),
+  errorMessage: text("error_message").notNull(),
+  errorStack: text("error_stack"),
+  retryCount: integer("retry_count").notNull().default(0),
+  maxRetries: integer("max_retries").notNull().default(3),
+  nextRetryAt: timestamp("next_retry_at"),
+  retryStrategy: text("retry_strategy").default("exponential_backoff"),
+  resolved: boolean("resolved").notNull().default(false),
+  resolvedAt: timestamp("resolved_at"),
+  resolution: text("resolution"),
+  userNotified: boolean("user_notified").notNull().default(false),
+  escalated: boolean("escalated").notNull().default(false),
+  escalatedAt: timestamp("escalated_at"),
+  context: jsonb("context").$type<Record<string, any>>(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export const insertRunErrorSchema = createInsertSchema(runErrors).omit({ id: true, createdAt: true });
+export type InsertRunError = z.infer<typeof insertRunErrorSchema>;
+export type RunError = typeof runErrors.$inferSelect;
+
+// Action risk registry
+export const actionRiskRegistry = pgTable("action_risk_registry", {
+  id: serial("id").primaryKey(),
+  actionType: text("action_type").notNull().unique(),
+  category: text("category").notNull(),
+  defaultRiskLevel: integer("default_risk_level").notNull().default(5),
+  description: text("description"),
+  reversible: boolean("reversible").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export const insertActionRiskRegistrySchema = createInsertSchema(actionRiskRegistry).omit({ id: true, createdAt: true });
+export type InsertActionRiskRegistry = z.infer<typeof insertActionRiskRegistrySchema>;
+export type ActionRiskRegistry = typeof actionRiskRegistry.$inferSelect;
+
+// Interventions table
+export const interventions = pgTable("interventions", {
+  id: serial("id").primaryKey(),
+  websiteId: text("website_id").notNull(),
+  runId: text("run_id"),
+  type: text("type").notNull(),
+  status: text("status").notNull().default("pending"),
+  payload: jsonb("payload").$type<Record<string, any>>(),
+  result: jsonb("result").$type<Record<string, any>>(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+export const insertInterventionSchema = createInsertSchema(interventions).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertIntervention = z.infer<typeof insertInterventionSchema>;
+export type Intervention = typeof interventions.$inferSelect;
+
+// Manual action checks
+export const manualActionChecks = pgTable("manual_action_checks", {
+  id: serial("id").primaryKey(),
+  websiteId: text("website_id").notNull(),
+  checkDate: timestamp("check_date").defaultNow().notNull(),
+  hasManualAction: boolean("has_manual_action").notNull().default(false),
+  actionType: text("action_type"),
+  details: jsonb("details").$type<Record<string, any>>(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export const insertManualActionCheckSchema = createInsertSchema(manualActionChecks).omit({ id: true, createdAt: true });
+export type InsertManualActionCheck = z.infer<typeof insertManualActionCheckSchema>;
+export type ManualActionCheck = typeof manualActionChecks.$inferSelect;
+
+// Verification methods constant
+export const VerificationMethods = {
+  DNS_TXT: "dns_txt",
+  META_TAG: "meta_tag",
+  FILE_UPLOAD: "file_upload",
+  GSC_PROPERTY: "gsc_property",
+} as const;
+export type VerificationMethod = typeof VerificationMethods[keyof typeof VerificationMethods];
+
+// Website statuses
+export const WebsiteStatuses = {
+  ACTIVE: "active",
+  PAUSED: "paused",
+  DELETED: "deleted",
+} as const;
+export type WebsiteStatusType = typeof WebsiteStatuses[keyof typeof WebsiteStatuses];

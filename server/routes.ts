@@ -20537,14 +20537,24 @@ Return JSON in this exact format:
 
       const previewFindings = scan.preview_findings || [];
       const scoreSummary = scan.score_summary || {};
-
-      const crawlFindings = previewFindings.map((f: any) => ({
-        category: f.category || "errors",
-        severity: f.severity || "medium",
-        title: f.title || f.issue || "Unknown issue",
-        description: f.description || f.detail,
-        evidence: f.evidence || [],
-      }));
+      const fullReport = scan.full_report || {};
+      // Use real crawler findings from full_report.technical if available, falling back to preview_findings
+      const rawCrawlerFindings = fullReport.technical?.findings || [];
+      const crawlFindings = rawCrawlerFindings.length > 0
+        ? rawCrawlerFindings.map((f: any) => ({
+            category: f.category || "errors",
+            severity: f.severity || "medium",
+            title: f.ruleId || f.title || "Unknown issue",
+            description: f.summary || f.description || f.detail,
+            evidence: f.evidence ? [f.evidence] : [],
+          }))
+        : previewFindings.map((f: any) => ({
+            category: f.category || "errors",
+            severity: f.severity || "medium",
+            title: f.title || f.issue || "Unknown issue",
+            description: f.description || f.detail,
+            evidence: f.evidence || [],
+          }));
 
       const technical = transformToTechnical(crawlFindings);
       const allTechnicalFindings = technical.buckets.flatMap(b => b.findings);
@@ -20567,8 +20577,28 @@ Return JSON in this exact format:
       };
 
       let performanceUrls: PerformanceUrlEntry[] = [];
-      
-      if (performanceFindings.length > 0) {
+
+      // Try to use real CWV data from scan's full_report
+      const cwvFromScan = fullReport.performance || {};
+      if (cwvFromScan.ok && cwvFromScan.lab) {
+        const lcpMs = cwvFromScan.lab?.lcp_ms;
+        const cls = cwvFromScan.lab?.cls;
+        const lcpStatus: "good" | "needs_work" | "poor" =
+          lcpMs && lcpMs > 4000 ? "poor" : lcpMs && lcpMs > 2500 ? "needs_work" : "good";
+        const clsStatus: "good" | "needs_work" | "poor" =
+          cls !== null && cls > 0.25 ? "poor" : cls !== null && cls > 0.1 ? "needs_work" : "good";
+        const overall: "good" | "needs_attention" | "critical" =
+          lcpStatus === "poor" || clsStatus === "poor" ? "critical" :
+          lcpStatus === "needs_work" || clsStatus === "needs_work" ? "needs_attention" : "good";
+
+        performanceUrls = [{
+          url: cwvFromScan.url || scan.normalized_url || scan.target_url,
+          lcp_status: lcpStatus,
+          cls_status: clsStatus,
+          inp_status: "not_available",
+          overall,
+        }];
+      } else if (performanceFindings.length > 0) {
         performanceUrls = performanceFindings.slice(0, 5).map((f: any) => {
           const severity = f.severity || "medium";
           const lcpStatus: "good" | "needs_work" | "poor" = 
@@ -20608,33 +20638,34 @@ Return JSON in this exact format:
         global_insight: performanceInsight,
       };
 
-      // Fetch real data from SERP worker service
-      const { serpWorkerClient } = await import("./connectors/serpWorker");
-      let serpKeywords: any[] = [];
+      // Use SERP data from the scan's full_report (already collected during scan)
+      const serpFromScan = fullReport.serp || {};
+      let serpKeywords: any[] = serpFromScan.rankings || [];
       let serpCompetitors: any[] = [];
-      let serpInitialized = false;
-      
-      try {
-        serpInitialized = await serpWorkerClient.init();
-        if (serpInitialized) {
-          // Fetch real keyword data from SERP service
-          const keywordsResponse = await serpWorkerClient.getKeywords(domain) as any;
-          // Handle both array and wrapped object responses
-          serpKeywords = Array.isArray(keywordsResponse) 
-            ? keywordsResponse 
-            : (keywordsResponse?.keywords || keywordsResponse?.data || []);
-          
-          // Fetch real competitor data from SERP service
-          const competitorsResponse = await serpWorkerClient.getCompetitors(domain) as any;
-          // Handle both array and wrapped object responses
-          serpCompetitors = Array.isArray(competitorsResponse) 
-            ? competitorsResponse 
-            : (competitorsResponse?.competitors || competitorsResponse?.data || []);
-          
-          logger.info("FreeReport", `Fetched ${serpKeywords.length} keywords and ${serpCompetitors.length} competitors from SERP worker`);
+
+      // If scan didn't produce SERP data, try the external worker as fallback
+      if (serpKeywords.length === 0) {
+        try {
+          const { serpWorkerClient } = await import("./connectors/serpWorker");
+          const serpInitialized = await serpWorkerClient.init();
+          if (serpInitialized) {
+            const keywordsResponse = await serpWorkerClient.getKeywords(domain) as any;
+            serpKeywords = Array.isArray(keywordsResponse)
+              ? keywordsResponse
+              : (keywordsResponse?.keywords || keywordsResponse?.data || []);
+
+            const competitorsResponse = await serpWorkerClient.getCompetitors(domain) as any;
+            serpCompetitors = Array.isArray(competitorsResponse)
+              ? competitorsResponse
+              : (competitorsResponse?.competitors || competitorsResponse?.data || []);
+
+            logger.info("FreeReport", `Fetched ${serpKeywords.length} keywords and ${serpCompetitors.length} competitors from SERP worker`);
+          }
+        } catch (serpError: any) {
+          logger.warn("FreeReport", `SERP worker fetch failed, using fallback: ${serpError.message}`);
         }
-      } catch (serpError: any) {
-        logger.warn("FreeReport", `SERP worker fetch failed, using fallback: ${serpError.message}`);
+      } else {
+        logger.info("FreeReport", `Using ${serpKeywords.length} keywords from scan data`);
       }
 
       // Transform SERP keywords to the format expected by transformToKeywords
@@ -20690,7 +20721,7 @@ Return JSON in this exact format:
         ? `Found ${validSerpCompetitors.length} competitors ranking for your keywords.`
         : "Competitor analysis requires SERP API integration. This data will be populated when SERP tracking is enabled for your keywords.";
 
-      const baseScore = scoreSummary.overall_score || scoreSummary.overallScore;
+      const baseScore = scoreSummary.overall ?? scoreSummary.overall_score ?? scoreSummary.overallScore;
       const healthScoreFromScan = typeof baseScore === "number" ? baseScore : null;
 
       const summary = transformToSummary(
@@ -20711,20 +20742,25 @@ Return JSON in this exact format:
         summary.health_score
       );
 
-      const meta: { 
-        generation_status: "complete" | "partial"; 
-        missing: Record<string, string>;
-      } = {
+      const meta: Record<string, any> = {
         generation_status: hasRealKeywords && hasRealCompetitors ? "complete" : "partial",
-        missing: hasRealKeywords && hasRealCompetitors 
+        missing: hasRealKeywords && hasRealCompetitors
           ? {}
           : {
               ...(!hasRealKeywords ? { keywords: "Keyword rankings require Search Console integration" } : {}),
               ...(!hasRealCompetitors ? { competitors: "Competitor data requires SERP API integration" } : {}),
             },
+        scores: {
+          overall: scoreSummary.overall ?? null,
+          technical: scoreSummary.technical ?? null,
+          content: scoreSummary.content ?? null,
+          performance: scoreSummary.performance ?? null,
+          serp: scoreSummary.serp ?? null,
+          authority: scoreSummary.authority ?? null,
+        },
+        costOfInaction: scoreSummary.costOfInaction || null,
       };
 
-      const fullReport = scan.full_report || {};
       const scanVisibilityMode = fullReport.visibilityMode || "full";
       const scanLimitedReason = fullReport.limitedVisibilityReason || null;
       const scanLimitedSteps = fullReport.limitedVisibilitySteps || [];

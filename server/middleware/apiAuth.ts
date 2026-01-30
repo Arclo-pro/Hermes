@@ -1,12 +1,14 @@
 import { Request, Response, NextFunction } from "express";
 import { logger } from "../utils/logger";
 
-// Paths that allow fully unauthenticated GET access (health checks only)
+// Paths that allow fully unauthenticated GET access (health checks + public marketing funnel)
 const DASHBOARD_GET_PATHS = [
   "/api/health",
   "/api/system/health",
   "/api/status",
   "/api/auth",
+  "/api/scan",
+  "/api/report/free",
 ];
 
 // Paths that require session OR API key for GET access (dashboard reads)
@@ -52,7 +54,6 @@ const AUTHENTICATED_GET_PATHS = [
   "/api/crews",
   "/api/snapshots",
   "/api/popular",
-  "/api/scan",
 ];
 
 // Paths that allow unauthenticated POST access (only basic safe operations)
@@ -75,6 +76,7 @@ const DASHBOARD_POST_PATHS = [
   "/api/achievements",
   "/api/popular",
   "/api/scan",
+  "/api/report/free",
 ];
 
 // Paths that allow same-origin POST access (UI actions, protected by origin check)

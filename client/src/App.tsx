@@ -10,63 +10,66 @@ import { SiteProvider } from "@/hooks/useSiteContext";
 import { AuthProvider } from "@/hooks/useAuth";
 import AppShell from "@/components/AppShell";
 import NotFound from "@/pages/not-found";
-import Dashboard from "@/pages/Dashboard";
-import Tickets from "@/pages/Tickets";
-import Settings from "@/pages/Settings";
-import Sites from "@/pages/Sites";
-import SiteDetail from "@/pages/SiteDetail";
-import Integrations from "@/pages/Integrations";
-import SuggestedChanges from "@/pages/SuggestedChanges";
-import Authority from "@/pages/Authority";
-import Crew from "@/pages/Crew";
-import AgentDetail from "@/pages/AgentDetail";
-import KeywordRankings from "@/pages/KeywordRankings";
-import Runs from "@/pages/Runs";
-import RunDetail from "@/pages/RunDetail";
-import Audit from "@/pages/Audit";
-import Help from "@/pages/Help";
-import Benchmarks from "@/pages/Benchmarks";
-import CrewPalette from "@/pages/CrewPalette";
-import DevLineage from "@/pages/DevLineage";
-import Speedster from "@/pages/Speedster";
-import Socrates from "@/pages/Socrates";
-import Achievements from "@/pages/Achievements";
-import WebsitesSettings from "@/pages/WebsitesSettings";
-import WebsiteDetail from "@/pages/WebsiteDetail";
-import Terms from "@/pages/Terms";
-import Privacy from "@/pages/Privacy";
-import Landing from "@/pages/Landing";
-import ScanPreview from "@/pages/ScanPreview";
-import Signup from "@/pages/Signup";
-import Login from "@/pages/Login";
-import VerifyEmail from "@/pages/VerifyEmail";
-import ResendVerification from "@/pages/ResendVerification";
-import ForgotPassword from "@/pages/ForgotPassword";
-import ResetPassword from "@/pages/ResetPassword";
-import HowItWorks from "@/pages/HowItWorks";
-import UseCases from "@/pages/UseCases";
-import Pricing from "@/pages/Pricing";
-import CreateSite from "@/pages/CreateSite";
-import WebsiteGenerator from "@/pages/WebsiteGenerator";
-import SitePreview from "@/pages/SitePreview";
-import Report from "@/pages/Report";
-import FreeReport from "@/pages/FreeReport";
-import ManagedSite from "@/pages/ManagedSite";
-import SelectSite from "@/pages/SelectSite";
-import Examples from "@/pages/Examples";
-import ExamplePreview from "@/pages/ExamplePreview";
-import SharedReport from "@/pages/SharedReport";
-import Contact from "@/pages/Contact";
-import WebsiteRegistry from "@/pages/WebsiteRegistry";
-import WebsiteRegistryDetail from "@/pages/WebsiteRegistryDetail";
-import Notifications from "@/pages/Notifications";
-import WebsiteReportPage from "@/pages/WebsiteReportPage";
-import DeveloperReportPage from "@/pages/DeveloperReportPage";
-import SettingsIntegrations from "@/pages/SettingsIntegrations";
 import { ROUTES, buildRoute, resolveAgentSlug } from "@shared/routes";
 import { useRoute } from "wouter";
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { useLocation } from "wouter";
+
+// Landing page loaded eagerly (critical for LCP)
+import Landing from "@/pages/Landing";
+
+// Lazy-load all other pages for code splitting
+const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const Tickets = lazy(() => import("@/pages/Tickets"));
+const Settings = lazy(() => import("@/pages/Settings"));
+const SiteDetail = lazy(() => import("@/pages/SiteDetail"));
+const Integrations = lazy(() => import("@/pages/Integrations"));
+const SuggestedChanges = lazy(() => import("@/pages/SuggestedChanges"));
+const Authority = lazy(() => import("@/pages/Authority"));
+const Crew = lazy(() => import("@/pages/Crew"));
+const AgentDetail = lazy(() => import("@/pages/AgentDetail"));
+const KeywordRankings = lazy(() => import("@/pages/KeywordRankings"));
+const Runs = lazy(() => import("@/pages/Runs"));
+const RunDetail = lazy(() => import("@/pages/RunDetail"));
+const Audit = lazy(() => import("@/pages/Audit"));
+const Help = lazy(() => import("@/pages/Help"));
+const Benchmarks = lazy(() => import("@/pages/Benchmarks"));
+const CrewPalette = lazy(() => import("@/pages/CrewPalette"));
+const DevLineage = lazy(() => import("@/pages/DevLineage"));
+const Speedster = lazy(() => import("@/pages/Speedster"));
+const Socrates = lazy(() => import("@/pages/Socrates"));
+const Achievements = lazy(() => import("@/pages/Achievements"));
+const WebsitesSettings = lazy(() => import("@/pages/WebsitesSettings"));
+const WebsiteDetail = lazy(() => import("@/pages/WebsiteDetail"));
+const Terms = lazy(() => import("@/pages/Terms"));
+const Privacy = lazy(() => import("@/pages/Privacy"));
+const ScanPreview = lazy(() => import("@/pages/ScanPreview"));
+const Signup = lazy(() => import("@/pages/Signup"));
+const Login = lazy(() => import("@/pages/Login"));
+const VerifyEmail = lazy(() => import("@/pages/VerifyEmail"));
+const ResendVerification = lazy(() => import("@/pages/ResendVerification"));
+const ForgotPassword = lazy(() => import("@/pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
+const HowItWorks = lazy(() => import("@/pages/HowItWorks"));
+const UseCases = lazy(() => import("@/pages/UseCases"));
+const Pricing = lazy(() => import("@/pages/Pricing"));
+const CreateSite = lazy(() => import("@/pages/CreateSite"));
+const WebsiteGenerator = lazy(() => import("@/pages/WebsiteGenerator"));
+const SitePreview = lazy(() => import("@/pages/SitePreview"));
+const Report = lazy(() => import("@/pages/Report"));
+const FreeReport = lazy(() => import("@/pages/FreeReport"));
+const ManagedSite = lazy(() => import("@/pages/ManagedSite"));
+const SelectSite = lazy(() => import("@/pages/SelectSite"));
+const Examples = lazy(() => import("@/pages/Examples"));
+const ExamplePreview = lazy(() => import("@/pages/ExamplePreview"));
+const SharedReport = lazy(() => import("@/pages/SharedReport"));
+const Contact = lazy(() => import("@/pages/Contact"));
+const WebsiteRegistry = lazy(() => import("@/pages/WebsiteRegistry"));
+const WebsiteRegistryDetail = lazy(() => import("@/pages/WebsiteRegistryDetail"));
+const Notifications = lazy(() => import("@/pages/Notifications"));
+const WebsiteReportPage = lazy(() => import("@/pages/WebsiteReportPage"));
+const DeveloperReportPage = lazy(() => import("@/pages/DeveloperReportPage"));
+const SettingsIntegrations = lazy(() => import("@/pages/SettingsIntegrations"));
 
 const persister = typeof window !== 'undefined' 
   ? createSyncStoragePersister({
@@ -120,7 +123,7 @@ function DebugLocation() {
 function Router() {
   const [location] = useLocation();
   return (
-    <>
+    <Suspense fallback={null}>
     <DebugLocation />
     <Switch location={location}>
       {/* ============================================ */}
@@ -264,7 +267,7 @@ function Router() {
       {/* 404 catch-all */}
       <Route component={NotFound} />
     </Switch>
-    </>
+    </Suspense>
   );
 }
 

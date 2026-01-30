@@ -14,7 +14,7 @@
   letter-spacing: -0.04em;
   margin: 0 0 22px 0;
   color: var(--arclo-text);
-  font-weight: 820;
+  font-weight: 700;
 }
 
 .arclo-h1 .emph{
@@ -31,7 +31,7 @@
   line-height: 1.5;
   max-width: 720px;
   color: var(--arclo-text-2);
-  font-weight: 520;
+  font-weight: 500;
 }
 
 .arclo-steps{
@@ -43,7 +43,7 @@
   flex-wrap: wrap;
   gap: 12px;
   color: var(--arclo-text-2);
-  font-weight: 560;
+  font-weight: 600;
 }
 
 .arclo-steps .step{
@@ -249,7 +249,7 @@
 .arclo-micro{
   margin-top: 12px;
   color: var(--arclo-text-3);
-  font-weight: 560;
+  font-weight: 600;
 }
 
 .arclo-secondary-cta{

@@ -7,14 +7,14 @@ import { ROUTES, buildRoute } from "@shared/routes";
 import { BrandButton } from "@/components/marketing/BrandButton";
 import { Sparkles, Search, Eye } from "lucide-react";
 
-import plumbingImage from "@assets/generated_images/plumbing_hero_diverse_female.png";
-import hvacImage from "@assets/generated_images/hvac_hero_diverse_asian_woman.png";
-import dentalImage from "@assets/generated_images/dental_hero_diverse_team.png";
-import landscapingImage from "@assets/generated_images/landscaping_hero_diverse_latino.png";
-import electricalImage from "@assets/generated_images/electrician_hero_diverse_black_woman.png";
-import autoImage from "@assets/generated_images/auto_mechanic_hero_diverse_middle_eastern.png";
-import roofingImage from "@assets/generated_images/roofing_hero_diverse_asian_male.png";
-import contractorImage from "@assets/generated_images/contractor_hero_diverse_hispanic_woman.png";
+import plumbingImage from "@assets/generated_images/plumbing_hero_diverse_female.webp";
+import hvacImage from "@assets/generated_images/hvac_hero_diverse_asian_woman.webp";
+import dentalImage from "@assets/generated_images/dental_hero_diverse_team.webp";
+import landscapingImage from "@assets/generated_images/landscaping_hero_diverse_latino.webp";
+import electricalImage from "@assets/generated_images/electrician_hero_diverse_black_woman.webp";
+import autoImage from "@assets/generated_images/auto_mechanic_hero_diverse_middle_eastern.webp";
+import roofingImage from "@assets/generated_images/roofing_hero_diverse_asian_male.webp";
+import contractorImage from "@assets/generated_images/contractor_hero_diverse_hispanic_woman.webp";
 
 const EXAMPLES = [
   {
@@ -131,6 +131,9 @@ export default function Examples() {
                       src={example.image}
                       alt={example.altText}
                       loading="lazy"
+                      width={600}
+                      height={400}
+                      decoding="async"
                       className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
