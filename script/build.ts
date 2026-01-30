@@ -44,7 +44,12 @@ async function buildAll() {
     ...Object.keys(pkg.dependencies || {}),
     ...Object.keys(pkg.devDependencies || {}),
   ];
-  const externals = allDeps.filter((dep) => !allowlist.includes(dep));
+  const externals = [
+    ...allDeps.filter((dep) => !allowlist.includes(dep)),
+    // Mark unresolvable workspace/optional packages as external
+    "@arclo/kbase-client",
+    "queue-client",
+  ];
 
   await esbuild({
     entryPoints: ["server/index.ts"],

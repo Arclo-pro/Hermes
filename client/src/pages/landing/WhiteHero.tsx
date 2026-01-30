@@ -290,10 +290,8 @@ export default function WhiteHero() {
           <div className="arclo-micro">Free scan • No credit card • Takes ~60 seconds</div>
 
           <Link href={ROUTES.WEBSITE_GENERATOR} className="arclo-secondary-cta">
-            <BrandButton variant="blue">
-              <Sparkles className="w-4 h-4" />
-              Generate My Site
-            </BrandButton>
+            <Sparkles className="w-4 h-4" />
+            Generate My Site
           </Link>
 
           <div className="arclo-pill-row" aria-label="Trust factors">
