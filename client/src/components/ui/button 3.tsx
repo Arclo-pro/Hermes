@@ -1,6 +1,6 @@
 import React from "react";
 
-type ButtonVariant = "primary" | "primaryGradient" | "secondary" | "ghost" | "danger" | "outline";
+type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 type ButtonSize = "sm" | "md" | "lg";
 
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -32,17 +32,13 @@ export function Button({
 
   const styles: Record<ButtonVariant, string> = {
     primary:
-      "bg-primary text-primary-foreground shadow-card hover:opacity-95 focus:ring-primary/60 focus:ring-offset-background",
-    primaryGradient:
-      "bg-gradient-to-r from-[#15803D] to-[#0EA5E9] text-white shadow-card hover:opacity-90 focus:ring-[#15803D]/50 focus:ring-offset-background",
+      "bg-brand-gradient text-white shadow-card hover:opacity-95 focus:ring-brand-pink/60 focus:ring-offset-surface-primary",
     secondary:
-      "bg-secondary text-foreground shadow-card ring-1 ring-border hover:bg-accent focus:ring-primary/50 focus:ring-offset-background",
+      "bg-surface-primary text-text-primary shadow-card ring-1 ring-surface-border hover:bg-surface-soft focus:ring-brand-orange/50 focus:ring-offset-surface-primary",
     ghost:
-      "text-foreground hover:bg-accent focus:ring-primary/50 focus:ring-offset-background",
+      "text-text-primary hover:bg-surface-soft focus:ring-brand-orange/50 focus:ring-offset-surface-primary",
     danger:
-      "bg-red-600 text-white hover:bg-red-700 focus:ring-red-400/60 focus:ring-offset-background",
-    outline:
-      "bg-transparent text-foreground ring-1 ring-border hover:bg-accent focus:ring-primary/50 focus:ring-offset-background",
+      "bg-red-600 text-white hover:bg-red-700 focus:ring-red-400/60 focus:ring-offset-surface-primary",
   };
 
   return (
