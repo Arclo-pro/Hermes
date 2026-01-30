@@ -20715,11 +20715,7 @@ Return JSON in this exact format:
             positions: c.positions || [],
             examplePages: c.pages || c.urlPatterns || [],
           }))
-        : [
-            { domain: `competitor1-${domain.split(".")[0]}.com`, keywordCount: 0, positions: [], examplePages: [] },
-            { domain: `competitor2-${domain.split(".")[0]}.com`, keywordCount: 0, positions: [], examplePages: [] },
-            { domain: `competitor3-${domain.split(".")[0]}.com`, keywordCount: 0, positions: [], examplePages: [] },
-          ];
+        : [];
 
       const competitors = transformToCompetitors(competitorData, { domain });
       const hasRealCompetitors = validSerpCompetitors.length > 0;

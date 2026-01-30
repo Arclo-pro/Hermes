@@ -221,7 +221,7 @@ export default function ScanPreview() {
         minHeight: "100vh",
         position: "relative",
         overflow: "hidden",
-        background: "linear-gradient(180deg, #EDE9FE 0%, #F3E8FF 25%, #FAF5FF 50%, #F5F3FF 75%, #EDE9FE 100%)",
+        background: "#ffffff",
       }}>
         {/* Decorative bubble elements */}
         <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}>

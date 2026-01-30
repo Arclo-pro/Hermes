@@ -14,7 +14,6 @@ import {
   ChevronDown,
   ChevronUp,
   Printer,
-  ExternalLink,
   Zap,
   TrendingUp,
   TrendingDown,
@@ -418,7 +417,7 @@ function ExecutiveSummarySection({
   const signupUrl = scanId ? `/signup?scanId=${scanId}` : "/signup";
 
   return (
-    <section data-testid="section-executive-summary" className="space-y-6">
+    <section data-testid="section-executive-summary" className="space-y-4">
       <div className="flex items-center gap-3">
         <Gauge className="w-6 h-6 text-primary" />
         <h2 className="text-2xl font-bold text-foreground">Executive Summary</h2>
@@ -487,8 +486,8 @@ function ExecutiveSummarySection({
         </CardContent>
       </Card>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-1 flex flex-col items-center justify-center py-6">
+      <div className="grid lg:grid-cols-3 gap-4">
+        <Card className="lg:col-span-1 flex flex-col items-center justify-center py-4">
           <p className="text-sm text-muted-foreground mb-4">SEO Health Score</p>
           <HealthScoreRing score={summary.health_score} />
         </Card>
@@ -573,7 +572,7 @@ function ExecutiveSummarySection({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid md:grid-cols-3 gap-6 text-center">
+            <div className="grid md:grid-cols-3 gap-4 text-center">
               <div>
                 <Users className="w-6 h-6 mx-auto mb-2 text-semantic-info" />
                 <p className="text-xl font-bold text-foreground" data-testid="opportunity-traffic">
@@ -669,81 +668,6 @@ function TopCompetitorsBlock({
   );
 }
 
-function CompetitorSection({ competitors, missingReason }: { competitors?: CompetitorData; missingReason?: string }) {
-  if (!competitors || !competitors.items?.length) {
-    return (
-      <section data-testid="section-competitors" className="space-y-4">
-        <div className="flex items-center gap-3">
-          <Globe className="w-6 h-6 text-primary" />
-          <h2 className="text-2xl font-bold text-foreground">Competitor Landscape</h2>
-        </div>
-        <Card>
-          <CardContent className="pt-6">
-            <NotAvailableState reason={missingReason} />
-          </CardContent>
-        </Card>
-      </section>
-    );
-  }
-
-  return (
-    <section data-testid="section-competitors" className="space-y-4">
-      <div className="flex items-center gap-3">
-        <Globe className="w-6 h-6 text-primary" />
-        <h2 className="text-2xl font-bold text-foreground">Competitor Landscape</h2>
-      </div>
-
-      {competitors.insight && (
-        <p className="text-muted-foreground bg-muted/50 p-4 rounded-lg" data-testid="competitors-insight">
-          {competitors.insight}
-        </p>
-      )}
-
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {competitors.items.map((comp, idx) => (
-          <Card key={idx} data-testid={`competitor-card-${idx}`}>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <ExternalLink className="w-4 h-4 text-muted-foreground" />
-                {comp.domain}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Visibility Index</span>
-                <span className="font-medium text-foreground">{comp.visibility_index}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Keyword Overlap</span>
-                <span className="font-medium text-foreground">{comp.keyword_overlap_count}</span>
-              </div>
-              {comp.notes && (
-                <p className="text-xs text-muted-foreground pt-2 border-t border-border">{comp.notes}</p>
-              )}
-              {comp.example_pages?.length > 0 && (
-                <div className="pt-2">
-                  <p className="text-xs text-muted-foreground mb-1">Example Pages:</p>
-                  {comp.example_pages.slice(0, 2).map((url, i) => (
-                    <a
-                      key={i}
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-primary hover:underline block truncate"
-                    >
-                      {url}
-                    </a>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 function KeywordSection({ keywords, missingReason }: { keywords?: KeywordData; missingReason?: string }) {
   if (!keywords || !keywords.targets?.length) {
     return (
@@ -776,36 +700,36 @@ function KeywordSection({ keywords, missingReason }: { keywords?: KeywordData; m
       </p>
 
       {keywords.bucket_counts && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <Card className="bg-emerald-50 border-emerald-300">
-            <CardContent className="p-5 flex flex-col items-center justify-center min-h-[100px]">
-              <p className="text-3xl font-bold text-emerald-700" data-testid="bucket-rank-1">{keywords.bucket_counts.rank_1 || 0}</p>
-              <p className="text-sm text-muted-foreground mt-1">Ranking #1</p>
+            <CardContent className="px-3 pt-5 pb-4 flex flex-col items-center justify-center min-h-[90px]">
+              <p className="text-3xl font-bold text-emerald-700 leading-none" data-testid="bucket-rank-1">{keywords.bucket_counts.rank_1 || 0}</p>
+              <p className="text-xs text-emerald-600 mt-2 font-medium">Ranking #1</p>
             </CardContent>
           </Card>
-          <Card className="bg-semantic-success-soft border-semantic-success-border">
-            <CardContent className="p-5 flex flex-col items-center justify-center min-h-[100px]">
-              <p className="text-3xl font-bold text-semantic-success" data-testid="bucket-top-3">{keywords.bucket_counts.top_3}</p>
-              <p className="text-sm text-muted-foreground mt-1">Top 3</p>
+          <Card className="bg-green-50 border-green-200">
+            <CardContent className="px-3 pt-5 pb-4 flex flex-col items-center justify-center min-h-[90px]">
+              <p className="text-3xl font-bold text-green-700 leading-none" data-testid="bucket-top-3">{keywords.bucket_counts.top_3}</p>
+              <p className="text-xs text-green-600 mt-2 font-medium">Top 3</p>
             </CardContent>
           </Card>
-          <Card className="bg-semantic-info-soft border-semantic-info-border">
-            <CardContent className="p-5 flex flex-col items-center justify-center min-h-[100px]">
-              <p className="text-3xl font-bold text-semantic-info" data-testid="bucket-top-10">{topTenCount}</p>
-              <p className="text-sm text-muted-foreground mt-1">Top 10</p>
+          <Card className="bg-blue-50 border-blue-200">
+            <CardContent className="px-3 pt-5 pb-4 flex flex-col items-center justify-center min-h-[90px]">
+              <p className="text-3xl font-bold text-blue-700 leading-none" data-testid="bucket-top-10">{topTenCount}</p>
+              <p className="text-xs text-blue-600 mt-2 font-medium">Top 10</p>
             </CardContent>
           </Card>
-          <Card className="bg-semantic-warning-soft border-semantic-warning-border">
-            <CardContent className="p-5 flex flex-col items-center justify-center min-h-[100px]">
-              <p className="text-3xl font-bold text-semantic-warning" data-testid="bucket-11-30">{keywords.bucket_counts["11_30"]}</p>
-              <p className="text-sm text-muted-foreground mt-1">Pos 11-30</p>
+          <Card className="bg-amber-50 border-amber-200">
+            <CardContent className="px-3 pt-5 pb-4 flex flex-col items-center justify-center min-h-[90px]">
+              <p className="text-3xl font-bold text-amber-700 leading-none" data-testid="bucket-11-30">{keywords.bucket_counts["11_30"]}</p>
+              <p className="text-xs text-amber-600 mt-2 font-medium">Pos 11-30</p>
             </CardContent>
           </Card>
-          <Card className="bg-red-50/60 border-red-200 ring-1 ring-red-100">
-            <CardContent className="p-5 flex flex-col items-center justify-center min-h-[100px]">
-              <p className="text-3xl font-bold text-red-600" data-testid="bucket-not-ranking">{keywords.bucket_counts.not_ranking}</p>
-              <p className="text-sm font-medium text-red-600 mt-1">Not Ranking</p>
-              <p className="text-xs text-red-400 mt-0.5">Biggest Opportunity</p>
+          <Card className="bg-red-50 border-red-200">
+            <CardContent className="px-3 pt-5 pb-4 flex flex-col items-center justify-center min-h-[90px]">
+              <p className="text-3xl font-bold text-red-600 leading-none" data-testid="bucket-not-ranking">{keywords.bucket_counts.not_ranking}</p>
+              <p className="text-xs text-red-600 mt-2 font-medium">Not Ranking</p>
+              <p className="text-[10px] text-red-400 mt-0.5">Biggest Opportunity</p>
             </CardContent>
           </Card>
         </div>
@@ -1039,17 +963,17 @@ function PerformanceSection({ performance, missingReason }: { performance?: Perf
 
 function NextStepsSection({ nextSteps, onCtaClick, scanId }: { nextSteps: NextSteps; onCtaClick: (cta: CTA) => void; scanId?: string }) {
   return (
-    <section data-testid="section-next-steps" className="space-y-6">
+    <section data-testid="section-next-steps" className="space-y-4">
       <div className="flex items-center gap-3">
         <ArrowRight className="w-6 h-6 text-primary" />
         <h2 className="text-2xl font-bold text-foreground">What This Means + Next Steps</h2>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid md:grid-cols-2 gap-4">
         <Card className="bg-semantic-danger-soft border-semantic-danger-border">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2 text-semantic-danger">
-              <TrendingDown className="w-5 h-5" />
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2 text-semantic-danger">
+              <TrendingDown className="w-4 h-4" />
               If You Do Nothing
             </CardTitle>
           </CardHeader>
@@ -1066,9 +990,9 @@ function NextStepsSection({ nextSteps, onCtaClick, scanId }: { nextSteps: NextSt
         </Card>
 
         <Card className="bg-semantic-success-soft border-semantic-success-border">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2 text-semantic-success">
-              <TrendingUp className="w-5 h-5" />
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2 text-semantic-success">
+              <TrendingUp className="w-4 h-4" />
               If You Fix This
             </CardTitle>
           </CardHeader>
@@ -1497,7 +1421,7 @@ export default function FreeReport() {
             <div className="flex gap-2 flex-wrap">
               <Button
                 size="sm"
-                className="bg-white/20 hover:bg-white/30 text-white border-0"
+                className="bg-white text-violet-700 hover:bg-white/90 border-0 font-medium shadow-sm"
                 onClick={() => window.print()}
                 data-testid="btn-download-pdf"
               >
@@ -1507,7 +1431,7 @@ export default function FreeReport() {
               {!shareToken && (
                 <Button
                   size="sm"
-                  className="bg-white/20 hover:bg-white/30 text-white border-0"
+                  className="bg-white text-violet-700 hover:bg-white/90 border-0 font-medium shadow-sm"
                   onClick={() => shareMutation.mutate()}
                   disabled={shareMutation.isPending}
                   data-testid="btn-share"
@@ -1548,7 +1472,7 @@ export default function FreeReport() {
           </Card>
         )}
 
-        <div className="space-y-12">
+        <div className="space-y-6">
           {report.visibilityMode === "limited" && (
             <LimitedVisibilityBanner 
               reason={report.limitedVisibilityReason}
@@ -1567,11 +1491,6 @@ export default function FreeReport() {
           <TopCompetitorsBlock
             competitors={report.competitors}
             scanId={report.source_scan_id}
-          />
-
-          <CompetitorSection
-            competitors={report.competitors}
-            missingReason={report.meta?.missing?.competitors_reason}
           />
 
           <KeywordSection
@@ -1606,7 +1525,7 @@ export default function FreeReport() {
             </p>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               <Card className="border-primary/20 hover:border-primary/40 transition-colors">
-                <CardContent className="pt-6 space-y-2">
+                <CardContent className="pt-4 space-y-1.5">
                   <TrendingUp className="w-8 h-8 text-primary" />
                   <h3 className="font-semibold text-foreground">Automated Ranking Improvement</h3>
                   <p className="text-sm text-muted-foreground">
@@ -1615,7 +1534,7 @@ export default function FreeReport() {
                 </CardContent>
               </Card>
               <Card className="border-primary/20 hover:border-primary/40 transition-colors">
-                <CardContent className="pt-6 space-y-2">
+                <CardContent className="pt-4 space-y-1.5">
                   <BarChart3 className="w-8 h-8 text-primary" />
                   <h3 className="font-semibold text-foreground">Domain Authority Signals</h3>
                   <p className="text-sm text-muted-foreground">
@@ -1624,7 +1543,7 @@ export default function FreeReport() {
                 </CardContent>
               </Card>
               <Card className="border-primary/20 hover:border-primary/40 transition-colors">
-                <CardContent className="pt-6 space-y-2">
+                <CardContent className="pt-4 space-y-1.5">
                   <PenTool className="w-8 h-8 text-primary" />
                   <h3 className="font-semibold text-foreground">Blog Creation</h3>
                   <p className="text-sm text-muted-foreground">
@@ -1633,7 +1552,7 @@ export default function FreeReport() {
                 </CardContent>
               </Card>
               <Card className="border-primary/20 hover:border-primary/40 transition-colors">
-                <CardContent className="pt-6 space-y-2">
+                <CardContent className="pt-4 space-y-1.5">
                   <Layout className="w-8 h-8 text-primary" />
                   <h3 className="font-semibold text-foreground">Web Page Creation</h3>
                   <p className="text-sm text-muted-foreground">
@@ -1642,7 +1561,7 @@ export default function FreeReport() {
                 </CardContent>
               </Card>
               <Card className="border-primary/20 hover:border-primary/40 transition-colors">
-                <CardContent className="pt-6 space-y-2">
+                <CardContent className="pt-4 space-y-1.5">
                   <Brain className="w-8 h-8 text-primary" />
                   <h3 className="font-semibold text-foreground">Learning Model</h3>
                   <p className="text-sm text-muted-foreground">
@@ -1651,7 +1570,7 @@ export default function FreeReport() {
                 </CardContent>
               </Card>
               <Card className="border-primary/20 hover:border-primary/40 transition-colors">
-                <CardContent className="pt-6 space-y-2">
+                <CardContent className="pt-4 space-y-1.5">
                   <ShieldAlert className="w-8 h-8 text-primary" />
                   <h3 className="font-semibold text-foreground">Ranking Decay Detection</h3>
                   <p className="text-sm text-muted-foreground">
@@ -1676,7 +1595,7 @@ export default function FreeReport() {
                 <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
                   <Button
                     size="lg"
-                    className="bg-white text-violet-700 hover:bg-white/90 shadow-lg font-semibold"
+                    className="bg-white text-violet-700 hover:bg-white/90 shadow-lg font-semibold text-base"
                     onClick={() => {
                       const signupUrl = report.source_scan_id
                         ? `/signup?scanId=${report.source_scan_id}`
@@ -1695,7 +1614,7 @@ export default function FreeReport() {
         </div>
 
         {/* Point-in-time snapshot disclaimer + footer */}
-        <div className="mt-12 pt-8 border-t border-border text-center space-y-4">
+        <div className="mt-8 pt-6 border-t border-border text-center space-y-3">
           <div className="bg-muted/50 rounded-lg p-4 max-w-2xl mx-auto" data-testid="snapshot-disclaimer">
             <p className="text-sm text-muted-foreground">
               <span className="font-semibold text-foreground">Point-in-time snapshot.</span>{" "}
@@ -1708,7 +1627,15 @@ export default function FreeReport() {
             Powered by Arclo Pro
             {report.report_version > 1 && ` · Version ${report.report_version}`}
           </p>
-          <Button variant="outline" onClick={() => (window.location.href = "/")}>
+          <Button
+            variant="outline"
+            onClick={() => {
+              const signupUrl = report.source_scan_id
+                ? `/signup?scanId=${report.source_scan_id}`
+                : '/signup';
+              window.location.href = signupUrl;
+            }}
+          >
             Run Another Scan
           </Button>
         </div>
