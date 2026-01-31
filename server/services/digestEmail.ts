@@ -52,7 +52,7 @@ export async function generateDigestData(
   const kbase = getKbaseClient();
 
   // Query KBase for events in this period
-  const events = await kbase.queryEvents({
+  const events = await (kbase as any).queryEvents({
     website_id: websiteId,
     start_time: periodStart.toISOString(),
     end_time: periodEnd.toISOString(),
@@ -128,7 +128,7 @@ async function getTrendData(
   const kbase = getKbaseClient();
 
   // Query for latest metrics
-  const events = await kbase.queryEvents({
+  const events = await (kbase as any).queryEvents({
     website_id: websiteId,
     type: 'metrics',
     start_time: periodStart.toISOString(),

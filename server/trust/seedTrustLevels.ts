@@ -46,7 +46,7 @@ export async function seedTrustLevels(params: SeedTrustParams): Promise<void> {
       lastReviewedAt: null,
     };
 
-    await storage.upsertTrustLevel(trustLevelData);
+    await storage.upsertTrustLevel(trustLevelData as any);
     console.log(`  ✓ Initialized ${category} at Level 0 (Observe Only)`);
   }
 
@@ -184,7 +184,7 @@ export async function seedActionRiskRegistry(): Promise<void> {
 
   for (const action of actions) {
     try {
-      await storage.registerActionRisk(action);
+      await storage.registerActionRisk(action as any);
       console.log(`  ✓ Registered ${action.actionCode}`);
     } catch (error) {
       // Skip if already exists (unique constraint)

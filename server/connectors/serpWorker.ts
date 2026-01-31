@@ -62,9 +62,9 @@ export interface SerpSummary {
 }
 
 export class SerpWorkerClient {
-  private baseUrl: string | null = null;
-  private apiKey: string | null = null;
-  private initialized = false;
+  protected baseUrl: string | null = null;
+  protected apiKey: string | null = null;
+  protected initialized = false;
 
   async init(): Promise<boolean> {
     if (this.initialized) return true;
@@ -94,7 +94,7 @@ export class SerpWorkerClient {
     return this.initialized && !!this.baseUrl;
   }
 
-  private async request<T>(endpoint: string, params?: Record<string, string>): Promise<T> {
+  protected async request<T>(endpoint: string, params?: Record<string, string>): Promise<T> {
     if (!this.baseUrl) {
       throw new Error("SerpWorker not initialized - call init() first");
     }

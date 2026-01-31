@@ -53,7 +53,7 @@ async function testConnection(serviceSlug: string): Promise<TestResult> {
     };
   }
 
-  if (serviceDef.buildState === "planned") {
+  if ((serviceDef.buildState as string) === "planned") {
     return {
       serviceSlug,
       testType: "connection",
@@ -175,7 +175,7 @@ async function testSmoke(serviceSlug: string, siteId?: string): Promise<TestResu
   const startTime = Date.now();
   const serviceDef = servicesCatalog.find(s => s.slug === serviceSlug);
   
-  if (!serviceDef || serviceDef.buildState === "planned") {
+  if (!serviceDef || (serviceDef.buildState as string) === "planned") {
     return {
       serviceSlug,
       testType: "smoke",
@@ -358,6 +358,7 @@ async function createServiceRunFromSmoke(
   await storage.createServiceRun({
     runId,
     serviceId: serviceSlug,
+    serviceName: serviceSlug,
     siteId: siteId || null,
     status: "success",
     startedAt: new Date(),
@@ -366,7 +367,7 @@ async function createServiceRunFromSmoke(
     summary: "QA smoke test",
     metricsJson: smokeData.metrics || {},
     outputsJson: { actualOutputs: Object.keys(smokeData.metrics || {}) },
-  });
+  } as any);
   
   return runId;
 }

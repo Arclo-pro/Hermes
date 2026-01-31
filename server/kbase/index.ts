@@ -64,7 +64,7 @@ export async function synthesizeAndWriteDiagnosis(
 
   return {
     diagnosis,
-    event_id: summaryEvent.id,
+    event_id: summaryEvent.id || '',
   };
 }
 

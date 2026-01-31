@@ -122,13 +122,13 @@ export function CrewMissionStatusWidget({
   const StatusIcon = config.icon;
 
   const hasPerformanceScore = status.performanceScore !== undefined;
-  const scoreValue = status.performanceScore;
-  const scoreColor = scoreValue === null 
-    ? "text-muted-foreground" 
-    : scoreValue >= 90 
-      ? "text-semantic-success" 
-      : scoreValue >= 50 
-        ? "text-gold" 
+  const scoreValue: number | null = status.performanceScore ?? null;
+  const scoreColor = scoreValue === null
+    ? "text-muted-foreground"
+    : scoreValue >= 90
+      ? "text-semantic-success"
+      : scoreValue >= 50
+        ? "text-gold"
         : "text-semantic-danger";
 
   return (

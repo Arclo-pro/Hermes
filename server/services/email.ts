@@ -398,6 +398,29 @@ export async function sendAchievementMilestoneEmail(email: string, data: Achieve
   }
 }
 
+/**
+ * Generic sendEmail utility for arbitrary email content.
+ * Used by error handling and escalation flows.
+ */
+export async function sendEmail(params: { to: string; subject: string; text: string; html: string }): Promise<boolean> {
+  try {
+    const { client, fromEmail } = getSendGridClient();
+    const msg = {
+      to: params.to,
+      from: fromEmail,
+      subject: params.subject,
+      text: params.text,
+      html: params.html,
+    };
+    await client.send(msg);
+    console.log(`[Email] Generic email sent to ${params.to}, subject: ${params.subject}`);
+    return true;
+  } catch (error: any) {
+    console.error('[Email] Failed to send generic email:', error.message);
+    return false;
+  }
+}
+
 interface SignupNotificationData {
   email: string;
   websiteUrl?: string;

@@ -236,7 +236,7 @@ export class GA4Connector {
               { name: 'engagementRate' },
             ],
             orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
-            limit: 20,
+            limit: '20',
           },
         });
 
@@ -278,7 +278,7 @@ export class GA4Connector {
               { name: 'conversions' },
             ],
             orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
-            limit,
+            limit: String(limit),
           },
         });
 
@@ -357,7 +357,7 @@ export class GA4Connector {
               { name: 'conversions' },
             ],
             orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
-            limit,
+            limit: String(limit),
           },
         });
 
@@ -374,7 +374,7 @@ export class GA4Connector {
   }
 
   async getDataByDateRange(startDate: string, endDate: string): Promise<InsertGA4Daily[]> {
-    return storage.getGA4DataByDateRange(startDate, endDate);
+    return storage.getGA4DataByDateRange(startDate, endDate) as any;
   }
 
   async testConnection(): Promise<{ success: boolean; message: string; sampleCount?: number }> {

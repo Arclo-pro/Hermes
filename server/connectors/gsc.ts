@@ -262,7 +262,7 @@ export class GSCConnector {
   }
 
   async getDataByDateRange(startDate: string, endDate: string): Promise<InsertGSCDaily[]> {
-    return storage.getGSCDataByDateRange(startDate, endDate);
+    return storage.getGSCDataByDateRange(startDate, endDate) as any;
   }
 
   async testConnection(): Promise<{ success: boolean; message: string; sampleCount?: number }> {

@@ -273,7 +273,7 @@ async function persistResult(siteId: string, result: RobotsTxtValidationResult):
     disallowedPaths: result.disallowedPaths,
     sitemapUrls: result.sitemapUrls,
     isValid: result.isValid,
-    validationErrors: result.validationErrors,
+    validationErrors: result.validationErrors as any,
     sitemapsMissing: result.sitemapsMissing,
     sitemapsExtra: result.sitemapsExtra,
     blocksImportantPaths: result.blocksImportantPaths,

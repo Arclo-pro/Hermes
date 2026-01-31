@@ -175,8 +175,8 @@ router.get('/websites/:id', async (req, res) => {
     // Get integrations
     const integrations = await db
       .select()
-      .from(websiteIntegrations)
-      .where(eq(websiteIntegrations.websiteId, id));
+      .from(managedWebsiteIntegrations)
+      .where(eq(managedWebsiteIntegrations.websiteId, id));
 
     // Get recent jobs
     const recentJobs = await db

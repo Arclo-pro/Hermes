@@ -97,7 +97,7 @@ export async function getAppliedMigrations(): Promise<Map<string, { checksum: st
 
   const map = new Map<string, { checksum: string | null }>();
   for (const migration of applied) {
-    map.set(migration.version, { checksum: migration.checksum });
+    map.set(migration.version, { checksum: (migration as any).checksum });
   }
 
   return map;
@@ -124,7 +124,7 @@ async function applyMigration(migration: MigrationFile): Promise<MigrationResult
       executionTimeMs,
       checksum: migration.checksum,
       appliedBy: 'migration_runner',
-    });
+    } as any);
 
     logger.info('MigrationRunner', `Migration ${migration.version} applied successfully (${executionTimeMs}ms)`);
 

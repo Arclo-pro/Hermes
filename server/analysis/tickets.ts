@@ -170,7 +170,7 @@ export function generateTicketsFromHypotheses(
     
     const priority = getPriorityForHypothesis(hypothesis.hypothesisKey);
     
-    const affectedCount = hypothesis.evidence[0]?.data?.affectedUrls?.length || 
+    const affectedCount = (hypothesis.evidence[0]?.data as any)?.affectedUrls?.length ||
       (analysis.topLosingPages?.length || 0);
     
     const topCluster = analysis.clusterLosses[0]?.cluster || 'affected pages';

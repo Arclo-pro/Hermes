@@ -15,6 +15,7 @@ export interface WorkerConfig {
   secretName: string | null;
   rawValueType: "json" | "string" | "null";
   parseError: string | null;
+  write_key?: string | null;
 }
 
 export interface ServiceConfigDebug {

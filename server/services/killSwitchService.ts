@@ -43,10 +43,10 @@ async function getConfigValue<T = any>(configKey: string): Promise<T | null> {
   const [config] = await db
     .select()
     .from(systemConfig)
-    .where(eq(systemConfig.configKey, configKey))
+    .where(eq(systemConfig.key, configKey))
     .limit(1);
 
-  return config ? (config.configValue as T) : null;
+  return config ? (config.value as T) : null;
 }
 
 /**
@@ -65,30 +65,31 @@ async function setConfigValue(
   const oldConfig = await db
     .select()
     .from(systemConfig)
-    .where(eq(systemConfig.configKey, configKey))
+    .where(eq(systemConfig.key, configKey))
     .limit(1);
 
-  const oldValue = oldConfig[0]?.configValue ?? null;
+  const oldValue = oldConfig[0]?.value ?? null;
 
   // Update config
   await db
     .update(systemConfig)
     .set({
-      configValue: newValue,
-      updatedBy: triggeredBy,
+      value: newValue,
       updatedAt: new Date(),
     })
-    .where(eq(systemConfig.configKey, configKey));
+    .where(eq(systemConfig.key, configKey));
 
   // Log audit trail
   await db.insert(systemAuditLog).values({
-    actionType,
-    targetType,
-    targetId,
-    oldValue,
-    newValue,
-    reason: reason ?? null,
-    triggeredBy,
+    action: actionType,
+    actor: triggeredBy,
+    details: {
+      targetType,
+      targetId,
+      oldValue,
+      newValue,
+      reason: reason ?? null,
+    },
   });
 }
 

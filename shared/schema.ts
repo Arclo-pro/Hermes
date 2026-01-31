@@ -2417,7 +2417,7 @@ export type InsertWebsiteIntegration = z.infer<typeof insertWebsiteIntegrationSc
 export type WebsiteIntegration = typeof websiteIntegrations.$inferSelect;
 
 export type IntegrationType = typeof integrationTypeEnum[number];
-export type IntegrationStatus = typeof integrationStatusEnum[number];
+export type IntegrationStatusV2 = typeof integrationStatusEnum[number];
 
 export interface GitHubDeployConfig {
   repoUrl: string;
@@ -2590,7 +2590,7 @@ export type FreeReport = typeof freeReports.$inferSelect;
 export type ChangeStatus = 'proposed' | 'queued' | 'applied' | 'rolled_back' | 'skipped';
 export type ChangeType = 'content' | 'technical' | 'performance' | 'config';
 export type ChangeScope = 'single_page' | 'template' | 'sitewide';
-export type RiskLevel = 'low' | 'medium' | 'high';
+export type ChangeRiskLevel = 'low' | 'medium' | 'high';
 export type ChangeTrigger = 'scheduled_run' | 'manual' | 'alert';
 
 // Central Change Log - tracks all proposed/applied/rolled-back changes
@@ -3886,6 +3886,8 @@ export const actionRiskRegistry = pgTable("action_risk_registry", {
   defaultRiskLevel: integer("default_risk_level").notNull().default(5),
   description: text("description"),
   reversible: boolean("reversible").notNull().default(true),
+  minTrustLevel: integer("min_trust_level"),
+  riskLevel: text("risk_level"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 export const insertActionRiskRegistrySchema = createInsertSchema(actionRiskRegistry).omit({ id: true, createdAt: true });

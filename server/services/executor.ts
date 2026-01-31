@@ -63,14 +63,14 @@ export class ExecutorService {
     try {
       // Capture pre-execution metrics
       const metricsBefore = await this.captureMetricsSnapshot(websiteId);
-      await changeLogService.setMetricsBefore(changeId, metricsBefore);
+      await changeLogService.setMetricsBefore(changeId, metricsBefore as any);
 
       // Execute the actual change (placeholder - actual implementation depends on change type)
       await this.performChange(change);
 
       // Capture post-execution metrics
       const metricsAfter = await this.captureMetricsSnapshot(websiteId);
-      await changeLogService.markApplied(changeId, metricsAfter);
+      await changeLogService.markApplied(changeId, metricsAfter as any);
 
       return {
         success: true,
@@ -165,7 +165,7 @@ export class ExecutorService {
       {
         changeType: input.changeType,
         scope: input.scope,
-        affectedUrls: input.affectedUrls,
+        affectedUrls: input.affectedUrls ?? null,
         description: input.description,
       },
       { websiteId: input.websiteId }
@@ -177,7 +177,7 @@ export class ExecutorService {
       {
         changeType: input.changeType,
         scope: input.scope,
-        affectedUrls: input.affectedUrls,
+        affectedUrls: input.affectedUrls ?? null,
       }
     );
 

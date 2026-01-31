@@ -71,7 +71,7 @@ function buildKbEntry(
   attribution: AttributionRecord,
   outcome: OutcomeEventLog,
   actions: AgentActionLog[]
-): InsertSocratesKbEntry {
+): any {
   const actionTypes = [...new Set(actions.map(a => a.actionType))];
   const tags = [
     outcome.metricKey,

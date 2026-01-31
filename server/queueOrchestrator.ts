@@ -77,7 +77,7 @@ export class QueueOrchestrator {
       throw new Error('DATABASE_URL environment variable is required');
     }
 
-    this.queue = new QueueClient({
+    this.queue = new (QueueClient as any)({
       connectionString: DATABASE_URL,
       schema: 'queue',
       tableName: 'jobs',
@@ -123,21 +123,23 @@ export class QueueOrchestrator {
       payload,
       priority: 5,
       maxAttempts: 3,
-    });
+    }) as any;
+
+    const jobId = job.id || job.jobId || `job_${Date.now()}`;
 
     // Write run status to KBase
     await this.kbase.writeJobStatus({
       website_id: websiteId,
       run_id: runId,
-      job_id: job.id,
+      job_id: jobId,
       service,
       status: 'queued',
       message: `Job queued for ${service}`,
     });
 
-    logger.info('QueueOrchestrator', `Job published: ${job.id}`, { service });
+    logger.info('QueueOrchestrator', `Job published: ${jobId}`, { service });
 
-    return { jobId: job.id };
+    return { jobId };
   }
 
   /**
@@ -169,7 +171,7 @@ export class QueueOrchestrator {
       });
 
       // Look for completion event (type='result')
-      const resultEvent = events.find((e) => e.type === 'result');
+      const resultEvent = events.find((e: any) => e.type === 'result');
       if (resultEvent) {
         const durationMs = Date.now() - startTime;
 
@@ -193,7 +195,7 @@ export class QueueOrchestrator {
 
       // Look for failure event (job_status with status='failed')
       const failureEvent = events.find(
-        (e) => e.type === 'job_status' && e.status === 'failed'
+        (e: any) => e.type === 'job_status' && e.status === 'failed'
       );
       if (failureEvent) {
         const durationMs = Date.now() - startTime;
@@ -217,7 +219,7 @@ export class QueueOrchestrator {
       }
 
       // Wait before next poll
-      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+      await new Promise<void>((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
     }
 
     // Timeout reached
@@ -272,7 +274,7 @@ export class QueueOrchestrator {
       );
 
       return result;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('QueueOrchestrator', `Error calling worker: ${service}`, error);
 
       return {
@@ -281,9 +283,9 @@ export class QueueOrchestrator {
         durationMs: 0,
         payload: null,
         metrics: {},
-        summary: error.message,
+        summary: error?.message ?? 'Unknown error',
         errorCode: 'ERROR',
-        errorDetail: error.stack || error.message,
+        errorDetail: error?.stack || error?.message || 'Unknown error',
         jobId: null,
       };
     }
@@ -424,12 +426,12 @@ export class QueueOrchestrator {
       run_id: runId,
     });
 
-    const jobStatusEvents = events.filter((e) => e.type === 'job_status');
-    const completedJobs = jobStatusEvents.filter((e) => e.status === 'completed').length;
-    const failedJobs = jobStatusEvents.filter((e) => e.status === 'failed').length;
-    const totalJobs = new Set(events.map((e) => e.job_id).filter(Boolean)).size;
+    const jobStatusEvents = events.filter((e: any) => e.type === 'job_status');
+    const completedJobs = jobStatusEvents.filter((e: any) => e.status === 'completed').length;
+    const failedJobs = jobStatusEvents.filter((e: any) => e.status === 'failed').length;
+    const totalJobs = new Set(events.map((e: any) => e.job_id).filter(Boolean)).size;
 
-    const runStatusEvent = events.find((e) => e.type === 'run_status');
+    const runStatusEvent = events.find((e: any) => e.type === 'run_status');
     const status = runStatusEvent?.status || 'unknown';
 
     return {

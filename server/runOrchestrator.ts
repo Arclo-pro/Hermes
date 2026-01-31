@@ -109,7 +109,7 @@ export async function startRun(
 
   // Write run_status=start to KBase
   const kbase = getKbaseClient();
-  await kbase.writeEvent({
+  await (kbase as any).writeEvent({
     website_id: websiteId,
     run_id: runId,
     service: 'hermes',
@@ -252,7 +252,7 @@ async function executeService(
       throw new Error(`No service mapping found for worker: ${serviceDef.workerKey}`);
     }
 
-    const config = await resolveWorkerConfig(mapping);
+    const config = await resolveWorkerConfig(mapping as any);
     if (!config.valid) {
       throw new Error(`Worker config invalid: ${config.error}`);
     }
@@ -377,7 +377,8 @@ export async function finalizeRun(context: RunContext): Promise<RunSummary> {
 
   try {
     // Run synthesis to create final diagnosis
-    const diagnosis = await synthesizeAndWriteDiagnosis(context.websiteId, context.runId);
+    const kbase = getKbaseClient();
+    const diagnosis = await synthesizeAndWriteDiagnosis(kbase, { website_id: context.websiteId, run_id: context.runId });
     diagnosisEventId = diagnosis.event_id;
     console.log(`[Run ${context.runId}] ✓ Diagnosis written: event_id=${diagnosisEventId}`);
   } catch (error: any) {
@@ -387,7 +388,7 @@ export async function finalizeRun(context: RunContext): Promise<RunSummary> {
 
   // Write final run_status to KBase
   const kbase = getKbaseClient();
-  await kbase.writeEvent({
+  await (kbase as any).writeEvent({
     website_id: context.websiteId,
     run_id: context.runId,
     service: 'hermes',

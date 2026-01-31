@@ -107,7 +107,7 @@ router.get('/sites/:siteId/notifications/preferences', requireAuth, async (req, 
             deliveryCount: schedule.deliveryCount,
           }
         : null,
-      alertPreferences: schedule?.alertPreferences ?? DEFAULT_ALERT_PREFERENCES,
+      alertPreferences: (schedule as any)?.alertPreferences ?? DEFAULT_ALERT_PREFERENCES,
       digestHistory: history.map(h => ({
         sentAt: h.sentAt.toISOString(),
         opened: h.opened,
@@ -190,7 +190,7 @@ router.put('/sites/:siteId/notifications/preferences', requireAuth, async (req, 
 
     if (updates.alertPreferences) {
       digestUpdates.alertPreferences = {
-        ...(schedule.alertPreferences as Record<string, boolean> ?? DEFAULT_ALERT_PREFERENCES),
+        ...((schedule as any).alertPreferences as Record<string, boolean> ?? DEFAULT_ALERT_PREFERENCES),
         ...updates.alertPreferences,
       };
     }
@@ -248,7 +248,7 @@ router.put('/sites/:siteId/notifications/preferences', requireAuth, async (req, 
         nextScheduledAt: updated.nextScheduledAt?.toISOString() ?? null,
         deliveryCount: updated.deliveryCount,
       },
-      alertPreferences: updated.alertPreferences ?? DEFAULT_ALERT_PREFERENCES,
+      alertPreferences: (updated as any).alertPreferences ?? DEFAULT_ALERT_PREFERENCES,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

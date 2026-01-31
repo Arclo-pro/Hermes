@@ -425,8 +425,7 @@ export async function registerRoutes(
         brandPreference: data.brandPreference,
         domainPreference: data.domainPreference,
         status: "queued",
-        publishedUrl,
-      }).returning({ id: generatedSites.id });
+      } as any).returning({ id: generatedSites.id });
 
       // Enqueue the job for the background worker to process
       const jobId = await enqueueJob("generate_preview_site", siteRecord.id, {
@@ -533,7 +532,7 @@ export async function registerRoutes(
         siteStatus: site.status,
         buildState: site.buildState,
         previewUrl: site.previewUrl,
-        publishedUrl: site.publishedUrl,
+        publishedUrl: (site as any).publishedUrl,
         jobStatus: job?.status ?? null,
         progress: job?.progress ?? 0,
         progressMessage: job?.progressMessage ?? null,
@@ -1198,11 +1197,12 @@ Respond with ONLY valid JSON in this exact format, no other text:
       }
       const gscSite = process.env.GSC_SITE || '';
       await storage.saveManualActionCheck({
-        siteId: siteId || "default",
-        date: new Date().toISOString().split("T")[0],
-        checkType: "manual_actions",
+        websiteId: siteId || "default",
+        checkDate: new Date(),
+        hasManualAction: false,
+        actionType: "manual_actions",
         status,
-        userNotes: notes || null,
+        details: { userNotes: notes || null },
         lastUserConfirmedAt: new Date(),
         gscWebUiLink: gscSite
           ? `https://search.google.com/search-console/manual-actions?resource_id=${encodeURIComponent(gscSite)}`
@@ -1257,7 +1257,7 @@ Respond with ONLY valid JSON in this exact format, no other text:
             crewId,
             status: 'running',
             triggeredBy: 'analyze',
-            inputPayload: { siteId },
+            rawPayload: { siteId },
           });
           
           // For now, mark as success with placeholder KPI
@@ -3312,7 +3312,7 @@ Format your response as JSON with these keys:
         }];
       });
       
-      const score = latestRun?.metricsJson?.score || 
+      const score = (latestRun?.metricsJson as any)?.score ||
         (suggestions.length === 0 ? 0 : 
           suggestions.some(s => s.severity === 'critical') ? 40 :
           suggestions.some(s => s.severity === 'high') ? 60 : 80);
@@ -3507,7 +3507,7 @@ Format your response as JSON with these keys:
       const hemingwayResult = workerResults.find(r => r.workerKey === 'content_generator');
       
       const metricsJson = hemingwayResult?.metricsJson as any || {};
-      const findingsJson = hemingwayResult?.findingsJson as any || {};
+      const findingsJson = (hemingwayResult as any)?.findingsJson as any || {};
       
       // Mock findings fallback matching PageFinding interface
       const mockFindings = [
@@ -4389,8 +4389,8 @@ Format your response as JSON with these keys:
       }
       
       // Get trend data from snapshots
-      const snapshots = await storage.getSnapshotsForSite(siteId, 7);
-      const trends = snapshots.map(s => {
+      const snapshots = await (storage as any).getSnapshotsForSite(siteId, 7);
+      const trends = snapshots.map((s: any) => {
         const payload = s.payload as any || {};
         return {
           date: s.snapshotDate.toISOString().split('T')[0],
@@ -4861,7 +4861,7 @@ Format your response as JSON with these keys:
         agentId,
         enabled: isEnabled,
         lastDiagnostic: diagnostic ? {
-          status: diagnostic.status,
+          status: diagnostic.overallStatus,
           stages: diagnostic.stagesJson,
           durationMs: diagnostic.durationMs,
           createdAt: diagnostic.createdAt,
@@ -5377,7 +5377,7 @@ Format your response as JSON with these keys:
           : { ok: false, error: formatError((adsResult as PromiseRejectedResult).reason, "ads") };
 
         for (const [source, status] of Object.entries(results.sources)) {
-          if (!status.ok) results.issues.push(`${source}: ${status.error}`);
+          if (!(status as any).ok) results.issues.push(`${source}: ${(status as any).error}`);
         }
       }
 
@@ -5456,7 +5456,7 @@ Format your response as JSON with these keys:
             missingReason: Object.keys(missingReason).length > 0 ? missingReason : undefined,
             rawSources: results.sources,
           },
-          errorsJson: allOk ? null : { issues: results.issues },
+          findingsJson: allOk ? null : { issues: results.issues },
         });
         
         logger.info("API", "Recorded service run for google_data_connector", { 
@@ -6049,7 +6049,7 @@ Format your response as JSON with these keys:
         const requiredFixes: any[] = [];
 
         // Check if we have evidence
-        const hasEvidence = suggestion.evidence || suggestion.affectedUrls?.length > 0 || suggestion.affectedQueries?.length > 0;
+        const hasEvidence = suggestion.evidence || (suggestion.affectedUrls?.length ?? 0) > 0 || (suggestion.affectedQueries?.length ?? 0) > 0;
         if (!hasEvidence) {
           reasons.push("NO_EVIDENCE_ROWS");
           requiredFixes.push({
@@ -6073,7 +6073,7 @@ Format your response as JSON with these keys:
           requiredFixes.push({
             type: "WORKER",
             service: suggestion.sourceAgentId,
-            hint: `Worker failed: ${sourceWorker.errorMessage || 'Unknown error'}`
+            hint: `Worker failed: ${sourceWorker.errorDetail || 'Unknown error'}`
           });
         }
 
@@ -6085,7 +6085,7 @@ Format your response as JSON with these keys:
 
         missions.push({
           missionId,
-          title: suggestion.title || suggestion.suggestion,
+          title: suggestion.title || suggestion.suggestionId,
           status,
           reasons,
           requiredFixes,
@@ -6094,7 +6094,7 @@ Format your response as JSON with these keys:
             queries: suggestion.affectedQueries?.slice(0, 3) || [],
             summary: suggestion.evidence || null
           } : null,
-          rulePreview: suggestion.decisionRule || "Standard priority-based ranking"
+          rulePreview: (suggestion as any).decisionRule || "Standard priority-based ranking"
         });
       }
 
@@ -7441,7 +7441,7 @@ When answering:
         // Sort by timestamp descending to ensure proper ordering
         const allKpisForCrew = lineageKpis
           .filter(k => k.metricKey === primaryKpiKey)
-          .sort((a, b) => new Date(b.capturedAt).getTime() - new Date(a.capturedAt).getTime());
+          .sort((a, b) => new Date(b.capturedAt || 0).getTime() - new Date(a.capturedAt || 0).getTime());
         const previousKpi = allKpisForCrew.length > 1 ? allKpisForCrew[1] : null;
         const previousValue = previousKpi?.value ?? null;
         const metricUnit = kpiContract?.unit || '';
@@ -7880,7 +7880,7 @@ When answering:
           logger.info("KBASE", "Triggering synthesis after learnings save", { siteId, writtenCount });
           
           // Get recent learnings for synthesis
-          const learnings = await storage.getFindings(siteId, 50);
+          const learnings = await storage.getAiFindings(siteId, 50);
           
           if (learnings.length >= 5) {
             const OpenAI = (await import("openai")).default;
@@ -7888,7 +7888,7 @@ When answering:
             const synthesisRunId = `synthesis_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
             
             // Call OpenAI for synthesis (same logic as /api/kb/synthesize)
-            const learningsSummary = learnings.slice(0, 30).map(l => ({
+            const learningsSummary = learnings.slice(0, 30).map((l: any) => ({
               id: l.findingId,
               title: l.title,
               description: l.description?.slice(0, 200),
@@ -8969,7 +8969,7 @@ Return JSON:
       }
       
       // Try to get competitors from the latest competitive analysis results
-      const savedResults = await storage.getLatestSeoWorkerResult(canonicalSiteId, "competitive_snapshot");
+      const savedResults = (await storage.getLatestSeoWorkerResults(canonicalSiteId)).find(r => r.workerKey === "competitive_snapshot");
       
       let discoveredCompetitors: { domain: string; name?: string; type: string }[] = [];
       
@@ -9000,8 +9000,8 @@ Return JSON:
         const competitorDomainCounts = new Map<string, number>();
         
         for (const ranking of allRankings) {
-          if (ranking.serpResultsJson && Array.isArray(ranking.serpResultsJson)) {
-            for (const result of ranking.serpResultsJson as any[]) {
+          if ((ranking as any).serpResultsJson && Array.isArray((ranking as any).serpResultsJson)) {
+            for (const result of (ranking as any).serpResultsJson as any[]) {
               if (result.link || result.domain) {
                 try {
                   const domain = result.domain || new URL(result.link).hostname;
@@ -10677,7 +10677,6 @@ Keep responses concise and actionable.`;
       try {
         newSite = await storage.createSite({
           siteId,
-          userId,
           displayName: data.displayName,
           baseUrl: data.baseUrl,
           category: data.category || null,
@@ -10854,7 +10853,7 @@ Keep responses concise and actionable.`;
       if (error.message?.includes("Unknown crew")) {
         return res.status(404).json({ ok: false, error: error.message });
       }
-      logger.error("API", "Failed to fetch crew status", { error: error.message, crewId });
+      logger.error("API", "Failed to fetch crew status", { error: error.message, crewId: req.params.crewId });
       res.status(500).json({ ok: false, error: error.message });
     }
   });
@@ -11572,7 +11571,7 @@ When answering:
               message = "GA4 property ID not configured";
               break;
             }
-            const ga4Result = await ga4Connector.fetchRealtimeUsers?.();
+            const ga4Result = await (ga4Connector as any).fetchRealtimeUsers?.();
             success = ga4Result !== undefined;
             message = success ? `GA4 connected (Property: ${propertyId})` : "GA4 connection failed";
           } catch (e: any) {
@@ -11587,7 +11586,7 @@ When answering:
               message = "GSC site URL not configured";
               break;
             }
-            const gscResult = await gscConnector.getSitemaps?.();
+            const gscResult = await gscConnector.fetchSitemaps?.();
             success = gscResult !== undefined;
             message = success ? `GSC connected (${siteUrl})` : "GSC connection failed";
           } catch (e: any) {
@@ -12117,7 +12116,6 @@ When answering:
           lastAuthTestAt: integration.authRequired ? new Date() : integration.lastAuthTestAt,
           lastError: lastError || integration.lastError,
           lastSuccessAt: calledSuccessfully ? new Date() : integration.lastSuccessAt,
-          updatedAt: new Date(),
         });
 
         results.push({
@@ -12192,7 +12190,7 @@ When answering:
       if (!descriptionMd) {
         const catalogEntry = getServiceBySlug(req.params.integrationId);
         if (catalogEntry) {
-          descriptionMd = catalogEntry.descriptionMd;
+          descriptionMd = catalogEntry.description;
         }
       }
       
@@ -12712,7 +12710,7 @@ When answering:
                 } else {
                   // Worker is reachable - use v1 API to list websites and get summary
                   const targetSite = await storage.getSiteById(site_id);
-                  const targetDomain = targetSite?.domain || "empathyhealthclinic.com";
+                  const targetDomain = targetSite?.baseUrl || "empathyhealthclinic.com";
                   
                   // Step 1: List websites to find the matching site
                   const websitesUrl = `${baseUrl}/api/v1/websites`;
@@ -12859,7 +12857,7 @@ When answering:
                         workerKey: "core_web_vitals",
                         status: actualOutputs.length > 0 ? "success" : "partial",
                         metricsJson: { ...cwvMetrics, regressions: regressions.length },
-                        outputsJson: data,
+                        data: data,
                         durationMs: Date.now() - startTime,
                         startedAt: new Date(startTime),
                         finishedAt: new Date(),
@@ -14591,7 +14589,7 @@ When answering:
         }
 
         // Get stored integration to get base_url
-        const integration = await storage.getIntegration(mapping.serviceSlug);
+        const integration = await storage.getIntegrationById(mapping.serviceSlug);
         if (!integration?.baseUrl) {
           results.push({
             serviceSlug: mapping.serviceSlug,
@@ -14735,9 +14733,9 @@ When answering:
         }
 
         const expectedOutputs = catalogEntry.outputs || [];
-        const integration = await storage.getIntegration(mapping.serviceSlug);
-        
-        if (!integration?.baseUrl || !integration?.apiKey) {
+        const integration = await storage.getIntegrationById(mapping.serviceSlug);
+
+        if (!integration?.baseUrl || !(integration as any)?.apiKey) {
           results.push({
             serviceSlug: mapping.serviceSlug,
             displayName: mapping.displayName,
@@ -15015,7 +15013,7 @@ When answering:
         enrichedCatalog.push({
           ...service,
           buildState: mapping?.type === 'planned' ? 'planned' : 'built',
-          configState: integration?.baseUrl ? (integration?.apiKey ? 'ready' : 'missing_config') : 'missing_config',
+          configState: integration?.baseUrl ? ((integration as any)?.apiKey ? 'ready' : 'missing_config') : 'missing_config',
           lastSmokeRun: smokeRun ? {
             runId: smokeRun.runId,
             status: smokeRun.status,
@@ -15230,7 +15228,7 @@ When answering:
               siteDomain: run.siteDomain,
               siteId: run.siteId,
               summary: run.summary,
-              metrics: run.metricsCollected,
+              metrics: run.metricsJson,
               durationMs: run.durationMs,
             },
           };
@@ -16573,16 +16571,15 @@ Current metrics for the site: ${metricsContext}`;
         const metrics = workerData.data.metrics;
         
         // Store in seoWorkerResults (existing behavior)
-        await storage.upsertSeoWorkerResult({
+        await storage.saveSeoWorkerResult({
           runId: requestId,
           siteId,
           workerKey: 'core_web_vitals',
-          workerName: 'Core Web Vitals',
           status: 'success',
           startedAt: new Date(),
           finishedAt: new Date(),
           metricsJson: metrics,
-          rawData: workerData.data,
+          data: workerData.data,
         });
         
         // Helper to determine status based on thresholds
@@ -16682,7 +16679,7 @@ Current metrics for the site: ${metricsContext}`;
       // Get latest worker results for context
       const allWorkerResults = await storage.getLatestSeoWorkerResults(siteId);
       const cwvResult = allWorkerResults.find(r => r.workerKey === 'core_web_vitals');
-      const rawData = cwvResult?.resultData as any || {};
+      const rawData = cwvResult?.data as any || {};
       
       const evidence = {
         lcp: issues?.lcp || rawData?.lcp_s || null,
@@ -16729,12 +16726,12 @@ Current metrics for the site: ${metricsContext}`;
       try {
         logger.info("Fix", "KB Preflight: Querying Socrates for past CWV fixes");
         
-        const preflightResponse = await fetch(`${kbaseConfig.base_url}/query`, {
+        const preflightResponse = await fetch(`${kbaseConfig!.base_url}/query`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-api-key': kbaseConfig.api_key,
-            'Authorization': `Bearer ${kbaseConfig.api_key}`,
+            'x-api-key': kbaseConfig!.api_key!,
+            'Authorization': `Bearer ${kbaseConfig!.api_key}`,
           },
           body: JSON.stringify({
             siteId,

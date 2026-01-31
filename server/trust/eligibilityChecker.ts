@@ -1,5 +1,18 @@
 import { storage } from "../storage";
-import type { ActionCategory, TrustEligibilityResult, RiskLevel } from "arclo-contracts";
+
+// Types previously from arclo-contracts - defined locally
+type ActionCategory = string;
+type RiskLevel = "low" | "medium" | "high";
+
+interface TrustEligibilityResult {
+  allowed: boolean;
+  reason: string;
+  currentTrustLevel: number;
+  requiredTrustLevel: number;
+  confidence: number;
+  actionCategory: ActionCategory;
+  riskLevel: RiskLevel;
+}
 
 /**
  * Trust Eligibility Checker
@@ -49,49 +62,53 @@ export async function canAutoExecute(
       reason: "Action not found in risk registry",
       currentTrustLevel: trustLevel.trustLevel,
       requiredTrustLevel: 0,
-      confidence: trustLevel.confidence,
+      confidence: trustLevel.confidence ?? 0,
       actionCategory,
       riskLevel: "low" as RiskLevel,
     };
   }
 
   // 3. Check if action requires manual approval regardless of trust
-  if (actionRisk.requiresApproval) {
+  const minTrustRequired = actionRisk.minTrustLevel ?? 0;
+  const actionRiskLevel = (actionRisk.riskLevel ?? "low") as RiskLevel;
+  const trustConfidence = trustLevel.confidence ?? 0;
+
+  if ((actionRisk as any).requiresApproval) {
     return {
       allowed: false,
       reason: "This action requires manual approval regardless of trust level",
       currentTrustLevel: trustLevel.trustLevel,
-      requiredTrustLevel: actionRisk.minTrustLevel,
-      confidence: trustLevel.confidence,
+      requiredTrustLevel: minTrustRequired,
+      confidence: trustConfidence,
       actionCategory,
-      riskLevel: actionRisk.riskLevel as RiskLevel,
+      riskLevel: actionRiskLevel,
     };
   }
 
   // 4. Check if trust level meets minimum requirement
-  if (trustLevel.trustLevel < actionRisk.minTrustLevel) {
+  if (trustLevel.trustLevel < minTrustRequired) {
     return {
       allowed: false,
-      reason: `Trust level ${trustLevel.trustLevel} is below required level ${actionRisk.minTrustLevel}`,
+      reason: `Trust level ${trustLevel.trustLevel} is below required level ${minTrustRequired}`,
       currentTrustLevel: trustLevel.trustLevel,
-      requiredTrustLevel: actionRisk.minTrustLevel,
-      confidence: trustLevel.confidence,
+      requiredTrustLevel: minTrustRequired,
+      confidence: trustConfidence,
       actionCategory,
-      riskLevel: actionRisk.riskLevel as RiskLevel,
+      riskLevel: actionRiskLevel,
     };
   }
 
   // 5. Check confidence threshold (require at least 70% for autonomous actions)
   const CONFIDENCE_THRESHOLD = 70;
-  if (trustLevel.trustLevel >= 3 && trustLevel.confidence < CONFIDENCE_THRESHOLD) {
+  if (trustLevel.trustLevel >= 3 && trustConfidence < CONFIDENCE_THRESHOLD) {
     return {
       allowed: false,
-      reason: `Confidence ${trustLevel.confidence}% is below threshold ${CONFIDENCE_THRESHOLD}%`,
+      reason: `Confidence ${trustConfidence}% is below threshold ${CONFIDENCE_THRESHOLD}%`,
       currentTrustLevel: trustLevel.trustLevel,
-      requiredTrustLevel: actionRisk.minTrustLevel,
-      confidence: trustLevel.confidence,
+      requiredTrustLevel: minTrustRequired,
+      confidence: trustConfidence,
       actionCategory,
-      riskLevel: actionRisk.riskLevel as RiskLevel,
+      riskLevel: actionRiskLevel,
     };
   }
 
@@ -105,10 +122,10 @@ export async function canAutoExecute(
       allowed: false,
       reason: "Recent failure detected - trust temporarily downgraded",
       currentTrustLevel: trustLevel.trustLevel,
-      requiredTrustLevel: actionRisk.minTrustLevel,
-      confidence: trustLevel.confidence,
+      requiredTrustLevel: minTrustRequired,
+      confidence: trustConfidence,
       actionCategory,
-      riskLevel: actionRisk.riskLevel as RiskLevel,
+      riskLevel: actionRiskLevel,
     };
   }
 
@@ -117,10 +134,10 @@ export async function canAutoExecute(
     allowed: true,
     reason: "All eligibility checks passed",
     currentTrustLevel: trustLevel.trustLevel,
-    requiredTrustLevel: actionRisk.minTrustLevel,
-    confidence: trustLevel.confidence,
+    requiredTrustLevel: minTrustRequired,
+    confidence: trustConfidence,
     actionCategory,
-    riskLevel: actionRisk.riskLevel as RiskLevel,
+    riskLevel: actionRiskLevel,
   };
 }
 

@@ -115,8 +115,7 @@ export class BlogContentService {
 
     try {
       const usedImages = await db.select({ imageUrl: usedBlogImages.imageUrl })
-        .from(usedBlogImages)
-        .where(eq(usedBlogImages.siteId, siteId));
+        .from(usedBlogImages);
       const usedUrls = new Set(usedImages.map(img => img.imageUrl));
 
       const unsplashKey = process.env.UNSPLASH_ACCESS_KEY;
@@ -147,11 +146,8 @@ export class BlogContentService {
       for (const img of availableImages) {
         try {
           await db.insert(usedBlogImages).values({
-            siteId,
             imageUrl: img.url,
-            description: img.description,
             altText: img.description,
-            source: "unsplash",
           });
           successfullyReserved.push(img);
         } catch (error) {
@@ -454,21 +450,11 @@ OUTPUT JSON:
 
       // Save to database
       const blogPostData = {
-        siteId,
+        websiteId: siteId,
         title: result.title,
         slug: normalizeSlug(result.slug),
-        excerpt: result.excerpt,
         content: result.content,
-        author: author || "Content Team",
-        publishedDate: new Date().toISOString(),
-        category: category || "Mental Health",
-        featuredImage: featuredImages[0]?.url || null,
-        isFeatured: true,
         status: "draft" as const,
-        metaTitle: result.title,
-        metaDescription: result.metaDescription,
-        keywords: keywords.split(',').map(k => k.trim()),
-        order: 0,
       };
 
       const [savedPost] = await db.insert(blogPosts)
@@ -483,8 +469,8 @@ OUTPUT JSON:
 
       for (const imageUrl of allImageUrls) {
         await db.update(usedBlogImages)
-          .set({ usedInBlogPostId: savedPost.id })
-          .where(eq(usedBlogImages.imageUrl, imageUrl));
+          .set({ blogPostId: savedPost.id })
+          .where(eq(usedBlogImages.imageUrl, imageUrl as string));
       }
 
       logger.info("BlogContentService", "Blog generated and saved", {
@@ -495,7 +481,7 @@ OUTPUT JSON:
       });
 
       return {
-        id: savedPost.id,
+        id: String(savedPost.id),
         siteId,
         title: result.title,
         slug: savedPost.slug,
@@ -532,9 +518,9 @@ OUTPUT JSON:
     const [published] = await db.update(blogPosts)
       .set({
         status: "published",
-        publishedAt: new Date().toISOString(),
+        publishedAt: new Date(),
       })
-      .where(eq(blogPosts.id, postId))
+      .where(eq(blogPosts.id, parseInt(postId, 10)))
       .returning();
 
     return published;
@@ -546,8 +532,8 @@ OUTPUT JSON:
   async getBlogPostsBySite(siteId: string): Promise<BlogPost[]> {
     return db.select()
       .from(blogPosts)
-      .where(eq(blogPosts.siteId, siteId))
-      .orderBy(sql`${blogPosts.order} ASC`);
+      .where(eq(blogPosts.websiteId, siteId))
+      .orderBy(blogPosts.createdAt);
   }
 
   /**
@@ -556,7 +542,7 @@ OUTPUT JSON:
   async getBlogPost(postId: string): Promise<BlogPost | undefined> {
     const [post] = await db.select()
       .from(blogPosts)
-      .where(eq(blogPosts.id, postId));
+      .where(eq(blogPosts.id, parseInt(postId, 10)));
     return post;
   }
 }

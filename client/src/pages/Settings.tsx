@@ -678,7 +678,7 @@ export default function Settings() {
     }
   };
 
-  const getDataSourceBadge = (source: { hasData: boolean; recordCount: number; lastError: string | null }) => {
+  const getDataSourceBadge = (source: { hasData: boolean; recordCount: number; lastError?: string | null }) => {
     if (source.lastError) {
       return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" /> Error</Badge>;
     }
@@ -979,28 +979,31 @@ export default function Settings() {
                 </div>
               ) : systemHealth?.dataSources ? (
                 <div className="grid gap-4">
-                  {Object.entries(systemHealth.dataSources).map(([key, value]) => (
+                  {Object.entries(systemHealth.dataSources).map(([key, value]) => {
+                    const ds = value as any;
+                    return (
                     <div key={key} className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
                       <div>
                         <span className="font-medium capitalize">{key.replace('_', ' ').replace('gsc', 'Search Console').replace('ga4', 'Analytics')}</span>
                         <div className="flex items-center gap-3 mt-1">
                           <p className="text-xs text-muted-foreground">
-                            {value.recordCount} records
+                            {ds.recordCount} records
                           </p>
-                          {value.lastDataAt && (
+                          {ds.lastDataAt && (
                             <p className="text-xs text-muted-foreground flex items-center gap-1">
                               <Clock className="w-3 h-3" />
-                              {formatTimeAgo(value.lastDataAt)}
+                              {formatTimeAgo(ds.lastDataAt)}
                             </p>
                           )}
                         </div>
-                        {value.lastError && (
-                          <p className="text-xs text-semantic-danger mt-1">{value.lastError}</p>
+                        {ds.lastError && (
+                          <p className="text-xs text-semantic-danger mt-1">{ds.lastError}</p>
                         )}
                       </div>
-                      {getDataSourceBadge(value)}
+                      {getDataSourceBadge(ds)}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="text-muted-foreground text-center py-4">No data source information available</p>

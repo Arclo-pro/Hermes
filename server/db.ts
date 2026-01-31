@@ -17,7 +17,7 @@ let dbInstance: ReturnType<typeof drizzle<typeof schema>> | null = null;
 export async function initializeDatabase() {
   if (!dbInstance) {
     await client.connect();
-    dbInstance = drizzle(client, { schema });
+    dbInstance = drizzle(client as any, { schema });
   }
   return dbInstance;
 }

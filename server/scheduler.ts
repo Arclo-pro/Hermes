@@ -62,12 +62,12 @@ async function runDailyDiagnostics() {
     
     await websiteChecker.runDailyChecks(topPages);
 
-    const report = await analysisEngine.generateReport(startDate, endDate);
+    const report = await analysisEngine.generateReport(startDate, endDate) as any;
 
-    const rootCauses = typeof report.rootCauses === 'string' 
-      ? JSON.parse(report.rootCauses) 
+    const rootCauses = typeof report.rootCauses === 'string'
+      ? JSON.parse(report.rootCauses)
       : report.rootCauses;
-    
+
     await analysisEngine.generateTickets(report.id, rootCauses);
 
     logger.info('Scheduler', 'Scheduled diagnostic run completed', { reportId: report.id });
@@ -111,17 +111,19 @@ async function runCoverageInspection(
         : null;
 
       await storage.saveManualActionCheck({
-        siteId: site.siteId,
-        date: new Date().toISOString().split('T')[0],
-        checkType: 'manual_actions',
+        websiteId: site.siteId,
+        checkDate: new Date(),
+        hasManualAction: false,
+        actionType: 'manual_actions',
         status: 'api_unavailable',
         gscWebUiLink: gscLink,
       });
 
       await storage.saveManualActionCheck({
-        siteId: site.siteId,
-        date: new Date().toISOString().split('T')[0],
-        checkType: 'security_issues',
+        websiteId: site.siteId,
+        checkDate: new Date(),
+        hasManualAction: false,
+        actionType: 'security_issues',
         status: 'api_unavailable',
         gscWebUiLink: gscSite
           ? `https://search.google.com/search-console/security-issues?resource_id=${encodeURIComponent(gscSite)}`
@@ -299,15 +301,15 @@ async function computeDailyAchievements() {
             const { sendAchievementMilestoneEmail } = await import('./services/email');
             const { ACHIEVEMENT_CATEGORIES } = await import('@shared/schema');
 
-            const milestoneData = result.milestonesAchieved.map(m => {
+            const milestoneData = result.milestonesAchieved.map((m: any) => {
               const cat = ACHIEVEMENT_CATEGORIES[m.categoryId as keyof typeof ACHIEVEMENT_CATEGORIES];
               return {
-                trackName: m.trackKey,
-                categoryLabel: cat?.label || m.categoryId,
+                trackName: m.trackKey || m.label || '',
+                categoryLabel: cat?.label || m.categoryId || '',
                 categoryColor: cat?.color || '#6b7280',
                 newTier: m.tier,
-                newLevel: m.level,
-                headline: m.headline,
+                newLevel: m.level || m.threshold || 0,
+                headline: m.headline || m.label || '',
               };
             });
 
@@ -355,7 +357,7 @@ async function runWeeklySiteScans() {
         AND (wa.next_scheduled_at IS NULL OR wa.next_scheduled_at <= NOW())
     `);
 
-    const rows = result.rows as Array<{ site_id: string; domain: string; user_id: number }>;
+    const rows = ((result as any).rows || result) as Array<{ site_id: string; domain: string; user_id: number }>;
 
     if (rows.length === 0) {
       logger.info('Scheduler', 'No sites due for weekly scan');

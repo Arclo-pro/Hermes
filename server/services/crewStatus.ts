@@ -373,7 +373,7 @@ export async function computeCrewStatus(
   let status = determineStatusFromScore(scoreValue);
   
   // Check if agent is degraded due to consecutive failures
-  const agentState = await storage.getCrewStateForAgent(siteId, crewId);
+  const agentState = await storage.getCrewStateForAgent(siteId, crewId) as any;
   const isDegraded = agentState?.health === "degraded" || (agentState?.consecutiveFailures ?? 0) >= 3;
   
   if (isDegraded) {

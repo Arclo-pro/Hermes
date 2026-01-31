@@ -131,7 +131,7 @@ router.get('/mode', async (req, res) => {
 router.post('/mode', async (req, res) => {
   try {
     const schema = z.object({
-      mode: z.enum([SystemModes.NORMAL, SystemModes.OBSERVE_ONLY, SystemModes.SAFE_MODE]),
+      mode: z.enum([SystemModes.NORMAL, SystemModes.MAINTENANCE, SystemModes.EMERGENCY]),
       reason: z.string().optional(),
       triggeredBy: z.string().email('Valid email required'),
     });

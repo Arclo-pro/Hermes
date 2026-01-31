@@ -410,15 +410,16 @@ export function transformToPerformance(
   const urlMap = new Map<string, CoreWebVitalsDaily>();
 
   for (const entry of cwvData) {
+    if (!entry.url) continue;
     const existing = urlMap.get(entry.url);
-    if (!existing || entry.date > existing.date) {
+    if (!existing || entry.collectedAt > existing.collectedAt) {
       urlMap.set(entry.url, entry);
     }
   }
 
   const urls: FreeReportPerformanceUrl[] = [];
 
-  for (const [url, data] of urlMap) {
+  for (const [url, data] of urlMap as Map<string, CoreWebVitalsDaily>) {
     const lcpStatus = getMetricStatus(data.lcp || 0, 2500, 4000);
     const clsStatus = getMetricStatus(data.cls || 0, 0.1, 0.25);
     const inpStatus: FreeReportPerformanceUrl["inp_status"] = data.inp

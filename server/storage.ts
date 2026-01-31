@@ -579,11 +579,11 @@ export interface IStorage {
 
   // KB Recommendations
   getRecommendations(siteId: string, limit?: number): Promise<KbRecommendation[]>;
-  getRecommendationById(recommendationId: string): Promise<KbRecommendation | null>;
+  getKbRecommendationById(recommendationId: string): Promise<KbRecommendation | null>;
   saveRecommendation(rec: InsertKbRecommendation): Promise<KbRecommendation>;
   saveRecommendations(recs: InsertKbRecommendation[]): Promise<void>;
   getRecommendationsCount(siteId: string): Promise<number>;
-  updateRecommendationStatus(recommendationId: string, status: string): Promise<void>;
+  updateKbRecommendationStatus(recommendationId: string, status: string): Promise<void>;
 
   // SEO Agent Competitors
   getCompetitors(siteId: string, agentSlug?: string): Promise<SeoAgentCompetitor[]>;
@@ -3125,7 +3125,7 @@ class DBStorage implements IStorage {
     return query;
   }
 
-  async getRecommendationById(recommendationId: string): Promise<KbRecommendation | null> {
+  async getKbRecommendationById(recommendationId: string): Promise<KbRecommendation | null> {
     const [rec] = await db
       .select()
       .from(kbRecommendations)
@@ -3152,7 +3152,7 @@ class DBStorage implements IStorage {
     return result?.count || 0;
   }
 
-  async updateRecommendationStatus(recommendationId: string, status: string): Promise<void> {
+  async updateKbRecommendationStatus(recommendationId: string, status: string): Promise<void> {
     await db
       .update(kbRecommendations)
       .set({ status })
@@ -4222,7 +4222,6 @@ class DBStorage implements IStorage {
       .update(websiteTrustLevels)
       .set({
         trustLevel,
-        lastReviewedAt: new Date(),
         updatedAt: new Date(),
       })
       .where(eq(websiteTrustLevels.id, existing.id));
@@ -4235,7 +4234,7 @@ class DBStorage implements IStorage {
     const [result] = await db
       .select()
       .from(actionRiskRegistry)
-      .where(eq(actionRiskRegistry.actionCode, actionCode))
+      .where(eq(actionRiskRegistry.actionType, actionCode))
       .limit(1);
     return result || null;
   }
@@ -4373,8 +4372,8 @@ class DBStorage implements IStorage {
       .from(manualActionChecks)
       .where(
         and(
-          eq(manualActionChecks.siteId, siteId),
-          eq(manualActionChecks.checkType, checkType),
+          eq(manualActionChecks.websiteId, siteId),
+          eq(manualActionChecks.actionType, checkType),
         )
       )
       .orderBy(desc(manualActionChecks.createdAt))
@@ -4387,7 +4386,6 @@ class DBStorage implements IStorage {
       .update(manualActionChecks)
       .set({
         status,
-        userNotes: userNotes ?? undefined,
         lastUserConfirmedAt: new Date(),
       })
       .where(eq(manualActionChecks.id, id));

@@ -28,6 +28,8 @@ export interface ServiceDefinition {
   requiredInputs?: string[];
   /** Rules bundles this service needs from KBase */
   requiresRulesBundles?: ('qa' | 'generation' | 'competitors' | 'gap' | 'safety')[];
+  /** Current build state */
+  buildState?: 'not_built' | 'building' | 'built' | 'deploying' | 'deployed' | 'error';
 }
 
 export const slugLabels: Record<string, string> = {

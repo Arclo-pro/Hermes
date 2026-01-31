@@ -105,7 +105,7 @@ async function runExample() {
       },
       executedAt: new Date(),
       executedBy: "hermes"
-    });
+    } as any);
     
     console.log("  ✓ Success recorded and logged to audit trail");
     console.log();

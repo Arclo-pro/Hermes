@@ -333,7 +333,7 @@ export class AnalysisEngine {
     const savedReport = await storage.saveReport(report);
     logger.info('Analysis', `Report generated with ID ${savedReport.id}`);
 
-    return savedReport;
+    return savedReport as any as InsertReport;
   }
 
   private buildMarkdownReport(
@@ -454,7 +454,7 @@ export class AnalysisEngine {
     const savedTickets = await storage.saveTickets(tickets);
     logger.info('Analysis', `Generated ${savedTickets.length} tickets`);
 
-    return savedTickets;
+    return savedTickets as any as InsertTicket[];
   }
 }
 

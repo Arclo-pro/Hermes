@@ -65,7 +65,10 @@ export async function calculateOutcomeSnapshot(
   const startDate = new Date(endDate.getTime() - windowDays * 24 * 60 * 60 * 1000);
 
   // Fetch GA4 data
-  const ga4Data = await storage.getGA4DataByDateRange(startDate, endDate);
+  const ga4Data = await storage.getGA4DataByDateRange(
+    startDate.toISOString().split('T')[0],
+    endDate.toISOString().split('T')[0]
+  );
   const ga4Totals = ga4Data.reduce(
     (acc, row) => ({
       sessions: acc.sessions + (row.sessions || 0),
@@ -79,7 +82,10 @@ export async function calculateOutcomeSnapshot(
   );
 
   // Fetch GSC data
-  const gscData = await storage.getGSCDataByDateRange(startDate, endDate);
+  const gscData = await storage.getGSCDataByDateRange(
+    startDate.toISOString().split('T')[0],
+    endDate.toISOString().split('T')[0]
+  );
   const gscTotals = gscData.reduce(
     (acc, row) => ({
       clicks: acc.clicks + (row.clicks || 0),
@@ -90,7 +96,7 @@ export async function calculateOutcomeSnapshot(
   const gscCtr = gscTotals.impressions > 0 ? (gscTotals.clicks / gscTotals.impressions) * 100 : 0;
 
   // Fetch SERP rankings (if available)
-  const latestRankings = await storage.getLatestSerpRankingsBySite(siteId);
+  const latestRankings = await storage.getLatestRankings();
   const rankingMetrics = {
     keywordsInTop10: latestRankings.filter(r => r.position && r.position <= 10).length,
     keywordsInTop3: latestRankings.filter(r => r.position && r.position <= 3).length,
@@ -101,37 +107,41 @@ export async function calculateOutcomeSnapshot(
   // Fetch CWV data (if available)
   const cwvData = await storage.getLatestCoreWebVitals(siteId);
   const cwvMetrics = {
-    lcp: cwvData?.lcp,
-    cls: cwvData?.cls,
-    inp: cwvData?.inp,
-    cwvPassRate: cwvData?.passRate,
+    lcp: cwvData?.lcp ?? undefined,
+    cls: cwvData?.cls ?? undefined,
+    inp: cwvData?.inp ?? undefined,
+    cwvPassRate: cwvData?.overallScore ?? undefined,
   };
 
   // Fetch crawl health
   const crawlData = await storage.getLatestWorkerResultByKey(siteId, 'crawl_render');
+  const crawlMetricsJson = crawlData?.metricsJson as Record<string, any> | null | undefined;
   const crawlMetrics = {
-    crawlHealth: crawlData?.metricsJson?.health_score,
-    errorRate4xx: crawlData?.metricsJson?.error_rate_4xx,
-    errorRate5xx: crawlData?.metricsJson?.error_rate_5xx,
+    crawlHealth: crawlMetricsJson?.health_score,
+    errorRate4xx: crawlMetricsJson?.error_rate_4xx,
+    errorRate5xx: crawlMetricsJson?.error_rate_5xx,
   };
 
   // Fetch domain authority
   const daData = await storage.getLatestWorkerResultByKey(siteId, 'backlink_authority');
+  const daMetricsJson = daData?.metricsJson as Record<string, any> | null | undefined;
   const daMetrics = {
-    domainAuthority: daData?.metricsJson?.domain_authority,
-    backlinks: daData?.metricsJson?.total_backlinks,
+    domainAuthority: daMetricsJson?.domain_authority,
+    backlinks: daMetricsJson?.total_backlinks,
   };
 
   // Fetch indexing coverage (if available)
   const techSeoData = await storage.getLatestWorkerResultByKey(siteId, 'competitive_snapshot');
+  const techMetricsJson = techSeoData?.metricsJson as Record<string, any> | null | undefined;
   const indexingMetrics = {
-    indexingCoverage: techSeoData?.metricsJson?.indexing_coverage,
+    indexingCoverage: techMetricsJson?.indexing_coverage,
   };
 
   // Fetch content decay data
   const decayData = await storage.getLatestWorkerResultByKey(siteId, 'content_decay');
+  const decayMetricsJson = decayData?.metricsJson as Record<string, any> | null | undefined;
   const decayMetrics = {
-    pagesLosingTraffic: decayData?.metricsJson?.pages_losing_traffic_count,
+    pagesLosingTraffic: decayMetricsJson?.pages_losing_traffic_count,
   };
 
   return {

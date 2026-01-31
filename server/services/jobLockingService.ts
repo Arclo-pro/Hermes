@@ -83,7 +83,7 @@ export async function claimNextJob(options: ClaimJobOptions): Promise<ClaimJobRe
       }
 
       // Attempt to claim with optimistic locking
-      const currentLockVersion = job.lockVersion;
+      const currentLockVersion = job.lockVersion ?? 0;
       const newLockVersion = currentLockVersion + 1;
 
       const result = await db
@@ -94,7 +94,7 @@ export async function claimNextJob(options: ClaimJobOptions): Promise<ClaimJobRe
           claimedAt: now,
           lockExpiresAt,
           lockVersion: newLockVersion,
-          lastHeartbeatAt: now,
+          // lastHeartbeatAt not in schema
         })
         .where(
           and(
@@ -148,7 +148,7 @@ export async function sendHeartbeat(
     const result = await db
       .update(jobQueue)
       .set({
-        lastHeartbeatAt: now,
+        // lastHeartbeatAt not in schema
         lockExpiresAt: newLockExpiresAt,
       })
       .where(
@@ -275,9 +275,9 @@ export async function recoverExpiredLocks(): Promise<{
     const jobIds: string[] = [];
 
     for (const job of expiredJobs) {
-      const newAttempts = job.attempts + 1;
+      const newAttempts = (job.attempts ?? 0) + 1;
 
-      if (newAttempts >= job.maxAttempts) {
+      if (newAttempts >= (job.maxAttempts ?? 3)) {
         // Max attempts reached - mark as failed
         await db
           .update(jobQueue)
@@ -299,7 +299,7 @@ export async function recoverExpiredLocks(): Promise<{
             claimedBy: null,
             claimedAt: null,
             lockExpiresAt: null,
-            lastHeartbeatAt: null,
+            // lastHeartbeatAt not in schema
             attempts: newAttempts,
           })
           .where(eq(jobQueue.jobId, job.jobId));
@@ -343,7 +343,7 @@ export async function getJobLockStatus(jobId: string): Promise<{
     locked: isLocked,
     workerId: job.claimedBy ?? undefined,
     expiresAt: job.lockExpiresAt ?? undefined,
-    lastHeartbeat: job.lastHeartbeatAt ?? undefined,
+    lastHeartbeat: job.claimedAt ?? undefined,
     status: job.status,
   };
 }

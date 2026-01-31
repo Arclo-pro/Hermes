@@ -93,7 +93,7 @@ export async function detectBreakages(
           threshold: regression.threshold,
           reason: regression.reason,
         },
-      });
+      } as any);
     }
 
     if (improvement) {
@@ -115,7 +115,7 @@ export async function detectBreakages(
           interventionId: intervention?.interventionId,
           reason: improvement.reason,
         },
-      });
+      } as any);
     }
   }
 
@@ -291,7 +291,7 @@ export async function monitorInterventionOutcomes(
   interventionId: string,
   delayHours: number = 2
 ): Promise<BreakageDetectionResult> {
-  const intervention = await storage.getInterventionById(interventionId);
+  const intervention = await storage.getInterventionById(interventionId) as any;
   if (!intervention) {
     throw new Error(`Intervention ${interventionId} not found`);
   }

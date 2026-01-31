@@ -141,7 +141,7 @@ async function collectReportData(options: ClientReportOptions): Promise<ReportDa
       title: f.title || "Issue",
       severity: f.severity || "medium",
       description: f.description || "",
-      recommendation: (f as any).recommendation || "Review and address this issue",
+      recommendation: f.recommendation || "Review and address this issue",
       priority: f.severity === "critical" ? "high" : f.severity || "medium",
     }))
     .slice(0, 15);
@@ -149,7 +149,7 @@ async function collectReportData(options: ClientReportOptions): Promise<ReportDa
   const recommendationsData = suggestions.map(s => ({
     title: s.title || "Recommendation",
     description: s.description || "",
-    priority: (s.priority || "medium") as "high" | "medium" | "low",
+    priority: (s.severity || "medium") as "high" | "medium" | "low",
     effort: (s as any).effort || "Medium",
     impact: (s as any).impact || "Medium",
   })).slice(0, 10);
@@ -180,9 +180,9 @@ async function collectReportData(options: ClientReportOptions): Promise<ReportDa
 
   // Build benchmark comparison with real site values and computed status
   const benchmarkData = benchmarks.slice(0, 10).map(b => {
-    const metricKey = b.metricKey || "Unknown";
+    const metricKey = b.metric || "Unknown";
     const siteValue = freshMetrics[metricKey] ?? null;
-    const industryAvg = b.p50 || null;
+    const industryAvg = b.percentile50 || null;
     const isLowerBetter = lowerIsBetter.includes(metricKey);
     
     // Determine status based on comparison with industry p50

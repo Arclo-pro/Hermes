@@ -176,7 +176,7 @@ export async function runFullDiagnostic(runId: string, days: number = 30): Promi
       date: a.startDate,
       metric: a.metric,
       drop: a.deltaPct,
-      source: a.scope?.source || 'GSC',
+      source: (a.scope as any)?.source || 'GSC',
     })),
     rootCauses: hypotheses.map(h => ({
       hypothesis: h.summary,

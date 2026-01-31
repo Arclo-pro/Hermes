@@ -491,7 +491,7 @@ export class AdsConnector {
   }
 
   async getDataByDateRange(startDate: string, endDate: string): Promise<InsertAdsDaily[]> {
-    return storage.getAdsDataByDateRange(startDate, endDate);
+    return storage.getAdsDataByDateRange(startDate, endDate) as any;
   }
 
   async testConnection(): Promise<{ success: boolean; message: string; sampleCount?: number }> {

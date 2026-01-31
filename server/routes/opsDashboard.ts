@@ -499,17 +499,17 @@ router.get('/:siteId/changes-log', async (req, res) => {
         .limit(20);
 
       for (const a of auditEntries) {
-        const severity = a.executionMode === 'autonomous' ? 'silent' as const
-          : a.executionMode === 'assisted' ? 'notify' as const
+        const severity = (a as any).executionMode === 'autonomous' ? 'silent' as const
+          : (a as any).executionMode === 'assisted' ? 'notify' as const
           : 'ask' as const;
 
         entries.push({
-          id: a.id,
-          what: a.actionCode.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-          why: Array.isArray(a.evidence) ? (a.evidence as string[]).join('; ') : (a.rule || 'Automated action'),
-          when: a.executedAt.toISOString(),
+          id: String(a.id),
+          what: a.actionType.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+          why: (a.result as any)?.evidence ? String((a.result as any).evidence) : ((a.result as any)?.rule || 'Automated action'),
+          when: (a.executedAt ?? a.createdAt).toISOString(),
           severity,
-          outcome: a.outcome,
+          outcome: a.status,
           category: a.actionCategory,
           source: 'audit',
         });
@@ -847,7 +847,7 @@ router.get('/:siteId/insights', async (req, res) => {
           gte(actionExecutionAudit.executedAt, new Date(sevenDaysAgo))
         ));
       recentChangeCount = audits.length;
-      hasSuccessfulActions = audits.some(a => a.outcome === 'success');
+      hasSuccessfulActions = audits.some(a => a.status === 'success');
     }
 
     // ── 5. Suggestions ──────────────────────────────────────

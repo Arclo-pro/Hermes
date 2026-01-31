@@ -148,7 +148,7 @@ export async function pushSuggestionsToKbase(
         : undefined,
     };
 
-    const success = await pushLearning(config.base_url, config.write_key, learning);
+    const success = await pushLearning(config.base_url!, config.write_key!, learning);
     if (success) {
       result.pushed++;
     } else {
@@ -218,7 +218,7 @@ export async function pushFindingsToKbase(
       labels: [crewId, finding.category, finding.severity],
     };
 
-    const success = await pushLearning(config.base_url, config.write_key, learning);
+    const success = await pushLearning(config.base_url!, config.write_key!, learning);
     if (success) {
       result.pushed++;
     } else {

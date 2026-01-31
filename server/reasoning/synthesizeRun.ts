@@ -63,8 +63,8 @@ function extractSignals(events: KBaseEvent[]): Signal[] {
   for (const event of events) {
     if (event.type !== 'result') continue;
 
-    const payload = event.payload;
-    const service = event.service;
+    const payload = event.payload || {} as any;
+    const service = event.service || 'unknown';
 
     // Technical SEO signals
     if (service === 'technical-seo') {

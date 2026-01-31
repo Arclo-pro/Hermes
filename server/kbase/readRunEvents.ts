@@ -48,7 +48,7 @@ export async function readRunEvents(
   const servicesPresent = new Set<string>();
   for (const event of events) {
     if (event.type === 'result') {
-      servicesPresent.add(event.service);
+      servicesPresent.add(event.service || 'unknown');
     }
   }
 
