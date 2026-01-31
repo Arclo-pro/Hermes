@@ -45,6 +45,8 @@ export function Button({
       "bg-transparent text-foreground ring-1 ring-border hover:bg-accent focus:ring-primary/50 focus:ring-offset-background",
   };
 
+  const needsWhiteText = variant === "primaryGradient" || variant === "danger";
+
   return (
     <button
       {...props}
@@ -57,6 +59,7 @@ export function Button({
         disabled && "opacity-60 cursor-not-allowed",
         className
       )}
+      style={needsWhiteText ? { color: "#FFFFFF", ...props.style } : props.style}
     />
   );
 }
