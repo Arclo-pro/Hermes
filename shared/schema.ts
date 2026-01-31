@@ -528,6 +528,7 @@ export type KeywordAction = typeof keywordActions.$inferSelect;
 export const sites = pgTable("sites", {
   id: serial("id").primaryKey(),
   siteId: text("site_id").notNull().unique(),
+  userId: integer("user_id"),
   displayName: text("display_name").notNull(),
   baseUrl: text("base_url").notNull(),
   category: text("category"), // clinic, seo_tool, property_mgmt, farm_shop, etc.

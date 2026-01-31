@@ -68,22 +68,24 @@ export function DashboardEmptyState() {
       await queryClient.invalidateQueries({ queryKey: ["sites"] });
       setSelectedSiteId(data.siteId);
 
-      // Case 2: Site already has a report — go directly to dashboard
-      if (data.hasExistingReport) {
-        navigate("/app/overview");
-        return;
-      }
-
-      // Case 1: No prior scan — kick off a scan and route to loading page
+      // Always go directly to the dashboard after adding a site.
+      // The dashboard handles missing data gracefully with placeholder states.
+      // Kick off a background scan so data populates over time, but don't block on it.
       const domain = data.domain || siteDomain.replace(/^https?:\/\//, "").replace(/\/+$/, "");
       const scanUrl = `https://${domain}`;
-      sessionStorage.setItem(
-        "arclo_scan_payload",
-        JSON.stringify({ url: scanUrl })
-      );
-      // Mark source so ScanPreview routes back to dashboard, not /report/free/*
-      sessionStorage.setItem("arclo_scan_source", "add_website");
-      navigate("/scan/preview/pending");
+
+      // Fire-and-forget background scan (don't await, don't block navigation)
+      if (!data.hasExistingReport) {
+        fetch("/api/scan", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: scanUrl }),
+        }).catch(() => {
+          // Scan failure is non-blocking — dashboard will show placeholder states
+        });
+      }
+
+      navigate("/app/overview");
     },
   });
 
