@@ -10695,8 +10695,7 @@ Keep responses concise and actionable.`;
           status: data.status || "onboarding",
           active: true,
           healthScore: null,
-          businessDetails: data.businessDetails || null,
-        });
+        } as any);
       } catch (dbError: any) {
         const msg = dbError.message || String(dbError);
         logger.error("API", "Database error adding site", { error: msg, code: dbError.code, detail: dbError.detail });
@@ -16765,16 +16764,16 @@ Current metrics for the site: ${metricsContext}`;
       
       let fixPlan;
       try {
-        const kbaseResponse = await fetch(`${kbaseConfig.base_url}/recommend/cwv-fix`, {
+        const kbaseResponse = await fetch(`${kbaseConfig!.base_url}/recommend/cwv-fix`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-api-key': kbaseConfig.api_key,
-            'Authorization': `Bearer ${kbaseConfig.api_key}`,
+            'x-api-key': kbaseConfig!.api_key!,
+            'Authorization': `Bearer ${kbaseConfig!.api_key}`,
           },
           body: JSON.stringify({
             siteId,
-            domain: site.domain,
+            domain: (site as any).domain || site.baseUrl,
             evidence,
             constraints: {
               maxChanges,
@@ -16815,16 +16814,16 @@ Current metrics for the site: ${metricsContext}`;
       
       let prResult;
       try {
-        const changeResponse = await fetch(`${changeWorkerConfig.base_url}/run`, {
+        const changeResponse = await fetch(`${changeWorkerConfig!.base_url}/run`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-api-key': changeWorkerConfig.api_key,
-            'Authorization': `Bearer ${changeWorkerConfig.api_key}`,
+            'x-api-key': changeWorkerConfig!.api_key!,
+            'Authorization': `Bearer ${changeWorkerConfig!.api_key}`,
           },
           body: JSON.stringify({
             siteId,
-            repoUrl: site.repositoryUrl || null,
+            repoUrl: (site as any).repositoryUrl || null,
             branchPrefix: 'fix/cwv',
             title: `[Speedster] Core Web Vitals fixes - ${new Date().toISOString().split('T')[0]}`,
             description: fixPlan?.summary || 'Automated CWV performance improvements',
@@ -16868,12 +16867,12 @@ Current metrics for the site: ${metricsContext}`;
       try {
         logger.info("Fix", "Writing fix outcome back to Socrates KB");
         
-        await fetch(`${kbaseConfig.base_url}/write`, {
+        await fetch(`${kbaseConfig!.base_url}/write`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-api-key': kbaseConfig.api_key,
-            'Authorization': `Bearer ${kbaseConfig.api_key}`,
+            'x-api-key': kbaseConfig!.api_key!,
+            'Authorization': `Bearer ${kbaseConfig!.api_key}`,
           },
           body: JSON.stringify({
             siteId,
@@ -18289,7 +18288,7 @@ Current metrics for the site: ${metricsContext}`;
           id: f.findingId,
           title: f.title,
           description: f.description,
-          trend: f.metadata?.trend || 'stable',
+          trend: (f.metadata as any)?.trend || 'stable',
           createdAt: f.createdAt,
         })),
       });
@@ -18688,7 +18687,7 @@ Return JSON in this exact format:
   // List all websites with integration summaries
   app.get("/api/settings/websites", async (req, res) => {
     try {
-      const sites = await storage.getAllSites();
+      const sites = await storage.getSites();
       
       // For each site, get its integrations and summarize
       const websitesWithSummary = await Promise.all(sites.map(async (site) => {
@@ -18720,7 +18719,7 @@ Return JSON in this exact format:
   app.get("/api/settings/websites/:siteId", async (req, res) => {
     const { siteId } = req.params;
     try {
-      const site = await storage.getSite(siteId);
+      const site = await storage.getSiteById(siteId);
       if (!site) {
         return res.status(404).json({ ok: false, error: "Website not found" });
       }
@@ -19698,15 +19697,15 @@ Return JSON in this exact format:
           }
           
           if (competitiveData.ok && competitiveData.data) {
-            const competitive = competitiveData.data;
-            
+            const competitive = competitiveData.data as any;
+
             if (competitive.competitors && Array.isArray(competitive.competitors)) {
               topCompetitors = competitive.competitors.slice(0, 5);
             }
-            
+
             if (competitive.contentGaps && Array.isArray(competitive.contentGaps)) {
               contentGaps = competitive.contentGaps;
-              
+
               if (contentGaps.length > 0) {
                 findings.push({
                   id: `finding_${findingIndex++}`,
@@ -19718,7 +19717,7 @@ Return JSON in this exact format:
                 });
               }
             }
-            
+
             const shareOfVoice = competitive.shareOfVoice || competitive.share_of_voice;
             if (shareOfVoice !== undefined && shareOfVoice < 10) {
               findings.push({

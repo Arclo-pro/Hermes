@@ -417,23 +417,19 @@ async function runWeeklySiteScans() {
 
 export function startScheduler() {
   cron.schedule('0 7 * * *', runDailyDiagnostics, {
-    scheduled: true,
     timezone: 'America/Chicago',
   });
 
   cron.schedule('0 8 * * 1', generateWeeklyKBaseSynthesis, {
-    scheduled: true,
     timezone: 'America/Chicago',
   });
 
   cron.schedule('0 9 * * *', computeDailyAchievements, {
-    scheduled: true,
     timezone: 'America/Chicago',
   });
 
   // Weekly site scans - Mondays at 6 AM (before other jobs)
   cron.schedule('0 6 * * 1', runWeeklySiteScans, {
-    scheduled: true,
     timezone: 'America/Chicago',
   });
 

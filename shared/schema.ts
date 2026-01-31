@@ -604,6 +604,8 @@ export const findings = pgTable("findings", {
   evidence: jsonb("evidence"), // Array of { type, value }
   recommendedActions: text("recommended_actions").array(),
   status: text("status").default("open"), // open, accepted, fixed, ignored
+  metadata: jsonb("metadata"),
+  details: jsonb("details"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -900,6 +902,7 @@ export const integrations = pgTable("integrations", {
   lastRunAt: timestamp("last_run_at"),
   lastRunSummary: text("last_run_summary"),
   lastRunMetrics: jsonb("last_run_metrics"),
+  apiKey: text("api_key"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -2295,6 +2298,7 @@ export const seoAgentSnapshots = pgTable("seo_agent_snapshots", {
   top20Count: integer("top20_count").notNull().default(0),
   top50Count: integer("top50_count").notNull().default(0),
   positionDistribution: jsonb("position_distribution"),
+  metricsJson: jsonb("metrics_json"),
 });
 
 export const insertSeoAgentSnapshotSchema = createInsertSchema(seoAgentSnapshots).omit({
@@ -2314,7 +2318,11 @@ export const seoAgentCompetitors = pgTable("seo_agent_competitors", {
   type: text("type").default("direct"), // direct, indirect, serp-only
   position: integer("position"),
   notes: text("notes"),
+  domainRating: integer("domain_rating"),
+  backlinks: integer("backlinks"),
+  referringDomains: integer("referring_domains"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const insertSeoAgentCompetitorSchema = createInsertSchema(seoAgentCompetitors).omit({

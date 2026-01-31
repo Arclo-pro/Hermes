@@ -10,7 +10,7 @@
  */
 
 import { KBaseEvent } from '@arclo/kbase-client';
-import { Diagnosis, Signal, SignalType, Severity, Confidence } from './types.js';
+import { Diagnosis, Signal, SignalType, Severity, Confidence } from './types';
 
 /**
  * Main synthesis function - converts raw events into a diagnosis
@@ -76,7 +76,7 @@ function extractSignals(events: KBaseEvent[]): Signal[] {
           severity: mapSeverity(finding.severity),
           headline: finding.message || finding.code || 'Technical issue detected',
           evidence: finding,
-          created_at: event.created_at,
+          created_at: event.created_at ? new Date(event.created_at) : new Date(),
         });
       }
     }
@@ -90,7 +90,7 @@ function extractSignals(events: KBaseEvent[]): Signal[] {
           severity: 'high',
           headline: 'Keyword rankings have dropped',
           evidence: payload,
-          created_at: event.created_at,
+          created_at: event.created_at ? new Date(event.created_at) : new Date(),
         });
       }
     }
@@ -104,7 +104,7 @@ function extractSignals(events: KBaseEvent[]): Signal[] {
           severity: payload.authority_delta < 0 ? 'medium' : 'info',
           headline: `Domain authority ${payload.authority_delta < 0 ? 'decreased' : 'increased'} by ${Math.abs(payload.authority_delta)}`,
           evidence: payload,
-          created_at: event.created_at,
+          created_at: event.created_at ? new Date(event.created_at) : new Date(),
         });
       }
     }
@@ -118,7 +118,7 @@ function extractSignals(events: KBaseEvent[]): Signal[] {
           severity: 'high',
           headline: 'Core Web Vitals degraded',
           evidence: payload,
-          created_at: event.created_at,
+          created_at: event.created_at ? new Date(event.created_at) : new Date(),
         });
       }
     }
@@ -132,7 +132,7 @@ function extractSignals(events: KBaseEvent[]): Signal[] {
           severity: mapSeverity(finding.severity),
           headline: finding.message || event.summary || 'Issue detected',
           evidence: finding,
-          created_at: event.created_at,
+          created_at: event.created_at ? new Date(event.created_at) : new Date(),
         });
       }
     }

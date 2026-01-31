@@ -4293,7 +4293,7 @@ class DBStorage implements IStorage {
     return db
       .select()
       .from(gscUrlInspections)
-      .where(and(eq(gscUrlInspections.siteId, siteId), eq(gscUrlInspections.date, date)))
+      .where(and(eq(gscUrlInspections.websiteId, siteId), gte(gscUrlInspections.inspectedAt, new Date(date))))
       .orderBy(desc(gscUrlInspections.createdAt));
   }
 
@@ -4301,8 +4301,8 @@ class DBStorage implements IStorage {
     return db
       .select()
       .from(gscUrlInspections)
-      .where(and(eq(gscUrlInspections.siteId, siteId), eq(gscUrlInspections.pageUrl, pageUrl)))
-      .orderBy(desc(gscUrlInspections.date))
+      .where(and(eq(gscUrlInspections.websiteId, siteId), eq(gscUrlInspections.url, pageUrl)))
+      .orderBy(desc(gscUrlInspections.inspectedAt))
       .limit(limit);
   }
 
@@ -4318,8 +4318,8 @@ class DBStorage implements IStorage {
       .from(gscCoverageDaily)
       .where(
         and(
-          eq(gscCoverageDaily.siteId, siteId),
-          gte(gscCoverageDaily.date, startDate),
+          eq(gscCoverageDaily.websiteId, siteId),
+          gte(gscCoverageDaily.date, new Date(startDate)),
         )
       )
       .orderBy(asc(gscCoverageDaily.date));
@@ -4329,7 +4329,7 @@ class DBStorage implements IStorage {
     const rows = await db
       .select()
       .from(gscCoverageDaily)
-      .where(eq(gscCoverageDaily.siteId, siteId))
+      .where(eq(gscCoverageDaily.websiteId, siteId))
       .orderBy(desc(gscCoverageDaily.date))
       .limit(1);
     return rows[0];
@@ -4345,8 +4345,8 @@ class DBStorage implements IStorage {
     const rows = await db
       .select()
       .from(robotsTxtChecks)
-      .where(eq(robotsTxtChecks.siteId, siteId))
-      .orderBy(desc(robotsTxtChecks.date))
+      .where(eq(robotsTxtChecks.websiteId, siteId))
+      .orderBy(desc(robotsTxtChecks.checkedAt))
       .limit(1);
     return rows[0];
   }
@@ -4355,8 +4355,8 @@ class DBStorage implements IStorage {
     return db
       .select()
       .from(robotsTxtChecks)
-      .where(eq(robotsTxtChecks.siteId, siteId))
-      .orderBy(desc(robotsTxtChecks.date))
+      .where(eq(robotsTxtChecks.websiteId, siteId))
+      .orderBy(desc(robotsTxtChecks.checkedAt))
       .limit(limit);
   }
 

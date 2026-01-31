@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { db } from "../db";
-import { blogPosts, usedBlogImages } from "@shared/schema";
+import { blogPosts, usedBlogImages, type BlogPost } from "@shared/schema";
 import { sql, eq } from "drizzle-orm";
 import { logger } from "../utils/logger";
 

@@ -174,8 +174,8 @@ function extractChangeTags(actions: AgentActionLog[]): string[] {
   const tags = new Set<string>();
 
   for (const action of actions) {
-    if (action.tags && Array.isArray(action.tags)) {
-      for (const tag of action.tags) {
+    if ((action as any).tags && Array.isArray((action as any).tags)) {
+      for (const tag of (action as any).tags) {
         tags.add(tag as string);
       }
     }
