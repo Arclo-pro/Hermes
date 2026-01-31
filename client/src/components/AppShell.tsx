@@ -1,23 +1,25 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useLocation, Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useSiteContext } from "@/hooks/useSiteContext";
-import { 
-  LayoutDashboard, 
-  Bot, 
-  Ticket, 
-  FileText, 
-  Play, 
-  Settings, 
+import {
+  LayoutDashboard,
+  Bot,
+  Ticket,
+  FileText,
+  Settings,
   LogOut,
   ChevronDown,
-  ChevronRight,
   Building2,
   Loader2,
-  Target,
-  Award,
-  Globe,
-  Bell
+  TrendingUp,
+  Users,
+  Bell,
+  Plus,
+  Gauge,
+  Wrench,
+  Sparkles,
+  Link2,
 } from "lucide-react";
 import arcloLogo from "@assets/A_small_logo_1765393189114.png";
 import { Button } from "@/components/ui/button";
@@ -31,84 +33,20 @@ import {
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
-  { path: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { path: "/app/agents", label: "Agents", icon: Bot },
-  { path: "/app/websites", label: "Websites", icon: Globe },
-  { path: "/app/benchmarks", label: "Benchmarks", icon: Target },
-  { path: "/app/achievements", label: "Achievements", icon: Award },
-];
-
-const SETTINGS_ITEMS = [
-  { path: "/app/settings", label: "Settings", icon: Settings },
-  { path: "/app/tickets", label: "Tickets", icon: Ticket },
-  { path: "/app/changes", label: "Changes", icon: FileText },
-  { path: "/app/runs", label: "Runs", icon: Play },
-  { path: "/app/notifications", label: "Notifications", icon: Bell },
+  { path: "/app/overview", label: "Overview", icon: LayoutDashboard },
+  { path: "/app/competitive-analysis", label: "Competitive Analysis", icon: Users },
+  { path: "/app/rankings", label: "Keyword Rankings", icon: TrendingUp },
+  { path: "/app/performance", label: "Site Performance", icon: Gauge },
+  { path: "/app/technical-seo", label: "Technical SEO", icon: Wrench },
+  { path: "/app/content", label: "Content & On-Page", icon: FileText },
+  { path: "/app/ai-search", label: "AI Search", icon: Sparkles },
+  { path: "/app/link-building", label: "Link Building", icon: Link2 },
+  { path: "/app/automation", label: "Automation & Agents", icon: Bot },
 ];
 
 interface AppShellProps {
   children: ReactNode;
   lightMode?: boolean;
-}
-
-function SettingsNav({ location, lightMode }: { location: string; lightMode: boolean }) {
-  const [isOpen, setIsOpen] = useState(() => {
-    return SETTINGS_ITEMS.some(item => location === item.path || location.startsWith(item.path + "/"));
-  });
-  
-  const isSettingsActive = SETTINGS_ITEMS.some(item => 
-    location === item.path || location.startsWith(item.path + "/")
-  );
-
-  return (
-    <div className="space-y-1">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className={cn(
-          "w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer",
-          isSettingsActive 
-            ? "bg-sidebar-primary text-sidebar-primary-foreground" 
-            : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-        )}
-        data-testid="nav-link-settings"
-      >
-        <span className="flex items-center space-x-3">
-          <Settings className="h-5 w-5" />
-          <span>Settings</span>
-        </span>
-        {isOpen ? (
-          <ChevronDown className="h-4 w-4" />
-        ) : (
-          <ChevronRight className="h-4 w-4" />
-        )}
-      </button>
-      
-      {isOpen && (
-        <div className="ml-4 pl-3 border-l border-sidebar-border space-y-1">
-          {SETTINGS_ITEMS.map((item) => {
-            const isActive = location === item.path || location.startsWith(item.path + "/");
-            const Icon = item.icon;
-            return (
-              <Link key={item.path} href={item.path}>
-                <span
-                  className={cn(
-                    "flex items-center space-x-2 px-3 py-1.5 rounded-lg text-sm transition-colors cursor-pointer",
-                    isActive 
-                      ? "text-sidebar-primary-foreground bg-sidebar-primary" 
-                      : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                  )}
-                  data-testid={`nav-link-settings-${item.label.toLowerCase().replace(" ", "-")}`}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span>{item.label}</span>
-                </span>
-              </Link>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
 }
 
 export default function AppShell({ children, lightMode = false }: AppShellProps) {
@@ -161,17 +99,18 @@ export default function AppShell({ children, lightMode = false }: AppShellProps)
         "bg-sidebar border-sidebar-border"
       )}>
         <div className="h-16 flex items-center px-4 border-b border-sidebar-border">
-          <Link href="/app/dashboard" className="flex items-center">
+          <Link href="/app/overview" className="flex items-center">
             <img src={arcloLogo} alt="Arclo" className="h-10 w-auto" />
           </Link>
         </div>
 
-        {sites && sites.length > 0 && (
-          <div className="p-3 border-b border-sidebar-border">
+        {/* Site selector: single site = static label, multi = dropdown, zero = add CTA */}
+        <div className="p-3 border-b border-sidebar-border">
+          {sites && sites.length > 1 ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="w-full justify-between bg-sidebar-accent border-sidebar-border text-sidebar-foreground hover:bg-sidebar-accent/80"
                   data-testid="button-site-selector"
                 >
@@ -182,27 +121,14 @@ export default function AppShell({ children, lightMode = false }: AppShellProps)
                   <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className={cn(
-                "w-56",
-                lightMode 
-                  ? "bg-card border-border" 
-                  : "bg-card border-border"
-              )}>
+              <DropdownMenuContent className="w-56 bg-card border-border">
                 {sites.map((site) => (
                   <DropdownMenuItem
                     key={site.siteId}
                     onClick={() => selectWebsite(site.siteId)}
                     className={cn(
-                      "cursor-pointer",
-                      lightMode 
-                        ? cn(
-                            "text-foreground focus:bg-secondary focus:text-foreground",
-                            site.siteId === activeWebsiteId && "bg-secondary text-gold"
-                          )
-                        : cn(
-                            "text-foreground/80 focus:bg-secondary focus:text-foreground",
-                            site.siteId === activeWebsiteId && "bg-secondary text-gold"
-                          )
+                      "cursor-pointer text-foreground/80 focus:bg-secondary focus:text-foreground",
+                      site.siteId === activeWebsiteId && "bg-secondary text-gold"
                     )}
                     data-testid={`menu-item-site-${site.siteId}`}
                   >
@@ -211,8 +137,23 @@ export default function AppShell({ children, lightMode = false }: AppShellProps)
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-          </div>
-        )}
+          ) : sites && sites.length === 1 ? (
+            <div
+              className="w-full flex items-center space-x-2 px-3 py-2 rounded-lg bg-sidebar-accent border border-sidebar-border text-sidebar-foreground text-sm"
+              data-testid="site-label-single"
+            >
+              <Building2 className="h-4 w-4 shrink-0" />
+              <span className="truncate font-medium">{currentSite?.displayName}</span>
+            </div>
+          ) : (
+            <Link href="/app/sites/new">
+              <span className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-dashed border-sidebar-border text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground text-sm cursor-pointer transition-colors">
+                <Plus className="h-4 w-4" />
+                Add Website
+              </span>
+            </Link>
+          )}
+        </div>
 
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {NAV_ITEMS.map((item) => {
@@ -223,8 +164,8 @@ export default function AppShell({ children, lightMode = false }: AppShellProps)
                 <span
                   className={cn(
                     "flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer",
-                    isActive 
-                      ? "bg-sidebar-primary text-sidebar-primary-foreground" 
+                    isActive
+                      ? "bg-sidebar-primary text-sidebar-primary-foreground"
                       : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                   )}
                   data-testid={`nav-link-${item.label.toLowerCase().replace(" ", "-")}`}
@@ -235,8 +176,6 @@ export default function AppShell({ children, lightMode = false }: AppShellProps)
               </Link>
             );
           })}
-          
-          <SettingsNav location={location} lightMode={lightMode} />
         </nav>
 
         <div className="p-3 border-t border-sidebar-border">
@@ -255,31 +194,40 @@ export default function AppShell({ children, lightMode = false }: AppShellProps)
                 <span className="truncate">{user?.email || "User"}</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className={cn(
-              "w-56",
-              lightMode 
-                ? "bg-card border-border" 
-                : "bg-card border-border"
-            )}>
+            <DropdownMenuContent className="w-56 bg-card border-border">
               <div className="px-2 py-1.5">
-                <p className={cn(
-                  "text-sm",
-                  lightMode ? "text-foreground" : "text-foreground"
-                )}>{user?.display_name || user?.email}</p>
-                <p className={cn(
-                  "text-xs capitalize",
-                  lightMode ? "text-muted-foreground" : "text-muted-foreground"
-                )}>{user?.plan || "Free"} Plan</p>
+                <p className="text-sm text-foreground">{user?.display_name || user?.email}</p>
+                <p className="text-xs capitalize text-muted-foreground">{user?.plan || "Free"} Plan</p>
               </div>
-              <DropdownMenuSeparator className={lightMode ? "bg-border" : "bg-border"} />
-              <DropdownMenuItem 
+              <DropdownMenuSeparator className="bg-border" />
+              <DropdownMenuItem
+                onClick={() => navigate("/app/settings")}
+                className="cursor-pointer text-foreground/80 focus:bg-secondary focus:text-foreground"
+                data-testid="menu-item-settings"
+              >
+                <Settings className="mr-2 h-4 w-4" />
+                Settings
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => navigate("/app/tickets")}
+                className="cursor-pointer text-foreground/80 focus:bg-secondary focus:text-foreground"
+                data-testid="menu-item-tickets"
+              >
+                <Ticket className="mr-2 h-4 w-4" />
+                Tickets
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => navigate("/app/notifications")}
+                className="cursor-pointer text-foreground/80 focus:bg-secondary focus:text-foreground"
+                data-testid="menu-item-notifications"
+              >
+                <Bell className="mr-2 h-4 w-4" />
+                Notifications
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-border" />
+              <DropdownMenuItem
                 onClick={logout}
-                className={cn(
-                  "cursor-pointer text-destructive",
-                  lightMode 
-                    ? "focus:bg-secondary focus:text-destructive" 
-                    : "focus:bg-secondary focus:text-destructive"
-                )}
+                className="cursor-pointer text-destructive focus:bg-secondary focus:text-destructive"
                 data-testid="menu-item-logout"
               >
                 <LogOut className="mr-2 h-4 w-4" />

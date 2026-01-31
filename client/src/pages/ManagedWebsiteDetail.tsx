@@ -282,7 +282,7 @@ export default function ManagedWebsiteDetail() {
         <div className="flex flex-col items-center justify-center py-20">
           <AlertCircle className="w-12 h-12 text-destructive mb-4" />
           <h2 className="text-xl font-semibold mb-2">Website not found</h2>
-          <Link href={ROUTES.WEBSITES}>
+          <Link href={ROUTES.OVERVIEW}>
             <Button variant="outline">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Websites
@@ -299,7 +299,7 @@ export default function ManagedWebsiteDetail() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href={ROUTES.WEBSITES}>
+            <Link href={ROUTES.OVERVIEW}>
               <Button variant="ghost" size="icon">
                 <ArrowLeft className="w-5 h-5" />
               </Button>

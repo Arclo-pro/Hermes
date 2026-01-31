@@ -33,7 +33,7 @@ export default function Login() {
 
   // Redirect if already authenticated
   if (authenticated) {
-    navigate("/app/dashboard");
+    navigate("/app/overview");
     return null;
   }
 
@@ -46,7 +46,7 @@ export default function Login() {
     const result = await login(email, password);
 
     if (result.success) {
-      navigate("/app/dashboard");
+      navigate("/app/overview");
     } else {
       setError(result.error || "Login failed");
       if (result.error?.includes("verify your email")) {

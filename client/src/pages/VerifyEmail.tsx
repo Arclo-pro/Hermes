@@ -84,7 +84,7 @@ export default function VerifyEmail() {
                 <Button
                   variant="primaryGradient"
                   className="w-full"
-                  onClick={() => navigate(status === "success" ? "/app/dashboard" : "/login")}
+                  onClick={() => navigate(status === "success" ? "/app/overview" : "/login")}
                   data-testid="button-go-to-login"
                 >
                   {status === "success" ? "Go to Dashboard" : "Back to Sign In"}

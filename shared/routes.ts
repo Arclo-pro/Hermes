@@ -50,8 +50,24 @@ export const ROUTES = {
   WEBSITE_GENERATOR: "/tools/website-generator",
   SITE_PREVIEW: "/preview/:siteId",
   
-  // App core pages (authenticated)
+  // App core pages (authenticated) — website-centric views
   HOME: "/app",
+  OVERVIEW: "/app/overview",
+  COMPETITIVE_ANALYSIS: "/app/competitive-analysis",
+  RANKINGS: "/app/rankings",
+  PERFORMANCE: "/app/performance",
+  TECHNICAL_SEO: "/app/technical-seo",
+  CONTENT: "/app/content",
+  AI_SEARCH: "/app/ai-search",
+  LINK_BUILDING: "/app/link-building",
+  AUTOMATION: "/app/automation",
+
+  // Legacy website-centric routes (redirected)
+  SITE_HEALTH: "/app/site-health",
+  PAGES: "/app/pages",
+  COMPETITORS: "/app/competitors",
+
+  // Legacy aliases (kept for backward compat, redirect to new routes)
   DASHBOARD: "/app/dashboard",
   MISSION_CONTROL: "/app/mission-control",
   SELECT_SITE: "/app/select-site",
@@ -132,9 +148,23 @@ export const buildRoute = {
 // ============================================
 
 export const DEPRECATED_ROUTES: Record<string, string | ((params: Record<string, string>) => string)> = {
+  // Old tool-centric app routes → new website-centric routes
+  "/app/dashboard": ROUTES.OVERVIEW,
+  "/app/keywords": ROUTES.RANKINGS,
+  "/app/audit": ROUTES.TECHNICAL_SEO,
+  "/app/site-health": ROUTES.TECHNICAL_SEO,
+  "/app/benchmarks": ROUTES.COMPETITIVE_ANALYSIS,
+  "/app/competitors": ROUTES.COMPETITIVE_ANALYSIS,
+  "/app/achievements": ROUTES.OVERVIEW,
+  "/app/websites": ROUTES.OVERVIEW,
+  "/app/agents": ROUTES.AUTOMATION,
+  "/app/pages": ROUTES.CONTENT,
+  "/app/speedster": ROUTES.PERFORMANCE,
+  "/app/authority": ROUTES.LINK_BUILDING,
+
   // Old root-level app routes → new /app/* routes
-  "/dashboard": ROUTES.DASHBOARD,
-  "/mission-control": ROUTES.MISSION_CONTROL,
+  "/dashboard": ROUTES.OVERVIEW,
+  "/mission-control": ROUTES.OVERVIEW,
   "/crew": ROUTES.CREW,
   "/agents": ROUTES.AGENTS,
   "/keywords": ROUTES.KEYWORDS,
@@ -221,7 +251,7 @@ export const DEPRECATED_PATTERNS = [
 // ROUTE VALIDATION
 // ============================================
 
-const ALL_STATIC_ROUTES = new Set([
+const ALL_STATIC_ROUTES: Set<string> = new Set([
   // Marketing routes
   ROUTES.LANDING,
   ROUTES.SCAN,
@@ -231,8 +261,20 @@ const ALL_STATIC_ROUTES = new Set([
   ROUTES.PRICING,
   ROUTES.MANAGED_SITE,
   
-  // App routes
+  // App routes (website-centric)
   ROUTES.HOME,
+  ROUTES.OVERVIEW,
+  ROUTES.COMPETITIVE_ANALYSIS,
+  ROUTES.RANKINGS,
+  ROUTES.PERFORMANCE,
+  ROUTES.TECHNICAL_SEO,
+  ROUTES.CONTENT,
+  ROUTES.AI_SEARCH,
+  ROUTES.LINK_BUILDING,
+  ROUTES.AUTOMATION,
+  ROUTES.SITE_HEALTH,
+  ROUTES.PAGES,
+  ROUTES.COMPETITORS,
   ROUTES.DASHBOARD,
   ROUTES.MISSION_CONTROL,
   ROUTES.SELECT_SITE,
@@ -316,7 +358,7 @@ export function resolveDeprecatedRoute(path: string): string | null {
 
 export function getSafeRoute(
   targetRoute: string,
-  fallbackRoute: string = ROUTES.DASHBOARD
+  fallbackRoute: string = ROUTES.OVERVIEW
 ): string {
   const redirected = resolveDeprecatedRoute(targetRoute);
   if (redirected) return redirected;
@@ -339,7 +381,7 @@ export function getPostActionRoute(
     return currentRoute;
   }
   
-  return ROUTES.DASHBOARD;
+  return ROUTES.OVERVIEW;
 }
 
 // ============================================

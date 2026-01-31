@@ -68,6 +68,7 @@ const Contact = lazy(() => import("@/pages/Contact"));
 const WebsiteRegistry = lazy(() => import("@/pages/WebsiteRegistry"));
 const WebsiteRegistryDetail = lazy(() => import("@/pages/WebsiteRegistryDetail"));
 const Notifications = lazy(() => import("@/pages/Notifications"));
+const Pages = lazy(() => import("@/pages/Pages"));
 const WebsiteReportPage = lazy(() => import("@/pages/WebsiteReportPage"));
 const DeveloperReportPage = lazy(() => import("@/pages/DeveloperReportPage"));
 const SettingsIntegrations = lazy(() => import("@/pages/SettingsIntegrations"));
@@ -191,17 +192,24 @@ function Router() {
       <Route path={ROUTES.MANAGED_SITE} component={ManagedSite} />
       
       {/* ============================================ */}
-      {/* APP ROUTES - Authenticated application pages */}
+      {/* APP ROUTES - Website-centric views */}
       {/* ============================================ */}
-      <Route path={ROUTES.DASHBOARD}><ProtectedRoute component={Dashboard} lightMode /></Route>
-      <Route path={ROUTES.MISSION_CONTROL}><ProtectedRoute component={Dashboard} lightMode /></Route>
+      <Route path={ROUTES.OVERVIEW}><ProtectedRoute component={Dashboard} lightMode /></Route>
+      <Route path={ROUTES.RANKINGS}><ProtectedRoute component={KeywordRankings} /></Route>
+      <Route path={ROUTES.SITE_HEALTH}><ProtectedRoute component={Audit} /></Route>
+      <Route path={ROUTES.PAGES}><ProtectedRoute component={Pages} lightMode /></Route>
+      <Route path={ROUTES.COMPETITORS}><ProtectedRoute component={Benchmarks} /></Route>
+
+      {/* Legacy route aliases (redirect to new website-centric routes) */}
+      <Route path={ROUTES.DASHBOARD}><LegacyRedirect to={ROUTES.OVERVIEW} /></Route>
+      <Route path={ROUTES.MISSION_CONTROL}><LegacyRedirect to={ROUTES.OVERVIEW} /></Route>
       <Route path={ROUTES.SELECT_SITE} component={SelectSite} />
       <Route path={ROUTES.CREW}>
         <Redirect to={ROUTES.AGENTS} />
       </Route>
       <Route path={ROUTES.AGENTS}><ProtectedRoute component={Crew} /></Route>
       <Route path={ROUTES.AGENT_DETAIL}><ProtectedRoute component={AgentDetail} /></Route>
-      <Route path={ROUTES.KEYWORDS}><ProtectedRoute component={KeywordRankings} /></Route>
+      <Route path={ROUTES.KEYWORDS}><LegacyRedirect to={ROUTES.RANKINGS} /></Route>
       <Route path={ROUTES.AUTHORITY}><ProtectedRoute component={Authority} /></Route>
       <Route path={ROUTES.SPEEDSTER}><ProtectedRoute component={Speedster} /></Route>
       <Route path={ROUTES.SOCRATES}><ProtectedRoute component={Socrates} /></Route>
@@ -209,9 +217,9 @@ function Router() {
       <Route path={ROUTES.CHANGES}><ProtectedRoute component={SuggestedChanges} /></Route>
       <Route path={ROUTES.RUNS}><ProtectedRoute component={Runs} /></Route>
       <Route path={ROUTES.RUN_DETAIL}><ProtectedRoute component={RunDetail} /></Route>
-      <Route path={ROUTES.AUDIT}><ProtectedRoute component={Audit} /></Route>
-      <Route path={ROUTES.BENCHMARKS}><ProtectedRoute component={Benchmarks} /></Route>
-      <Route path={ROUTES.ACHIEVEMENTS}><ProtectedRoute component={Achievements} /></Route>
+      <Route path={ROUTES.AUDIT}><LegacyRedirect to={ROUTES.SITE_HEALTH} /></Route>
+      <Route path={ROUTES.BENCHMARKS}><LegacyRedirect to={ROUTES.COMPETITORS} /></Route>
+      <Route path={ROUTES.ACHIEVEMENTS}><LegacyRedirect to={ROUTES.OVERVIEW} /></Route>
       <Route path={ROUTES.INTEGRATIONS}><ProtectedRoute component={Integrations} /></Route>
       <Route path={ROUTES.NOTIFICATIONS}><ProtectedRoute component={Notifications} /></Route>
       <Route path="/app/settings/integrations"><ProtectedRoute component={SettingsIntegrations} lightMode /></Route>
@@ -224,7 +232,7 @@ function Router() {
       <Route path={ROUTES.SITE_NEW}><ProtectedRoute component={SiteDetail} /></Route>
       <Route path={ROUTES.SITE_DETAIL}><ProtectedRoute component={SiteDetail} /></Route>
       <Route path={ROUTES.WEBSITE_REGISTRY_DETAIL}><ProtectedRoute component={WebsiteRegistryDetail} lightMode /></Route>
-      <Route path={ROUTES.WEBSITES}><ProtectedRoute component={WebsiteRegistry} lightMode /></Route>
+      <Route path={ROUTES.WEBSITES}><LegacyRedirect to={ROUTES.OVERVIEW} /></Route>
       <Route path={ROUTES.HELP}><ProtectedRoute component={Help} /></Route>
       <Route path={ROUTES.DEV_PALETTE}><ProtectedRoute component={CrewPalette} /></Route>
       <Route path={ROUTES.DEV_LINEAGE}><ProtectedRoute component={DevLineage} /></Route>
@@ -235,17 +243,17 @@ function Router() {
       
       {/* App home redirect */}
       <Route path={ROUTES.HOME}>
-        <Redirect to={ROUTES.DASHBOARD} />
+        <Redirect to={ROUTES.OVERVIEW} />
       </Route>
       
       {/* ============================================ */}
       {/* LEGACY REDIRECTS - Old routes to new /app/* */}
       {/* ============================================ */}
       <Route path="/dashboard">
-        <LegacyRedirect to={ROUTES.DASHBOARD} />
+        <LegacyRedirect to={ROUTES.OVERVIEW} />
       </Route>
       <Route path="/mission-control">
-        <LegacyRedirect to={ROUTES.MISSION_CONTROL} />
+        <LegacyRedirect to={ROUTES.OVERVIEW} />
       </Route>
       <Route path="/crew/:agentId" component={CrewRedirect} />
       <Route path="/crew">
@@ -255,7 +263,7 @@ function Router() {
         <LegacyRedirect to={ROUTES.AGENTS} />
       </Route>
       <Route path="/keywords">
-        <LegacyRedirect to={ROUTES.KEYWORDS} />
+        <LegacyRedirect to={ROUTES.RANKINGS} />
       </Route>
       <Route path="/authority">
         <LegacyRedirect to={ROUTES.AUTHORITY} />
@@ -276,13 +284,13 @@ function Router() {
         <LegacyRedirect to={ROUTES.RUNS} />
       </Route>
       <Route path="/audit">
-        <LegacyRedirect to={ROUTES.AUDIT} />
+        <LegacyRedirect to={ROUTES.SITE_HEALTH} />
       </Route>
       <Route path="/benchmarks">
-        <LegacyRedirect to={ROUTES.BENCHMARKS} />
+        <LegacyRedirect to={ROUTES.COMPETITORS} />
       </Route>
       <Route path="/achievements">
-        <LegacyRedirect to={ROUTES.ACHIEVEMENTS} />
+        <LegacyRedirect to={ROUTES.OVERVIEW} />
       </Route>
       <Route path="/integrations">
         <LegacyRedirect to={ROUTES.INTEGRATIONS} />

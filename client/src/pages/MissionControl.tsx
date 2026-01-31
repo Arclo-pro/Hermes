@@ -422,7 +422,7 @@ function MetricCard({ metric, highlighted = false }: { metric: MetricCardData; h
         )}
         
         <div className="space-y-2">
-          <Link href={ROUTES.BENCHMARKS}>
+          <Link href={ROUTES.COMPETITORS}>
             <span className="text-sm text-primary hover:text-primary/80 flex items-center gap-1 cursor-pointer">
               Compare industry benchmark <ArrowRight className="w-3 h-3" />
             </span>

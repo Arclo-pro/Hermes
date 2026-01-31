@@ -145,7 +145,7 @@ export default function ScanPreview() {
 
         if (data.ok && data.reportId) {
           if (isAddWebsiteFlow) {
-            navigate(ROUTES.DASHBOARD);
+            navigate(ROUTES.OVERVIEW);
           } else {
             navigate(buildRoute.freeReport(data.reportId));
           }

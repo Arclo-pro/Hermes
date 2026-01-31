@@ -58,15 +58,22 @@ interface SerpOverview {
 export default function SERPContent() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { selectedSiteId } = useSiteContext();
-  const { score: unifiedScore, status: crewStatusValue, isLoading: statusLoading, isRefreshing: crewIsRefreshing, dataUpdatedAt: crewDataUpdatedAt } = useCrewStatus({ 
-    siteId: selectedSiteId || 'site_empathy_health_clinic', 
-    crewId: 'lookout' 
+  const { selectedSiteId, siteDomain } = useSiteContext();
+  const { score: unifiedScore, status: crewStatusValue, isLoading: statusLoading, isRefreshing: crewIsRefreshing, dataUpdatedAt: crewDataUpdatedAt } = useCrewStatus({
+    siteId: selectedSiteId || 'site_empathy_health_clinic',
+    crewId: 'lookout'
   });
-  const [setupDomain, setSetupDomain] = useState('empathyhealthclinic.com');
-  const [setupBusinessType, setSetupBusinessType] = useState('psychiatry clinic');
-  const [setupLocation, setSetupLocation] = useState('Orlando, Florida');
+  const [setupDomain, setSetupDomain] = useState(siteDomain || '');
+  const [setupBusinessType, setSetupBusinessType] = useState('');
+  const [setupLocation, setSetupLocation] = useState('');
   const [isAskingSerp, setIsAskingSerp] = useState(false);
+
+  // Sync domain from site context when it becomes available
+  useEffect(() => {
+    if (siteDomain && !setupDomain) {
+      setSetupDomain(siteDomain);
+    }
+  }, [siteDomain]);
 
   const handleAskSerp = async (question: string) => {
     setIsAskingSerp(true);

@@ -8,10 +8,10 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-  { label: "Dashboard", to: "/app/dashboard" },
+  { label: "Overview", to: "/app/overview" },
+  { label: "Rankings", to: "/app/rankings" },
+  { label: "Site Health", to: "/app/site-health" },
   { label: "Agents", to: "/app/agents" },
-  { label: "Benchmarks", to: "/app/benchmarks" },
-  { label: "Achievements", to: "/app/achievements" },
   { label: "Settings", to: "/app/settings" },
 ];
 

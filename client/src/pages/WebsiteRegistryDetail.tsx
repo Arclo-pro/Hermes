@@ -218,7 +218,7 @@ export default function WebsiteRegistryDetail() {
       <div className="space-y-6">
         {/* Back link + status */}
         <div className="flex items-center justify-between">
-          <Link href={ROUTES.WEBSITES}>
+          <Link href={ROUTES.OVERVIEW}>
             <Button variant="ghost" size="sm">
               <ArrowLeft className="w-4 h-4 mr-2" />
               All Websites

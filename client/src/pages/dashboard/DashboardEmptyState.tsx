@@ -70,7 +70,7 @@ export function DashboardEmptyState() {
 
       // Case 2: Site already has a report — go directly to dashboard
       if (data.hasExistingReport) {
-        navigate("/app/dashboard");
+        navigate("/app/overview");
         return;
       }
 

@@ -19,14 +19,14 @@ export default function SelectSite() {
 
   useEffect(() => {
     if (activeWebsiteId) {
-      navigate("/app/dashboard");
+      navigate("/app/overview");
     }
   }, [activeWebsiteId, navigate]);
 
   const handleSelectSite = async (siteId: string) => {
     const success = await selectWebsite(siteId);
     if (success) {
-      navigate("/app/dashboard");
+      navigate("/app/overview");
     }
   };
 
