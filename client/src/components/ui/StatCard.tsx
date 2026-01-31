@@ -1,5 +1,5 @@
 import React from "react";
-import { Card } from "@/components/ui/Card";
+import { ArcloCard } from "@/components/ui/card";
 
 type StatCardProps = {
   label: string;
@@ -35,7 +35,7 @@ export function StatCard({
   accent = "purple",
 }: StatCardProps) {
   return (
-    <Card tone={tone === "brand" ? "brand" : "default"}>
+    <ArcloCard tone={tone === "brand" ? "brand" : "default"}>
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -53,6 +53,6 @@ export function StatCard({
           </div>
         ) : null}
       </div>
-    </Card>
+    </ArcloCard>
   );
 }

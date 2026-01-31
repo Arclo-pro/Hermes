@@ -1,5 +1,5 @@
 import React from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { Link, useLocation } from "wouter";
 
 type NavItem = {
   label: string;
@@ -20,7 +20,7 @@ function cx(...xs: Array<string | false | undefined>) {
 }
 
 export function Sidebar() {
-  const location = useLocation();
+  const [pathname] = useLocation();
 
   return (
     <aside className="sticky top-0 flex h-screen w-72 flex-col border-r border-surface-border bg-surface-nav text-text-inverse">
@@ -62,26 +62,24 @@ export function Sidebar() {
         <ul className="space-y-1">
           {navItems.map((item) => {
             const isActive =
-              location.pathname === item.to ||
-              location.pathname.startsWith(item.to + "/");
+              pathname === item.to ||
+              pathname.startsWith(item.to + "/");
 
             return (
               <li key={item.to}>
-                <NavLink
+                <Link
                   to={item.to}
-                  className={() =>
-                    cx(
-                      "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors",
-                      isActive
-                        ? "bg-text-inverse/10 text-text-inverse"
-                        : "text-text-inverse/80 hover:bg-text-inverse/10 hover:text-text-inverse",
-                      "focus:outline-none focus:ring-2 focus:ring-brand-orange/60 focus:ring-offset-2 focus:ring-offset-surface-nav"
-                    )
-                  }
+                  className={cx(
+                    "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors",
+                    isActive
+                      ? "bg-text-inverse/10 text-text-inverse"
+                      : "text-text-inverse/80 hover:bg-text-inverse/10 hover:text-text-inverse",
+                    "focus:outline-none focus:ring-2 focus:ring-brand-orange/60 focus:ring-offset-2 focus:ring-offset-surface-nav"
+                  )}
                 >
                   <span className="h-2 w-2 rounded-full bg-brand-gradient opacity-90" />
                   <span className="truncate">{item.label}</span>
-                </NavLink>
+                </Link>
               </li>
             );
           })}

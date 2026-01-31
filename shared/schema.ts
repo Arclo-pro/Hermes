@@ -593,6 +593,8 @@ export const findings = pgTable("findings", {
   confidence: real("confidence").default(0.5), // 0-1
   title: text("title").notNull(),
   description: text("description"),
+  affectedUrl: text("affected_url"),
+  recommendation: text("recommendation"),
   evidence: jsonb("evidence"), // Array of { type, value }
   recommendedActions: text("recommended_actions").array(),
   status: text("status").default("open"), // open, accepted, fixed, ignored
@@ -2920,6 +2922,9 @@ export const crewRuns = pgTable("crew_runs", {
   summary: text("summary"),
   missingOutputs: jsonb("missing_outputs").$type<string[]>(),
   rawPayload: jsonb("raw_payload"),
+  outputPayload: jsonb("output_payload"),
+  triggeredBy: text("triggered_by"),
+  errorMessage: text("error_message"),
   startedAt: timestamp("started_at"),
   completedAt: timestamp("completed_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -3742,6 +3747,16 @@ export const gscCoverageDaily = pgTable("gsc_coverage_daily", {
   warning: integer("warning").default(0),
   error: integer("error").default(0),
   excluded: integer("excluded").default(0),
+  coveragePercent: real("coverage_percent"),
+  totalIndexed: integer("total_indexed"),
+  totalNotIndexed: integer("total_not_indexed"),
+  totalErrors: integer("total_errors"),
+  robotsBlocked: integer("robots_blocked").default(0),
+  noindexDetected: integer("noindex_detected").default(0),
+  crawlErrors: integer("crawl_errors").default(0),
+  redirectErrors: integer("redirect_errors").default(0),
+  serverErrors: integer("server_errors").default(0),
+  notFoundErrors: integer("not_found_errors").default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 export const insertGscCoverageDailySchema = createInsertSchema(gscCoverageDaily).omit({ id: true, createdAt: true });
@@ -3766,6 +3781,12 @@ export const robotsTxtChecks = pgTable("robots_txt_checks", {
   url: text("url").notNull(),
   isBlocked: boolean("is_blocked").notNull().default(false),
   reason: text("reason"),
+  exists: boolean("exists"),
+  isValid: boolean("is_valid").default(true),
+  validationErrors: jsonb("validation_errors").$type<string[]>(),
+  blocksImportantPaths: boolean("blocks_important_paths").default(false),
+  sitemapsMissing: jsonb("sitemaps_missing").$type<string[]>(),
+  date: timestamp("date"),
   checkedAt: timestamp("checked_at").defaultNow().notNull(),
 });
 export const insertRobotsTxtCheckSchema = createInsertSchema(robotsTxtChecks).omit({ id: true });
@@ -3857,6 +3878,9 @@ export const manualActionChecks = pgTable("manual_action_checks", {
   hasManualAction: boolean("has_manual_action").notNull().default(false),
   actionType: text("action_type"),
   details: jsonb("details").$type<Record<string, any>>(),
+  status: text("status"),
+  gscWebUiLink: text("gsc_web_ui_link"),
+  lastUserConfirmedAt: timestamp("last_user_confirmed_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 export const insertManualActionCheckSchema = createInsertSchema(manualActionChecks).omit({ id: true, createdAt: true });
