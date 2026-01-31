@@ -65,12 +65,9 @@ export async function computeAchievementsForSite(siteId: string): Promise<{
           const milestone = await storage.createAchievementMilestone({
             siteId,
             trackId: result.track.id,
-            categoryId,
-            trackKey,
-            level: result.track.currentLevel,
+            label: headline,
+            threshold: result.track.currentLevel,
             tier: result.track.currentTier,
-            previousTier: result.tierChanged ? result.previousTier : null,
-            headline,
             notifiedAt: null,
             achievedAt: new Date(),
           });

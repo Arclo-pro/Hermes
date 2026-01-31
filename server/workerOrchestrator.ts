@@ -1266,7 +1266,7 @@ async function runWorkerOrchestrationInternal(
 
   // Push high-severity suggestions to Knowledge Base as articles (non-blocking)
   if (suggestions.length > 0) {
-    pushSuggestionsToKbase(siteId, resolvedDomain!, suggestions).catch((err) => {
+    pushSuggestionsToKbase(siteId, resolvedDomain!, suggestions as any).catch((err: any) => {
       logger.warn("WorkerOrchestrator", "KB learning push failed (non-blocking)", {
         error: err?.message,
       });

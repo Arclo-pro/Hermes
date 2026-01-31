@@ -88,7 +88,7 @@ synthesisRouter.post('/run', async (req, res, next) => {
 synthesisRouter.get('/health', async (req, res) => {
   try {
     const kbaseClient = getKBaseClient();
-    const isHealthy = await kbaseClient.ping();
+    const isHealthy = await (kbaseClient as any).ping();
 
     return res.json({
       ok: true,

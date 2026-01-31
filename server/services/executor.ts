@@ -75,8 +75,8 @@ export class ExecutorService {
       return {
         success: true,
         changeId,
-        metricsBefore: metricsBefore as Record<string, unknown>,
-        metricsAfter: metricsAfter as Record<string, unknown>,
+        metricsBefore: metricsBefore as unknown as Record<string, unknown>,
+        metricsAfter: metricsAfter as unknown as Record<string, unknown>,
       };
     } catch (error) {
       return {

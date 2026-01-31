@@ -180,7 +180,7 @@ function MissionRow({
         )}
       >
         <StatusIcon
-          className={cn("w-5 h-5", config.color, config.animate && "animate-spin")}
+          className={cn("w-5 h-5", config.color, (config as any).animate && "animate-spin")}
         />
       </div>
 

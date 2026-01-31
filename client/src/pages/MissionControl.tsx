@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -1967,6 +1967,7 @@ function ConsolidatedMissionWidget({
     autoFixableCount: autoFixableItems.length,
     priorityCount: priorities.length,
     missions: { open: openCount, total: totalMissions, completedThisWeek: 0 },
+    blockerCount: blockers.length,
   };
 
   const missions: MissionItem[] = priorities.map((p, idx) => ({

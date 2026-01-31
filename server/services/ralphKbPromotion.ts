@@ -220,7 +220,7 @@ export async function scanForPromotableAttributions(
 
   for (const attribution of attributions) {
     // Check if already promoted
-    const existing = await storage.getSocratesKbEntryByEvidence(attribution.eventId);
+    const existing = await storage.getSocratesKbEntryByKbId(attribution.eventId);
     if (existing) continue; // Already promoted
 
     // Promote to KB

@@ -32,7 +32,7 @@ export async function getCrewKpiSnapshot(
       );
     }
 
-    const cachedStatus = await CrewStatusService.getInstance().getCrewStatus(siteId, crewId);
+    const cachedStatus = await (CrewStatusService as any).getCrewStatus?.(siteId, crewId) ?? await CrewStatusService.computeCrewStatus({ siteId, crewId });
     if (cachedStatus?.score?.value !== null && cachedStatus?.score?.value !== undefined) {
       return createRealSnapshot(
         crewId,

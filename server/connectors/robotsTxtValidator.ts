@@ -263,9 +263,10 @@ function isPathBlocked(path: string, rules: GooglebotRules): boolean {
 
 async function persistResult(siteId: string, result: RobotsTxtValidationResult): Promise<void> {
   const today = new Date().toISOString().split('T')[0];
-  const data: InsertRobotsTxtCheck = {
-    siteId,
-    date: today,
+  const data = {
+    websiteId: siteId,
+    url: `https://${siteId}/robots.txt`,
+    date: new Date(today),
     exists: result.exists,
     httpStatus: result.httpStatus,
     contentHash: result.contentHash,

@@ -266,7 +266,15 @@ export async function sendDigestForSchedule(scheduleId: number): Promise<boolean
     siteName: website.name || '',
     siteUrl: website.domain || '',
     period: schedule.frequency === 'weekly' ? 'This Week' : 'This Month',
-    ...digestData,
+    actionsCompleted: digestData.actionsCompleted,
+    newPages: digestData.newPages ?? 0,
+    blogPosts: digestData.blogPosts ?? 0,
+    technicalFixes: digestData.technicalFixes ?? 0,
+    trafficChange: digestData.trafficChange,
+    trafficChangeType: digestData.trafficChangeType,
+    visibilityChange: digestData.visibilityChange,
+    visibilityChangeType: digestData.visibilityChangeType,
+    topActions: digestData.topActions ?? [],
   });
 
   if (sent) {
@@ -416,7 +424,15 @@ export async function sendManualDigest(
     siteName: website.name || '',
     siteUrl: website.domain || '',
     period: `Last ${daysBack} Days`,
-    ...digestData,
+    actionsCompleted: digestData.actionsCompleted,
+    newPages: digestData.newPages ?? 0,
+    blogPosts: digestData.blogPosts ?? 0,
+    technicalFixes: digestData.technicalFixes ?? 0,
+    trafficChange: digestData.trafficChange,
+    trafficChangeType: digestData.trafficChangeType,
+    visibilityChange: digestData.visibilityChange,
+    visibilityChangeType: digestData.visibilityChangeType,
+    topActions: digestData.topActions ?? [],
   });
 }
 

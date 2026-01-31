@@ -368,18 +368,11 @@ export class GSCConnector {
 
       inspectionRows.push({
         websiteId: siteId,
-        date: today,
-        pageUrl,
-        coverageState: status.coverageState,
+        url: pageUrl,
         verdict: status.verdict || null,
-        robotsTxtState: status.robotsTxtState || null,
         indexingState: status.indexingState || null,
-        pageFetchState: status.pageFetchState || null,
-        isIndexed: classification.isIndexed,
-        hasError: classification.hasError,
-        errorCategory: classification.errorCategory,
-        rawData: status,
-      });
+        inspectedAt: new Date(),
+      } as any);
     }
 
     // Persist individual inspection results
@@ -391,8 +384,8 @@ export class GSCConnector {
     const inspected = results.length;
     const coveragePercent = inspected > 0 ? (indexed / inspected) * 100 : 0;
 
-    const coverageData: InsertGscCoverageDaily = {
-      siteId,
+    const coverageData = {
+      websiteId: siteId,
       date: new Date(today),
       totalInspected: inspected,
       totalIndexed: indexed,

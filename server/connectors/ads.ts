@@ -339,7 +339,7 @@ export class AdsConnector {
             adGroupId: String(row.ad_group?.id || ''),
             adId: String(row.ad_group_ad?.ad?.id || ''),
             policyTopic: entry.topic || 'Unknown',
-            policyType: entry.type || 'UNKNOWN',
+            policyType: (entry.type as string) || 'UNKNOWN',
             evidences: entry.evidences?.map((e: any) => JSON.stringify(e)) || [],
           });
         }

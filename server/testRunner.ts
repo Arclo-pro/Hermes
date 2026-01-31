@@ -323,7 +323,7 @@ async function runConnectionTestsAsync(jobId: string, services: RunnableService[
         durationMs: Date.now() - startTime,
         error: passed ? undefined : `Health: ${healthOk}, Auth: ${authOk}`,
         retriedColdStart: retriedColdStart || warmup.retriedWarmup,
-      };
+      } as any;
 
       if (passed) {
         progress.completed++;

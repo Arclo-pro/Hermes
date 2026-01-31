@@ -353,7 +353,7 @@ export default function Websites() {
                   {websites?.map((website) => (
                     <TableRow key={website.id}>
                       <TableCell>
-                        <Link href={buildRoute.website(website.id)}>
+                        <Link href={buildRoute.websiteDetail(String(website.id))}>
                           <span className="font-medium hover:underline cursor-pointer">
                             {website.name}
                           </span>

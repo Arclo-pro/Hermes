@@ -369,7 +369,7 @@ router.post('/onboarding/competitors', async (req, res) => {
 
     // Update website settings
     await db.update(websiteSettings)
-      .set({ competitors, updatedAt: new Date() })
+      .set({ competitors, updatedAt: new Date() } as any)
       .where(eq(websiteSettings.websiteId, websiteId));
 
     logger.info("Onboarding", "Competitors added", { websiteId, count: competitors.length });

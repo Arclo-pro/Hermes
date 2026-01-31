@@ -170,7 +170,7 @@ router.put('/sites/:siteId/notifications/preferences', requireAuth, async (req, 
           minActionsToSend: 1,
           enabled: true,
           alertPreferences: DEFAULT_ALERT_PREFERENCES,
-        })
+        } as any)
         .returning();
       schedule = newSchedule;
     }

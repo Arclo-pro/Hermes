@@ -3781,6 +3781,8 @@ export const SystemModes = {
   NORMAL: "normal",
   MAINTENANCE: "maintenance",
   EMERGENCY: "emergency",
+  OBSERVE_ONLY: "observe_only",
+  SAFE_MODE: "safe_mode",
 } as const;
 export type SystemMode = typeof SystemModes[keyof typeof SystemModes];
 

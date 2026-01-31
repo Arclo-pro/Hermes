@@ -1,6 +1,6 @@
 import { storage } from "../storage";
 import { v4 as uuidv4 } from "uuid";
-import type { ActionCategory } from "arclo-contracts";
+type ActionCategory = string;
 
 /**
  * Seed Trust Levels - Step 6.1 Implementation

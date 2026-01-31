@@ -1157,7 +1157,7 @@ export default function SpeedsterContent() {
                         <span className="font-medium text-sm">{metricLabels[key] || key}</span>
                         <div className={cn(
                           "px-2 py-0.5 rounded text-xs font-bold",
-                          comparisonColors[bench.comparison] || 'bg-muted'
+                          comparisonColors[bench.comparison as keyof typeof comparisonColors] || 'bg-muted'
                         )}>
                           Your: {formatValue(bench.currentValue, bench.unit)}
                         </div>
@@ -1166,7 +1166,7 @@ export default function SpeedsterContent() {
                         {bench.percentile && (
                           <Badge 
                             variant="outline" 
-                            className={cn("text-xs", comparisonColors[bench.comparison] || '')}
+                            className={cn("text-xs", comparisonColors[bench.comparison as keyof typeof comparisonColors] || '')}
                           >
                             {bench.comparison === 'better' && <Trophy className="w-3 h-3 mr-1" />}
                             {percentileLabels[bench.percentile]}
