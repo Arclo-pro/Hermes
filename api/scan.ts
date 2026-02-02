@@ -46,32 +46,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try { domain = new URL(normalizedUrl).hostname.replace(/^www\./, ""); }
     catch { domain = normalizedUrl.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0]; }
 
-    // ── Idempotency check ───────────────────────────────────────────
-    const today = new Date().toISOString().slice(0, 10);
-    const idempotencyKey = `${domain}-${scanMode}-${today}`;
-
-    if (!force) {
-      const existing = await pool.query(
-        `SELECT scan_id, status FROM scan_requests
-         WHERE idempotency_key = $1 AND status IN ('running', 'preview_ready', 'completed')
-         LIMIT 1`,
-        [idempotencyKey]
-      );
-      if (existing.rows.length > 0) {
-        console.log(`[Scan] idempotency_hit { domain: "${domain}", key: "${idempotencyKey}", existingScanId: "${existing.rows[0].scan_id}" }`);
-        return res.status(200).json({
-          ok: true,
-          scanId: existing.rows[0].scan_id,
-          status: existing.rows[0].status,
-          message: "Existing scan found for today",
-          deduplicated: true,
-        });
-      }
-    }
-
-    const scanId = `scan_${Date.now()}_${randomUUID().slice(0, 8)}`;
-
-    // Ensure tables exist (backwards compat for fresh DBs)
+    // ── Ensure tables & columns exist BEFORE any queries ────────────
     await pool.query(`
       CREATE TABLE IF NOT EXISTS scan_requests (
         id SERIAL PRIMARY KEY,
@@ -102,6 +77,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await pool.query(`ALTER TABLE scan_requests ADD COLUMN IF NOT EXISTS domain TEXT`);
     await pool.query(`ALTER TABLE scan_requests ADD COLUMN IF NOT EXISTS scan_mode TEXT DEFAULT 'light'`);
     await pool.query(`ALTER TABLE scan_requests ADD COLUMN IF NOT EXISTS agent_summary JSONB`);
+
+    // ── Idempotency check (columns now guaranteed to exist) ─────────
+    const today = new Date().toISOString().slice(0, 10);
+    const idempotencyKey = `${domain}-${scanMode}-${today}`;
+
+    if (!force) {
+      const existing = await pool.query(
+        `SELECT scan_id, status FROM scan_requests
+         WHERE idempotency_key = $1 AND status IN ('running', 'preview_ready', 'completed')
+         LIMIT 1`,
+        [idempotencyKey]
+      );
+      if (existing.rows.length > 0) {
+        console.log(`[Scan] idempotency_hit { domain: "${domain}", key: "${idempotencyKey}", existingScanId: "${existing.rows[0].scan_id}" }`);
+        return res.status(200).json({
+          ok: true,
+          scanId: existing.rows[0].scan_id,
+          status: existing.rows[0].status,
+          message: "Existing scan found for today",
+          deduplicated: true,
+        });
+      }
+    }
+
+    const scanId = `scan_${Date.now()}_${randomUUID().slice(0, 8)}`;
 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS free_reports (
@@ -139,6 +139,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         result_summary JSONB,
         error_message TEXT,
         created_at TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS scan_rollups (
+        id SERIAL PRIMARY KEY,
+        domain TEXT NOT NULL UNIQUE,
+        latest_scan_id TEXT,
+        scan_mode TEXT,
+        overall_score NUMERIC,
+        technical_score NUMERIC,
+        performance_score NUMERIC,
+        serp_score NUMERIC,
+        content_score NUMERIC,
+        findings_count INTEGER DEFAULT 0,
+        scan_count INTEGER DEFAULT 1,
+        first_scan_at TIMESTAMP,
+        latest_scan_at TIMESTAMP,
+        score_trend JSONB,
+        updated_at TIMESTAMP DEFAULT NOW()
       )
     `);
 

@@ -19334,10 +19334,19 @@ Return JSON in this exact format:
         error_message TEXT,
         started_at TIMESTAMP,
         completed_at TIMESTAMP,
+        scan_mode TEXT DEFAULT 'light',
+        domain TEXT,
+        idempotency_key TEXT,
+        agent_summary JSONB,
         created_at TIMESTAMP DEFAULT NOW() NOT NULL,
         updated_at TIMESTAMP DEFAULT NOW() NOT NULL
       )
     `);
+    // Ensure columns exist on pre-existing tables
+    await db.execute(sql`ALTER TABLE scan_requests ADD COLUMN IF NOT EXISTS idempotency_key TEXT`);
+    await db.execute(sql`ALTER TABLE scan_requests ADD COLUMN IF NOT EXISTS domain TEXT`);
+    await db.execute(sql`ALTER TABLE scan_requests ADD COLUMN IF NOT EXISTS scan_mode TEXT DEFAULT 'light'`);
+    await db.execute(sql`ALTER TABLE scan_requests ADD COLUMN IF NOT EXISTS agent_summary JSONB`);
   } catch (e: any) {
     logger.warn("Scan", "Could not verify scan_requests table", { error: e.message });
   }
