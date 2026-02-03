@@ -21,6 +21,7 @@ import {
   Send,
   ToggleLeft,
   ToggleRight,
+  AlertTriangle,
 } from "lucide-react";
 
 interface ContentStatusSectionProps {
@@ -206,6 +207,132 @@ function ContentGenerationModal({
   );
 }
 
+interface EarlyPublishWarningModalProps {
+  entry: ContentDraftEntry;
+  onClose: () => void;
+  onConfirm: () => void;
+  isPublishing: boolean;
+}
+
+function EarlyPublishWarningModal({
+  entry,
+  onClose,
+  onConfirm,
+  isPublishing,
+}: EarlyPublishWarningModalProps) {
+  const scheduledDate = entry.autoPublishDate
+    ? new Date(entry.autoPublishDate).toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      })
+    : "later";
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: "rgba(15, 23, 42, 0.6)", backdropFilter: "blur(4px)" }}
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md mx-4 p-6 rounded-2xl"
+        style={{
+          background: "#FFFFFF",
+          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center"
+              style={{ background: "rgba(245, 158, 11, 0.1)" }}
+            >
+              <AlertTriangle className="w-5 h-5" style={{ color: "#f59e0b" }} />
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg" style={{ color: "#0F172A" }}>
+                Publish Ahead of Schedule?
+              </h3>
+              <p className="text-xs" style={{ color: "#64748B" }}>
+                This content is scheduled for {scheduledDate}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg transition-colors hover:bg-slate-100"
+          >
+            <X className="w-4 h-4" style={{ color: "#64748B" }} />
+          </button>
+        </div>
+
+        <div
+          className="p-4 rounded-xl mb-4"
+          style={{ background: "rgba(245, 158, 11, 0.08)", border: "1px solid rgba(245, 158, 11, 0.2)" }}
+        >
+          <p className="text-sm font-medium mb-2" style={{ color: "#92400e" }}>
+            Publishing too frequently can hurt your SEO
+          </p>
+          <ul className="text-xs space-y-1.5" style={{ color: "#78350f" }}>
+            <li className="flex items-start gap-2">
+              <span className="text-amber-600 mt-0.5">•</span>
+              <span>Search engines may view rapid content bursts as spam-like behavior</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-amber-600 mt-0.5">•</span>
+              <span>Consistent, spaced publishing signals quality to Google</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-amber-600 mt-0.5">•</span>
+              <span>Your audience may not have time to engage with previous content</span>
+            </li>
+          </ul>
+        </div>
+
+        <p className="text-sm mb-4" style={{ color: "#475569" }}>
+          We recommend waiting until the scheduled date for optimal SEO performance.
+          Are you sure you want to publish now?
+        </p>
+
+        <div className="flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
+            style={{ background: "rgba(15, 23, 42, 0.04)", color: "#64748B" }}
+          >
+            Wait for Schedule
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={isPublishing}
+            className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            style={{
+              background: "#f59e0b",
+              color: "#FFFFFF",
+              boxShadow: "0 4px 12px rgba(245, 158, 11, 0.3)",
+            }}
+          >
+            {isPublishing ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Publishing...
+              </>
+            ) : (
+              <>
+                <Send className="w-4 h-4" />
+                Publish Anyway
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function StateBadge({
   state,
   onClick,
@@ -350,6 +477,9 @@ export function ContentStatusSection({ siteId }: ContentStatusSectionProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationComplete, setGenerationComplete] = useState(false);
   const [autoPublishEnabled, setAutoPublishEnabled] = useState(data?.autoPublishEnabled ?? true);
+  const [showEarlyPublishWarning, setShowEarlyPublishWarning] = useState(false);
+  const [pendingPublishEntry, setPendingPublishEntry] = useState<ContentDraftEntry | null>(null);
+  const [isPublishing, setIsPublishing] = useState(false);
 
   // Split content into three categories
   const { newBlogs, newWebPages, webPageEdits } = useMemo(() => {
@@ -412,6 +542,26 @@ export function ContentStatusSection({ siteId }: ContentStatusSectionProps) {
   const handlePublish = async () => {
     if (!selectedEntry) return;
 
+    // Check if content is scheduled for the future
+    if (selectedEntry.scheduledForAutoPublish && selectedEntry.autoPublishDate) {
+      const scheduledDate = new Date(selectedEntry.autoPublishDate);
+      const now = new Date();
+
+      if (scheduledDate > now) {
+        // Show early publish warning instead of publishing immediately
+        setPendingPublishEntry(selectedEntry);
+        setShowEarlyPublishWarning(true);
+        return;
+      }
+    }
+
+    // If not scheduled ahead, publish directly
+    await executePublish(selectedEntry);
+  };
+
+  const executePublish = async (entry: ContentDraftEntry) => {
+    setIsPublishing(true);
+
     try {
       const response = await fetch("/api/content/publish", {
         method: "POST",
@@ -419,7 +569,7 @@ export function ContentStatusSection({ siteId }: ContentStatusSectionProps) {
         credentials: "include",
         body: JSON.stringify({
           siteId,
-          draftId: selectedEntry.draftId,
+          draftId: entry.draftId,
         }),
       });
 
@@ -430,10 +580,24 @@ export function ContentStatusSection({ siteId }: ContentStatusSectionProps) {
       // Refresh content status
       queryClient.invalidateQueries({ queryKey: ["/api/ops-dashboard", siteId, "content-status"] });
       setSelectedEntry(null);
+      setShowEarlyPublishWarning(false);
+      setPendingPublishEntry(null);
     } catch (error) {
       console.error("Content publish failed:", error);
       alert("Failed to publish content. Please try again.");
+    } finally {
+      setIsPublishing(false);
     }
+  };
+
+  const handleConfirmEarlyPublish = async () => {
+    if (!pendingPublishEntry) return;
+    await executePublish(pendingPublishEntry);
+  };
+
+  const handleCloseEarlyPublishWarning = () => {
+    setShowEarlyPublishWarning(false);
+    setPendingPublishEntry(null);
   };
 
   const handleAutoPublishToggle = async () => {
@@ -530,6 +694,15 @@ export function ContentStatusSection({ siteId }: ContentStatusSectionProps) {
           isGenerating={isGenerating}
           generationComplete={generationComplete}
           onPublish={handlePublish}
+        />
+      )}
+
+      {showEarlyPublishWarning && pendingPublishEntry && (
+        <EarlyPublishWarningModal
+          entry={pendingPublishEntry}
+          onClose={handleCloseEarlyPublishWarning}
+          onConfirm={handleConfirmEarlyPublish}
+          isPublishing={isPublishing}
         />
       )}
 

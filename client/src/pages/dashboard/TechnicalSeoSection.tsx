@@ -17,6 +17,7 @@ import {
   LayoutGrid,
   Zap,
   MousePointer,
+  RefreshCw,
 } from "lucide-react";
 
 interface TechnicalSeoSectionProps {
@@ -110,7 +111,7 @@ function CoreWebVitalCard({
 }
 
 export function TechnicalSeoSection({ siteId }: TechnicalSeoSectionProps) {
-  const { data, isLoading, isError } = useTechnicalSeo(siteId);
+  const { data, isLoading, isError, refetch, isRefetching } = useTechnicalSeo(siteId);
 
   if (isLoading) {
     return (
@@ -180,11 +181,24 @@ export function TechnicalSeoSection({ siteId }: TechnicalSeoSectionProps) {
             <Settings2 className="w-5 h-5" style={{ color: "#06b6d4" }} />
             Technical SEO
           </GlassCardTitle>
-          {data.lastCrawled && (
-            <span className="text-xs" style={{ color: "#94A3B8" }}>
-              Last crawled: {new Date(data.lastCrawled).toLocaleDateString()}
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {data.lastCrawled && (
+              <span className="text-xs" style={{ color: "#94A3B8" }}>
+                Last crawled: {new Date(data.lastCrawled).toLocaleDateString()}
+              </span>
+            )}
+            <button
+              onClick={() => refetch()}
+              disabled={isRefetching}
+              className="p-1.5 rounded-lg transition-colors hover:bg-muted disabled:opacity-50"
+              title="Refresh data"
+            >
+              <RefreshCw
+                className={`w-4 h-4 ${isRefetching ? "animate-spin" : ""}`}
+                style={{ color: "#94A3B8" }}
+              />
+            </button>
+          </div>
         </div>
       </GlassCardHeader>
       <GlassCardContent>
