@@ -46,7 +46,7 @@ export interface KeywordHistoryPoint {
   position: number | null;
 }
 
-export type KeywordIntent = "informational" | "transactional" | "navigational" | "commercial" | null;
+export type KeywordIntent = "informational" | "transactional" | "navigational" | "commercial" | "local" | null;
 
 export interface SerpKeywordEntry {
   id: number;
@@ -157,6 +157,36 @@ export interface InsightsData {
   tips: DashboardTip[];
 }
 
+export interface TechnicalSeoIssue {
+  id: string;
+  title: string;
+  description: string;
+  severity: "error" | "warning" | "info";
+  category: string;
+  url: string;
+}
+
+export interface CoreWebVitals {
+  lcp: number | null;
+  fid: number | null;
+  cls: number | null;
+  fcp: number | null;
+  ttfb: number | null;
+}
+
+export interface TechnicalSeoData {
+  hasData: boolean;
+  summary: {
+    score: number | null;
+    errorCount: number;
+    warningCount: number;
+    infoCount: number;
+  };
+  coreWebVitals: CoreWebVitals;
+  issues: TechnicalSeoIssue[];
+  lastCrawled: string | null;
+}
+
 // ============================================================
 // Hooks
 // ============================================================
@@ -234,6 +264,15 @@ export function useInsights(siteId: string | null | undefined) {
   return useQuery<InsightsData>({
     queryKey: ["/api/ops-dashboard", siteId, "insights"],
     queryFn: () => fetchOpsDashboard<InsightsData>(siteId!, "insights"),
+    enabled: !!siteId,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useTechnicalSeo(siteId: string | null | undefined) {
+  return useQuery<TechnicalSeoData>({
+    queryKey: ["/api/ops-dashboard", siteId, "technical-seo"],
+    queryFn: () => fetchOpsDashboard<TechnicalSeoData>(siteId!, "technical-seo"),
     enabled: !!siteId,
     staleTime: 5 * 60 * 1000,
   });

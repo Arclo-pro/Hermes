@@ -3,7 +3,7 @@ import {
   GlassCard,
   GlassCardContent,
 } from "@/components/ui/GlassCard";
-import { ArrowUp, ArrowDown, Clock, Users, Layers, Activity, Loader2 } from "lucide-react";
+import { ArrowUp, ArrowDown, Clock, Users, MousePointerClick, UserPlus, Loader2 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 interface MetricCardConfig {
@@ -18,8 +18,8 @@ interface MetricCardConfig {
 
 const METRIC_CARDS: MetricCardConfig[] = [
   {
-    key: "sessions" as any,
-    label: "Sessions",
+    key: "activeUsers" as any,
+    label: "Active Users",
     icon: Users,
     color: "#7c3aed",
     bgGrad: "rgba(124,58,237,0.12), rgba(245,158,11,0.08)",
@@ -27,17 +27,26 @@ const METRIC_CARDS: MetricCardConfig[] = [
     format: (v: number) => v.toLocaleString(),
   },
   {
-    key: "bounceRate" as any,
-    label: "Bounce Rate",
-    icon: Activity,
+    key: "eventCount" as any,
+    label: "Event Count",
+    icon: MousePointerClick,
     color: "#ec4899",
     bgGrad: "rgba(236,72,153,0.12), rgba(124,58,237,0.08)",
     tint: "pink",
-    format: (v: number) => `${v.toFixed(1)}%`,
+    format: (v: number) => v.toLocaleString(),
   },
   {
-    key: "avgSessionDuration" as any,
-    label: "Avg Session Duration",
+    key: "newUsers" as any,
+    label: "New Users",
+    icon: UserPlus,
+    color: "#22c55e",
+    bgGrad: "rgba(34,197,94,0.12), rgba(34,197,94,0.06)",
+    tint: "green",
+    format: (v: number) => v.toLocaleString(),
+  },
+  {
+    key: "avgEngagement" as any,
+    label: "Avg Engagement",
     icon: Clock,
     color: "#f59e0b",
     bgGrad: "rgba(245,158,11,0.12), rgba(236,72,153,0.08)",
@@ -47,15 +56,6 @@ const METRIC_CARDS: MetricCardConfig[] = [
       const secs = Math.round(v % 60);
       return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
     },
-  },
-  {
-    key: "pagesPerSession" as any,
-    label: "Pages / Session",
-    icon: Layers,
-    color: "#22c55e",
-    bgGrad: "rgba(34,197,94,0.12), rgba(34,197,94,0.06)",
-    tint: "green",
-    format: (v: number) => v.toFixed(1),
   },
 ];
 

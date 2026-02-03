@@ -10,6 +10,7 @@ import { ChangesLogSection } from "./dashboard/ChangesLogSection";
 import { PlannedUpdatesSection } from "./dashboard/PlannedUpdatesSection";
 import { SetupCardsSection } from "./dashboard/SetupCardsSection";
 import { InsightsSection } from "./dashboard/InsightsSection";
+import { TechnicalSeoSection } from "./dashboard/TechnicalSeoSection";
 
 const DASHBOARD_BG = {
   background: `radial-gradient(1200px circle at 10% 0%, rgba(139, 92, 246, 0.06), transparent 40%),
@@ -53,6 +54,9 @@ export default function Dashboard() {
 
         {/* Content section */}
         <ContentStatusSection siteId={siteId} />
+
+        {/* Technical SEO section */}
+        <TechnicalSeoSection siteId={siteId} />
 
         {/* Planned Updates + Recent Updates side by side */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
