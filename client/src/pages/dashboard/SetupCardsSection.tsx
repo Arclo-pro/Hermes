@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMetricCards, useSystemState } from "@/hooks/useOpsDashboard";
 import { GlassCard, GlassCardContent } from "@/components/ui/GlassCard";
 import {
@@ -7,6 +7,9 @@ import {
   Sparkles,
   Cpu,
   ArrowRight,
+  ChevronDown,
+  ChevronRight,
+  ChevronLeft,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useLocation } from "wouter";
@@ -207,16 +210,45 @@ interface SetupCardsSectionProps {
   siteId: string;
 }
 
+const STORAGE_KEY = "arclo-setup-cards-collapsed";
+const MAX_VISIBLE = 3;
+
 export function SetupCardsSection({ siteId }: SetupCardsSectionProps) {
   const { cards, isLoading } = useSetupCards(siteId);
   const { siteDomain } = useSiteContext();
   const [gaWizardOpen, setGaWizardOpen] = useState(false);
   const [gscWizardOpen, setGscWizardOpen] = useState(false);
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem(STORAGE_KEY) === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleCollapsed = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(STORAGE_KEY, String(next));
+      } catch {
+        // localStorage unavailable
+      }
+      return next;
+    });
+  };
 
   const handleWizardAction = (action: "ga4" | "gsc") => {
     if (action === "ga4") setGaWizardOpen(true);
     if (action === "gsc") setGscWizardOpen(true);
   };
+
+  // Carousel navigation
+  const canGoBack = carouselIndex > 0;
+  const canGoForward = carouselIndex + MAX_VISIBLE < cards.length;
+  const visibleCards = cards.slice(carouselIndex, carouselIndex + MAX_VISIBLE);
+  const showCarouselNav = cards.length > MAX_VISIBLE;
 
   // Nothing to show — all configured
   if (!isLoading && cards.length === 0) {
@@ -231,17 +263,57 @@ export function SetupCardsSection({ siteId }: SetupCardsSectionProps) {
   return (
     <>
       <div className="space-y-3">
-        <p
-          className="text-xs font-semibold uppercase tracking-wide"
-          style={{ color: "#94A3B8" }}
-        >
-          Recommended setup
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {cards.map((card) => (
-            <SetupCard key={card.id} card={card} onWizardAction={handleWizardAction} />
-          ))}
+        <div className="flex items-center justify-between">
+          <button
+            onClick={toggleCollapsed}
+            className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide transition-colors hover:opacity-80"
+            style={{ color: "#94A3B8" }}
+          >
+            {collapsed ? (
+              <ChevronRight className="w-4 h-4" />
+            ) : (
+              <ChevronDown className="w-4 h-4" />
+            )}
+            Recommended setup
+            <span className="ml-1 normal-case font-normal">({cards.length})</span>
+          </button>
+          {!collapsed && showCarouselNav && (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setCarouselIndex((i) => Math.max(0, i - 1))}
+                disabled={!canGoBack}
+                className="p-1.5 rounded-lg transition-colors disabled:opacity-30"
+                style={{
+                  background: canGoBack ? "rgba(15, 23, 42, 0.04)" : "transparent",
+                  color: "#64748B",
+                }}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="text-xs px-2" style={{ color: "#94A3B8" }}>
+                {carouselIndex + 1}-{Math.min(carouselIndex + MAX_VISIBLE, cards.length)} of {cards.length}
+              </span>
+              <button
+                onClick={() => setCarouselIndex((i) => Math.min(cards.length - MAX_VISIBLE, i + 1))}
+                disabled={!canGoForward}
+                className="p-1.5 rounded-lg transition-colors disabled:opacity-30"
+                style={{
+                  background: canGoForward ? "rgba(15, 23, 42, 0.04)" : "transparent",
+                  color: "#64748B",
+                }}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
+        {!collapsed && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {visibleCards.map((card) => (
+              <SetupCard key={card.id} card={card} onWizardAction={handleWizardAction} />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Wizard dialogs */}

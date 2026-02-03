@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getPool } from "./_lib/db.js";
 import { randomUUID } from "crypto";
 import { scanHomepageServices, type HomepageScanResult } from "./_lib/homepageServiceScan.js";
-import { buildSerpKeywords, buildFallbackKeywords, type SerpKeyword } from "./_lib/serpKeywordBuilder.js";
+import { buildSerpKeywords, buildFallbackKeywords, buildKeywordsFromBusinessType, type SerpKeyword } from "./_lib/serpKeywordBuilder.js";
 import { runAgent, skipAgent, finalizeAgentSummary } from "./_lib/agentRunner.js";
 import { analyzeCompetitors, type CompetitiveResult } from "./_lib/competitiveAnalyzer.js";
 import { analyzePageForAtlas, type AtlasResult } from "./_lib/atlasAnalyzer.js";
@@ -38,6 +38,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const pool = getPool();
     const geoLocation = body.geoLocation || null;
+    const businessType = body.businessType || null; // Business type for faster keyword generation
     const scanMode: ScanMode = body.mode === "full" ? "full" : "light";
     const force = body.force === true;
 
@@ -269,40 +270,55 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ),
     ]);
 
-    // ── Service Detection + Keyword Building (runs on Scotty's HTML) ──
+    // ── Keyword Building: Use businessType first (faster), then enrich with homepage scan ──
+    // If businessType is provided, generate keywords immediately without waiting for crawl
+    if (businessType) {
+      serpKeywordList = buildKeywordsFromBusinessType(businessType, locationStr, domain);
+      console.log(`[Scan] keywords_from_business_type { scanId: "${scanId}", businessType: "${businessType}", keywordCount: ${serpKeywordList.length} }`);
+    }
+
+    // ── Service Detection (runs on Scotty's HTML to enrich keywords) ──
     if (technicalOk && rawHtml) {
       try {
         homepageScan = scanHomepageServices(rawHtml, `https://${domain}`);
-        if (homepageScan.services.length > 0) {
-          const effectiveLocation = locationStr
-            || (homepageScan.locationCues.length > 0
-                ? homepageScan.locationCues.join(", ")
-                : null);
-          serpKeywordList = buildSerpKeywords(homepageScan.services, effectiveLocation, domain);
-        } else {
-          serviceDetectionWarning = true;
-          // Extract body text for fallback keyword generation
-          const bodyTextMatch = rawHtml.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-          const bodyText = bodyTextMatch
-            ? bodyTextMatch[1].replace(/<script[\s\S]*?<\/script>/gi, "")
-                .replace(/<style[\s\S]*?<\/style>/gi, "")
-                .replace(/<[^>]+>/g, " ")
-                .replace(/\s+/g, " ")
-                .trim()
-            : null;
-          serpKeywordList = buildFallbackKeywords(
-            homepageScan.evidence.meta.title,
-            homepageScan.evidence.meta.description,
-            locationStr,
-            domain,
-            bodyText,
-          );
+
+        // If we didn't have businessType keywords, build from homepage services
+        if (serpKeywordList.length === 0) {
+          if (homepageScan.services.length > 0) {
+            const effectiveLocation = locationStr
+              || (homepageScan.locationCues.length > 0
+                  ? homepageScan.locationCues.join(", ")
+                  : null);
+            serpKeywordList = buildSerpKeywords(homepageScan.services, effectiveLocation, domain);
+          } else {
+            serviceDetectionWarning = true;
+            // Extract body text for fallback keyword generation
+            const bodyTextMatch = rawHtml.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+            const bodyText = bodyTextMatch
+              ? bodyTextMatch[1].replace(/<script[\s\S]*?<\/script>/gi, "")
+                  .replace(/<style[\s\S]*?<\/style>/gi, "")
+                  .replace(/<[^>]+>/g, " ")
+                  .replace(/\s+/g, " ")
+                  .trim()
+              : null;
+            serpKeywordList = buildFallbackKeywords(
+              homepageScan.evidence.meta.title,
+              homepageScan.evidence.meta.description,
+              locationStr,
+              domain,
+              bodyText,
+            );
+          }
         }
       } catch (e) {
-        serviceDetectionWarning = true;
-        serpKeywordList = buildFallbackKeywords(null, null, locationStr, domain);
+        // Only warn if we don't have businessType keywords
+        if (serpKeywordList.length === 0) {
+          serviceDetectionWarning = true;
+          serpKeywordList = buildFallbackKeywords(null, null, locationStr, domain);
+        }
       }
-    } else {
+    } else if (serpKeywordList.length === 0) {
+      // No businessType and no HTML - use fallback
       serviceDetectionWarning = true;
       serpKeywordList = buildFallbackKeywords(null, null, locationStr, domain);
     }

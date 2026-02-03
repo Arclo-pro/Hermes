@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useContentStatus, type ContentDraftEntry } from "@/hooks/useOpsDashboard";
 import {
   GlassCard,
@@ -5,7 +6,7 @@ import {
   GlassCardTitle,
   GlassCardContent,
 } from "@/components/ui/GlassCard";
-import { FileText, Clock, CheckCircle2, PenTool, Loader2 } from "lucide-react";
+import { FileText, BookOpen, Globe, PenTool, Loader2 } from "lucide-react";
 
 interface ContentStatusSectionProps {
   siteId: string;
@@ -81,13 +82,30 @@ function ContentEntry({ entry }: { entry: ContentDraftEntry }) {
 export function ContentStatusSection({ siteId }: ContentStatusSectionProps) {
   const { data, isLoading, isError } = useContentStatus(siteId);
 
+  // Split content into three categories
+  const { newBlogs, newWebPages, webPageEdits } = useMemo(() => {
+    if (!data) return { newBlogs: [], newWebPages: [], webPageEdits: [] };
+
+    // New content comes from upcoming + recentlyPublished
+    const newContent = [...data.upcoming, ...data.recentlyPublished];
+
+    return {
+      newBlogs: newContent.filter(e => e.contentType === "blog_post"),
+      newWebPages: newContent.filter(e =>
+        ["landing_page", "service_page", "faq"].includes(e.contentType)
+      ),
+      // contentUpdates already contains page edits
+      webPageEdits: data.contentUpdates,
+    };
+  }, [data]);
+
   if (isLoading) {
     return (
       <GlassCard variant="marketing" tint="amber">
         <GlassCardHeader>
           <GlassCardTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5" style={{ color: "#f59e0b" }} />
-            Content Execution
+            Content
           </GlassCardTitle>
         </GlassCardHeader>
         <GlassCardContent>
@@ -105,7 +123,7 @@ export function ContentStatusSection({ siteId }: ContentStatusSectionProps) {
         <GlassCardHeader>
           <GlassCardTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5" style={{ color: "#f59e0b" }} />
-            Content Execution
+            Content
           </GlassCardTitle>
         </GlassCardHeader>
         <GlassCardContent>
@@ -123,7 +141,7 @@ export function ContentStatusSection({ siteId }: ContentStatusSectionProps) {
         <GlassCardHeader>
           <GlassCardTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5" style={{ color: "#f59e0b" }} />
-            Content Execution
+            Content
           </GlassCardTitle>
         </GlassCardHeader>
         <GlassCardContent>
@@ -144,63 +162,75 @@ export function ContentStatusSection({ siteId }: ContentStatusSectionProps) {
       <GlassCardHeader>
         <GlassCardTitle className="flex items-center gap-2">
           <FileText className="w-5 h-5" style={{ color: "#f59e0b" }} />
-          Content Execution
+          Content
         </GlassCardTitle>
       </GlassCardHeader>
       <GlassCardContent>
-        <div className="space-y-6">
-          {/* Upcoming */}
-          {data.upcoming.length > 0 && (
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <Clock className="w-4 h-4" style={{ color: "#f59e0b" }} />
-                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#94A3B8" }}>
-                  Upcoming ({data.upcoming.length})
-                </p>
-              </div>
-              <div className="space-y-2">
-                {data.upcoming.map(entry => (
-                  <ContentEntry key={entry.draftId} entry={entry} />
-                ))}
-              </div>
-            </div>
-          )}
+        <div className="grid grid-cols-3 gap-4">
+          {/* New Blogs */}
+          <ContentColumn
+            icon={BookOpen}
+            iconColor="#7c3aed"
+            title="New Blogs"
+            entries={newBlogs}
+            emptyText="No blog posts"
+          />
 
-          {/* Recently Published */}
-          {data.recentlyPublished.length > 0 && (
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <CheckCircle2 className="w-4 h-4" style={{ color: "#22c55e" }} />
-                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#94A3B8" }}>
-                  Recently Published ({data.recentlyPublished.length})
-                </p>
-              </div>
-              <div className="space-y-2">
-                {data.recentlyPublished.map(entry => (
-                  <ContentEntry key={entry.draftId} entry={entry} />
-                ))}
-              </div>
-            </div>
-          )}
+          {/* New Web Pages */}
+          <ContentColumn
+            icon={Globe}
+            iconColor="#3b82f6"
+            title="New Web Pages"
+            entries={newWebPages}
+            emptyText="No new pages"
+          />
 
-          {/* Content Updates */}
-          {data.contentUpdates.length > 0 && (
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <PenTool className="w-4 h-4" style={{ color: "#7c3aed" }} />
-                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#94A3B8" }}>
-                  Content Updates ({data.contentUpdates.length})
-                </p>
-              </div>
-              <div className="space-y-2">
-                {data.contentUpdates.map(entry => (
-                  <ContentEntry key={entry.draftId} entry={entry} />
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Web Page Edits */}
+          <ContentColumn
+            icon={PenTool}
+            iconColor="#f59e0b"
+            title="Web Page Edits"
+            entries={webPageEdits}
+            emptyText="No edits pending"
+          />
         </div>
       </GlassCardContent>
     </GlassCard>
+  );
+}
+
+function ContentColumn({
+  icon: Icon,
+  iconColor,
+  title,
+  entries,
+  emptyText,
+}: {
+  icon: typeof FileText;
+  iconColor: string;
+  title: string;
+  entries: ContentDraftEntry[];
+  emptyText: string;
+}) {
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-3">
+        <Icon className="w-4 h-4" style={{ color: iconColor }} />
+        <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#94A3B8" }}>
+          {title} ({entries.length})
+        </p>
+      </div>
+      {entries.length > 0 ? (
+        <div className="space-y-2">
+          {entries.map(entry => (
+            <ContentEntry key={entry.draftId} entry={entry} />
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs py-4 text-center" style={{ color: "#CBD5E1" }}>
+          {emptyText}
+        </p>
+      )}
+    </div>
   );
 }

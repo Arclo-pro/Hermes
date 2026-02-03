@@ -4,11 +4,10 @@ import { DashboardEmptyState } from "./dashboard/DashboardEmptyState";
 import { DashboardHeader } from "./dashboard/DashboardHeader";
 import { ConfigureOverlay } from "./dashboard/ConfigureOverlay";
 import { MetricCardsSection } from "./dashboard/MetricCardsSection";
-import { SerpSnapshotSection } from "./dashboard/SerpSnapshotSection";
-import { SerpKeywordsSection } from "./dashboard/SerpKeywordsSection";
+import { KeywordRankingsSection } from "./dashboard/KeywordRankingsSection";
 import { ContentStatusSection } from "./dashboard/ContentStatusSection";
 import { ChangesLogSection } from "./dashboard/ChangesLogSection";
-import { SystemStateSection } from "./dashboard/SystemStateSection";
+import { PlannedUpdatesSection } from "./dashboard/PlannedUpdatesSection";
 import { SetupCardsSection } from "./dashboard/SetupCardsSection";
 import { InsightsSection } from "./dashboard/InsightsSection";
 
@@ -49,20 +48,17 @@ export default function Dashboard() {
         {/* Actionable Insights — tips derived from cached worker data */}
         <InsightsSection siteId={siteId} />
 
-        {/* Section 2: SERP Snapshot */}
-        <SerpSnapshotSection siteId={siteId} />
+        {/* Section 2: Keyword Rankings (combined SERP snapshot + keywords table) */}
+        <KeywordRankingsSection siteId={siteId} />
 
-        {/* Section 3: Top Keywords Chart */}
-        <SerpKeywordsSection siteId={siteId} />
+        {/* Content section */}
+        <ContentStatusSection siteId={siteId} />
 
-        {/* Section 4 & 5: Content + Changes side by side on large screens */}
+        {/* Planned Updates + Recent Updates side by side */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <ContentStatusSection siteId={siteId} />
+          <PlannedUpdatesSection siteId={siteId} />
           <ChangesLogSection siteId={siteId} />
         </div>
-
-        {/* Section 6: Plan & System State */}
-        <SystemStateSection siteId={siteId} />
       </div>
     </div>
   );

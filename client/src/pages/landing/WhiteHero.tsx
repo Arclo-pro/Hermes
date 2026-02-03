@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { Link, useLocation } from "wouter";
-import { Building2, CalendarX, ClipboardList, Sparkles, Search, Menu, X, MapPin, ChevronDown } from "lucide-react";
+import { Building2, CalendarX, ClipboardList, Sparkles, Search, Menu, X, MapPin, ChevronDown, Briefcase } from "lucide-react";
 import { ROUTES } from "@shared/routes";
 import { Button } from "@/components/ui/button";
 import { BrandButton } from "@/components/marketing/BrandButton";
@@ -41,6 +41,41 @@ const US_STATES: { abbr: string; name: string }[] = [
   { abbr: "TX", name: "Texas" }, { abbr: "UT", name: "Utah" }, { abbr: "VT", name: "Vermont" },
   { abbr: "VA", name: "Virginia" }, { abbr: "WA", name: "Washington" }, { abbr: "WV", name: "West Virginia" },
   { abbr: "WI", name: "Wisconsin" }, { abbr: "WY", name: "Wyoming" }, { abbr: "DC", name: "Washington D.C." },
+];
+
+// Business type categories for autocomplete
+const BUSINESS_TYPES = [
+  "Restaurant / Food Service",
+  "Healthcare / Medical",
+  "Legal Services",
+  "Home Services (Plumbing, HVAC, etc.)",
+  "Real Estate",
+  "Retail / E-commerce",
+  "Professional Services",
+  "Fitness / Wellness",
+  "Beauty / Salon",
+  "Automotive",
+  "Education / Tutoring",
+  "Technology / IT",
+  "Construction / Contractors",
+  "Financial Services",
+  "Insurance",
+  "Marketing / Advertising",
+  "Photography / Videography",
+  "Event Planning",
+  "Pet Services",
+  "Cleaning Services",
+  "Landscaping / Lawn Care",
+  "Moving / Storage",
+  "Travel / Tourism",
+  "Hospitality / Hotels",
+  "Manufacturing",
+  "Wholesale / Distribution",
+  "Agriculture / Farming",
+  "Non-Profit / Charity",
+  "Religious Organization",
+  "Entertainment / Media",
+  "Other",
 ];
 
 // Major cities per state (top cities by population)
@@ -154,6 +189,13 @@ export default function WhiteHero() {
   const [selectedCity, setSelectedCity] = useState("");
   const [normalizedUrlForModal, setNormalizedUrlForModal] = useState("");
 
+  // Business type autocomplete state
+  const [businessType, setBusinessType] = useState("");
+  const [businessTypeInput, setBusinessTypeInput] = useState("");
+  const [showBusinessTypeSuggestions, setShowBusinessTypeSuggestions] = useState(false);
+  const businessTypeInputRef = useRef<HTMLInputElement>(null);
+  const businessTypeSuggestionsRef = useRef<HTMLDivElement>(null);
+
   const normalizeUrl = (input: string): string => {
     let normalized = input.trim().toLowerCase();
     if (!normalized) return "";
@@ -168,6 +210,66 @@ export default function WhiteHero() {
     return STATE_CITIES[selectedState] || [];
   }, [selectedState]);
 
+  // Filter business types based on input
+  const filteredBusinessTypes = useMemo(() => {
+    if (!businessTypeInput.trim()) return BUSINESS_TYPES;
+    const search = businessTypeInput.toLowerCase();
+    return BUSINESS_TYPES.filter(type =>
+      type.toLowerCase().includes(search)
+    );
+  }, [businessTypeInput]);
+
+  // Handle business type input change with auto-fill
+  const handleBusinessTypeInputChange = useCallback((value: string) => {
+    setBusinessTypeInput(value);
+    setShowBusinessTypeSuggestions(true);
+
+    // Auto-fill: if there's exactly one match or a very close match, select it
+    if (value.trim()) {
+      const search = value.toLowerCase();
+      const exactMatch = BUSINESS_TYPES.find(type =>
+        type.toLowerCase() === search
+      );
+      const startsWithMatch = BUSINESS_TYPES.find(type =>
+        type.toLowerCase().startsWith(search)
+      );
+
+      if (exactMatch) {
+        setBusinessType(exactMatch);
+      } else if (startsWithMatch && search.length >= 3) {
+        // Auto-fill when user has typed 3+ characters and there's a clear match
+        setBusinessType(startsWithMatch);
+        setBusinessTypeInput(startsWithMatch);
+        setShowBusinessTypeSuggestions(false);
+      }
+    } else {
+      setBusinessType("");
+    }
+  }, []);
+
+  // Select a business type from suggestions
+  const selectBusinessType = useCallback((type: string) => {
+    setBusinessType(type);
+    setBusinessTypeInput(type);
+    setShowBusinessTypeSuggestions(false);
+  }, []);
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        businessTypeInputRef.current &&
+        !businessTypeInputRef.current.contains(e.target as Node) &&
+        businessTypeSuggestionsRef.current &&
+        !businessTypeSuggestionsRef.current.contains(e.target as Node)
+      ) {
+        setShowBusinessTypeSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -181,6 +283,8 @@ export default function WhiteHero() {
     setNormalizedUrlForModal(normalized);
     setSelectedState("NATIONAL");
     setSelectedCity("");
+    setBusinessType("");
+    setBusinessTypeInput("");
     setShowLocationModal(true);
   };
 
@@ -192,11 +296,17 @@ export default function WhiteHero() {
       return;
     }
 
+    // Require business type for keyword generation
+    if (!businessType) {
+      setError("Please select your business type to help us find the right keywords.");
+      return;
+    }
+
     setError("");
     setShowLocationModal(false);
 
-    // Build scan payload
-    const scanPayload: any = { url: normalizedUrlForModal };
+    // Build scan payload with businessType for faster keyword generation
+    const scanPayload: any = { url: normalizedUrlForModal, businessType };
     if (!isNational) {
       const stateName = US_STATES.find((s) => s.abbr === selectedState)?.name || selectedState;
       scanPayload.geoLocation = { city: selectedCity, state: stateName };
@@ -380,14 +490,73 @@ export default function WhiteHero() {
               <MapPin size={28} />
             </div>
 
-            <h2 className="arclo-modal-title">Where do you want to rank?</h2>
+            <h2 className="arclo-modal-title">Tell us about your business</h2>
             <p className="arclo-modal-subtitle">
-              Select the location where your customers search for your business.
+              We'll use this to find the right keywords for your market.
             </p>
 
             <div className="arclo-modal-fields">
+              {/* Business Type Autocomplete */}
               <label className="arclo-modal-label">
-                Scope
+                Business Type *
+                <div style={{ position: "relative" }}>
+                  <div className="arclo-input-wrap">
+                    <Briefcase size={16} className="arclo-input-icon" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#94a3b8", pointerEvents: "none" }} />
+                    <input
+                      ref={businessTypeInputRef}
+                      type="text"
+                      className="arclo-select"
+                      style={{ paddingLeft: 38 }}
+                      placeholder="Start typing (e.g., Plumber, Restaurant...)"
+                      value={businessTypeInput}
+                      onChange={(e) => handleBusinessTypeInputChange(e.target.value)}
+                      onFocus={() => setShowBusinessTypeSuggestions(true)}
+                      autoComplete="off"
+                    />
+                  </div>
+                  {showBusinessTypeSuggestions && filteredBusinessTypes.length > 0 && (
+                    <div
+                      ref={businessTypeSuggestionsRef}
+                      style={{
+                        position: "absolute",
+                        top: "100%",
+                        left: 0,
+                        right: 0,
+                        maxHeight: 200,
+                        overflowY: "auto",
+                        background: "#fff",
+                        border: "1px solid #e2e8f0",
+                        borderRadius: 8,
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                        zIndex: 100,
+                        marginTop: 4,
+                      }}
+                    >
+                      {filteredBusinessTypes.map((type) => (
+                        <div
+                          key={type}
+                          onClick={() => selectBusinessType(type)}
+                          style={{
+                            padding: "10px 14px",
+                            cursor: "pointer",
+                            fontSize: "0.95rem",
+                            color: "#1e293b",
+                            background: businessType === type ? "#f1f5f9" : "transparent",
+                            borderBottom: "1px solid #f1f5f9",
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = "#f1f5f9")}
+                          onMouseLeave={(e) => (e.currentTarget.style.background = businessType === type ? "#f1f5f9" : "transparent")}
+                        >
+                          {type}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </label>
+
+              <label className="arclo-modal-label">
+                Location Scope
                 <div className="arclo-select-wrap">
                   <select
                     className="arclo-select"

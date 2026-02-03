@@ -3,7 +3,7 @@ import {
   GlassCard,
   GlassCardContent,
 } from "@/components/ui/GlassCard";
-import { ArrowUp, ArrowDown, Percent, Clock, MousePointerClick, Layers, Timer, Activity, Loader2 } from "lucide-react";
+import { ArrowUp, ArrowDown, Clock, Users, Layers, Activity, Loader2 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 interface MetricCardConfig {
@@ -18,13 +18,13 @@ interface MetricCardConfig {
 
 const METRIC_CARDS: MetricCardConfig[] = [
   {
-    key: "conversionRate" as any,
-    label: "Conversion Rate",
-    icon: MousePointerClick,
+    key: "sessions" as any,
+    label: "Sessions",
+    icon: Users,
     color: "#7c3aed",
     bgGrad: "rgba(124,58,237,0.12), rgba(245,158,11,0.08)",
     tint: "cyan",
-    format: (v: number) => `${v.toFixed(1)}%`,
+    format: (v: number) => v.toLocaleString(),
   },
   {
     key: "bounceRate" as any,
@@ -56,24 +56,6 @@ const METRIC_CARDS: MetricCardConfig[] = [
     bgGrad: "rgba(34,197,94,0.12), rgba(34,197,94,0.06)",
     tint: "green",
     format: (v: number) => v.toFixed(1),
-  },
-  {
-    key: "organicCtr" as any,
-    label: "Organic CTR",
-    icon: Percent,
-    color: "#7c3aed",
-    bgGrad: "rgba(124,58,237,0.08), rgba(236,72,153,0.12)",
-    tint: "purple",
-    format: (v: number) => `${(v * 100).toFixed(1)}%`,
-  },
-  {
-    key: "pageLoadTime" as any,
-    label: "Page Load Time",
-    icon: Timer,
-    color: "#ec4899",
-    bgGrad: "rgba(236,72,153,0.08), rgba(245,158,11,0.08)",
-    tint: "pink",
-    format: (v: number) => `${v.toFixed(1)}s`,
   },
 ];
 
@@ -156,7 +138,7 @@ export function MetricCardsSection({ siteId }: MetricCardsSectionProps) {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {METRIC_CARDS.map((card) => (
           <GlassCard key={card.label} variant="marketing" hover tint={card.tint}>
             <GlassCardContent className="p-6">
@@ -174,7 +156,7 @@ export function MetricCardsSection({ siteId }: MetricCardsSectionProps) {
 
   if (isError || !data) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {METRIC_CARDS.map((card) => (
           <ConfigAwareMetricCard
             key={card.label}
@@ -192,7 +174,7 @@ export function MetricCardsSection({ siteId }: MetricCardsSectionProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {METRIC_CARDS.map((card) => {
         const metric = data.metrics[card.key as keyof typeof data.metrics];
         return (

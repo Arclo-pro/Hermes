@@ -123,7 +123,7 @@ export function ChangesLogSection({ siteId }: ChangesLogSectionProps) {
         <GlassCardHeader>
           <GlassCardTitle className="flex items-center gap-2">
             <History className="w-5 h-5" style={{ color: "#06b6d4" }} />
-            Changes Log
+            Recent Updates
           </GlassCardTitle>
         </GlassCardHeader>
         <GlassCardContent>
@@ -141,7 +141,7 @@ export function ChangesLogSection({ siteId }: ChangesLogSectionProps) {
         <GlassCardHeader>
           <GlassCardTitle className="flex items-center gap-2">
             <History className="w-5 h-5" style={{ color: "#06b6d4" }} />
-            Changes Log
+            Recent Updates
           </GlassCardTitle>
         </GlassCardHeader>
         <GlassCardContent>
@@ -159,7 +159,7 @@ export function ChangesLogSection({ siteId }: ChangesLogSectionProps) {
         <GlassCardHeader>
           <GlassCardTitle className="flex items-center gap-2">
             <History className="w-5 h-5" style={{ color: "#06b6d4" }} />
-            Changes Log
+            Recent Updates
           </GlassCardTitle>
         </GlassCardHeader>
         <GlassCardContent>
@@ -181,7 +181,7 @@ export function ChangesLogSection({ siteId }: ChangesLogSectionProps) {
         <div className="flex items-center justify-between">
           <GlassCardTitle className="flex items-center gap-2">
             <History className="w-5 h-5" style={{ color: "#06b6d4" }} />
-            Changes Log
+            Recent Updates
           </GlassCardTitle>
           <span className="text-xs" style={{ color: "#94A3B8" }}>
             {data.entries.length} action{data.entries.length !== 1 ? "s" : ""}

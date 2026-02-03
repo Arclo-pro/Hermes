@@ -96,10 +96,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 // ============================================================
 
 function buildMetrics(fullReport: any, scoreSummary: any, googleCreds: any) {
-  const perf = fullReport?.performance || null;
-  const perfScore = perf?.performance_score ?? scoreSummary?.performance ?? null;
-  const lab = perf?.lab || {};
-
   // Check if GA4 and GSC are connected
   const ga4Connected = !!(googleCreds?.ga4_property_id && googleCreds?.integration_status === "connected");
   const gscConnected = !!googleCreds?.gsc_site_url;
@@ -111,22 +107,14 @@ function buildMetrics(fullReport: any, scoreSummary: any, googleCreds: any) {
       : "Verify GA4 connection in settings")
     : "Connect Google Analytics to see this metric";
 
-  const gscReason = gscConnected
-    ? "GSC data will be available soon"
-    : "Connect Search Console to see this metric";
-
   return {
     ga4Connected,
     gscConnected,
     metrics: {
-      conversionRate: notAvailable(ga4Reason),
+      sessions: notAvailable(ga4Reason),
       bounceRate: notAvailable(ga4Reason),
       avgSessionDuration: notAvailable(ga4Reason),
       pagesPerSession: notAvailable(ga4Reason),
-      organicCtr: notAvailable(gscReason),
-      pageLoadTime: perfScore != null
-        ? { value: lab.lcp_ms ? Math.round(lab.lcp_ms) / 1000 : null, change7d: null, available: true }
-        : notAvailable("Run a scan to collect performance data"),
     },
   };
 }
@@ -352,30 +340,6 @@ function buildInsights(fullReport: any, scoreSummary: any, findings: any[], goog
       category: "content",
       priority: priority++,
       sentiment: "action",
-    });
-  }
-
-  // GA4/GSC connection nudge - only show if not connected
-  if (!ga4Connected) {
-    tips.push({
-      id: "connect-ga4",
-      title: "Connect Google Analytics",
-      body: "Link your GA4 property to see conversion rates, bounce rates, and traffic trends.",
-      category: "system",
-      priority: priority++,
-      sentiment: "action",
-      actionLabel: "Connect GA4",
-      actionRoute: "/app/settings",
-    });
-  } else {
-    // Show positive insight when GA4 is connected
-    tips.push({
-      id: "ga4-connected",
-      title: "Google Analytics connected",
-      body: "Your GA4 property is linked. Analytics data will populate your dashboard metrics.",
-      category: "win",
-      priority: priority++,
-      sentiment: "positive",
     });
   }
 
