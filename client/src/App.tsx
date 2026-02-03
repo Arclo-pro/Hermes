@@ -7,7 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SiteProvider } from "@/hooks/useSiteContext";
-import { AuthProvider } from "@/hooks/useAuth";
+import { AuthProvider, useRequireAuth } from "@/hooks/useAuth";
 import AppShell from "@/components/AppShell";
 import NotFound from "@/pages/not-found";
 import { ROUTES, buildRoute, resolveAgentSlug } from "@shared/routes";
@@ -108,6 +108,22 @@ function LegacyRedirect({ to }: { to: string }) {
 }
 
 function ProtectedRoute({ component: Component, lightMode = false }: { component: React.ComponentType; lightMode?: boolean }) {
+  const { authenticated, loading } = useRequireAuth();
+
+  if (loading) {
+    return (
+      <AppShell lightMode={lightMode}>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full" />
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (!authenticated) {
+    return null; // useRequireAuth navigates to /login
+  }
+
   return (
     <AppShell lightMode={lightMode}>
       <Component />
