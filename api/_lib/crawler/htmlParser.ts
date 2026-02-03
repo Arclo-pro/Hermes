@@ -17,15 +17,24 @@ export interface ParsedPage {
   h1Count: number;
   h2Texts: string[];
   h2Count: number;
+  h2Duplicates: string[];
   visibleTextLen: number;
   wordCount: number;
+  avgWordsPerSentence: number;
+  avgSyllablesPerWord: number;
+  fleschReadingEase: number | null;
   links: Array<{
     href: string;
     text: string | null;
     isInternal: boolean;
+    isFollowed: boolean;
   }>;
+  internalLinksNoAnchor: number;
+  externalLinksCount: number;
+  externalLinksFollowed: number;
   images: Array<{
     src: string | null;
+    resolvedSrc: string | null;
     alt: string | null;
     hasWidth: boolean;
     hasHeight: boolean;
@@ -58,12 +67,21 @@ export function parseHtml(html: string, pageUrl: string, baseDomain: string): Pa
     if (text) h1Texts.push(text);
   });
 
-  // H2 headings (first 20)
+  // H2 headings (first 20) + detect duplicates
   const h2Texts: string[] = [];
+  const h2Seen = new Set<string>();
+  const h2Duplicates: string[] = [];
   $("h2").each((i, el) => {
     if (i < 20) {
       const text = $(el).text().trim();
-      if (text) h2Texts.push(text);
+      if (text) {
+        h2Texts.push(text);
+        const normalized = text.toLowerCase();
+        if (h2Seen.has(normalized)) {
+          h2Duplicates.push(text);
+        }
+        h2Seen.add(normalized);
+      }
     }
   });
 
@@ -72,10 +90,42 @@ export function parseHtml(html: string, pageUrl: string, baseDomain: string): Pa
   $clone("script, style, noscript, nav, footer, header, aside").remove();
   const visibleText = $clone("body").text().replace(/\s+/g, " ").trim();
   const visibleTextLen = visibleText.length;
-  const wordCount = visibleText.split(/\s+/).filter(w => w.length > 0).length;
+  const words = visibleText.split(/\s+/).filter(w => w.length > 0);
+  const wordCount = words.length;
+
+  // Readability calculation (Flesch-Kincaid)
+  const sentences = visibleText.split(/[.!?]+/).filter(s => s.trim().length > 0);
+  const sentenceCount = Math.max(sentences.length, 1);
+  const avgWordsPerSentence = wordCount / sentenceCount;
+
+  // Syllable counting (simplified)
+  const countSyllables = (word: string): number => {
+    word = word.toLowerCase().replace(/[^a-z]/g, "");
+    if (word.length <= 3) return 1;
+    word = word.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/, "");
+    word = word.replace(/^y/, "");
+    const matches = word.match(/[aeiouy]{1,2}/g);
+    return matches ? matches.length : 1;
+  };
+
+  let totalSyllables = 0;
+  for (const word of words) {
+    totalSyllables += countSyllables(word);
+  }
+  const avgSyllablesPerWord = wordCount > 0 ? totalSyllables / wordCount : 0;
+
+  // Flesch Reading Ease: 206.835 - 1.015*(words/sentences) - 84.6*(syllables/words)
+  // Score 0-30: Very difficult (college graduate), 30-60: Difficult, 60-70: Standard, 70-80: Fairly easy, 80-100: Easy
+  const fleschReadingEase = wordCount > 0
+    ? Math.round(206.835 - (1.015 * avgWordsPerSentence) - (84.6 * avgSyllablesPerWord))
+    : null;
 
   // Extract links
   const links: ParsedPage["links"] = [];
+  let internalLinksNoAnchor = 0;
+  let externalLinksCount = 0;
+  let externalLinksFollowed = 0;
+
   $("a[href]").each((_, el) => {
     const href = $(el).attr("href");
     if (!href) return;
@@ -89,10 +139,28 @@ export function parseHtml(html: string, pageUrl: string, baseDomain: string): Pa
       return;
     }
 
+    const rel = $(el).attr("rel") || "";
+    const isNofollow = rel.toLowerCase().includes("nofollow");
+    const isFollowed = !isNofollow;
+    const anchorText = $(el).text().trim();
+    const imgAlt = $(el).find("img").attr("alt")?.trim() || "";
+    const hasAnchor = !!(anchorText || imgAlt);
+    const isInternal = isInternalUrl(resolvedUrl, baseDomain);
+
+    if (isInternal && !hasAnchor) {
+      internalLinksNoAnchor++;
+    }
+
+    if (!isInternal) {
+      externalLinksCount++;
+      if (isFollowed) externalLinksFollowed++;
+    }
+
     links.push({
       href: resolvedUrl,
-      text: $(el).text().trim() || null,
-      isInternal: isInternalUrl(resolvedUrl, baseDomain),
+      text: anchorText || null,
+      isInternal,
+      isFollowed,
     });
   });
 
@@ -105,7 +173,10 @@ export function parseHtml(html: string, pageUrl: string, baseDomain: string): Pa
     const hasHeight = !!$(el).attr("height");
     const isBroken = !src || src.trim() === "" || src.startsWith("data:image/gif;base64,R0lGOD");
 
-    images.push({ src: src || null, alt, hasWidth, hasHeight, isBroken });
+    // Resolve the image URL for size checking
+    const resolvedSrc = src && !src.startsWith("data:") ? resolveUrl(src, pageUrl) : null;
+
+    images.push({ src: src || null, resolvedSrc, alt, hasWidth, hasHeight, isBroken });
   });
 
   return {
@@ -119,9 +190,16 @@ export function parseHtml(html: string, pageUrl: string, baseDomain: string): Pa
     h1Count: h1Texts.length,
     h2Texts,
     h2Count: $("h2").length,
+    h2Duplicates,
     visibleTextLen,
     wordCount,
+    avgWordsPerSentence,
+    avgSyllablesPerWord,
+    fleschReadingEase,
     links,
+    internalLinksNoAnchor,
+    externalLinksCount,
+    externalLinksFollowed,
     images,
   };
 }

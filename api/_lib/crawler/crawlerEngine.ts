@@ -11,6 +11,7 @@ import { runFindingRules, type CrawlFinding, type FindingContext } from "./findi
 
 const USER_AGENT = "ArcloBot/1.0 (+https://arclo.com/bot)";
 const FETCH_TIMEOUT = 10_000;
+const IMAGE_SIZE_THRESHOLD = 100 * 1024; // 100KB
 
 export interface CrawlConfig {
   maxPages: number;
@@ -156,6 +157,72 @@ async function fetchSitemapUrls(sitemapUrls: string[], maxUrls: number): Promise
   return allUrls;
 }
 
+// Check image sizes via HEAD requests
+async function checkImageSizes(
+  imageUrls: string[],
+  maxImages: number = 10
+): Promise<{ largeImages: Array<{ url: string; sizeBytes: number }>; checkedCount: number }> {
+  const largeImages: Array<{ url: string; sizeBytes: number }> = [];
+  const urlsToCheck = imageUrls.slice(0, maxImages);
+  let checkedCount = 0;
+
+  for (const url of urlsToCheck) {
+    try {
+      const resp = await fetch(url, {
+        method: "HEAD",
+        headers: { "User-Agent": USER_AGENT },
+        signal: AbortSignal.timeout(5000),
+      });
+      checkedCount++;
+
+      if (resp.ok) {
+        const contentLength = resp.headers.get("content-length");
+        if (contentLength) {
+          const sizeBytes = parseInt(contentLength, 10);
+          if (sizeBytes > IMAGE_SIZE_THRESHOLD) {
+            largeImages.push({ url, sizeBytes });
+          }
+        }
+      }
+    } catch {
+      // Ignore errors for image checks
+    }
+  }
+
+  return { largeImages, checkedCount };
+}
+
+// Check external links for broken status (4xx/5xx)
+async function checkExternalLinks(
+  links: Array<{ href: string; isInternal: boolean }>,
+  maxLinks: number = 10
+): Promise<{ brokenLinks: Array<{ url: string; statusCode: number }>; checkedCount: number }> {
+  const brokenLinks: Array<{ url: string; statusCode: number }> = [];
+  const externalLinks = links.filter(l => !l.isInternal).slice(0, maxLinks);
+  let checkedCount = 0;
+
+  for (const link of externalLinks) {
+    try {
+      const resp = await fetch(link.href, {
+        method: "HEAD",
+        headers: { "User-Agent": USER_AGENT },
+        redirect: "follow",
+        signal: AbortSignal.timeout(5000),
+      });
+      checkedCount++;
+
+      if (resp.status >= 400) {
+        brokenLinks.push({ url: link.href, statusCode: resp.status });
+      }
+    } catch {
+      // Treat connection errors as potential issues but don't flag
+      checkedCount++;
+    }
+  }
+
+  return { brokenLinks, checkedCount };
+}
+
 // Concurrency limiter
 async function runWithConcurrency<T>(
   items: T[],
@@ -253,6 +320,12 @@ export async function runTechnicalCrawl(
         let html = "";
         const redirectChain: string[] = [];
 
+        // Security headers
+        let referrerPolicy: string | null = null;
+        let xContentTypeOptions: string | null = null;
+        let contentSecurityPolicy: string | null = null;
+        let xFrameOptions: string | null = null;
+
         if (!isBlocked) {
           const resp = await fetch(item.url, {
             headers: { "User-Agent": USER_AGENT },
@@ -263,6 +336,12 @@ export async function runTechnicalCrawl(
           statusCode = resp.status;
           contentType = resp.headers.get("content-type") || "";
           xRobotsTag = resp.headers.get("x-robots-tag") || null;
+
+          // Capture security headers
+          referrerPolicy = resp.headers.get("referrer-policy") || null;
+          xContentTypeOptions = resp.headers.get("x-content-type-options") || null;
+          contentSecurityPolicy = resp.headers.get("content-security-policy") || null;
+          xFrameOptions = resp.headers.get("x-frame-options") || null;
 
           // Detect redirect
           if (resp.url !== item.url) {
@@ -294,6 +373,25 @@ export async function runTechnicalCrawl(
         const internalLinksOut = parsedPage?.links.filter(l => l.isInternal).length || 0;
         const missingAlt = parsedPage?.images.filter(i => !i.alt).length || 0;
         const missingSize = parsedPage?.images.filter(i => !i.hasWidth || !i.hasHeight).length || 0;
+
+        // Check image sizes (only for pages with images)
+        let largeImages: Array<{ url: string; sizeBytes: number }> = [];
+        if (parsedPage?.images && parsedPage.images.length > 0) {
+          const imageUrls = parsedPage.images
+            .map(i => i.resolvedSrc)
+            .filter((url): url is string => !!url);
+          if (imageUrls.length > 0) {
+            const imageResult = await checkImageSizes(imageUrls);
+            largeImages = imageResult.largeImages;
+          }
+        }
+
+        // Check external links for broken status
+        let brokenExternalLinks: Array<{ url: string; statusCode: number }> = [];
+        if (parsedPage?.links && parsedPage.links.length > 0) {
+          const linkResult = await checkExternalLinks(parsedPage.links);
+          brokenExternalLinks = linkResult.brokenLinks;
+        }
 
         pages.push({
           url: item.url,
@@ -340,12 +438,27 @@ export async function runTechnicalCrawl(
           metaDescriptionLen: parsedPage?.metaDescriptionLen,
           h1Count: parsedPage?.h1Count,
           h1Texts: parsedPage?.h1Texts,
+          h2Count: parsedPage?.h2Count,
+          h2Texts: parsedPage?.h2Texts,
+          h2Duplicates: parsedPage?.h2Duplicates,
           wordCount: parsedPage?.wordCount,
           visibleTextLen: parsedPage?.visibleTextLen,
+          fleschReadingEase: parsedPage?.fleschReadingEase,
           outlinksCount: internalLinksOut,
+          externalLinksCount: parsedPage?.externalLinksCount,
+          externalLinksFollowed: parsedPage?.externalLinksFollowed,
+          internalLinksNoAnchor: parsedPage?.internalLinksNoAnchor,
           imagesMissingAlt: missingAlt,
           imagesMissingSize: missingSize,
           isInSitemap: sitemapUrlSet.has(item.normalizedUrl),
+          // Security headers
+          referrerPolicy,
+          xContentTypeOptions,
+          contentSecurityPolicy,
+          xFrameOptions,
+          // Large images and broken external links
+          largeImages,
+          brokenExternalLinks,
         };
 
         allFindings.push(...runFindingRules(ctx));
