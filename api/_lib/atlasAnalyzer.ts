@@ -247,6 +247,91 @@ export function analyzePageForAtlas(html: string, url: string): AtlasResult {
     });
   }
 
+  // ── 7. Open Graph Completeness ───────────────────────────────
+  const ogTitle = /property=["']og:title["']/i.test(html);
+  const ogDescription = /property=["']og:description["']/i.test(html);
+  const ogImage = /property=["']og:image["']/i.test(html);
+  const ogUrl = /property=["']og:url["']/i.test(html);
+  const ogChecks = [ogTitle, ogDescription, ogImage, ogUrl];
+  const ogPassCount = ogChecks.filter(Boolean).length;
+
+  checklist.push({
+    title: "Open Graph Tags",
+    status: ogPassCount >= 3 ? "pass" : ogPassCount >= 1 ? "warning" : "fail",
+    detail: ogPassCount >= 3
+      ? `${ogPassCount}/4 OG tags present (title, desc, image, url)`
+      : ogPassCount > 0
+      ? `Only ${ogPassCount}/4 OG tags found — missing: ${[!ogTitle && "og:title", !ogDescription && "og:description", !ogImage && "og:image", !ogUrl && "og:url"].filter(Boolean).join(", ")}`
+      : "No Open Graph meta tags found",
+    category: "social",
+  });
+
+  if (ogPassCount < 3) {
+    findings.push({
+      finding_type: "incomplete_og",
+      severity: ogPassCount === 0 ? "warning" : "info",
+      category: "social",
+      description: `Open Graph tags are ${ogPassCount === 0 ? "missing" : "incomplete"} — AI and social platforms may not preview your page correctly`,
+      recommended_action: "Add og:title, og:description, og:image, and og:url meta tags for better AI and social sharing.",
+    });
+  }
+
+  // ── 8. Twitter/X Card Validation ────────────────────────────────
+  const twitterCard = /name=["']twitter:card["']/i.test(html);
+  const twitterTitle = /name=["']twitter:title["']/i.test(html);
+
+  checklist.push({
+    title: "Twitter/X Card",
+    status: twitterCard ? "pass" : "warning",
+    detail: twitterCard
+      ? `Twitter card meta tag found${twitterTitle ? " with title" : ""}`
+      : "No Twitter card meta tags — X/Twitter will fall back to Open Graph",
+    category: "social",
+  });
+
+  // ── 9. AI Crawler Bot Detection (robots.txt analysis) ──────────
+  // Check if page HTML references blocking of known AI bots
+  const aiBotsChecked = ["GPTBot", "ChatGPT-User", "Google-Extended", "Anthropic-AI", "PerplexityBot", "ClaudeBot"];
+  const blockedBots: string[] = [];
+  const allowedBots: string[] = [];
+
+  // We can't fetch robots.txt from here (no network), but we can check meta robots
+  // and look for references in the HTML (some sites embed robots.txt-like info)
+  const robotsContent = html.match(/<meta[^>]*name=["']robots["'][^>]*content=["']([^"']+)["']/i)?.[1] || "";
+
+  // Check for AI-specific blocking directives
+  for (const bot of aiBotsChecked) {
+    const botMeta = html.match(new RegExp(`<meta[^>]*name=["']${bot}["'][^>]*content=["']([^"']+)["']`, "i"));
+    if (botMeta?.[1]?.toLowerCase().includes("noindex") || botMeta?.[1]?.toLowerCase().includes("none")) {
+      blockedBots.push(bot);
+    } else {
+      allowedBots.push(bot);
+    }
+  }
+
+  if (blockedBots.length > 0) {
+    checklist.push({
+      title: "AI Bot Access",
+      status: "warning",
+      detail: `Blocking ${blockedBots.length} AI bot(s): ${blockedBots.join(", ")}`,
+      category: "meta",
+    });
+    findings.push({
+      finding_type: "ai_bots_blocked",
+      severity: "warning",
+      category: "meta",
+      description: `Page blocks ${blockedBots.length} AI crawler(s): ${blockedBots.join(", ")}`,
+      recommended_action: "Review whether blocking AI crawlers is intentional. Allowing them can improve visibility in AI-powered search.",
+    });
+  } else {
+    checklist.push({
+      title: "AI Bot Access",
+      status: "pass",
+      detail: "No AI-specific blocking directives detected on page",
+      category: "meta",
+    });
+  }
+
   // ── Compute aggregate scores ───────────────────────────────────
   const entityCoverage = Math.min(100, napScore + (hasOrganization || hasLocalBusiness ? 20 : 0));
 

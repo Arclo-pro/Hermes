@@ -301,9 +301,19 @@ export function scanHomepageServices(html: string, siteUrl: string): HomepageSca
     marketing: ["marketing", "seo", "digital", "advertising", "branding"],
     construction: ["construct", "build", "contractor", "framing"],
     insurance: ["insurance", "coverage", "policy", "claim"],
-    realestate: ["real estate", "realtor", "property", "home sale"],
+    realestate: ["real estate", "realtor", "property", "home sale", "listing"],
     restaurant: ["restaurant", "catering", "food", "dining", "menu"],
     fitness: ["fitness", "gym", "personal train", "yoga", "workout"],
+    technology: ["software", "saas", "app", "platform", "cloud", "api", "tech"],
+    ecommerce: ["shop", "store", "buy", "cart", "product", "shipping", "order"],
+    education: ["tutoring", "school", "course", "training", "learning", "academy"],
+    finance: ["accounting", "bookkeep", "tax", "financial", "cpa", "payroll"],
+    hospitality: ["hotel", "resort", "vacation", "lodging", "airbnb", "rental"],
+    healthcare: ["therapy", "counsel", "mental health", "wellness", "chiropract", "physiother"],
+    consulting: ["consult", "advisory", "strategy", "management consult"],
+    manufacturing: ["manufactur", "fabricat", "machining", "cnc", "welding"],
+    nonprofit: ["nonprofit", "non-profit", "charity", "foundation", "donate"],
+    creative: ["design", "photography", "video", "creative", "agency", "studio", "media"],
   };
 
   for (const [category, keywords] of Object.entries(categoryKeywords)) {

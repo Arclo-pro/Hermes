@@ -4,7 +4,7 @@ import { randomUUID } from "crypto";
 import { scanHomepageServices, type HomepageScanResult } from "./_lib/homepageServiceScan.js";
 import { buildSerpKeywords, buildFallbackKeywords, type SerpKeyword } from "./_lib/serpKeywordBuilder.js";
 import { runAgent, skipAgent, finalizeAgentSummary } from "./_lib/agentRunner.js";
-import { isNatashaConfigured, runNatashaCompetitors, type NatashaResult } from "./_lib/natashaClient.js";
+import { analyzeCompetitors, type CompetitiveResult } from "./_lib/competitiveAnalyzer.js";
 import { analyzePageForAtlas, type AtlasResult } from "./_lib/atlasAnalyzer.js";
 import { updateRollup } from "./_lib/rollupAggregator.js";
 
@@ -184,13 +184,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Shared state populated by agents
     let technicalOk = false;
-    let hasTitle = true, hasMetaDesc = true, hasH1 = true, hasCanonical = true;
-    let httpStatus = 200;
     let rawHtml = "";
+    let crawlerFindings: any[] = [];
+    let crawlerSummary: any = null;
+    let pagesCrawled = 0;
 
     let performanceScore = 70;
     let lcpMs: number | null = null;
     let clsValue: number | null = null;
+    let fcpMs: number | null = null;
+    let tbtMs: number | null = null;
+    let speedIndex: number | null = null;
+    let psiAuditRecommendations: any[] = [];
     let psiOk = false;
 
     let homepageScan: HomepageScanResult | null = null;
@@ -199,59 +204,70 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let serpRunOk = false;
     let serviceDetectionWarning = false;
 
-    // ── Agent: Scotty (Technical Crawl) ─────────────────────────────
-    const scottyResult = await runAgent(
-      { scanId, crewId: "scotty", agentStep: "technical_crawl", scanMode },
-      pool,
-      async () => {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 15000);
-        try {
-          const htmlRes = await fetch(`https://${domain}`, {
-            headers: { "User-Agent": "Arclo-SEO-Scanner/1.0" },
-            redirect: "follow",
-            signal: controller.signal,
-          });
-          httpStatus = htmlRes.status;
-          rawHtml = await htmlRes.text();
-          hasTitle = /<title[^>]*>.+<\/title>/i.test(rawHtml);
-          hasMetaDesc = /<meta[^>]*name=["']description["'][^>]*>/i.test(rawHtml);
-          hasH1 = /<h1[^>]*>/i.test(rawHtml);
-          hasCanonical = /<link[^>]*rel=["']canonical["'][^>]*>/i.test(rawHtml);
-          technicalOk = true;
-          return { httpStatus, hasTitle, hasMetaDesc, hasH1, hasCanonical, htmlLength: rawHtml.length };
-        } finally {
-          clearTimeout(timeout);
+    // ── Phase A: Scotty + Speedster in parallel (independent) ──────
+    const [scottyResult, speedsterResult] = await Promise.all([
+      // Agent: Scotty (Technical Crawl — full crawler)
+      runAgent(
+        { scanId, crewId: "scotty", agentStep: "technical_crawl", scanMode },
+        pool,
+        async () => {
+          const { runTechnicalCrawl } = await import("./_lib/crawler/crawlerEngine.js");
+          const result = await runTechnicalCrawl(domain, { maxPages: 10, maxDepth: 1, concurrency: 3 });
+          // Extract shared state for downstream agents
+          technicalOk = result.ok;
+          rawHtml = result.homepage_html || "";
+          crawlerFindings = result.findings || [];
+          crawlerSummary = result.summary || null;
+          pagesCrawled = result.pages_crawled || 0;
+          return result;
         }
-      }
-    );
+      ),
+      // Agent: Speedster (Core Web Vitals)
+      runAgent(
+        { scanId, crewId: "speedster", agentStep: "cwv", scanMode },
+        pool,
+        async () => {
+          const apiKey = process.env.GOOGLE_PAGESPEED_API_KEY || "";
+          const psiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(`https://${domain}`)}&strategy=mobile${apiKey ? `&key=${apiKey}` : ""}`;
+          const ctrl = new AbortController();
+          const t = setTimeout(() => ctrl.abort(), 20000);
+          try {
+            const psiRes = await fetch(psiUrl, { signal: ctrl.signal });
+            if (!psiRes.ok) throw new Error(`PSI returned ${psiRes.status}`);
+            const psiJson = await psiRes.json();
+            const lhr = psiJson.lighthouseResult;
+            if (lhr?.categories?.performance?.score != null) {
+              performanceScore = Math.round(lhr.categories.performance.score * 100);
+            }
+            lcpMs = lhr?.audits?.["largest-contentful-paint"]?.numericValue || null;
+            clsValue = lhr?.audits?.["cumulative-layout-shift"]?.numericValue ?? null;
+            fcpMs = lhr?.audits?.["first-contentful-paint"]?.numericValue || null;
+            tbtMs = lhr?.audits?.["total-blocking-time"]?.numericValue || null;
+            speedIndex = lhr?.audits?.["speed-index"]?.numericValue || null;
 
-    // ── Agent: Speedster (Core Web Vitals) ──────────────────────────
-    const speedsterResult = await runAgent(
-      { scanId, crewId: "speedster", agentStep: "cwv", scanMode },
-      pool,
-      async () => {
-        const apiKey = process.env.GOOGLE_PAGESPEED_API_KEY || "";
-        const psiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(`https://${domain}`)}&strategy=mobile${apiKey ? `&key=${apiKey}` : ""}`;
-        const ctrl = new AbortController();
-        const t = setTimeout(() => ctrl.abort(), 20000);
-        try {
-          const psiRes = await fetch(psiUrl, { signal: ctrl.signal });
-          if (!psiRes.ok) throw new Error(`PSI returned ${psiRes.status}`);
-          const psiJson = await psiRes.json();
-          const lhr = psiJson.lighthouseResult;
-          if (lhr?.categories?.performance?.score != null) {
-            performanceScore = Math.round(lhr.categories.performance.score * 100);
+            // Extract top audit recommendations where score < 1
+            if (lhr?.audits) {
+              const auditEntries = Object.entries(lhr.audits) as [string, any][];
+              psiAuditRecommendations = auditEntries
+                .filter(([_, audit]) => audit.score !== null && audit.score < 1 && audit.title && audit.description)
+                .sort((a, b) => (a[1].score ?? 0) - (b[1].score ?? 0))
+                .slice(0, 5)
+                .map(([id, audit]) => ({
+                  id,
+                  title: audit.title,
+                  score: audit.score,
+                  displayValue: audit.displayValue || null,
+                }));
+            }
+
+            psiOk = true;
+            return { performanceScore, lcpMs, clsValue, fcpMs, tbtMs, speedIndex, recommendations: psiAuditRecommendations };
+          } finally {
+            clearTimeout(t);
           }
-          lcpMs = lhr?.audits?.["largest-contentful-paint"]?.numericValue || null;
-          clsValue = lhr?.audits?.["cumulative-layout-shift"]?.numericValue ?? null;
-          psiOk = true;
-          return { performanceScore, lcpMs, clsValue };
-        } finally {
-          clearTimeout(t);
         }
-      }
-    );
+      ),
+    ]);
 
     // ── Service Detection + Keyword Building (runs on Scotty's HTML) ──
     if (technicalOk && rawHtml) {
@@ -364,28 +380,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       );
     }
 
-    // ── Agent: Natasha (Competitive Intelligence) ───────────────────
-    let natashaResult: NatashaResult | null = null;
-    if (isNatashaConfigured()) {
-      const natashaRun = await runAgent(
+    // ── Agent: Competitive Intelligence (inline, replaces Natasha) ──
+    let competitiveResult: CompetitiveResult | null = null;
+    if (serpRunOk && serpResults.length > 0) {
+      const compRun = await runAgent(
         { scanId, crewId: "natasha", agentStep: "competitive", scanMode },
         pool,
         async () => {
-          const keywords = serpKeywordList.slice(0, 5).map(k => k.keyword);
-          return runNatashaCompetitors({
-            targetDomain: domain,
-            focusKeywords: keywords,
-            websiteId: `free_${domain}`,
-            runId: scanId,
-          });
+          return analyzeCompetitors(domain, serpResults, { maxKeywords: 5, fetchTimeout: 5000 });
         }
       );
-      natashaResult = natashaRun.result;
+      competitiveResult = compRun.result;
     } else {
       await skipAgent(
         { scanId, crewId: "natasha", agentStep: "competitive", scanMode },
         pool,
-        "NATASHA_BASE_URL not configured"
+        "No SERP data available for competitive analysis"
       );
     }
 
@@ -429,19 +439,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       );
     }
 
-    // Build findings
+    // Build findings from crawler output
     const findings: any[] = [];
     let idx = 1;
-    let missingMeta = 0, missingH1 = 0, brokenLinks = 0;
 
-    if (technicalOk) {
-      if (!hasMetaDesc) { missingMeta = 1; findings.push({ id: `f_${idx++}`, title: "Missing Meta Description", severity: "medium", impact: "Medium", effort: "Low", summary: "Page is missing a meta description tag." }); }
-      if (!hasH1) { missingH1 = 1; findings.push({ id: `f_${idx++}`, title: "Missing H1 Tag", severity: "medium", impact: "Medium", effort: "Low", summary: "Page is missing an H1 heading." }); }
-      if (!hasTitle) { findings.push({ id: `f_${idx++}`, title: "Missing Title Tag", severity: "high", impact: "High", effort: "Low", summary: "Page is missing a title tag." }); }
-      if (!hasCanonical) { findings.push({ id: `f_${idx++}`, title: "Missing Canonical Tag", severity: "low", impact: "Low", effort: "Low", summary: "Page is missing a canonical link tag." }); }
-      if (httpStatus >= 400) { brokenLinks = 1; findings.push({ id: `f_${idx++}`, title: "HTTP Error", severity: "high", impact: "High", effort: "Medium", summary: `Page returned HTTP ${httpStatus}.` }); }
-    } else {
-      missingMeta = 5; missingH1 = 2;
+    if (technicalOk && crawlerFindings.length > 0) {
+      // Map crawler findings to report findings format
+      const severityImpactMap: Record<string, string> = { critical: "Critical", high: "High", medium: "Medium", low: "Low" };
+      const severityEffortMap: Record<string, string> = { critical: "High", high: "Medium", medium: "Low", low: "Low" };
+
+      for (const cf of crawlerFindings) {
+        findings.push({
+          id: `f_${idx++}`,
+          title: cf.summary,
+          severity: cf.severity,
+          impact: severityImpactMap[cf.severity] || "Medium",
+          effort: severityEffortMap[cf.severity] || "Low",
+          summary: cf.summary,
+          category: cf.category,
+          ruleId: cf.ruleId,
+          url: cf.url,
+          evidence: cf.evidence,
+          suggestedAction: cf.suggestedAction,
+        });
+      }
+    } else if (!technicalOk) {
       findings.push({ id: `f_${idx++}`, title: "Site Could Not Be Fully Analyzed", severity: "medium", impact: "High", effort: "Low", summary: "Our crawler could not fully access your site." });
     }
 
@@ -453,10 +475,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       findings.push({ id: `f_${idx++}`, title: "Performance Analysis Limited", severity: "low", impact: "Medium", effort: "Low", summary: "Core Web Vitals analysis was limited." });
     }
 
-    // Calculate scores
-    const techIssueCount = findings.filter(f => f.severity === "high" || f.severity === "medium").length;
-    const technicalScore = Math.max(20, 100 - techIssueCount * 10 - brokenLinks * 15);
-    const contentScore = Math.max(20, 100 - missingMeta * 8 - missingH1 * 6);
+    // Calculate scores using crawler health score when available
+    const technicalScore = crawlerSummary?.health_score ?? Math.max(20, 100 - findings.filter(f => f.severity === "high" || f.severity === "medium").length * 10);
+    const contentFindings = findings.filter(f => f.category === "titles" || f.category === "headings" || f.category === "content");
+    const contentScore = Math.max(20, 100 - contentFindings.length * 8);
     const authorityScore = 50;
     const overall = Math.round(technicalScore * 0.25 + performanceScore * 0.25 + contentScore * 0.2 + serpScore * 0.15 + authorityScore * 0.15);
 
@@ -486,15 +508,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       scan_mode: scanMode,
       limitedVisibilityReason: !technicalOk ? "Crawl was limited" : null,
       limitedVisibilitySteps: !technicalOk ? ["Allow our crawler access", "Submit your sitemap"] : [],
-      technical: technicalOk ? { ok: true, pages_crawled: 1, findings: findings.filter(f => f.title !== "Performance Analysis Limited" && f.title !== "Slow Page Speed" && f.title !== "Layout Shifts Detected") } : null,
-      performance: psiOk ? { ok: true, performance_score: performanceScore, lab: { lcp_ms: lcpMs, cls: clsValue }, url: `https://${domain}` } : null,
+      technical: technicalOk ? {
+        ok: true,
+        pages_crawled: pagesCrawled,
+        findings: findings.filter(f => f.category && f.category !== "performance"),
+        summary: crawlerSummary,
+      } : null,
+      performance: psiOk ? {
+        ok: true,
+        performance_score: performanceScore,
+        lab: { lcp_ms: lcpMs, cls: clsValue, fcp_ms: fcpMs, tbt_ms: tbtMs, speed_index: speedIndex },
+        recommendations: psiAuditRecommendations,
+        url: `https://${domain}`,
+      } : null,
       serp: serpRunOk ? { ok: true, results: serpResults } : null,
-      competitive: natashaResult ? { ok: true, findings: natashaResult.findings, findings_count: natashaResult.findings_count } : null,
+      competitive: competitiveResult ? {
+        ok: true,
+        findings: competitiveResult.findings,
+        findings_count: competitiveResult.findings_count,
+        competitors: competitiveResult.competitors,
+        summary: competitiveResult.summary,
+      } : null,
       backlinks: null,
       keywords: serpRunOk
         ? { quickWins: serpResults.filter(r => r.position !== null && r.position <= 20).map(r => ({ keyword: r.keyword, position: r.position })), declining: [] }
         : { quickWins: [{ keyword: "Keyword analysis pending", position: 0 }], declining: [] },
-      competitors: [],
+      competitors: competitiveResult?.competitors || [],
       contentGaps: [],
       authority: { domainAuthority: null, referringDomains: null },
       homepage_scan: homepageScan,

@@ -12,10 +12,10 @@ export interface SerpKeyword {
   source: string; // which service or signal generated this keyword
 }
 
-const FREE_SCAN_KEYWORD_CAP = 30;
+const FREE_SCAN_KEYWORD_CAP = 15;
 
 // Light variant suffixes — appended to service phrases
-const VARIANT_SUFFIXES = ["company", "services"];
+const VARIANT_SUFFIXES = ["company", "services", "cost", "reviews", "pricing"];
 
 /**
  * Build a SERP keyword set from extracted services and location.
@@ -90,6 +90,7 @@ export function buildFallbackKeywords(
   metaDescription: string | null,
   location: string | null,
   domain: string,
+  bodyText?: string | null,
 ): SerpKeyword[] {
   const phrases: string[] = [];
 
@@ -103,6 +104,20 @@ export function buildFallbackKeywords(
   if (metaDescription) {
     const segments = metaDescription.split(/[,.|;]/).map(s => s.trim()).filter(s => s.length >= 4 && s.length <= 60);
     phrases.push(...segments.slice(0, 5));
+  }
+
+  // Extract noun phrases from body text (first 500 words) if we still need more
+  if (phrases.length < 3 && bodyText) {
+    const words = bodyText.replace(/\s+/g, " ").trim().split(/\s+/).slice(0, 500);
+    const text = words.join(" ");
+    // Look for capitalized multi-word phrases (likely proper nouns / service names)
+    const capitalizedPhrases = text.match(/(?:[A-Z][a-z]+(?:\s+(?:&|and)\s+)?){2,4}/g) || [];
+    for (const cp of capitalizedPhrases.slice(0, 5)) {
+      const trimmed = cp.trim();
+      if (trimmed.length >= 6 && trimmed.length <= 50) {
+        phrases.push(trimmed);
+      }
+    }
   }
 
   // If we still have nothing, use the domain name
