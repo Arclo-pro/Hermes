@@ -26,15 +26,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const pool = getPool();
 
   try {
-    // Resolve siteId → domain → latest scan
+    // Resolve siteId → numeric id, base_url, domain
     const siteResult = await pool.query(
-      `SELECT base_url FROM sites WHERE site_id = $1 LIMIT 1`,
+      `SELECT id, base_url FROM sites WHERE site_id = $1 LIMIT 1`,
       [siteId]
     );
     if (siteResult.rows.length === 0) {
       return res.status(404).json({ error: "Site not found" });
     }
 
+    const numericSiteId: number = siteResult.rows[0].id;
     const baseUrl: string = siteResult.rows[0].base_url;
     let domain: string;
     try {
@@ -42,6 +43,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     } catch {
       domain = baseUrl.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/+$/, "").split("/")[0].toLowerCase();
     }
+
+    // Check Google credentials for this site
+    const googleCredsResult = await pool.query(
+      `SELECT ga4_property_id, ga4_stream_id, gsc_site_url, integration_status
+       FROM site_google_credentials WHERE site_id = $1 LIMIT 1`,
+      [numericSiteId]
+    );
+    const googleCreds = googleCredsResult.rows[0] || null;
 
     // Find latest completed scan for this domain
     const scanResult = await pool.query(
@@ -60,7 +69,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     switch (section) {
       case "metrics":
-        return res.json(buildMetrics(fullReport, scoreSummary));
+        return res.json(buildMetrics(fullReport, scoreSummary, googleCreds));
       case "serp-snapshot":
         return res.json(buildSerpSnapshot(fullReport));
       case "serp-keywords":
@@ -72,7 +81,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       case "system-state":
         return res.json(buildSystemState());
       case "insights":
-        return res.json(buildInsights(fullReport, scoreSummary, findings));
+        return res.json(buildInsights(fullReport, scoreSummary, findings, googleCreds));
       default:
         return res.status(400).json({ error: `Unknown section: ${section}` });
     }
@@ -86,20 +95,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 // Section Builders
 // ============================================================
 
-function buildMetrics(fullReport: any, scoreSummary: any) {
+function buildMetrics(fullReport: any, scoreSummary: any, googleCreds: any) {
   const perf = fullReport?.performance || null;
   const perfScore = perf?.performance_score ?? scoreSummary?.performance ?? null;
   const lab = perf?.lab || {};
 
+  // Check if GA4 and GSC are connected
+  const ga4Connected = !!(googleCreds?.ga4_property_id && googleCreds?.integration_status === "connected");
+  const gscConnected = !!googleCreds?.gsc_site_url;
+
+  // GA4 metrics - show different messages based on connection state
+  const ga4Reason = googleCreds?.ga4_property_id
+    ? (googleCreds?.integration_status === "connected"
+      ? "GA4 data will be available soon"
+      : "Verify GA4 connection in settings")
+    : "Connect Google Analytics to see this metric";
+
+  const gscReason = gscConnected
+    ? "GSC data will be available soon"
+    : "Connect Search Console to see this metric";
+
   return {
-    ga4Connected: false,
-    gscConnected: false,
+    ga4Connected,
+    gscConnected,
     metrics: {
-      conversionRate: notAvailable("Google Analytics not connected"),
-      bounceRate: notAvailable("Google Analytics not connected"),
-      avgSessionDuration: notAvailable("Google Analytics not connected"),
-      pagesPerSession: notAvailable("Google Analytics not connected"),
-      organicCtr: notAvailable("Search Console not connected"),
+      conversionRate: notAvailable(ga4Reason),
+      bounceRate: notAvailable(ga4Reason),
+      avgSessionDuration: notAvailable(ga4Reason),
+      pagesPerSession: notAvailable(ga4Reason),
+      organicCtr: notAvailable(gscReason),
       pageLoadTime: perfScore != null
         ? { value: lab.lcp_ms ? Math.round(lab.lcp_ms) / 1000 : null, change7d: null, available: true }
         : notAvailable("Run a scan to collect performance data"),
@@ -216,9 +240,11 @@ function buildSystemState() {
   };
 }
 
-function buildInsights(fullReport: any, scoreSummary: any, findings: any[]) {
+function buildInsights(fullReport: any, scoreSummary: any, findings: any[], googleCreds: any) {
   const tips: any[] = [];
   let priority = 1;
+
+  const ga4Connected = !!(googleCreds?.ga4_property_id && googleCreds?.integration_status === "connected");
 
   if (!fullReport) {
     tips.push({
@@ -329,17 +355,29 @@ function buildInsights(fullReport: any, scoreSummary: any, findings: any[]) {
     });
   }
 
-  // GA4/GSC connection nudge
-  tips.push({
-    id: "connect-ga4",
-    title: "Connect Google Analytics",
-    body: "Link your GA4 property to see conversion rates, bounce rates, and traffic trends.",
-    category: "system",
-    priority: priority++,
-    sentiment: "action",
-    actionLabel: "Connect GA4",
-    actionRoute: "/app/settings",
-  });
+  // GA4/GSC connection nudge - only show if not connected
+  if (!ga4Connected) {
+    tips.push({
+      id: "connect-ga4",
+      title: "Connect Google Analytics",
+      body: "Link your GA4 property to see conversion rates, bounce rates, and traffic trends.",
+      category: "system",
+      priority: priority++,
+      sentiment: "action",
+      actionLabel: "Connect GA4",
+      actionRoute: "/app/settings",
+    });
+  } else {
+    // Show positive insight when GA4 is connected
+    tips.push({
+      id: "ga4-connected",
+      title: "Google Analytics connected",
+      body: "Your GA4 property is linked. Analytics data will populate your dashboard metrics.",
+      category: "win",
+      priority: priority++,
+      sentiment: "positive",
+    });
+  }
 
   return { tips };
 }
