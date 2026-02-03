@@ -298,7 +298,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // ── Agent: Lookout (SERP Rankings) ──────────────────────────────
-    if (serpKeywordList.length > 0 && process.env.SERPAPI_API_KEY) {
+    if (serpKeywordList.length > 0 && process.env.SERP_API_KEY) {
       const lookoutResult = await runAgent(
         { scanId, crewId: "lookout", agentStep: "serp", scanMode },
         pool,
@@ -308,7 +308,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           const serpCtrl = new AbortController();
           const serpTimer = setTimeout(() => serpCtrl.abort(), SERP_TIMEOUT_MS);
 
-          const apiKey = process.env.SERPAPI_API_KEY!;
+          const apiKey = process.env.SERP_API_KEY!;
           const serpBase = "https://serpapi.com/search";
           const baseDomain = domain.replace(/^www\./, "").toLowerCase();
 
@@ -372,11 +372,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           return { checked: serpResults.length, ranking };
         }
       );
-    } else if (!process.env.SERPAPI_API_KEY) {
+    } else if (!process.env.SERP_API_KEY) {
       await skipAgent(
         { scanId, crewId: "lookout", agentStep: "serp", scanMode },
         pool,
-        "SERPAPI_API_KEY not configured"
+        "SERP_API_KEY not configured"
       );
     }
 
