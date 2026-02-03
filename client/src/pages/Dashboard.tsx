@@ -11,7 +11,6 @@ import { ChangesLogSection } from "./dashboard/ChangesLogSection";
 import { SystemStateSection } from "./dashboard/SystemStateSection";
 import { SetupCardsSection } from "./dashboard/SetupCardsSection";
 import { InsightsSection } from "./dashboard/InsightsSection";
-import { GAConfigWizard } from "@/components/integrations/GAConfigWizard";
 
 const DASHBOARD_BG = {
   background: `radial-gradient(1200px circle at 10% 0%, rgba(139, 92, 246, 0.06), transparent 40%),
@@ -21,10 +20,9 @@ const DASHBOARD_BG = {
 };
 
 export default function Dashboard() {
-  const { selectedSite, siteDomain } = useSiteContext();
+  const { selectedSite } = useSiteContext();
   const siteId = selectedSite?.siteId;
   const [showConfigOverlay, setShowConfigOverlay] = useState(false);
-  const [showGaWizard, setShowGaWizard] = useState(false);
 
   // No site selected: show add-site form
   if (!siteId) {
@@ -39,25 +37,17 @@ export default function Dashboard() {
         <ConfigureOverlay domain={domain} onClose={() => setShowConfigOverlay(false)} />
       )}
 
-      {/* GA4 Configuration Wizard */}
-      <GAConfigWizard
-        open={showGaWizard}
-        onOpenChange={setShowGaWizard}
-        siteId={siteId}
-        siteDomain={siteDomain || domain}
-      />
-
       <div className="max-w-7xl mx-auto space-y-6">
         <DashboardHeader domain={domain} siteId={siteId} />
 
-        {/* Section 1: Configuration-Aware Metric Cards */}
-        <MetricCardsSection siteId={siteId} onConfigureGA={() => setShowGaWizard(true)} />
+        {/* Setup / Configure Cards — shown at top when integrations need attention */}
+        <SetupCardsSection siteId={siteId} />
+
+        {/* Section 1: Metric Cards */}
+        <MetricCardsSection siteId={siteId} />
 
         {/* Actionable Insights — tips derived from cached worker data */}
         <InsightsSection siteId={siteId} />
-
-        {/* Setup / Configure Cards — shown only when something needs attention */}
-        <SetupCardsSection siteId={siteId} />
 
         {/* Section 2: SERP Snapshot */}
         <SerpSnapshotSection siteId={siteId} />

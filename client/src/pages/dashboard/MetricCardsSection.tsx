@@ -3,9 +3,8 @@ import {
   GlassCard,
   GlassCardContent,
 } from "@/components/ui/GlassCard";
-import { ArrowUp, ArrowDown, Percent, Clock, MousePointerClick, Layers, Timer, Activity, Settings, Loader2 } from "lucide-react";
+import { ArrowUp, ArrowDown, Percent, Clock, MousePointerClick, Layers, Timer, Activity, Loader2 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useLocation } from "wouter";
 
 interface MetricCardConfig {
   key: keyof ReturnType<typeof useMetricCards>["data"] extends { metrics: infer M } ? M : never;
@@ -86,7 +85,6 @@ function ConfigAwareMetricCard({
   bgGrad,
   tint,
   format,
-  onConfigure,
 }: {
   label: string;
   metric: MetricValue;
@@ -95,18 +93,7 @@ function ConfigAwareMetricCard({
   bgGrad: string;
   tint: "cyan" | "purple" | "green" | "pink" | "amber";
   format: (v: number) => string;
-  onConfigure?: () => void;
 }) {
-  const [, navigate] = useLocation();
-
-  const handleConfigure = () => {
-    if (onConfigure) {
-      onConfigure();
-    } else {
-      navigate("/app/integrations");
-    }
-  };
-
   return (
     <GlassCard variant="marketing" hover tint={tint}>
       <GlassCardContent className="p-6">
@@ -150,17 +137,9 @@ function ConfigAwareMetricCard({
         ) : (
           <>
             <p className="text-3xl font-bold" style={{ color: "#CBD5E1" }}>&mdash;</p>
-            <p className="text-xs mt-1" style={{ color: "#94A3B8" }}>
+            <p className="text-xs mt-2 leading-relaxed" style={{ color: "#64748B" }}>
               {metric.reason || "Not available"}
             </p>
-            <button
-              onClick={handleConfigure}
-              className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors hover:bg-purple-50"
-              style={{ color: "#7c3aed", border: "1px solid rgba(124, 58, 237, 0.2)" }}
-            >
-              <Settings className="w-3 h-3" />
-              Configure
-            </button>
           </>
         )}
       </GlassCardContent>
@@ -170,16 +149,10 @@ function ConfigAwareMetricCard({
 
 interface MetricCardsSectionProps {
   siteId: string;
-  onConfigureGA?: () => void;
 }
 
-export function MetricCardsSection({ siteId, onConfigureGA }: MetricCardsSectionProps) {
+export function MetricCardsSection({ siteId }: MetricCardsSectionProps) {
   const { data, isLoading, isError } = useMetricCards(siteId);
-
-  // Determine if a metric is GA4-related (should use the GA wizard)
-  const isGA4Metric = (key: string) => {
-    return ["conversionRate", "bounceRate", "avgSessionDuration", "pagesPerSession"].includes(key);
-  };
 
   if (isLoading) {
     return (
@@ -212,7 +185,6 @@ export function MetricCardsSection({ siteId, onConfigureGA }: MetricCardsSection
             bgGrad={card.bgGrad}
             tint={card.tint}
             format={card.format}
-            onConfigure={isGA4Metric(card.key as string) ? onConfigureGA : undefined}
           />
         ))}
       </div>
@@ -233,7 +205,6 @@ export function MetricCardsSection({ siteId, onConfigureGA }: MetricCardsSection
             bgGrad={card.bgGrad}
             tint={card.tint}
             format={card.format}
-            onConfigure={isGA4Metric(card.key as string) ? onConfigureGA : undefined}
           />
         );
       })}
