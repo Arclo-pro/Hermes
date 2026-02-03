@@ -12,7 +12,7 @@ export interface SerpKeyword {
   source: string; // which service or signal generated this keyword
 }
 
-const FREE_SCAN_KEYWORD_CAP = 25;
+const FREE_SCAN_KEYWORD_CAP = 15;
 
 // Light variant suffixes — appended to service phrases
 const VARIANT_SUFFIXES = ["company", "services", "cost", "reviews", "pricing"];

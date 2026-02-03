@@ -48,12 +48,12 @@ export async function runSerpAnalysis(
   const startTime = Date.now();
   const baseDomain = domain.replace(/^www\./, "");
 
-  if (!process.env.SERPAPI_API_KEY) {
-    logger.error("SerpIntelligence", "SERPAPI_API_KEY not configured — returning empty results");
+  if (!process.env.SERP_API_KEY) {
+    logger.error("SerpIntelligence", "SERP_API_KEY not configured — returning empty results");
     return {
       ok: false,
       service: "serp_intel",
-      error: "SERPAPI_API_KEY not configured",
+      error: "SERP_API_KEY not configured",
       keywords_tracked: keywords.length,
     };
   }

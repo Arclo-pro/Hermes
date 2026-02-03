@@ -48,6 +48,7 @@ interface FindingRule {
   check: (ctx: FindingContext) => CrawlFinding | null;
 }
 
+// Response code rules
 const RULE_STATUS_4XX: FindingRule = {
   id: "RULE_STATUS_4XX",
   category: "response_codes",

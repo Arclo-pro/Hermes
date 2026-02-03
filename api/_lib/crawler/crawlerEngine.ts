@@ -1,10 +1,7 @@
 /**
  * HTTP-based crawler engine for technical SEO audits.
  * Uses Node's built-in fetch + cheerio for HTML parsing.
- * No Playwright dependency — pure HTTP crawling.
- *
- * Ported from server/services/technicalCrawler/crawlerEngine.ts
- * for use in Vercel serverless functions.
+ * Adapted for Vercel serverless functions.
  */
 
 import { XMLParser } from "fast-xml-parser";
@@ -23,9 +20,9 @@ export interface CrawlConfig {
 }
 
 const DEFAULT_CONFIG: CrawlConfig = {
-  maxPages: 50,
-  maxDepth: 3,
-  concurrency: 5,
+  maxPages: 10,
+  maxDepth: 1,
+  concurrency: 3,
   respectRobots: true,
 };
 
@@ -41,7 +38,6 @@ interface CrawledPage {
   internalLinksOut: number;
   imagesMissingAlt: number;
   imagesMissingSize: number;
-  html?: string; // Only stored for homepage (depth 0, seed)
 }
 
 interface QueueItem {
@@ -51,8 +47,7 @@ interface QueueItem {
   source: "sitemap" | "link" | "seed";
 }
 
-// ─── Robots.txt ──────────────────────────────────────────────────────────────
-
+// Robots.txt parsing
 interface RobotsRule {
   userAgent: string;
   disallow: string[];
@@ -113,12 +108,8 @@ function isUrlAllowed(url: string, rules: RobotsRule[]): boolean {
   }
 }
 
-// ─── Sitemap parsing ─────────────────────────────────────────────────────────
-
-async function fetchSitemapUrls(
-  sitemapUrls: string[],
-  maxUrls: number
-): Promise<string[]> {
+// Sitemap parsing
+async function fetchSitemapUrls(sitemapUrls: string[], maxUrls: number): Promise<string[]> {
   const allUrls: string[] = [];
   const processed = new Set<string>();
   const queue = [...sitemapUrls];
@@ -158,15 +149,14 @@ async function fetchSitemapUrls(
         }
       }
     } catch (err) {
-      console.log(`[TechnicalCrawler] Failed to fetch sitemap ${sitemapUrl}`);
+      console.log(`[Crawler] Failed to fetch sitemap ${sitemapUrl}`);
     }
   }
 
   return allUrls;
 }
 
-// ─── Concurrency limiter ─────────────────────────────────────────────────────
-
+// Concurrency limiter
 async function runWithConcurrency<T>(
   items: T[],
   concurrency: number,
@@ -183,8 +173,7 @@ async function runWithConcurrency<T>(
   await Promise.all(workers);
 }
 
-// ─── Main crawl function ─────────────────────────────────────────────────────
-
+// Main crawl function
 export async function runTechnicalCrawl(
   domain: string,
   config: Partial<CrawlConfig> = {}
@@ -194,7 +183,7 @@ export async function runTechnicalCrawl(
   const baseUrl = `https://${domain}`;
   const startTime = Date.now();
 
-  console.log(`[TechnicalCrawler] Starting crawl of ${domain} (max ${cfg.maxPages} pages)`);
+  console.log(`[Crawler] Starting crawl of ${domain} (max ${cfg.maxPages} pages)`);
 
   const crawledUrls = new Set<string>();
   const sitemapUrlSet = new Set<string>();
@@ -202,6 +191,7 @@ export async function runTechnicalCrawl(
   const allFindings: CrawlFinding[] = [];
   const inlinkCounts = new Map<string, number>();
   let robotsRules: RobotsRule[] = [];
+  let homepageHtml = "";
 
   // Step 1: Fetch robots.txt
   try {
@@ -213,7 +203,7 @@ export async function runTechnicalCrawl(
       robotsRules = parseRobotsTxt(await resp.text());
     }
   } catch {
-    console.log("[TechnicalCrawler] No robots.txt found");
+    console.log("[Crawler] No robots.txt found");
   }
 
   // Step 2: Discover sitemap URLs
@@ -225,7 +215,7 @@ export async function runTechnicalCrawl(
     const norm = normalizeUrl(loc, baseDomain);
     if (norm && isInternalUrl(loc, baseDomain)) sitemapUrlSet.add(norm);
   }
-  console.log(`[TechnicalCrawler] Found ${sitemapUrlSet.size} sitemap URLs`);
+  console.log(`[Crawler] Found ${sitemapUrlSet.size} sitemap URLs`);
 
   // Step 3: Build initial queue
   const urlQueue: QueueItem[] = [];
@@ -274,13 +264,17 @@ export async function runTechnicalCrawl(
           contentType = resp.headers.get("content-type") || "";
           xRobotsTag = resp.headers.get("x-robots-tag") || null;
 
-          // Detect redirect (final URL differs from requested)
+          // Detect redirect
           if (resp.url !== item.url) {
             redirectChain.push(item.url, resp.url);
           }
 
           if (contentType.includes("text/html") && statusCode >= 200 && statusCode < 300) {
             html = await resp.text();
+            // Capture homepage HTML for downstream agents (service detection, Atlas)
+            if (item.source === "seed" && item.depth === 0) {
+              homepageHtml = html;
+            }
           }
         }
 
@@ -301,7 +295,7 @@ export async function runTechnicalCrawl(
         const missingAlt = parsedPage?.images.filter(i => !i.alt).length || 0;
         const missingSize = parsedPage?.images.filter(i => !i.hasWidth || !i.hasHeight).length || 0;
 
-        const page: CrawledPage = {
+        pages.push({
           url: item.url,
           statusCode,
           title: parsedPage?.title || null,
@@ -313,14 +307,7 @@ export async function runTechnicalCrawl(
           internalLinksOut,
           imagesMissingAlt: missingAlt,
           imagesMissingSize: missingSize,
-        };
-
-        // Store HTML for homepage (seed page at depth 0) for downstream agents
-        if (item.source === "seed" && item.depth === 0 && html) {
-          page.html = html;
-        }
-
-        pages.push(page);
+        });
 
         // Track inlinks for orphan detection
         if (parsedPage) {
@@ -370,10 +357,6 @@ export async function runTechnicalCrawl(
         });
       }
     });
-
-    if (processedCount % 10 === 0) {
-      console.log(`[TechnicalCrawler] Crawled ${processedCount} / ${cfg.maxPages} pages`);
-    }
   }
 
   // Step 5: Post-crawl orphan page detection
@@ -410,7 +393,7 @@ export async function runTechnicalCrawl(
   const indexablePages = pages.filter(p => p.indexability === "indexable").length;
   const errorPages = pages.filter(p => p.statusCode >= 400 || p.statusCode === 0).length;
 
-  console.log(`[TechnicalCrawler] Crawl complete: ${pages.length} pages, ${allFindings.length} findings in ${durationMs}ms`);
+  console.log(`[Crawler] Complete: ${pages.length} pages, ${allFindings.length} findings in ${durationMs}ms`);
 
   return {
     ok: true,
@@ -423,7 +406,7 @@ export async function runTechnicalCrawl(
     findings_count: allFindings.length,
     findings_by_severity: bySeverity,
     findings_by_category: byCategory,
-    findings: allFindings.slice(0, 200),  // Cap at 200 for response size
+    findings: allFindings.slice(0, 200),
     pages_summary: pages.map(p => ({
       url: p.url,
       status: p.statusCode,
@@ -431,8 +414,6 @@ export async function runTechnicalCrawl(
       title: p.title,
       word_count: p.wordCount,
     })),
-    // Include homepage HTML for downstream agents (service detection, atlas)
-    homepage_html: pages.find(p => p.html)?.html || "",
     summary: {
       health_score: calculateHealthScore(pages, allFindings),
       pages_crawled: pages.length,
@@ -444,12 +425,10 @@ export async function runTechnicalCrawl(
       medium: bySeverity.medium,
       low: bySeverity.low,
     },
+    homepage_html: homepageHtml,
   };
 }
 
-/**
- * Simple health score: start at 100, deduct per finding severity.
- */
 function calculateHealthScore(pages: CrawledPage[], findings: CrawlFinding[]): number {
   if (pages.length === 0) return 0;
 

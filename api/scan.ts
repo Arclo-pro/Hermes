@@ -281,11 +281,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           serpKeywordList = buildSerpKeywords(homepageScan.services, effectiveLocation, domain);
         } else {
           serviceDetectionWarning = true;
+          // Extract body text for fallback keyword generation
+          const bodyTextMatch = rawHtml.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+          const bodyText = bodyTextMatch
+            ? bodyTextMatch[1].replace(/<script[\s\S]*?<\/script>/gi, "")
+                .replace(/<style[\s\S]*?<\/style>/gi, "")
+                .replace(/<[^>]+>/g, " ")
+                .replace(/\s+/g, " ")
+                .trim()
+            : null;
           serpKeywordList = buildFallbackKeywords(
             homepageScan.evidence.meta.title,
             homepageScan.evidence.meta.description,
             locationStr,
             domain,
+            bodyText,
           );
         }
       } catch (e) {

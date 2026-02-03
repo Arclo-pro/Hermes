@@ -50,9 +50,9 @@ export async function fetchKeywordRanking(
   targetDomain: string,
   location: string = "United States",
 ): Promise<KeywordRankingResult> {
-  const apiKey = process.env.SERPAPI_API_KEY;
+  const apiKey = process.env.SERP_API_KEY;
   if (!apiKey) {
-    logger.error("SerpApiClient", "SERPAPI_API_KEY not configured");
+    logger.error("SerpApiClient", "SERP_API_KEY not configured");
     return { keyword, position: null, url: null, competitors: [] };
   }
 
