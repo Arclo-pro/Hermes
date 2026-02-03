@@ -11,6 +11,7 @@ import { ChangesLogSection } from "./dashboard/ChangesLogSection";
 import { SystemStateSection } from "./dashboard/SystemStateSection";
 import { SetupCardsSection } from "./dashboard/SetupCardsSection";
 import { InsightsSection } from "./dashboard/InsightsSection";
+import { GAConfigWizard } from "@/components/integrations/GAConfigWizard";
 
 const DASHBOARD_BG = {
   background: `radial-gradient(1200px circle at 10% 0%, rgba(139, 92, 246, 0.06), transparent 40%),
@@ -20,9 +21,10 @@ const DASHBOARD_BG = {
 };
 
 export default function Dashboard() {
-  const { selectedSite } = useSiteContext();
+  const { selectedSite, siteDomain } = useSiteContext();
   const siteId = selectedSite?.siteId;
   const [showConfigOverlay, setShowConfigOverlay] = useState(false);
+  const [showGaWizard, setShowGaWizard] = useState(false);
 
   // No site selected: show add-site form
   if (!siteId) {
@@ -36,11 +38,20 @@ export default function Dashboard() {
       {showConfigOverlay && (
         <ConfigureOverlay domain={domain} onClose={() => setShowConfigOverlay(false)} />
       )}
+
+      {/* GA4 Configuration Wizard */}
+      <GAConfigWizard
+        open={showGaWizard}
+        onOpenChange={setShowGaWizard}
+        siteId={siteId}
+        siteDomain={siteDomain || domain}
+      />
+
       <div className="max-w-7xl mx-auto space-y-6">
         <DashboardHeader domain={domain} siteId={siteId} />
 
         {/* Section 1: Configuration-Aware Metric Cards */}
-        <MetricCardsSection siteId={siteId} />
+        <MetricCardsSection siteId={siteId} onConfigureGA={() => setShowGaWizard(true)} />
 
         {/* Actionable Insights — tips derived from cached worker data */}
         <InsightsSection siteId={siteId} />

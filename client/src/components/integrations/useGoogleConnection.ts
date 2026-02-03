@@ -10,6 +10,12 @@ export interface GA4Property {
   displayName: string;
 }
 
+export interface GA4Stream {
+  streamId: string;
+  streamName: string;
+  measurementId: string | null;
+}
+
 export interface GSCProperty {
   siteUrl: string;
   permissionLevel: string;
@@ -19,7 +25,11 @@ export interface GoogleConnectionStatus {
   connected: boolean;
   googleEmail?: string;
   connectedAt?: string;
-  ga4: { propertyId: string } | null;
+  integrationStatus: "disconnected" | "connected" | "error";
+  lastVerifiedAt?: string;
+  lastErrorCode?: string;
+  lastErrorMessage?: string;
+  ga4: { propertyId: string; streamId?: string } | null;
   gsc: { siteUrl: string } | null;
   ads: { customerId: string; loginCustomerId?: string } | null;
 }
@@ -27,6 +37,19 @@ export interface GoogleConnectionStatus {
 export interface GoogleProperties {
   ga4: GA4Property[];
   gsc: GSCProperty[];
+}
+
+export interface VerifyResult {
+  ok: boolean;
+  sampleMetrics?: {
+    sessions: number;
+    users: number;
+    landingPages: Array<{ page: string; sessions: number; users: number }>;
+    dateRange: { start: string; end: string };
+  };
+  error?: string;
+  errorCode?: string;
+  troubleshooting?: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -38,6 +61,7 @@ export function useGoogleConnection(siteId: string | null) {
   const popupRef = useRef<Window | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
 
   // Clean up polling on unmount
   useEffect(() => {
@@ -81,9 +105,35 @@ export function useGoogleConnection(siteId: string | null) {
     enabled: false, // Only fetch on demand
   });
 
+  // ── Streams query (manual trigger, depends on property selection) ─────
+  const {
+    data: streams,
+    isLoading: isLoadingStreams,
+    refetch: refetchStreams,
+  } = useQuery<GA4Stream[]>({
+    queryKey: ["google-streams", siteId, selectedPropertyId],
+    queryFn: async () => {
+      if (!selectedPropertyId) return [];
+      const res = await fetch(`/api/sites/${siteId}/google/streams?propertyId=${selectedPropertyId}`);
+      if (!res.ok) throw new Error("Failed to fetch streams");
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || "Failed to fetch streams");
+      return data.streams || [];
+    },
+    enabled: false, // Only fetch on demand
+  });
+
+  // Fetch streams when a property is selected
+  const fetchStreams = useCallback(async (propertyId: string) => {
+    setSelectedPropertyId(propertyId);
+    // Small delay to allow the query key to update
+    await new Promise(resolve => setTimeout(resolve, 10));
+    return refetchStreams();
+  }, [refetchStreams]);
+
   // ── Save properties mutation ──────────────────────────────────────────
   const savePropertiesMutation = useMutation({
-    mutationFn: async (selection: { ga4PropertyId?: string; gscSiteUrl?: string }) => {
+    mutationFn: async (selection: { ga4PropertyId?: string; ga4StreamId?: string; gscSiteUrl?: string }) => {
       const res = await fetch(`/api/sites/${siteId}/google/properties`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -95,6 +145,23 @@ export function useGoogleConnection(siteId: string | null) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["google-connection-status", siteId] });
+    },
+  });
+
+  // ── Verify GA4 connection mutation ────────────────────────────────────
+  const verifyMutation = useMutation({
+    mutationFn: async (): Promise<VerifyResult> => {
+      const res = await fetch(`/api/sites/${siteId}/google/ga4/verify`, {
+        method: "POST",
+      });
+      if (!res.ok) throw new Error("Failed to verify GA4 connection");
+      const data = await res.json();
+      return data as VerifyResult;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["google-connection-status", siteId] });
+      // Also invalidate dashboard metrics so they refresh
+      queryClient.invalidateQueries({ queryKey: ["/api/ops-dashboard", siteId, "metrics"] });
     },
   });
 
@@ -111,6 +178,8 @@ export function useGoogleConnection(siteId: string | null) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["google-connection-status", siteId] });
       queryClient.invalidateQueries({ queryKey: ["google-properties", siteId] });
+      queryClient.invalidateQueries({ queryKey: ["google-streams", siteId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/ops-dashboard", siteId, "metrics"] });
     },
   });
 
@@ -211,9 +280,19 @@ export function useGoogleConnection(siteId: string | null) {
     isLoadingProperties,
     fetchProperties,
 
+    // Streams
+    streams: streams ?? null,
+    isLoadingStreams,
+    fetchStreams,
+
     // Save
     saveProperties: savePropertiesMutation.mutateAsync,
     isSaving: savePropertiesMutation.isPending,
+
+    // Verify
+    verifyConnection: verifyMutation.mutateAsync,
+    isVerifying: verifyMutation.isPending,
+    verifyResult: verifyMutation.data ?? null,
 
     // Disconnect
     disconnect: disconnectMutation.mutateAsync,

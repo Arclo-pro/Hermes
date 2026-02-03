@@ -300,6 +300,62 @@ curl -X POST http://localhost:5000/api/websites/<id>/jobs \
 
 Integration configs store **secret key names** (e.g., `"github_token_key": "EMPATHY_GITHUB_TOKEN"`), never raw secret values. Secrets are resolved at runtime from environment variables or Bitwarden.
 
+## Connect GA4
+
+The in-app GA4 configuration workflow allows users to connect Google Analytics 4 to their sites directly from the dashboard.
+
+### Required Environment Variables
+
+```bash
+# Google OAuth Credentials (same as above)
+GOOGLE_CLIENT_ID=your_client_id_here
+GOOGLE_CLIENT_SECRET=your_client_secret_here
+GOOGLE_REDIRECT_URI=http://localhost:5000/api/auth/callback
+
+# For production, update GOOGLE_REDIRECT_URI to match your domain
+```
+
+### OAuth Scopes
+
+The GA4 connection requests the following scope:
+- `https://www.googleapis.com/auth/analytics.readonly` — Read-only access to GA4 data
+
+### User Flow
+
+1. **Dashboard**: Users see a "Configure" button on metric cards when GA4 is not connected
+2. **Sign In**: Opens Google OAuth popup; user grants read-only analytics access
+3. **Select Property**: User picks their GA4 property from a list of accessible properties
+4. **Select Stream**: User picks the web data stream for their website
+5. **Verify**: System runs a test fetch (last 28 days) to confirm data flows correctly
+6. **Connected**: Dashboard metrics now populate with real GA4 data
+
+### Local Development
+
+1. Ensure `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set
+2. Add `http://localhost:5000/api/auth/callback` to authorized redirect URIs in Google Cloud Console
+3. Enable the **Google Analytics Data API** and **Google Analytics Admin API** in your Google Cloud project
+4. Run the migration: `npm run db:push` (or apply `migrations/011_add_ga4_integration_status.sql`)
+5. Start the server: `npm run dev`
+6. Navigate to `/app/settings/integrations` or click "Configure" on dashboard metric cards
+
+### API Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/sites/:siteId/google/connect` | Start OAuth flow |
+| `GET` | `/api/sites/:siteId/google/status` | Get connection status |
+| `GET` | `/api/sites/:siteId/google/properties` | List GA4 properties + GSC sites |
+| `GET` | `/api/sites/:siteId/google/streams?propertyId=...` | List web data streams |
+| `PUT` | `/api/sites/:siteId/google/properties` | Save selected property/stream |
+| `POST` | `/api/sites/:siteId/google/ga4/verify` | Verify connection with test fetch |
+| `DELETE` | `/api/sites/:siteId/google/disconnect` | Disconnect Google account |
+
+### Troubleshooting
+
+- **No properties found**: Ensure your Google account has Viewer access to at least one GA4 property
+- **Verification failed**: Check that the selected property has data for the last 28 days
+- **OAuth error**: Verify redirect URI matches exactly in Google Cloud Console
+
 ## License
 
 MIT

@@ -3448,10 +3448,15 @@ export const siteGoogleCredentials = pgTable("site_google_credentials", {
   tokenExpiry: timestamp("token_expiry").notNull(),
   scopes: text("scopes").array().notNull(),
   ga4PropertyId: text("ga4_property_id"),
+  ga4StreamId: text("ga4_stream_id"),
   gscSiteUrl: text("gsc_site_url"),
   adsCustomerId: text("ads_customer_id"),
   adsLoginCustomerId: text("ads_login_customer_id"),
   googleEmail: text("google_email"),
+  integrationStatus: text("integration_status").default("disconnected"), // disconnected|connected|error
+  lastVerifiedAt: timestamp("last_verified_at"),
+  lastErrorCode: text("last_error_code"),
+  lastErrorMessage: text("last_error_message"),
   connectedAt: timestamp("connected_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

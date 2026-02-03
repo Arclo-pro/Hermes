@@ -86,6 +86,7 @@ function ConfigAwareMetricCard({
   bgGrad,
   tint,
   format,
+  onConfigure,
 }: {
   label: string;
   metric: MetricValue;
@@ -94,8 +95,17 @@ function ConfigAwareMetricCard({
   bgGrad: string;
   tint: "cyan" | "purple" | "green" | "pink" | "amber";
   format: (v: number) => string;
+  onConfigure?: () => void;
 }) {
   const [, navigate] = useLocation();
+
+  const handleConfigure = () => {
+    if (onConfigure) {
+      onConfigure();
+    } else {
+      navigate("/app/integrations");
+    }
+  };
 
   return (
     <GlassCard variant="marketing" hover tint={tint}>
@@ -144,7 +154,7 @@ function ConfigAwareMetricCard({
               {metric.reason || "Not available"}
             </p>
             <button
-              onClick={() => navigate("/app/integrations")}
+              onClick={handleConfigure}
               className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors hover:bg-purple-50"
               style={{ color: "#7c3aed", border: "1px solid rgba(124, 58, 237, 0.2)" }}
             >
@@ -160,10 +170,16 @@ function ConfigAwareMetricCard({
 
 interface MetricCardsSectionProps {
   siteId: string;
+  onConfigureGA?: () => void;
 }
 
-export function MetricCardsSection({ siteId }: MetricCardsSectionProps) {
+export function MetricCardsSection({ siteId, onConfigureGA }: MetricCardsSectionProps) {
   const { data, isLoading, isError } = useMetricCards(siteId);
+
+  // Determine if a metric is GA4-related (should use the GA wizard)
+  const isGA4Metric = (key: string) => {
+    return ["conversionRate", "bounceRate", "avgSessionDuration", "pagesPerSession"].includes(key);
+  };
 
   if (isLoading) {
     return (
@@ -196,6 +212,7 @@ export function MetricCardsSection({ siteId }: MetricCardsSectionProps) {
             bgGrad={card.bgGrad}
             tint={card.tint}
             format={card.format}
+            onConfigure={isGA4Metric(card.key as string) ? onConfigureGA : undefined}
           />
         ))}
       </div>
@@ -216,6 +233,7 @@ export function MetricCardsSection({ siteId }: MetricCardsSectionProps) {
             bgGrad={card.bgGrad}
             tint={card.tint}
             format={card.format}
+            onConfigure={isGA4Metric(card.key as string) ? onConfigureGA : undefined}
           />
         );
       })}

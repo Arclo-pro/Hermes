@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { BarChart3, Search, Globe, Loader2 } from "lucide-react";
+import { BarChart3, Search, Globe, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { useSiteContext } from "@/hooks/useSiteContext";
 import { IntegrationCard } from "@/components/integrations/IntegrationCard";
 import { GAConfigWizard } from "@/components/integrations/GAConfigWizard";
@@ -92,12 +92,38 @@ export default function SettingsIntegrations() {
               isLoading={google.isLoadingStatus}
               connectedDetail={
                 google.status?.ga4?.propertyId
-                  ? `Property: ${google.status.ga4.propertyId}`
+                  ? `Property: ${google.status.ga4.propertyId}${google.status.ga4.streamId ? ` · Stream: ${google.status.ga4.streamId}` : ""}`
                   : undefined
               }
               onConfigure={() => setGaWizardOpen(true)}
               onDisconnect={google.status?.connected ? handleDisconnect : undefined}
             />
+            {/* GA4 integration status indicator */}
+            {google.status?.ga4 && google.status.integrationStatus && (
+              <div className="mt-2 pl-1">
+                {google.status.integrationStatus === "connected" ? (
+                  <div className="flex items-center gap-1.5 text-xs text-semantic-success">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Verified</span>
+                    {google.status.lastVerifiedAt && (
+                      <span className="text-muted-foreground">
+                        · Last checked {new Date(google.status.lastVerifiedAt).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
+                ) : google.status.integrationStatus === "error" ? (
+                  <div className="flex items-center gap-1.5 text-xs text-semantic-danger">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    <span>Verification failed</span>
+                    {google.status.lastErrorMessage && (
+                      <span className="text-muted-foreground truncate max-w-xs">
+                        · {google.status.lastErrorMessage}
+                      </span>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            )}
           </div>
 
           {/* Google Search Console */}

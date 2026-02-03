@@ -11,6 +11,8 @@ import {
   ArrowLeft,
   ShieldCheck,
   RefreshCw,
+  Users,
+  Globe,
 } from "lucide-react";
 import {
   Dialog,
@@ -21,8 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { useGoogleConnection, type GA4Property } from "./useGoogleConnection";
+import { useGoogleConnection, type GA4Property, type GA4Stream, type VerifyResult } from "./useGoogleConnection";
 
 // ---------------------------------------------------------------------------
 // Props
@@ -36,38 +37,95 @@ interface GAConfigWizardProps {
 }
 
 // ---------------------------------------------------------------------------
-// Step indicator
+// Step indicator (shows 3 steps per spec)
 // ---------------------------------------------------------------------------
 
-function StepIndicator({ current, total }: { current: number; total: number }) {
+const STEP_LABELS = ["Sign in", "Select property", "Confirm data"];
+
+function StepIndicator({ currentPhase }: { currentPhase: 1 | 2 | 3 }) {
   return (
     <div className="flex items-center justify-center gap-2 mb-6">
-      {Array.from({ length: total }, (_, i) => (
-        <div key={i} className="flex items-center gap-2">
-          <div
-            className={`w-2.5 h-2.5 rounded-full transition-colors ${
-              i + 1 === current
-                ? "bg-primary"
-                : i + 1 < current
-                  ? "bg-semantic-success"
-                  : "bg-muted"
-            }`}
-          />
-          {i < total - 1 && <div className="w-6 h-px bg-border" />}
-        </div>
-      ))}
-      <span className="text-xs text-muted-foreground ml-2">
-        Step {current} of {total}
-      </span>
+      {STEP_LABELS.map((label, i) => {
+        const stepNum = i + 1;
+        const isActive = stepNum === currentPhase;
+        const isComplete = stepNum < currentPhase;
+        return (
+          <div key={label} className="flex items-center gap-2">
+            <div className="flex flex-col items-center">
+              <div
+                className={`w-2.5 h-2.5 rounded-full transition-colors ${
+                  isActive
+                    ? "bg-primary"
+                    : isComplete
+                      ? "bg-semantic-success"
+                      : "bg-muted"
+                }`}
+              />
+              <span className={`text-[10px] mt-1 ${isActive ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                {label}
+              </span>
+            </div>
+            {i < STEP_LABELS.length - 1 && <div className="w-8 h-px bg-border mb-4" />}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Step 1: Explain
+// Step 1: Sign in (Explain + OAuth in one phase)
 // ---------------------------------------------------------------------------
 
-function StepExplain({ onNext }: { onNext: () => void }) {
+function StepSignIn({
+  isConnecting,
+  error,
+  onStart,
+  onRetry,
+}: {
+  isConnecting: boolean;
+  error: string | null;
+  onStart: () => void;
+  onRetry: () => void;
+}) {
+  if (isConnecting) {
+    return (
+      <div className="space-y-5 text-center">
+        <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
+          <Loader2 className="w-7 h-7 text-primary animate-spin" />
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold text-foreground">Connecting to Google...</h3>
+          <p className="text-sm text-muted-foreground mt-2 max-w-sm mx-auto">
+            A Google sign-in window has opened. Complete the authorization there, then return here.
+          </p>
+        </div>
+        <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+          <ShieldCheck className="w-3.5 h-3.5" />
+          Read-only access. No data modification.
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-5 text-center">
+        <div className="w-14 h-14 rounded-2xl bg-semantic-danger/10 flex items-center justify-center mx-auto">
+          <AlertCircle className="w-7 h-7 text-semantic-danger" />
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold text-foreground">Connection Failed</h3>
+          <p className="text-sm text-muted-foreground mt-2 max-w-sm mx-auto">{error}</p>
+        </div>
+        <Button variant="primary" onClick={onRetry}>
+          <RefreshCw className="w-4 h-4 mr-1.5" />
+          Try Again
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       <div className="text-center">
@@ -76,7 +134,7 @@ function StepExplain({ onNext }: { onNext: () => void }) {
         </div>
         <h3 className="text-lg font-semibold text-foreground">Connect Google Analytics</h3>
         <p className="text-sm text-muted-foreground mt-2 max-w-sm mx-auto">
-          Google Analytics lets Arclo see which pages bring real visitors and which ones convert — not just rankings.
+          Connect GA4 to show traffic and landing page metrics.
         </p>
       </div>
 
@@ -104,8 +162,8 @@ function StepExplain({ onNext }: { onNext: () => void }) {
         Read-only access. We never modify your data.
       </div>
 
-      <Button variant="primary" fullWidth onClick={onNext}>
-        Connect Google Analytics
+      <Button variant="primary" fullWidth onClick={onStart}>
+        Sign in with Google
         <ArrowRight className="w-4 h-4 ml-1.5" />
       </Button>
     </div>
@@ -113,57 +171,7 @@ function StepExplain({ onNext }: { onNext: () => void }) {
 }
 
 // ---------------------------------------------------------------------------
-// Step 2: OAuth
-// ---------------------------------------------------------------------------
-
-function StepOAuth({
-  isConnecting,
-  error,
-  onRetry,
-}: {
-  isConnecting: boolean;
-  error: string | null;
-  onRetry: () => void;
-}) {
-  return (
-    <div className="space-y-5 text-center">
-      {error ? (
-        <>
-          <div className="w-14 h-14 rounded-2xl bg-semantic-danger/10 flex items-center justify-center mx-auto">
-            <AlertCircle className="w-7 h-7 text-semantic-danger" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-foreground">Connection Failed</h3>
-            <p className="text-sm text-muted-foreground mt-2 max-w-sm mx-auto">{error}</p>
-          </div>
-          <Button variant="primary" onClick={onRetry}>
-            <RefreshCw className="w-4 h-4 mr-1.5" />
-            Try Again
-          </Button>
-        </>
-      ) : (
-        <>
-          <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
-            <Loader2 className="w-7 h-7 text-primary animate-spin" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-foreground">Connecting to Google...</h3>
-            <p className="text-sm text-muted-foreground mt-2 max-w-sm mx-auto">
-              A Google sign-in window has opened. Complete the authorization there, then return here.
-            </p>
-          </div>
-          <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            Read-only access. No data modification.
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Step 3: Property selection
+// Step 2a: Property selection
 // ---------------------------------------------------------------------------
 
 function StepPropertySelect({
@@ -264,7 +272,7 @@ function StepPropertySelect({
           Back
         </Button>
         <Button variant="primary" fullWidth onClick={onNext} disabled={!selected}>
-          Save & Continue
+          Continue
           <ArrowRight className="w-4 h-4 ml-1.5" />
         </Button>
       </div>
@@ -273,22 +281,251 @@ function StepPropertySelect({
 }
 
 // ---------------------------------------------------------------------------
-// Step 4: Confirmation
+// Step 2b: Stream selection
 // ---------------------------------------------------------------------------
 
-function StepConfirmation({ onFinish }: { onFinish: () => void }) {
-  return (
-    <div className="space-y-5 text-center">
-      <div className="w-14 h-14 rounded-2xl bg-semantic-success/10 flex items-center justify-center mx-auto">
-        <CheckCircle2 className="w-7 h-7 text-semantic-success" />
+function StepStreamSelect({
+  streams,
+  isLoading,
+  selected,
+  onSelect,
+  onBack,
+  onNext,
+}: {
+  streams: GA4Stream[];
+  isLoading: boolean;
+  selected: string | null;
+  onSelect: (id: string) => void;
+  onBack: () => void;
+  onNext: () => void;
+}) {
+  if (isLoading) {
+    return (
+      <div className="space-y-5 text-center py-6">
+        <Loader2 className="w-8 h-8 text-primary animate-spin mx-auto" />
+        <p className="text-sm text-muted-foreground">Loading data streams...</p>
       </div>
+    );
+  }
 
-      <div>
-        <h3 className="text-lg font-semibold text-foreground">Google Analytics Connected</h3>
-        <p className="text-sm text-muted-foreground mt-2 max-w-sm mx-auto">
-          Arclo can now access your analytics data to improve recommendations.
+  // Auto-select if only one stream
+  useEffect(() => {
+    if (streams.length === 1 && !selected) {
+      onSelect(streams[0].streamId);
+    }
+  }, [streams, selected, onSelect]);
+
+  if (streams.length === 0) {
+    return (
+      <div className="space-y-5">
+        <div className="text-center py-4">
+          <AlertCircle className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+          <h3 className="text-lg font-semibold text-foreground">No Web Streams Found</h3>
+          <p className="text-sm text-muted-foreground mt-2 max-w-sm mx-auto">
+            This property doesn't have any web data streams configured.
+            You'll need to add a web stream in Google Analytics first.
+          </p>
+        </div>
+        <Button variant="outline" fullWidth onClick={onBack}>
+          <ArrowLeft className="w-4 h-4 mr-1.5" />
+          Select Different Property
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="text-center">
+        <h3 className="text-lg font-semibold text-foreground">Select Web Data Stream</h3>
+        <p className="text-sm text-muted-foreground mt-1">
+          Choose the stream that matches your website.
         </p>
       </div>
+
+      <div className="space-y-2 max-h-64 overflow-y-auto">
+        {streams.map((stream) => {
+          const isSelected = selected === stream.streamId;
+          return (
+            <button
+              key={stream.streamId}
+              onClick={() => onSelect(stream.streamId)}
+              className={`w-full text-left p-3 rounded-xl border transition-colors ${
+                isSelected
+                  ? "border-primary bg-primary/5"
+                  : "border-border hover:border-primary/30 hover:bg-muted/30"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-foreground">{stream.streamName}</p>
+                  {stream.measurementId && (
+                    <p className="text-xs text-muted-foreground font-mono mt-0.5">
+                      {stream.measurementId}
+                    </p>
+                  )}
+                </div>
+                {isSelected && (
+                  <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
+                )}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex gap-2">
+        <Button variant="outline" onClick={onBack} className="shrink-0">
+          <ArrowLeft className="w-4 h-4 mr-1.5" />
+          Back
+        </Button>
+        <Button variant="primary" fullWidth onClick={onNext} disabled={!selected}>
+          Save & Verify
+          <ArrowRight className="w-4 h-4 ml-1.5" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Step 3a: Verifying data
+// ---------------------------------------------------------------------------
+
+function StepVerifying() {
+  return (
+    <div className="space-y-5 text-center py-6">
+      <Loader2 className="w-8 h-8 text-primary animate-spin mx-auto" />
+      <div>
+        <h3 className="text-lg font-semibold text-foreground">Verifying Connection</h3>
+        <p className="text-sm text-muted-foreground mt-2">
+          Fetching sample data from the last 28 days...
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Step 3b: Verify result (success or error)
+// ---------------------------------------------------------------------------
+
+function StepVerifyResult({
+  result,
+  onRetry,
+  onChangeAccount,
+  onFinish,
+}: {
+  result: VerifyResult;
+  onRetry: () => void;
+  onChangeAccount: () => void;
+  onFinish: () => void;
+}) {
+  if (!result.ok) {
+    return (
+      <div className="space-y-5">
+        <div className="text-center">
+          <div className="w-14 h-14 rounded-2xl bg-semantic-danger/10 flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-7 h-7 text-semantic-danger" />
+          </div>
+          <h3 className="text-lg font-semibold text-foreground">Verification Failed</h3>
+          <p className="text-sm text-muted-foreground mt-2 max-w-sm mx-auto">
+            {result.error || "Could not fetch data from this GA4 property."}
+          </p>
+        </div>
+
+        {result.troubleshooting && result.troubleshooting.length > 0 && (
+          <div className="bg-muted/50 rounded-lg p-4 text-sm space-y-2">
+            <p className="font-medium text-foreground">Troubleshooting:</p>
+            <ul className="space-y-1 text-muted-foreground">
+              {result.troubleshooting.map((item, i) => (
+                <li key={i} className="flex items-start gap-2">
+                  <span className="text-muted-foreground">•</span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={onChangeAccount} className="flex-1">
+            Change Account
+          </Button>
+          <Button variant="primary" onClick={onRetry} className="flex-1">
+            <RefreshCw className="w-4 h-4 mr-1.5" />
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const { sampleMetrics } = result;
+
+  return (
+    <div className="space-y-5">
+      <div className="text-center">
+        <div className="w-14 h-14 rounded-2xl bg-semantic-success/10 flex items-center justify-center mx-auto mb-4">
+          <CheckCircle2 className="w-7 h-7 text-semantic-success" />
+        </div>
+        <h3 className="text-lg font-semibold text-foreground">Connected</h3>
+        <p className="text-sm text-muted-foreground mt-2">
+          Here's a preview of your analytics data.
+        </p>
+      </div>
+
+      {sampleMetrics && (
+        <Card className="bg-muted/30 border-border">
+          <CardContent className="py-4 space-y-4">
+            {/* Summary stats */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center p-3 bg-background rounded-lg">
+                <div className="flex items-center justify-center gap-1.5 mb-1">
+                  <BarChart3 className="w-4 h-4 text-primary" />
+                  <span className="text-xs text-muted-foreground">Sessions</span>
+                </div>
+                <p className="text-xl font-bold text-foreground">
+                  {sampleMetrics.sessions.toLocaleString()}
+                </p>
+              </div>
+              <div className="text-center p-3 bg-background rounded-lg">
+                <div className="flex items-center justify-center gap-1.5 mb-1">
+                  <Users className="w-4 h-4 text-primary" />
+                  <span className="text-xs text-muted-foreground">Users</span>
+                </div>
+                <p className="text-xl font-bold text-foreground">
+                  {sampleMetrics.users.toLocaleString()}
+                </p>
+              </div>
+            </div>
+
+            {/* Top landing pages */}
+            {sampleMetrics.landingPages.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-2">Top Landing Pages</p>
+                <div className="space-y-1.5">
+                  {sampleMetrics.landingPages.slice(0, 5).map((page, i) => (
+                    <div key={i} className="flex items-center justify-between text-sm">
+                      <span className="text-foreground truncate flex-1 mr-2 flex items-center gap-1.5">
+                        <Globe className="w-3 h-3 text-muted-foreground shrink-0" />
+                        {page.page}
+                      </span>
+                      <span className="text-muted-foreground text-xs">
+                        {page.sessions.toLocaleString()} sessions
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <p className="text-[10px] text-muted-foreground text-center">
+              Data from {sampleMetrics.dateRange.start} to {sampleMetrics.dateRange.end}
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="bg-muted/30 border-border">
         <CardContent className="py-4">
@@ -319,41 +556,71 @@ function StepConfirmation({ onFinish }: { onFinish: () => void }) {
 // Main wizard
 // ---------------------------------------------------------------------------
 
+type WizardStep =
+  | "sign-in"
+  | "property-select"
+  | "stream-select"
+  | "verifying"
+  | "verify-result";
+
+function stepToPhase(step: WizardStep): 1 | 2 | 3 {
+  switch (step) {
+    case "sign-in":
+      return 1;
+    case "property-select":
+    case "stream-select":
+      return 2;
+    case "verifying":
+    case "verify-result":
+      return 3;
+  }
+}
+
 export function GAConfigWizard({ open, onOpenChange, siteId, siteDomain }: GAConfigWizardProps) {
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState<WizardStep>("sign-in");
   const [oauthError, setOauthError] = useState<string | null>(null);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
+  const [selectedStreamId, setSelectedStreamId] = useState<string | null>(null);
 
   const google = useGoogleConnection(siteId);
 
   // Reset wizard state when opened
   useEffect(() => {
     if (open) {
-      // If already connected, skip to property selection
-      if (google.status?.connected) {
-        setStep(3);
-      } else {
-        setStep(1);
-      }
       setOauthError(null);
-      setSelectedPropertyId(google.status?.ga4?.propertyId ?? null);
-    }
-  }, [open, google.status?.connected, google.status?.ga4?.propertyId]);
 
-  // Fetch properties when reaching step 3
-  useEffect(() => {
-    if (step === 3 && google.status?.connected) {
-      google.fetchProperties();
+      // If already connected with a property, skip to stream or verify
+      if (google.status?.connected && google.status?.ga4?.propertyId) {
+        setSelectedPropertyId(google.status.ga4.propertyId);
+        if (google.status.ga4.streamId) {
+          setSelectedStreamId(google.status.ga4.streamId);
+          // If fully configured, show verify result
+          if (google.status.integrationStatus === "connected") {
+            setStep("verify-result");
+          } else {
+            setStep("verifying");
+          }
+        } else {
+          setStep("stream-select");
+          google.fetchStreams(google.status.ga4.propertyId);
+        }
+      } else if (google.status?.connected) {
+        // Connected but no property selected
+        setStep("property-select");
+        google.fetchProperties();
+      } else {
+        setStep("sign-in");
+      }
     }
-  }, [step, google.status?.connected]);
+  }, [open, google.status?.connected, google.status?.ga4?.propertyId, google.status?.ga4?.streamId, google.status?.integrationStatus]);
 
   const handleStartOAuth = async () => {
-    setStep(2);
     setOauthError(null);
     try {
       const success = await google.startOAuth();
       if (success) {
-        setStep(3);
+        setStep("property-select");
+        google.fetchProperties();
       } else {
         setOauthError("Authorization was cancelled or timed out. Please try again.");
       }
@@ -362,17 +629,48 @@ export function GAConfigWizard({ open, onOpenChange, siteId, siteDomain }: GACon
     }
   };
 
-  const handleSaveProperty = async () => {
-    if (!selectedPropertyId) return;
+  const handlePropertySelected = async (propertyId: string) => {
+    setSelectedPropertyId(propertyId);
+    setSelectedStreamId(null);
+    // Fetch streams for this property
+    await google.fetchStreams(propertyId);
+    setStep("stream-select");
+  };
+
+  const handleSaveAndVerify = async () => {
+    if (!selectedPropertyId || !selectedStreamId) return;
+
     try {
-      await google.saveProperties({ ga4PropertyId: selectedPropertyId });
-      setStep(4);
+      // Save selections first
+      await google.saveProperties({
+        ga4PropertyId: selectedPropertyId,
+        ga4StreamId: selectedStreamId,
+      });
+
+      // Then verify
+      setStep("verifying");
+      await google.verifyConnection();
+      setStep("verify-result");
     } catch {
       // Error handled by mutation
+      setStep("verify-result");
     }
   };
 
-  const TOTAL_STEPS = 4;
+  const handleRetryVerify = async () => {
+    setStep("verifying");
+    try {
+      await google.verifyConnection();
+    } finally {
+      setStep("verify-result");
+    }
+  };
+
+  const handleChangeAccount = () => {
+    setSelectedPropertyId(null);
+    setSelectedStreamId(null);
+    setStep("sign-in");
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -382,32 +680,52 @@ export function GAConfigWizard({ open, onOpenChange, siteId, siteDomain }: GACon
           <DialogDescription>Configure Google Analytics for your site</DialogDescription>
         </DialogHeader>
 
-        <StepIndicator current={step} total={TOTAL_STEPS} />
+        <StepIndicator currentPhase={stepToPhase(step)} />
 
-        {step === 1 && <StepExplain onNext={handleStartOAuth} />}
-
-        {step === 2 && (
-          <StepOAuth
+        {step === "sign-in" && (
+          <StepSignIn
             isConnecting={google.isConnecting}
             error={oauthError}
+            onStart={handleStartOAuth}
             onRetry={handleStartOAuth}
           />
         )}
 
-        {step === 3 && (
+        {step === "property-select" && (
           <StepPropertySelect
             properties={google.properties?.ga4 ?? []}
             isLoading={google.isLoadingProperties}
             selected={selectedPropertyId}
             siteDomain={siteDomain}
-            onSelect={setSelectedPropertyId}
-            onBack={() => setStep(1)}
-            onNext={handleSaveProperty}
+            onSelect={handlePropertySelected}
+            onBack={handleChangeAccount}
+            onNext={() => {}} // Not used - selection triggers next step
           />
         )}
 
-        {step === 4 && (
-          <StepConfirmation onFinish={() => onOpenChange(false)} />
+        {step === "stream-select" && (
+          <StepStreamSelect
+            streams={google.streams ?? []}
+            isLoading={google.isLoadingStreams}
+            selected={selectedStreamId}
+            onSelect={setSelectedStreamId}
+            onBack={() => {
+              setSelectedStreamId(null);
+              setStep("property-select");
+            }}
+            onNext={handleSaveAndVerify}
+          />
+        )}
+
+        {step === "verifying" && <StepVerifying />}
+
+        {step === "verify-result" && google.verifyResult && (
+          <StepVerifyResult
+            result={google.verifyResult}
+            onRetry={handleRetryVerify}
+            onChangeAccount={handleChangeAccount}
+            onFinish={() => onOpenChange(false)}
+          />
         )}
       </DialogContent>
     </Dialog>

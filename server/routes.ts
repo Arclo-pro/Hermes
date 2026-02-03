@@ -6450,7 +6450,9 @@ When answering:
         // Per-site OAuth flow — save tokens to site_google_credentials
         const creds = await googleAuth.exchangeCodeForSiteTokens(code, siteId);
         logger.info("API", `Site ${siteId} connected Google account`, { googleEmail: creds.googleEmail });
-        return res.redirect(`${appUrl}/sites/${siteId}/settings?google=connected`);
+        // Audit: ga4_oauth_completed
+        logger.info("GA4Audit", "ga4_oauth_completed", { siteId, timestamp: new Date().toISOString() });
+        return res.redirect(`${appUrl}/app/settings/integrations?google=connected`);
       }
 
       // Legacy global OAuth flow
