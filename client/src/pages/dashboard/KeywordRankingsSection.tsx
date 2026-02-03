@@ -219,7 +219,7 @@ export function KeywordRankingsSection({ siteId }: KeywordRankingsSectionProps) 
           <StatBucket label="#1 Rankings" value={rankingCounts.position1} icon={Trophy} color="#f59e0b" />
           <StatBucket label="Top 3" value={rankingCounts.top3} icon={Trophy} color="#ec4899" />
           <StatBucket label="Top 10" value={rankingCounts.top10} icon={TrendingUp} color="#22c55e" />
-          <StatBucket label="Top 100" value={rankingCounts.top100} icon={Target} color="#64748B" />
+          <StatBucket label="Not Ranked" value={totalTracked - rankingCounts.top100} icon={Minus} color="#94A3B8" />
         </div>
 
         {/* Keyword Limit Selector */}
