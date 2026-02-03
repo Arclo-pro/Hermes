@@ -163,9 +163,25 @@ export interface InsightsData {
 // Hooks
 // ============================================================
 
+function buildOpsDashboardUrl(siteId: string, section: string): string {
+  return `/api/ops-dashboard?siteId=${encodeURIComponent(siteId)}&section=${encodeURIComponent(section)}`;
+}
+
+async function fetchOpsDashboard<T>(siteId: string, section: string): Promise<T> {
+  const res = await fetch(buildOpsDashboardUrl(siteId, section), {
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`${res.status}: ${text}`);
+  }
+  return res.json();
+}
+
 export function useMetricCards(siteId: string | null | undefined) {
   return useQuery<MetricsData>({
     queryKey: ["/api/ops-dashboard", siteId, "metrics"],
+    queryFn: () => fetchOpsDashboard<MetricsData>(siteId!, "metrics"),
     enabled: !!siteId,
     staleTime: 2 * 60 * 1000,
   });
@@ -174,6 +190,7 @@ export function useMetricCards(siteId: string | null | undefined) {
 export function useSerpSnapshot(siteId: string | null | undefined) {
   return useQuery<SerpSnapshotData>({
     queryKey: ["/api/ops-dashboard", siteId, "serp-snapshot"],
+    queryFn: () => fetchOpsDashboard<SerpSnapshotData>(siteId!, "serp-snapshot"),
     enabled: !!siteId,
     staleTime: 5 * 60 * 1000,
   });
@@ -182,6 +199,7 @@ export function useSerpSnapshot(siteId: string | null | undefined) {
 export function useSerpKeywords(siteId: string | null | undefined) {
   return useQuery<SerpKeywordsData>({
     queryKey: ["/api/ops-dashboard", siteId, "serp-keywords"],
+    queryFn: () => fetchOpsDashboard<SerpKeywordsData>(siteId!, "serp-keywords"),
     enabled: !!siteId,
     staleTime: 5 * 60 * 1000,
   });
@@ -190,6 +208,7 @@ export function useSerpKeywords(siteId: string | null | undefined) {
 export function useContentStatus(siteId: string | null | undefined) {
   return useQuery<ContentStatusData>({
     queryKey: ["/api/ops-dashboard", siteId, "content-status"],
+    queryFn: () => fetchOpsDashboard<ContentStatusData>(siteId!, "content-status"),
     enabled: !!siteId,
     staleTime: 60 * 1000,
   });
@@ -198,6 +217,7 @@ export function useContentStatus(siteId: string | null | undefined) {
 export function useChangesLog(siteId: string | null | undefined) {
   return useQuery<ChangesLogData>({
     queryKey: ["/api/ops-dashboard", siteId, "changes-log"],
+    queryFn: () => fetchOpsDashboard<ChangesLogData>(siteId!, "changes-log"),
     enabled: !!siteId,
     staleTime: 30 * 1000,
   });
@@ -206,6 +226,7 @@ export function useChangesLog(siteId: string | null | undefined) {
 export function useSystemState(siteId: string | null | undefined) {
   return useQuery<SystemStateData>({
     queryKey: ["/api/ops-dashboard", siteId, "system-state"],
+    queryFn: () => fetchOpsDashboard<SystemStateData>(siteId!, "system-state"),
     enabled: !!siteId,
     staleTime: 5 * 60 * 1000,
   });
@@ -214,6 +235,7 @@ export function useSystemState(siteId: string | null | undefined) {
 export function useInsights(siteId: string | null | undefined) {
   return useQuery<InsightsData>({
     queryKey: ["/api/ops-dashboard", siteId, "insights"],
+    queryFn: () => fetchOpsDashboard<InsightsData>(siteId!, "insights"),
     enabled: !!siteId,
     staleTime: 5 * 60 * 1000,
   });
