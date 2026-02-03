@@ -192,9 +192,17 @@ export function useGoogleConnection(siteId: string | null) {
     try {
       // Get the auth URL from the backend
       const res = await fetch(`/api/sites/${siteId}/google/connect`, { method: "POST" });
-      if (!res.ok) throw new Error("Failed to start OAuth");
       const data = await res.json();
-      if (!data.ok || !data.authUrl) throw new Error(data.error || "No auth URL returned");
+
+      // Handle OAuth not configured error specifically
+      if (!res.ok || !data.ok) {
+        if (res.status === 503 || data.error?.includes("not configured")) {
+          throw new Error("OAUTH_NOT_CONFIGURED");
+        }
+        throw new Error(data.error || "Failed to start OAuth");
+      }
+
+      if (!data.authUrl) throw new Error(data.error || "No auth URL returned");
 
       // Open popup
       const popup = window.open(

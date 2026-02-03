@@ -9,7 +9,7 @@
  */
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { exchangeCodeForSiteTokens, isOAuthConfigured } from "../_lib/googleOAuth.js";
+import { exchangeCodeForSiteTokensAsync, isOAuthConfiguredAsync } from "../_lib/googleOAuth.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "GET") {
@@ -36,7 +36,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }));
   }
 
-  if (!isOAuthConfigured()) {
+  const isConfigured = await isOAuthConfiguredAsync();
+  if (!isConfigured) {
     return res.send(renderCallbackPage({
       success: false,
       message: "OAuth not configured on server. Contact support.",
@@ -63,7 +64,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     // Exchange code for tokens and store credentials
-    const creds = await exchangeCodeForSiteTokens(code, siteId);
+    const creds = await exchangeCodeForSiteTokensAsync(code, siteId);
 
     console.log(`[OAuthCallback] Successfully stored credentials for site ${siteId}, email: ${creds.googleEmail}`);
 

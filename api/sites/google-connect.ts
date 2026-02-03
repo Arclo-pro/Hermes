@@ -8,8 +8,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getSessionUser, setCorsHeaders } from "../_lib/auth.js";
 import {
-  isOAuthConfigured,
-  getAuthUrlForSite,
+  isOAuthConfiguredForSite,
+  getAuthUrlForSiteAsync,
   deleteSiteGoogleCredentials,
   resolveNumericSiteId,
 } from "../_lib/googleOAuth.js";
@@ -30,14 +30,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // POST: Start OAuth flow
   if (req.method === "POST") {
     try {
-      if (!isOAuthConfigured()) {
+      const isConfigured = await isOAuthConfiguredForSite(siteId);
+      if (!isConfigured) {
         return res.status(503).json({
           ok: false,
-          error: "OAuth not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.",
+          error: "OAUTH_NOT_CONFIGURED",
         });
       }
 
-      const authUrl = getAuthUrlForSite(siteId);
+      const authUrl = await getAuthUrlForSiteAsync(siteId);
       console.log(`[GoogleConnect] OAuth flow started for site ${siteId}`);
       return res.json({ ok: true, authUrl });
     } catch (error: any) {

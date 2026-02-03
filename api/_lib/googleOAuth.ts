@@ -69,28 +69,211 @@ export interface SiteGoogleCredentials {
 }
 
 // ============================================================
+// OAuth Configuration Cache
+// ============================================================
+
+interface OAuthConfig {
+  clientId: string;
+  clientSecret: string;
+  redirectUri: string;
+}
+
+// Platform-level cache (env vars or platform_oauth_config)
+let cachedPlatformConfig: OAuthConfig | null = null;
+let platformCacheTimestamp: number = 0;
+
+// Per-site cache: Map<siteId, { config, timestamp }>
+const siteConfigCache = new Map<number, { config: OAuthConfig; timestamp: number }>();
+
+const CACHE_TTL = 60_000; // 1 minute cache
+
+/**
+ * Get OAuth config for a specific site.
+ * Priority:
+ * 1. Site-specific config (site_oauth_config table)
+ * 2. Platform-wide env vars (fallback for development)
+ * 3. Platform-wide database config (fallback)
+ */
+async function getOAuthConfigForSite(siteId: number): Promise<OAuthConfig | null> {
+  // Check site-specific cache first
+  const cached = siteConfigCache.get(siteId);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.config;
+  }
+
+  // Try site-specific config from database
+  try {
+    const pool = getPool();
+    const result = await pool.query(
+      `SELECT client_id, client_secret, redirect_uri
+       FROM site_oauth_config
+       WHERE site_id = $1
+       LIMIT 1`,
+      [siteId]
+    );
+
+    if (result.rows.length > 0) {
+      const config: OAuthConfig = {
+        clientId: result.rows[0].client_id,
+        clientSecret: result.rows[0].client_secret,
+        redirectUri: result.rows[0].redirect_uri,
+      };
+      siteConfigCache.set(siteId, { config, timestamp: Date.now() });
+      console.log(`[OAuth] Using site-specific config for site ${siteId}`);
+      return config;
+    }
+  } catch (err) {
+    // Table might not exist yet
+    console.log("[OAuth] Could not read site config from database:", err);
+  }
+
+  // Fall back to platform-wide config
+  return getOAuthConfig();
+}
+
+/**
+ * Get platform-wide OAuth config (env vars or platform_oauth_config table).
+ * Used as fallback when no site-specific config exists.
+ */
+async function getOAuthConfig(): Promise<OAuthConfig | null> {
+  // Check cache first
+  if (cachedPlatformConfig && Date.now() - platformCacheTimestamp < CACHE_TTL) {
+    return cachedPlatformConfig;
+  }
+
+  // Try environment variables first
+  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    cachedPlatformConfig = {
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      redirectUri: process.env.GOOGLE_REDIRECT_URI || "http://localhost:5000/api/auth/callback",
+    };
+    platformCacheTimestamp = Date.now();
+    return cachedPlatformConfig;
+  }
+
+  // Try database
+  try {
+    const pool = getPool();
+    const result = await pool.query(
+      `SELECT client_id, client_secret, redirect_uri
+       FROM platform_oauth_config
+       WHERE provider = 'google'
+       LIMIT 1`
+    );
+
+    if (result.rows.length > 0) {
+      cachedPlatformConfig = {
+        clientId: result.rows[0].client_id,
+        clientSecret: result.rows[0].client_secret,
+        redirectUri: result.rows[0].redirect_uri,
+      };
+      platformCacheTimestamp = Date.now();
+      return cachedPlatformConfig;
+    }
+  } catch (err) {
+    // Table might not exist yet, that's okay
+    console.log("[OAuth] Could not read platform config from database:", err);
+  }
+
+  return null;
+}
+
+/**
+ * Check if OAuth is configured for a specific site.
+ */
+export async function isOAuthConfiguredForSite(siteId: number): Promise<boolean> {
+  const config = await getOAuthConfigForSite(siteId);
+  return config !== null;
+}
+
+/**
+ * Clear OAuth config cache for a site (call after saving new config).
+ */
+export function clearOAuthConfigCache(siteId?: number): void {
+  if (siteId !== undefined) {
+    siteConfigCache.delete(siteId);
+  } else {
+    siteConfigCache.clear();
+    cachedPlatformConfig = null;
+    platformCacheTimestamp = 0;
+  }
+}
+
+// ============================================================
 // OAuth Client Factory
 // ============================================================
 
-export function createOAuth2Client() {
+/**
+ * Create OAuth2 client for a specific site.
+ * Uses site-specific credentials if available, falls back to platform config.
+ */
+export async function createOAuth2ClientForSite(siteId: number): Promise<InstanceType<typeof google.auth.OAuth2>> {
+  const config = await getOAuthConfigForSite(siteId);
+
+  if (!config) {
+    throw new Error("OAUTH_NOT_CONFIGURED");
+  }
+
+  return new google.auth.OAuth2(config.clientId, config.clientSecret, config.redirectUri);
+}
+
+export async function createOAuth2ClientAsync(): Promise<InstanceType<typeof google.auth.OAuth2>> {
+  const config = await getOAuthConfig();
+
+  if (!config) {
+    throw new Error("OAUTH_NOT_CONFIGURED");
+  }
+
+  return new google.auth.OAuth2(config.clientId, config.clientSecret, config.redirectUri);
+}
+
+// Synchronous version for backwards compatibility (uses cache)
+export function createOAuth2Client(): InstanceType<typeof google.auth.OAuth2> {
+  // Check env vars first (synchronous)
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
   const redirectUri = process.env.GOOGLE_REDIRECT_URI || "http://localhost:5000/api/auth/callback";
 
-  if (!clientId || !clientSecret) {
-    throw new Error("OAuth not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.");
+  if (clientId && clientSecret) {
+    return new google.auth.OAuth2(clientId, clientSecret, redirectUri);
   }
 
-  return new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+  // Check cache (populated by async calls)
+  if (cachedOAuthConfig) {
+    return new google.auth.OAuth2(
+      cachedOAuthConfig.clientId,
+      cachedOAuthConfig.clientSecret,
+      cachedOAuthConfig.redirectUri
+    );
+  }
+
+  throw new Error("OAuth not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.");
+}
+
+export async function isOAuthConfiguredAsync(): Promise<boolean> {
+  const config = await getOAuthConfig();
+  return config !== null;
 }
 
 export function isOAuthConfigured(): boolean {
-  return !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+  return !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) || !!cachedOAuthConfig;
 }
 
 // ============================================================
 // OAuth URL Generation
 // ============================================================
+
+export async function getAuthUrlForSiteAsync(siteId: number): Promise<string> {
+  // Use site-specific OAuth credentials
+  const oauth2Client = await createOAuth2ClientForSite(siteId);
+  return oauth2Client.generateAuthUrl({
+    access_type: "offline",
+    scope: SCOPES,
+    prompt: "consent",
+    state: JSON.stringify({ siteId }),
+  });
+}
 
 export function getAuthUrlForSite(siteId: number): string {
   const oauth2Client = createOAuth2Client();
@@ -105,6 +288,63 @@ export function getAuthUrlForSite(siteId: number): string {
 // ============================================================
 // Token Exchange
 // ============================================================
+
+export async function exchangeCodeForSiteTokensAsync(
+  code: string,
+  siteId: number
+): Promise<SiteGoogleCredentials> {
+  // Use site-specific OAuth credentials
+  const oauth2Client = await createOAuth2ClientForSite(siteId);
+  const { tokens } = await oauth2Client.getToken(code);
+
+  if (!tokens.access_token || !tokens.expiry_date) {
+    throw new Error("Failed to obtain access token");
+  }
+
+  if (!tokens.refresh_token) {
+    throw new Error("No refresh token received. User may need to revoke access and re-authorize.");
+  }
+
+  // Fetch the Google email associated with this token
+  const config = await getOAuthConfigForSite(siteId);
+  const tempClient = new google.auth.OAuth2(config?.clientId, config?.clientSecret);
+  tempClient.setCredentials(tokens);
+  const oauth2 = google.oauth2({ version: "v2", auth: tempClient });
+
+  let googleEmail: string | null = null;
+  try {
+    const userInfo = await oauth2.userinfo.get();
+    googleEmail = userInfo.data.email || null;
+  } catch {
+    // Non-fatal: email is informational
+  }
+
+  // Upsert credentials in database
+  const pool = getPool();
+  const result = await pool.query(
+    `INSERT INTO site_google_credentials (
+      site_id, access_token, refresh_token, token_expiry, scopes, google_email, connected_at, updated_at
+    ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+    ON CONFLICT (site_id) DO UPDATE SET
+      access_token = EXCLUDED.access_token,
+      refresh_token = EXCLUDED.refresh_token,
+      token_expiry = EXCLUDED.token_expiry,
+      scopes = EXCLUDED.scopes,
+      google_email = EXCLUDED.google_email,
+      updated_at = NOW()
+    RETURNING *`,
+    [
+      siteId,
+      tokens.access_token,
+      tokens.refresh_token,
+      new Date(tokens.expiry_date),
+      SCOPES,
+      googleEmail,
+    ]
+  );
+
+  return mapCredentialsRow(result.rows[0]);
+}
 
 export async function exchangeCodeForSiteTokens(
   code: string,
@@ -277,7 +517,8 @@ export async function getAuthenticatedClientForSite(
     return getAuthenticatedClientForSite(siteId);
   }
 
-  const client = createOAuth2Client();
+  // Use site-specific OAuth config
+  const client = await createOAuth2ClientForSite(siteId);
   client.setCredentials({
     access_token: creds.accessToken,
     refresh_token: creds.refreshToken,
@@ -287,7 +528,8 @@ export async function getAuthenticatedClientForSite(
 }
 
 async function refreshSiteToken(siteId: number, creds: SiteGoogleCredentials): Promise<void> {
-  const client = createOAuth2Client();
+  // Use site-specific OAuth config
+  const client = await createOAuth2ClientForSite(siteId);
   client.setCredentials({
     refresh_token: creds.refreshToken,
   });

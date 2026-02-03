@@ -15,6 +15,8 @@ import {
   Globe,
   ExternalLink,
   Info,
+  Settings,
+  Key,
 } from "lucide-react";
 import {
   Dialog,
@@ -26,6 +28,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useGoogleConnection, type GSCProperty } from "./useGoogleConnection";
 
 // ---------------------------------------------------------------------------
@@ -162,6 +166,193 @@ function StepOAuth({
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Step: OAuth Configuration (when credentials aren't set up)
+// ---------------------------------------------------------------------------
+
+function StepOAuthConfig({
+  onSave,
+  isSaving,
+  onCancel,
+  redirectUri,
+}: {
+  onSave: (config: { clientId: string; clientSecret: string; redirectUri: string }) => void;
+  isSaving: boolean;
+  onCancel: () => void;
+  redirectUri: string;
+}) {
+  const [clientId, setClientId] = useState("");
+  const [clientSecret, setClientSecret] = useState("");
+  const [showInstructions, setShowInstructions] = useState(false);
+  const [localRedirectUri, setLocalRedirectUri] = useState(redirectUri);
+
+  const isValid = clientId.trim() && clientSecret.trim() && localRedirectUri.trim();
+
+  return (
+    <div className="space-y-5">
+      <div className="text-center">
+        <div className="w-14 h-14 rounded-2xl bg-amber-500/10 flex items-center justify-center mx-auto mb-4">
+          <Settings className="w-7 h-7 text-amber-500" />
+        </div>
+        <h3 className="text-lg font-semibold text-foreground">Setup Your Google API</h3>
+        <p className="text-sm text-muted-foreground mt-2 max-w-sm mx-auto">
+          To connect Search Console, you need to create OAuth credentials in your own Google Cloud project.
+        </p>
+      </div>
+
+      {/* Expandable instructions */}
+      <Card className="bg-blue-500/5 border-blue-500/20">
+        <CardContent className="py-3">
+          <button
+            type="button"
+            onClick={() => setShowInstructions(!showInstructions)}
+            className="flex items-center justify-between w-full text-left"
+          >
+            <span className="flex items-center gap-2 text-sm font-medium text-blue-600">
+              <Key className="w-4 h-4" />
+              {showInstructions ? "Hide setup instructions" : "Show step-by-step instructions"}
+            </span>
+            <ArrowRight className={`w-4 h-4 text-blue-600 transition-transform ${showInstructions ? "rotate-90" : ""}`} />
+          </button>
+
+          {showInstructions && (
+            <div className="mt-4 space-y-4 text-sm text-muted-foreground">
+              <div className="space-y-2">
+                <p className="font-medium text-foreground">Step 1: Create a Google Cloud Project</p>
+                <ol className="list-decimal list-inside space-y-1 ml-2">
+                  <li>Go to <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">console.cloud.google.com</a></li>
+                  <li>Click the project dropdown at the top</li>
+                  <li>Click "New Project" and give it a name (e.g., "My Analytics")</li>
+                  <li>Wait for the project to be created</li>
+                </ol>
+              </div>
+
+              <div className="space-y-2">
+                <p className="font-medium text-foreground">Step 2: Enable Required APIs</p>
+                <ol className="list-decimal list-inside space-y-1 ml-2">
+                  <li>Go to "APIs & Services" → "Library"</li>
+                  <li>Search for and enable these APIs:</li>
+                  <ul className="list-disc list-inside ml-4 space-y-0.5">
+                    <li><strong>Google Search Console API</strong> (for GSC data)</li>
+                    <li><strong>Google Analytics Data API</strong> (optional, for GA4)</li>
+                    <li><strong>Google Analytics Admin API</strong> (optional, for GA4)</li>
+                  </ul>
+                  <li>Click "Enable" for each API</li>
+                </ol>
+              </div>
+
+              <div className="space-y-2">
+                <p className="font-medium text-foreground">Step 3: Configure OAuth Consent Screen</p>
+                <ol className="list-decimal list-inside space-y-1 ml-2">
+                  <li>Go to "APIs & Services" → "OAuth consent screen"</li>
+                  <li>Select "External" (unless you have Workspace)</li>
+                  <li>Fill in app name, your email as support email</li>
+                  <li>Add scopes: search for "webmasters" and add readonly scopes</li>
+                  <li>Add your email as a test user</li>
+                  <li>Click "Save and Continue" through each step</li>
+                </ol>
+              </div>
+
+              <div className="space-y-2">
+                <p className="font-medium text-foreground">Step 4: Create OAuth Credentials</p>
+                <ol className="list-decimal list-inside space-y-1 ml-2">
+                  <li>Go to "APIs & Services" → "Credentials"</li>
+                  <li>Click "+ Create Credentials" → "OAuth client ID"</li>
+                  <li>Application type: <strong>Web application</strong></li>
+                  <li>Add this Authorized redirect URI:</li>
+                </ol>
+                <div className="bg-muted rounded p-2 font-mono text-xs break-all mt-1 ml-2">
+                  {localRedirectUri}
+                </div>
+                <ol className="list-decimal list-inside space-y-1 ml-2" start={5}>
+                  <li>Click "Create"</li>
+                  <li>Copy the <strong>Client ID</strong> and <strong>Client Secret</strong></li>
+                </ol>
+              </div>
+
+              <div className="bg-amber-500/10 rounded p-3 text-amber-700 dark:text-amber-400">
+                <p className="font-medium">Important: Add Test Users</p>
+                <p className="text-xs mt-1">
+                  While your app is in "Testing" mode, only emails listed as test users can sign in.
+                  Add the Google account you'll use to connect GSC under "OAuth consent screen" → "Test users".
+                </p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="bg-muted/30 border-border">
+        <CardContent className="py-4 space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="gsc-clientId" className="text-sm font-medium">
+              Google Client ID
+            </Label>
+            <Input
+              id="gsc-clientId"
+              placeholder="xxxxx.apps.googleusercontent.com"
+              value={clientId}
+              onChange={(e) => setClientId(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="gsc-clientSecret" className="text-sm font-medium">
+              Google Client Secret
+            </Label>
+            <Input
+              id="gsc-clientSecret"
+              type="password"
+              placeholder="GOCSPX-xxxxxxxxxxxxx"
+              value={clientSecret}
+              onChange={(e) => setClientSecret(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="gsc-redirectUri" className="text-sm font-medium">
+              Redirect URI
+            </Label>
+            <Input
+              id="gsc-redirectUri"
+              placeholder="https://your-domain.com/api/auth/callback"
+              value={localRedirectUri}
+              onChange={(e) => setLocalRedirectUri(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Copy this exact URL to your Google Cloud Console OAuth settings as an Authorized redirect URI.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="flex gap-2">
+        <Button variant="outline" onClick={onCancel} className="shrink-0">
+          Cancel
+        </Button>
+        <Button
+          variant="primary"
+          fullWidth
+          onClick={() => onSave({ clientId, clientSecret, redirectUri: localRedirectUri })}
+          disabled={!isValid || isSaving}
+        >
+          {isSaving ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              Save & Continue
+              <ArrowRight className="w-4 h-4 ml-1.5" />
+            </>
+          )}
+        </Button>
+      </div>
     </div>
   );
 }
@@ -416,14 +607,21 @@ function StepConfirmation({ onFinish }: { onFinish: () => void }) {
 // Main wizard
 // ---------------------------------------------------------------------------
 
+type WizardStep = 1 | 2 | "oauth-config" | 3 | 4 | 5;
+
 export function GSCConfigWizard({ open, onOpenChange, siteId, siteDomain }: GSCConfigWizardProps) {
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState<WizardStep>(1);
   const [oauthError, setOauthError] = useState<string | null>(null);
   const [selectedSiteUrl, setSelectedSiteUrl] = useState<string | null>(null);
+  const [isSavingConfig, setIsSavingConfig] = useState(false);
 
   const google = useGoogleConnection(siteId);
 
   const alreadyConnected = google.status?.connected ?? false;
+
+  const redirectUri = typeof window !== "undefined"
+    ? `${window.location.origin}/api/auth/callback`
+    : "";
 
   // Reset wizard state when opened
   useEffect(() => {
@@ -463,7 +661,46 @@ export function GSCConfigWizard({ open, onOpenChange, siteId, siteDomain }: GSCC
         setOauthError("Authorization was cancelled or timed out. Please try again.");
       }
     } catch (err: any) {
+      // Check if OAuth isn't configured - show config step
+      if (err.message === "OAUTH_NOT_CONFIGURED") {
+        setStep("oauth-config");
+        return;
+      }
       setOauthError(err.message || "Failed to connect. Please try again.");
+    }
+  };
+
+  const handleSaveOAuthConfig = async (config: {
+    clientId: string;
+    clientSecret: string;
+    redirectUri: string;
+  }) => {
+    setIsSavingConfig(true);
+    try {
+      // Pass siteId so credentials are saved per-site
+      const res = await fetch(`/api/admin/oauth-config?siteId=${encodeURIComponent(siteId)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(config),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || "Failed to save configuration");
+      }
+
+      // Configuration saved, try OAuth again
+      setStep(1);
+      // Small delay to allow backend to pick up new config
+      setTimeout(() => {
+        handleStartOAuth();
+      }, 500);
+    } catch (err: any) {
+      setOauthError(err.message || "Failed to save configuration");
+      setStep(1);
+    } finally {
+      setIsSavingConfig(false);
     }
   };
 
@@ -479,6 +716,9 @@ export function GSCConfigWizard({ open, onOpenChange, siteId, siteDomain }: GSCC
 
   const TOTAL_STEPS = 5;
 
+  // Map step to display number for step indicator
+  const displayStep = step === "oauth-config" ? 1 : step;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -487,7 +727,7 @@ export function GSCConfigWizard({ open, onOpenChange, siteId, siteDomain }: GSCC
           <DialogDescription>Configure Search Console for your site</DialogDescription>
         </DialogHeader>
 
-        <StepIndicator current={step} total={TOTAL_STEPS} />
+        <StepIndicator current={displayStep as number} total={TOTAL_STEPS} />
 
         {step === 1 && <StepExplain onNext={handleStartOAuth} />}
 
@@ -496,6 +736,15 @@ export function GSCConfigWizard({ open, onOpenChange, siteId, siteDomain }: GSCC
             isConnecting={google.isConnecting}
             error={oauthError}
             onRetry={handleStartOAuth}
+          />
+        )}
+
+        {step === "oauth-config" && (
+          <StepOAuthConfig
+            onSave={handleSaveOAuthConfig}
+            isSaving={isSavingConfig}
+            onCancel={() => onOpenChange(false)}
+            redirectUri={redirectUri}
           />
         )}
 
