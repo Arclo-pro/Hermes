@@ -46,7 +46,7 @@ export function SiteProvider({ children }: { children: ReactNode }) {
   const { data: sites = [], isLoading } = useQuery<Site[]>({
     queryKey: ['sites'],
     queryFn: async () => {
-      const res = await fetch('/api/sites');
+      const res = await fetch('/api/sites', { credentials: 'include' });
       if (!res.ok) throw new Error('Failed to fetch sites');
       return res.json();
     },

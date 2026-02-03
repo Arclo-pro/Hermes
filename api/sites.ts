@@ -3,6 +3,26 @@ import { getPool } from "./_lib/db.js";
 import { getSessionUser, setCorsHeaders } from "./_lib/auth.js";
 import { randomUUID } from "crypto";
 
+/** Map snake_case DB row to camelCase frontend Site interface */
+function mapSiteRow(row: any) {
+  return {
+    id: row.id,
+    siteId: row.site_id,
+    displayName: row.display_name,
+    baseUrl: row.base_url,
+    domain: row.base_url ? new URL(row.base_url).hostname.replace(/^www\./, "") : null,
+    category: row.category || null,
+    techStack: row.tech_stack || null,
+    status: row.status,
+    active: row.active,
+    healthScore: row.health_score || null,
+    lastDiagnosisAt: row.last_diagnosis_at || null,
+    integrations: row.integrations || null,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
 /**
  * POST /api/sites - Create a new site for the logged-in user
  * GET  /api/sites - List all sites for the logged-in user
@@ -39,7 +59,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         `SELECT * FROM sites WHERE user_id = $1 ORDER BY created_at DESC`,
         [userId]
       );
-      return res.json(result.rows);
+      return res.json(result.rows.map(mapSiteRow));
     } catch (error: any) {
       console.error("[Sites] list_sites_failed", { userId, error: error.message });
       // Fallback: if user_id column doesn't exist, return all active sites
@@ -47,7 +67,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const fallback = await pool.query(
           `SELECT * FROM sites WHERE active = true ORDER BY created_at DESC`
         );
-        return res.json(fallback.rows);
+        return res.json(fallback.rows.map(mapSiteRow));
       } catch (e2: any) {
         return res.status(500).json({ ok: false, error: "Failed to list sites" });
       }
