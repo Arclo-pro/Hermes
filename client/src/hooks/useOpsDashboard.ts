@@ -77,6 +77,8 @@ export interface ContentDraftEntry {
   qaScore: number | null;
   createdAt: string;
   updatedAt: string;
+  autoPublishDate: string | null;
+  scheduledForAutoPublish: boolean;
 }
 
 export interface ContentStatusData {
@@ -84,6 +86,8 @@ export interface ContentStatusData {
   recentlyPublished: ContentDraftEntry[];
   contentUpdates: ContentDraftEntry[];
   hasContent: boolean;
+  autoPublishEnabled: boolean;
+  nextAutoPublish: string | null;
 }
 
 export interface ChangeLogEntry {

@@ -253,6 +253,8 @@ function buildContentStatus(fullReport?: any) {
       recentlyPublished: [],
       contentUpdates: [],
       hasContent: false,
+      autoPublishEnabled: true,
+      nextAutoPublish: null,
     };
   }
 
@@ -265,6 +267,15 @@ function buildContentStatus(fullReport?: any) {
   const contentUpdates: any[] = [];
   let draftId = 1;
 
+  // Helper to calculate auto-publish dates (spread over next 2 weeks)
+  const getAutoPublishDate = (index: number, scheduled: boolean): string | null => {
+    if (!scheduled) return null;
+    const date = new Date();
+    date.setDate(date.getDate() + 3 + (index * 2)); // Start 3 days from now, every 2 days
+    date.setHours(9, 0, 0, 0); // 9 AM
+    return date.toISOString();
+  };
+
   // Generate blog post recommendations for informational keywords not ranking
   const blogKeywords = notRanking
     .filter((r: any) => {
@@ -274,7 +285,9 @@ function buildContentStatus(fullReport?: any) {
     })
     .slice(0, 5);
 
-  for (const r of blogKeywords) {
+  for (let i = 0; i < blogKeywords.length; i++) {
+    const r = blogKeywords[i];
+    const scheduledForAutoPublish = i < 2; // First 2 blogs are scheduled
     upcoming.push({
       draftId: `draft-blog-${draftId++}`,
       title: generateBlogTitle(r.keyword),
@@ -285,6 +298,8 @@ function buildContentStatus(fullReport?: any) {
       qaScore: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      autoPublishDate: getAutoPublishDate(i, scheduledForAutoPublish),
+      scheduledForAutoPublish,
     });
   }
 
@@ -298,7 +313,9 @@ function buildContentStatus(fullReport?: any) {
     })
     .slice(0, 3);
 
-  for (const r of serviceKeywords) {
+  for (let i = 0; i < serviceKeywords.length; i++) {
+    const r = serviceKeywords[i];
+    const scheduledForAutoPublish = i === 0; // First service page is scheduled
     upcoming.push({
       draftId: `draft-service-${draftId++}`,
       title: generateServicePageTitle(r.keyword),
@@ -309,6 +326,8 @@ function buildContentStatus(fullReport?: any) {
       qaScore: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      autoPublishDate: getAutoPublishDate(blogKeywords.length + i, scheduledForAutoPublish),
+      scheduledForAutoPublish,
     });
   }
 
@@ -332,6 +351,8 @@ function buildContentStatus(fullReport?: any) {
       qaScore: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      autoPublishDate: null,
+      scheduledForAutoPublish: false,
     });
   }
 
@@ -347,14 +368,24 @@ function buildContentStatus(fullReport?: any) {
       qaScore: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      autoPublishDate: null,
+      scheduledForAutoPublish: false,
     });
   }
+
+  // Find next auto-publish date from scheduled content
+  const scheduledContent = upcoming.filter(c => c.scheduledForAutoPublish && c.autoPublishDate);
+  const nextAutoPublish = scheduledContent.length > 0
+    ? scheduledContent.sort((a, b) => new Date(a.autoPublishDate).getTime() - new Date(b.autoPublishDate).getTime())[0].autoPublishDate
+    : null;
 
   return {
     upcoming,
     recentlyPublished: [],
     contentUpdates,
     hasContent: upcoming.length > 0 || contentUpdates.length > 0,
+    autoPublishEnabled: true,
+    nextAutoPublish,
   };
 }
 
