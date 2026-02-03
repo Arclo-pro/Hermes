@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useSerpKeywords, type SerpKeywordEntry } from "@/hooks/useOpsDashboard";
+import { useSerpKeywords, type SerpKeywordEntry, type KeywordIntent } from "@/hooks/useOpsDashboard";
 import {
   GlassCard,
   GlassCardHeader,
@@ -255,6 +255,7 @@ export function SerpKeywordsSection({ siteId }: SerpKeywordsSectionProps) {
                   <th className="text-center text-xs font-semibold py-3 px-3" style={{ color: "#64748B" }}>30d</th>
                   <th className="text-center text-xs font-semibold py-3 px-3" style={{ color: "#64748B" }}>90d</th>
                   <th className="text-center text-xs font-semibold py-3 px-3" style={{ color: "#64748B" }}>Volume</th>
+                  <th className="text-center text-xs font-semibold py-3 px-3" style={{ color: "#64748B" }}>Intent</th>
                 </tr>
               </thead>
               <tbody>
@@ -287,6 +288,9 @@ export function SerpKeywordsSection({ siteId }: SerpKeywordsSectionProps) {
                       <span className="text-xs" style={{ color: "#64748B" }}>
                         {kw.volume != null ? kw.volume.toLocaleString() : "---"}
                       </span>
+                    </td>
+                    <td className="text-center py-3 px-3">
+                      <IntentBadge intent={kw.intent} />
                     </td>
                   </tr>
                 ))}
@@ -322,6 +326,28 @@ function ChangeCell({ value }: { value: number | null }) {
   return (
     <span className="text-xs font-semibold" style={{ color }}>
       {value > 0 ? `+${value}` : `${value}`}
+    </span>
+  );
+}
+
+const INTENT_STYLES: Record<NonNullable<KeywordIntent>, { label: string; bg: string; color: string; border: string }> = {
+  informational: { label: "Info", bg: "rgba(59, 130, 246, 0.1)", color: "#3b82f6", border: "rgba(59, 130, 246, 0.25)" },
+  transactional: { label: "Txn", bg: "rgba(34, 197, 94, 0.1)", color: "#22c55e", border: "rgba(34, 197, 94, 0.25)" },
+  navigational: { label: "Nav", bg: "rgba(168, 85, 247, 0.1)", color: "#a855f7", border: "rgba(168, 85, 247, 0.25)" },
+  commercial: { label: "Comm", bg: "rgba(245, 158, 11, 0.1)", color: "#f59e0b", border: "rgba(245, 158, 11, 0.25)" },
+};
+
+function IntentBadge({ intent }: { intent: KeywordIntent }) {
+  if (!intent) {
+    return <span className="text-xs" style={{ color: "#CBD5E1" }}>---</span>;
+  }
+  const style = INTENT_STYLES[intent];
+  return (
+    <span
+      className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+      style={{ background: style.bg, color: style.color, border: `1px solid ${style.border}` }}
+    >
+      {style.label}
     </span>
   );
 }

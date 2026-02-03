@@ -91,33 +91,8 @@ function noTracking(input: InsightsInput): DashboardTip | null {
   };
 }
 
-function connectGa4(input: InsightsInput): DashboardTip | null {
-  if (input.metrics.ga4Connected) return null;
-  return {
-    id: "connect-ga4",
-    title: "Connect Analytics for deeper insights",
-    body: "Google Analytics helps Arclo understand which pages drive real visitors and conversions, not just rankings.",
-    category: "system",
-    priority: 92,
-    sentiment: "action",
-    actionLabel: "Connect",
-    actionRoute: "/app/settings/integrations",
-  };
-}
-
-function connectGsc(input: InsightsInput): DashboardTip | null {
-  if (input.metrics.gscConnected) return null;
-  return {
-    id: "connect-gsc",
-    title: "Connect Search Console",
-    body: "See how Google crawls and indexes your site, plus real impression and click data.",
-    category: "system",
-    priority: 91,
-    sentiment: "action",
-    actionLabel: "Connect",
-    actionRoute: "/app/settings/integrations",
-  };
-}
+// NOTE: GA4 and GSC connection prompts are handled by SetupCardsSection
+// at the top of the dashboard, so we don't duplicate them here in insights.
 
 function rankingsDeclining(input: InsightsInput): DashboardTip | null {
   const { weekOverWeek } = input.serp;
@@ -285,8 +260,6 @@ function top3Wins(input: InsightsInput): DashboardTip | null {
 
 const TIP_GENERATORS: TipGenerator[] = [
   noTracking,
-  connectGa4,
-  connectGsc,
   rankingsDeclining,
   highSevSuggestions,
   rankingsImproving,

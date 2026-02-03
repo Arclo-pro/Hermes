@@ -367,6 +367,7 @@ router.get('/:siteId/serp-keywords', async (req, res) => {
       return {
         id: kw.id,
         keyword: kw.keyword,
+        intent: kw.intent,
         priority: kw.priority,
         volume: kw.volume,
         currentPosition,

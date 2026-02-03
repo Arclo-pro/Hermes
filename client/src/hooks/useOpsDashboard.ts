@@ -48,9 +48,12 @@ export interface KeywordHistoryPoint {
   position: number | null;
 }
 
+export type KeywordIntent = "informational" | "transactional" | "navigational" | "commercial" | null;
+
 export interface SerpKeywordEntry {
   id: number;
   keyword: string;
+  intent: KeywordIntent;
   priority: number | null;
   volume: number | null;
   currentPosition: number | null;
