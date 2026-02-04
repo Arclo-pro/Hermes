@@ -265,6 +265,9 @@ export interface IStorage {
   updateSiteGoogleCredentials(siteId: number, updates: Partial<InsertSiteGoogleCredentials>): Promise<void>;
   deleteSiteGoogleCredentials(siteId: number): Promise<void>;
 
+  // Per-Site OAuth Config (for multi-tenant OAuth)
+  getSiteOAuthConfig(siteId: number): Promise<{ clientId: string; clientSecret: string; redirectUri: string } | null>;
+
   // GA4 Data
   saveGA4Data(data: InsertGA4Daily[]): Promise<void>;
   getGA4DataByDateRange(startDate: string, endDate: string, siteId?: string): Promise<GA4Daily[]>;
@@ -771,6 +774,31 @@ class DBStorage implements IStorage {
     await db
       .delete(siteGoogleCredentials)
       .where(eq(siteGoogleCredentials.siteId, siteId));
+  }
+
+  async getSiteOAuthConfig(siteId: number): Promise<{ clientId: string; clientSecret: string; redirectUri: string } | null> {
+    try {
+      const result = await db.execute(sql`
+        SELECT client_id, client_secret, redirect_uri
+        FROM site_oauth_config
+        WHERE site_id = ${siteId}
+        LIMIT 1
+      `);
+
+      if (result.rows && result.rows.length > 0) {
+        const row = result.rows[0] as { client_id: string; client_secret: string; redirect_uri: string };
+        return {
+          clientId: row.client_id,
+          clientSecret: row.client_secret,
+          redirectUri: row.redirect_uri,
+        };
+      }
+      return null;
+    } catch (err) {
+      // Table might not exist yet
+      console.log('[Storage] Could not read site OAuth config:', err);
+      return null;
+    }
   }
 
   async saveGA4Data(data: InsertGA4Daily[]): Promise<void> {

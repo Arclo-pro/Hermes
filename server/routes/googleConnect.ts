@@ -34,10 +34,15 @@ router.post('/sites/:siteId/google/connect', requireAuth, async (req, res) => {
     // Audit: ga4_connect_started
     logger.info('GA4Audit', 'ga4_connect_started', { siteId, timestamp: new Date().toISOString() });
 
-    const authUrl = googleAuth.getAuthUrlForSite(siteId);
+    // Use async version to support site-specific OAuth config
+    const authUrl = await googleAuth.getAuthUrlForSiteAsync(siteId);
     res.json({ ok: true, authUrl });
   } catch (error: any) {
     logger.error('GoogleConnect', 'Failed to generate auth URL', { error: error.message });
+    // Return specific error for OAuth not configured
+    if (error.message?.includes('OAuth not configured')) {
+      return res.status(503).json({ ok: false, error: 'OAUTH_NOT_CONFIGURED' });
+    }
     res.status(500).json({ ok: false, error: error.message || 'Failed to start Google connection' });
   }
 });

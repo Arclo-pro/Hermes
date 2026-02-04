@@ -8,6 +8,12 @@ const SCOPES = [
   'https://www.googleapis.com/auth/adwords',
 ];
 
+interface SiteOAuthConfig {
+  clientId: string;
+  clientSecret: string;
+  redirectUri: string;
+}
+
 export class GoogleOAuthManager {
   private oauth2Client;
   private isConfigured: boolean;
@@ -32,6 +38,46 @@ export class GoogleOAuthManager {
     if (!this.isConfigured) {
       throw new Error('OAuth not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.');
     }
+  }
+
+  /**
+   * Get OAuth config for a specific site from the database.
+   * Falls back to global env vars if no site-specific config exists.
+   */
+  async getSiteOAuthConfig(siteId: number): Promise<SiteOAuthConfig | null> {
+    // Try site-specific config first
+    try {
+      const siteConfig = await storage.getSiteOAuthConfig(siteId);
+      if (siteConfig) {
+        console.log(`[OAuth] Using site-specific config for site ${siteId}`);
+        return siteConfig;
+      }
+    } catch (err) {
+      // Table might not exist yet
+      console.log('[OAuth] Could not read site OAuth config:', err);
+    }
+
+    // Fall back to global env vars
+    if (this.isConfigured) {
+      return {
+        clientId: process.env.GOOGLE_CLIENT_ID!,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+        redirectUri: process.env.GOOGLE_REDIRECT_URI || 'http://localhost:5000/api/auth/callback',
+      };
+    }
+
+    return null;
+  }
+
+  /**
+   * Create an OAuth2 client for a specific site using site-specific or global config.
+   */
+  async createOAuth2ClientForSite(siteId: number): Promise<InstanceType<typeof google.auth.OAuth2>> {
+    const config = await this.getSiteOAuthConfig(siteId);
+    if (!config) {
+      throw new Error('OAuth not configured. Please enter your Google OAuth credentials in the setup wizard.');
+    }
+    return new google.auth.OAuth2(config.clientId, config.clientSecret, config.redirectUri);
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -153,6 +199,21 @@ export class GoogleOAuthManager {
 
   /**
    * Generate OAuth URL with site ID encoded in state parameter.
+   * Uses site-specific OAuth config if available, falls back to global.
+   */
+  async getAuthUrlForSiteAsync(siteId: number): Promise<string> {
+    const oauth2Client = await this.createOAuth2ClientForSite(siteId);
+    return oauth2Client.generateAuthUrl({
+      access_type: 'offline',
+      scope: SCOPES,
+      prompt: 'consent',
+      state: JSON.stringify({ siteId }),
+    });
+  }
+
+  /**
+   * Synchronous version for backwards compatibility - uses global config only.
+   * @deprecated Use getAuthUrlForSiteAsync instead
    */
   getAuthUrlForSite(siteId: number): string {
     this.ensureConfigured();
@@ -166,10 +227,12 @@ export class GoogleOAuthManager {
 
   /**
    * Exchange authorization code and save tokens to site_google_credentials.
+   * Uses site-specific OAuth config if available.
    */
   async exchangeCodeForSiteTokens(code: string, siteId: number): Promise<SiteGoogleCredentials> {
-    this.ensureConfigured();
-    const { tokens } = await this.oauth2Client.getToken(code);
+    // Use site-specific OAuth config
+    const oauth2Client = await this.createOAuth2ClientForSite(siteId);
+    const { tokens } = await oauth2Client.getToken(code);
 
     if (!tokens.access_token || !tokens.expiry_date) {
       throw new Error('Failed to obtain access token');
@@ -180,9 +243,10 @@ export class GoogleOAuthManager {
     }
 
     // Fetch the Google email associated with this token
+    const config = await this.getSiteOAuthConfig(siteId);
     const tempClient = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
+      config?.clientId,
+      config?.clientSecret,
     );
     tempClient.setCredentials(tokens);
     const oauth2 = google.oauth2({ version: 'v2', auth: tempClient });
@@ -207,9 +271,9 @@ export class GoogleOAuthManager {
   /**
    * Get an authenticated OAuth2Client for a specific site.
    * Automatically refreshes expired tokens.
+   * Uses site-specific OAuth config if available.
    */
   async getAuthenticatedClientForSite(siteId: number): Promise<InstanceType<typeof google.auth.OAuth2>> {
-    this.ensureConfigured();
     const creds = await storage.getSiteGoogleCredentials(siteId);
 
     if (!creds) {
@@ -222,9 +286,15 @@ export class GoogleOAuthManager {
       return this.getAuthenticatedClientForSite(siteId);
     }
 
+    // Use site-specific OAuth config
+    const config = await this.getSiteOAuthConfig(siteId);
+    if (!config) {
+      throw new Error('OAuth not configured. Please enter your Google OAuth credentials in the setup wizard.');
+    }
+
     const client = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
+      config.clientId,
+      config.clientSecret,
     );
     client.setCredentials({
       access_token: creds.accessToken,
@@ -275,9 +345,15 @@ export class GoogleOAuthManager {
   }
 
   private async refreshSiteToken(siteId: number, creds: SiteGoogleCredentials): Promise<void> {
+    // Use site-specific OAuth config
+    const config = await this.getSiteOAuthConfig(siteId);
+    if (!config) {
+      throw new Error('OAuth not configured. Please enter your Google OAuth credentials in the setup wizard.');
+    }
+
     const client = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
+      config.clientId,
+      config.clientSecret,
     );
     client.setCredentials({
       refresh_token: creds.refreshToken,
