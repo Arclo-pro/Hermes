@@ -9,6 +9,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getSessionUser, setCorsHeaders } from "../_lib/auth.js";
 import { getPool } from "../_lib/db.js";
+import { clearOAuthConfigCache } from "../_lib/googleOAuth.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCorsHeaders(res);
@@ -117,6 +118,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
            updated_at = NOW()`,
         [numericSiteId, clientId, clientSecret, redirectUri]
       );
+
+      // Clear OAuth config cache to ensure immediate consistency
+      clearOAuthConfigCache(numericSiteId);
 
       console.log(`[OAuthConfig] Google OAuth configuration saved for site ${numericSiteId}`);
 

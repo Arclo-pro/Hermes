@@ -127,12 +127,15 @@ export default function Login() {
               </CardContent>
               
               <CardFooter className="flex flex-col space-y-4">
-                <Button 
-                  type="submit" 
-                  variant="primaryGradient"
+                <Button
+                  type="submit"
                   className="w-full"
                   disabled={loading}
                   data-testid="button-login"
+                  style={{
+                    background: "linear-gradient(90deg, #6D28D9, #7C3AED, #A855F7, #EC4899, #F97316, #F59E0B)",
+                    color: "#FFFFFF",
+                  }}
                 >
                   {loading ? (
                     <>

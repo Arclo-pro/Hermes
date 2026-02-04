@@ -9,7 +9,7 @@
  */
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { exchangeCodeForSiteTokensAsync, isOAuthConfiguredAsync } from "../_lib/googleOAuth.js";
+import { exchangeCodeForSiteTokensAsync, isOAuthConfiguredForSite, isOAuthConfiguredAsync } from "../_lib/googleOAuth.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "GET") {
@@ -36,15 +36,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }));
   }
 
-  const isConfigured = await isOAuthConfiguredAsync();
-  if (!isConfigured) {
-    return res.send(renderCallbackPage({
-      success: false,
-      message: "OAuth not configured on server. Contact support.",
-    }));
-  }
-
-  // Parse site ID from state
+  // Parse site ID from state FIRST (needed for site-specific OAuth config check)
   let siteId: number | null = null;
   if (state) {
     try {
@@ -59,6 +51,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.send(renderCallbackPage({
       success: false,
       message: "Invalid OAuth state. Please try connecting again.",
+    }));
+  }
+
+  // Check if OAuth is configured - first try site-specific, then platform-wide
+  const isSiteConfigured = await isOAuthConfiguredForSite(siteId);
+  const isPlatformConfigured = await isOAuthConfiguredAsync();
+
+  console.log(`[OAuthCallback] Site ${siteId}: siteConfig=${isSiteConfigured}, platformConfig=${isPlatformConfigured}`);
+
+  if (!isSiteConfigured && !isPlatformConfigured) {
+    console.error(`[OAuthCallback] No OAuth config found for site ${siteId} or platform`);
+    return res.send(renderCallbackPage({
+      success: false,
+      message: "OAuth not configured. Please enter your Google OAuth credentials in the setup wizard.",
     }));
   }
 

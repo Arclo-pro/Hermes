@@ -118,13 +118,6 @@ function StepSignIn({
   }
 
   if (error) {
-    // Check if the error suggests credential issues
-    const isCredentialError = error.toLowerCase().includes("access denied") ||
-                              error.toLowerCase().includes("invalid") ||
-                              error.toLowerCase().includes("unauthorized") ||
-                              error.toLowerCase().includes("client") ||
-                              error.toLowerCase().includes("secret");
-
     return (
       <div className="space-y-5 text-center">
         <div className="w-14 h-14 rounded-2xl bg-semantic-danger/10 flex items-center justify-center mx-auto">
@@ -133,11 +126,9 @@ function StepSignIn({
         <div>
           <h3 className="text-lg font-semibold text-foreground">Connection Failed</h3>
           <p className="text-sm text-muted-foreground mt-2 max-w-sm mx-auto">{error}</p>
-          {isCredentialError && (
-            <p className="text-xs text-amber-600 mt-2">
-              This may be due to incorrect OAuth credentials.
-            </p>
-          )}
+          <p className="text-xs text-amber-600 mt-2">
+            This may be due to incorrect OAuth credentials (Client ID, Client Secret, or Redirect URI).
+          </p>
         </div>
         <div className="flex flex-col gap-2">
           <Button variant="primary" onClick={onRetry}>
@@ -263,18 +254,20 @@ function StepOAuthConfig({
   onSave,
   isSaving,
   onCancel,
+  initialValues,
 }: {
   onSave: (config: { clientId: string; clientSecret: string; redirectUri: string }) => void;
   isSaving: boolean;
   onCancel: () => void;
+  initialValues?: { clientId: string; clientSecret: string; redirectUri: string };
 }) {
-  const [clientId, setClientId] = useState("");
-  const [clientSecret, setClientSecret] = useState("");
-  const [redirectUri, setRedirectUri] = useState(
-    typeof window !== "undefined"
-      ? `${window.location.origin}/api/auth/callback`
-      : ""
-  );
+  const defaultRedirectUri = typeof window !== "undefined"
+    ? `${window.location.origin}/api/auth/callback`
+    : "";
+
+  const [clientId, setClientId] = useState(initialValues?.clientId || "");
+  const [clientSecret, setClientSecret] = useState(initialValues?.clientSecret || "");
+  const [redirectUri, setRedirectUri] = useState(initialValues?.redirectUri || defaultRedirectUri);
   const [activeHelp, setActiveHelp] = useState<"clientId" | "clientSecret" | "redirectUri" | null>(null);
 
   const isValid = clientId.trim() && clientSecret.trim() && redirectUri.trim();
@@ -854,6 +847,12 @@ export function GAConfigWizard({ open, onOpenChange, siteId, siteDomain }: GACon
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
   const [selectedStreamId, setSelectedStreamId] = useState<string | null>(null);
   const [isSavingConfig, setIsSavingConfig] = useState(false);
+  // Store OAuth credentials so they persist when going back to edit
+  const [savedOAuthConfig, setSavedOAuthConfig] = useState<{
+    clientId: string;
+    clientSecret: string;
+    redirectUri: string;
+  } | null>(null);
 
   const google = useGoogleConnection(siteId);
 
@@ -913,6 +912,8 @@ export function GAConfigWizard({ open, onOpenChange, siteId, siteDomain }: GACon
     redirectUri: string;
   }) => {
     setIsSavingConfig(true);
+    // Store the credentials so they persist if user needs to edit again
+    setSavedOAuthConfig(config);
     try {
       // Pass siteId so credentials are saved per-site
       const res = await fetch(`/api/admin/oauth-config?siteId=${encodeURIComponent(siteId)}`, {
@@ -1012,6 +1013,7 @@ export function GAConfigWizard({ open, onOpenChange, siteId, siteDomain }: GACon
             onSave={handleSaveOAuthConfig}
             isSaving={isSavingConfig}
             onCancel={() => onOpenChange(false)}
+            initialValues={savedOAuthConfig || undefined}
           />
         )}
 
