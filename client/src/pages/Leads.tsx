@@ -29,6 +29,8 @@ import {
   ExternalLink,
   BarChart3,
   List,
+  Trash2,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -259,6 +261,14 @@ async function logContactAttempt(leadId: string): Promise<void> {
   if (!res.ok) throw new Error("Failed to log contact attempt");
 }
 
+async function deleteLead(leadId: string): Promise<void> {
+  const res = await fetch(`/api/leads/${leadId}`, { method: "DELETE" });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || "Failed to delete lead");
+  }
+}
+
 // ============================================
 // Stat Cards Component
 // ============================================
@@ -444,6 +454,7 @@ function LeadDetailDrawer({ lead, open, onOpenChange, onUpdate }: LeadDetailDraw
   const queryClient = useQueryClient();
   const [editData, setEditData] = useState<Partial<Lead>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Reset edit data when lead changes
   useMemo(() => {
@@ -481,6 +492,23 @@ function LeadDetailDrawer({ lead, open, onOpenChange, onUpdate }: LeadDetailDraw
       onUpdate();
     } catch (err: any) {
       toast({ title: err.message, variant: "destructive" });
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!lead) return;
+    if (!confirm("Are you sure you want to delete this lead? This cannot be undone.")) return;
+
+    setIsDeleting(true);
+    try {
+      await deleteLead(lead.leadId);
+      toast({ title: "Lead deleted" });
+      onOpenChange(false);
+      onUpdate();
+    } catch (err: any) {
+      toast({ title: err.message, variant: "destructive" });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -652,8 +680,17 @@ function LeadDetailDrawer({ lead, open, onOpenChange, onUpdate }: LeadDetailDraw
             />
           </div>
 
-          {/* Save Button */}
+          {/* Action Buttons */}
           <div className="flex gap-2 pt-4">
+            <Button
+              variant="destructive"
+              size="icon"
+              onClick={handleDelete}
+              disabled={isDeleting}
+              title="Delete lead"
+            >
+              {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+            </Button>
             <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
@@ -731,23 +768,26 @@ export default function Leads() {
     return params;
   }, [filters]);
 
-  // Queries
-  const { data: leadsData, isLoading: leadsLoading, refetch: refetchLeads } = useQuery({
+  // Queries with longer stale times for smoother navigation
+  const { data: leadsData, isLoading: leadsLoading, isFetching: leadsFetching, refetch: refetchLeads } = useQuery({
     queryKey: ["leads", siteId, queryParams],
     queryFn: () => fetchLeads(siteId!, queryParams),
     enabled: !!siteId,
+    staleTime: 2 * 60 * 1000, // 2 minutes
   });
 
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["leads-stats", siteId],
     queryFn: () => fetchLeadStats(siteId!),
     enabled: !!siteId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Handlers
   const handleRefresh = () => {
     refetchLeads();
     queryClient.invalidateQueries({ queryKey: ["leads-stats", siteId] });
+    queryClient.invalidateQueries({ queryKey: ["leads-analytics", siteId] });
   };
 
   const handleRowClick = (lead: Lead) => {
@@ -812,10 +852,21 @@ export default function Leads() {
             <h1 className="text-2xl font-bold text-foreground">Leads</h1>
             <p className="text-muted-foreground">Track and manage incoming leads</p>
           </div>
-          <Button onClick={() => setShowCreateModal(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Lead
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleRefresh}
+              disabled={leadsFetching}
+              title="Refresh data"
+            >
+              <RefreshCw className={`w-4 h-4 ${leadsFetching ? "animate-spin" : ""}`} />
+            </Button>
+            <Button onClick={() => setShowCreateModal(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Lead
+            </Button>
+          </div>
         </div>
 
         {/* Tabs */}

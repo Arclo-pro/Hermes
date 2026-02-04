@@ -186,6 +186,7 @@ export function LeadsAnalytics({ siteId }: LeadsAnalyticsProps) {
     queryKey: ["leads-analytics", siteId],
     queryFn: () => fetchAnalytics(siteId),
     enabled: !!siteId,
+    staleTime: 10 * 60 * 1000, // 10 minutes - analytics don't change often
   });
 
   // Format data for charts

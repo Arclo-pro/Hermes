@@ -108,3 +108,40 @@ export function prefetchBenchmarks() {
     return res.json();
   });
 }
+
+// Leads prefetching with longer stale time for analytics
+export function prefetchLeads(siteId: string) {
+  const url = `/api/leads?siteId=${encodeURIComponent(siteId)}&limit=50`;
+  return prefetchQuery(
+    ["leads", siteId, {}],
+    async () => {
+      const res = await apiRequest("GET", url);
+      return res.json();
+    },
+    5 * 60 * 1000 // 5 min stale time
+  );
+}
+
+export function prefetchLeadStats(siteId: string) {
+  const url = `/api/leads/stats?siteId=${encodeURIComponent(siteId)}`;
+  return prefetchQuery(
+    ["leads-stats", siteId],
+    async () => {
+      const res = await apiRequest("GET", url);
+      return res.json();
+    },
+    5 * 60 * 1000 // 5 min stale time
+  );
+}
+
+export function prefetchLeadAnalytics(siteId: string) {
+  const url = `/api/leads/analytics?siteId=${encodeURIComponent(siteId)}&months=12`;
+  return prefetchQuery(
+    ["leads-analytics", siteId],
+    async () => {
+      const res = await apiRequest("GET", url);
+      return res.json();
+    },
+    10 * 60 * 1000 // 10 min stale time for analytics
+  );
+}

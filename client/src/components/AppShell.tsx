@@ -1,7 +1,14 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useCallback, type ReactNode } from "react";
 import { useLocation, Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useSiteContext } from "@/hooks/useSiteContext";
+import {
+  prefetchLeads,
+  prefetchLeadStats,
+  prefetchLeadAnalytics,
+  prefetchMissionsDashboard,
+  prefetchDashboardStats,
+} from "@/lib/queryClient";
 import {
   LayoutDashboard,
   Bot,
@@ -93,6 +100,22 @@ export default function AppShell({ children, lightMode = false }: AppShellProps)
 
   const currentSite = sites?.find(s => s.siteId === activeWebsiteId);
 
+  // Prefetch data on nav hover for instant page loads
+  const handleNavHover = useCallback((path: string) => {
+    if (!activeWebsiteId) return;
+
+    if (path === "/app/leads") {
+      prefetchLeads(activeWebsiteId);
+      prefetchLeadStats(activeWebsiteId);
+      prefetchLeadAnalytics(activeWebsiteId);
+    } else if (path === "/app/overview") {
+      prefetchDashboardStats();
+      prefetchMissionsDashboard(activeWebsiteId);
+    } else if (path === "/app/automation") {
+      prefetchMissionsDashboard(activeWebsiteId);
+    }
+  }, [activeWebsiteId]);
+
   return (
     <div className={cn(
       "min-h-screen flex",
@@ -173,6 +196,7 @@ export default function AppShell({ children, lightMode = false }: AppShellProps)
                       : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                   )}
                   data-testid={`nav-link-${item.label.toLowerCase().replace(" ", "-")}`}
+                  onMouseEnter={() => handleNavHover(item.path)}
                 >
                   <Icon className="h-5 w-5" />
                   <span>{item.label}</span>
