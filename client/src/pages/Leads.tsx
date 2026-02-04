@@ -688,13 +688,14 @@ export default function Leads() {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [showDetailDrawer, setShowDetailDrawer] = useState(false);
 
-  // Filter state
+  // Filter state - default to current month
+  const currentMonth = format(new Date(), "yyyy-MM");
   const [filters, setFilters] = useState({
     search: "",
     status: "all",
     outcome: "all",
     serviceLine: "all",
-    month: "all", // "all", "current", "YYYY-MM" format
+    month: currentMonth, // Default to current month for faster loading
   });
 
   // Generate month options for the last 12 months
