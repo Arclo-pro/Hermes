@@ -21,6 +21,7 @@ import {
   Sparkles,
   Link2,
   Contact,
+  Trophy,
 } from "lucide-react";
 import arcloLogo from "@assets/A_small_logo_1765393189114.png";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,7 @@ const NAV_ITEMS = [
   { path: "/app/link-building", label: "Link Building", icon: Link2 },
   { path: "/app/automation", label: "Automation & Agents", icon: Bot },
   { path: "/app/leads", label: "Leads", icon: Contact },
+  { path: "/app/achievements", label: "Achievements", icon: Trophy },
 ];
 
 interface AppShellProps {
