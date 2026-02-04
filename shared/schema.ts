@@ -4204,3 +4204,30 @@ export interface LeadStats {
   byServiceLine: Record<string, number>;
   bySource: Record<string, number>;
 }
+
+// Lead Analytics for detailed dashboard
+export interface LeadAnalytics {
+  // Monthly trends
+  monthlyData: Array<{
+    month: string; // YYYY-MM
+    label: string; // "January 2024"
+    total: number;
+    signedUp: number;
+    notSignedUp: number;
+    conversionRate: number;
+  }>;
+  // Aggregated breakdowns
+  bySource: Array<{ name: string; value: number; percentage: number }>;
+  byOutcome: Array<{ name: string; value: number; percentage: number }>;
+  byReason: Array<{ name: string; value: number; percentage: number }>;
+  byServiceLine: Array<{ name: string; value: number; percentage: number }>;
+  // Summary stats
+  totalLeads: number;
+  totalSignedUp: number;
+  totalNotSignedUp: number;
+  overallConversionRate: number;
+  // Comparisons
+  currentMonthLeads: number;
+  previousMonthLeads: number;
+  monthOverMonthChange: number;
+}

@@ -27,6 +27,8 @@ import {
   Loader2,
   MessageSquare,
   ExternalLink,
+  BarChart3,
+  List,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,7 +73,9 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { LeadsAnalytics } from "./leads/LeadsAnalytics";
 
 // ============================================
 // Types
@@ -146,27 +150,45 @@ const OUTCOME_LABELS: Record<string, { label: string; icon: typeof CheckCircle2 
 
 const SERVICE_LINE_LABELS: Record<string, string> = {
   psychiatric_services: "Psychiatric Services",
+  psych_evaluation: "Psych Evaluation",
+  medication_management: "Medication Management",
   therapy: "Therapy",
+  adhd: "ADHD",
+  esa: "ESA",
+  suboxone: "Suboxone",
   general_inquiry: "General Inquiry",
   other: "Other",
 };
 
 const NO_SIGNUP_REASON_LABELS: Record<string, string> = {
-  spam: "Spam",
+  spam: "Spam/Wrong Number",
   wrong_number: "Wrong Number",
   no_answer: "No Answer",
+  did_not_respond: "Did Not Respond",
   voicemail_left: "Voicemail Left",
   not_interested: "Not Interested",
-  general_information_only: "General Information Only",
+  general_information: "General Information",
   waitlist: "Waitlist",
-  no_availability: "No Availability",
+  no_availability: "No Available Spots",
+  same_day_appointment: "Same Day Appointment",
   out_of_area: "Out of Area",
+  location: "Location",
+  // Insurance reasons
   insurance_issue: "Insurance Issue",
   medicaid: "Medicaid",
   medicare: "Medicare",
-  private_pay_too_expensive: "Private Pay Too Expensive",
-  benzos_request: "Benzos Request",
+  humana: "Humana",
+  ambetter: "Ambetter",
+  hmo_low_payer: "HMO/Low Payer",
+  private_pay_expensive: "Can't Afford/OON",
+  sunshine_health: "Sunshine Health",
+  // Service-related reasons
+  benzos_request: "Benzos/Xanax Request",
+  requires_md: "Requires MD/Psychologist/Inpatient",
   wrong_service: "Wrong Service",
+  couples_therapy: "Couples Therapy",
+  under_age: "Under Age",
+  adderal: "Adderal Request",
   duplicate_lead: "Duplicate Lead",
   other: "Other",
 };
@@ -180,6 +202,10 @@ const SIGNUP_TYPE_LABELS: Record<string, string> = {
 };
 
 const SOURCE_TYPE_LABELS: Record<string, string> = {
+  short_form: "Short Form",
+  long_form: "Long Form",
+  phone: "Phone",
+  sms: "SMS",
   form_submit: "Form Submit",
   phone_click: "Phone Click",
   manual: "Manual",
@@ -791,6 +817,25 @@ export default function Leads() {
           </Button>
         </div>
 
+        {/* Tabs */}
+        <Tabs defaultValue="leads" className="w-full">
+          <TabsList className="bg-white/80 border border-border/50">
+            <TabsTrigger value="leads" className="flex items-center gap-2">
+              <List className="w-4 h-4" />
+              Leads
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="flex items-center gap-2">
+              <BarChart3 className="w-4 h-4" />
+              Analytics
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="analytics" className="mt-6">
+            <LeadsAnalytics siteId={siteId} />
+          </TabsContent>
+
+          <TabsContent value="leads" className="mt-6 space-y-6">
+
         {/* Stat Cards */}
         <StatCards stats={stats} isLoading={statsLoading} />
 
@@ -993,6 +1038,8 @@ export default function Leads() {
             Showing {leadsData.leads.length} of {leadsData.total} leads
           </p>
         )}
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Modals/Drawers */}

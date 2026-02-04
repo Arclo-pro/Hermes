@@ -389,4 +389,27 @@ router.get("/leads/enums", requireAuth, async (req, res) => {
   });
 });
 
+// ════════════════════════════════════════════════════════════════════════════
+// GET /api/leads/analytics - Detailed analytics for dashboard
+// ════════════════════════════════════════════════════════════════════════════
+
+router.get("/leads/analytics", requireAuth, async (req, res) => {
+  try {
+    const { siteId, months } = req.query;
+
+    if (!siteId || typeof siteId !== "string") {
+      return res.status(400).json({ error: "siteId is required" });
+    }
+
+    const monthsToFetch = parseInt(months as string) || 12;
+
+    const analytics = await storage.getLeadAnalytics(siteId, monthsToFetch);
+
+    res.json(analytics);
+  } catch (error: any) {
+    logger.error("Leads", "Failed to get lead analytics", { error: error.message });
+    res.status(500).json({ error: "Failed to fetch lead analytics" });
+  }
+});
+
 export default router;

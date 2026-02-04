@@ -257,6 +257,7 @@ import {
   type Lead,
   type InsertLead,
   type LeadStats,
+  type LeadAnalytics,
 } from "@shared/schema";
 import { eq, desc, and, gte, lte, sql, asc, or, isNull, arrayContains } from "drizzle-orm";
 
@@ -733,6 +734,7 @@ export interface IStorage {
   updateLead(leadId: string, updates: Partial<InsertLead>): Promise<Lead | undefined>;
   deleteLead(leadId: string): Promise<void>;
   getLeadStats(siteId: string, startDate?: Date, endDate?: Date): Promise<LeadStats>;
+  getLeadAnalytics(siteId: string, months: number): Promise<LeadAnalytics>;
   incrementLeadContactAttempts(leadId: string): Promise<void>;
 }
 
@@ -4726,6 +4728,128 @@ class DBStorage implements IStorage {
       byCampaign,
       byServiceLine,
       bySource,
+    };
+  }
+
+  async getLeadAnalytics(siteId: string, months: number = 12): Promise<LeadAnalytics> {
+    // Calculate date range
+    const now = new Date();
+    const startDate = new Date(now.getFullYear(), now.getMonth() - months + 1, 1);
+
+    // Get all leads for the period
+    const allLeads = await db
+      .select()
+      .from(leads)
+      .where(and(
+        eq(leads.siteId, siteId),
+        gte(leads.createdAt, startDate)
+      ))
+      .orderBy(desc(leads.createdAt));
+
+    // Group by month
+    const monthlyMap: Map<string, { total: number; signedUp: number; notSignedUp: number }> = new Map();
+
+    for (const lead of allLeads) {
+      const date = new Date(lead.createdAt);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+
+      if (!monthlyMap.has(monthKey)) {
+        monthlyMap.set(monthKey, { total: 0, signedUp: 0, notSignedUp: 0 });
+      }
+
+      const stats = monthlyMap.get(monthKey)!;
+      stats.total++;
+      if (lead.outcome === 'signed_up') stats.signedUp++;
+      if (lead.outcome === 'not_signed_up') stats.notSignedUp++;
+    }
+
+    // Convert to sorted array with labels
+    const monthlyData = Array.from(monthlyMap.entries())
+      .map(([month, stats]) => {
+        const [year, monthNum] = month.split('-').map(Number);
+        const date = new Date(year, monthNum - 1);
+        const label = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        const conversionRate = stats.total > 0 ? (stats.signedUp / stats.total) * 100 : 0;
+        return { month, label, ...stats, conversionRate };
+      })
+      .sort((a, b) => a.month.localeCompare(b.month));
+
+    // Aggregate breakdowns
+    const sourceMap: Record<string, number> = {};
+    const outcomeMap: Record<string, number> = {};
+    const reasonMap: Record<string, number> = {};
+    const serviceLineMap: Record<string, number> = {};
+
+    for (const lead of allLeads) {
+      // Source
+      const source = lead.leadSourceType || 'unknown';
+      sourceMap[source] = (sourceMap[source] || 0) + 1;
+
+      // Outcome
+      const outcome = lead.outcome || 'unknown';
+      outcomeMap[outcome] = (outcomeMap[outcome] || 0) + 1;
+
+      // Reason (only for not_signed_up)
+      if (lead.outcome === 'not_signed_up' && lead.noSignupReason) {
+        reasonMap[lead.noSignupReason] = (reasonMap[lead.noSignupReason] || 0) + 1;
+      }
+
+      // Service line
+      if (lead.serviceLine) {
+        serviceLineMap[lead.serviceLine] = (serviceLineMap[lead.serviceLine] || 0) + 1;
+      }
+    }
+
+    // Convert to arrays with percentages
+    const total = allLeads.length;
+    const toArray = (map: Record<string, number>) =>
+      Object.entries(map)
+        .map(([name, value]) => ({
+          name,
+          value,
+          percentage: total > 0 ? (value / total) * 100 : 0,
+        }))
+        .sort((a, b) => b.value - a.value);
+
+    const reasonTotal = Object.values(reasonMap).reduce((sum, v) => sum + v, 0);
+    const byReason = Object.entries(reasonMap)
+      .map(([name, value]) => ({
+        name,
+        value,
+        percentage: reasonTotal > 0 ? (value / reasonTotal) * 100 : 0,
+      }))
+      .sort((a, b) => b.value - a.value);
+
+    // Calculate totals
+    const totalSignedUp = allLeads.filter(l => l.outcome === 'signed_up').length;
+    const totalNotSignedUp = allLeads.filter(l => l.outcome === 'not_signed_up').length;
+    const overallConversionRate = total > 0 ? (totalSignedUp / total) * 100 : 0;
+
+    // Month over month comparison
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const prevMonth = now.getMonth() === 0
+      ? `${now.getFullYear() - 1}-12`
+      : `${now.getFullYear()}-${String(now.getMonth()).padStart(2, '0')}`;
+
+    const currentMonthLeads = monthlyMap.get(currentMonth)?.total || 0;
+    const previousMonthLeads = monthlyMap.get(prevMonth)?.total || 0;
+    const monthOverMonthChange = previousMonthLeads > 0
+      ? ((currentMonthLeads - previousMonthLeads) / previousMonthLeads) * 100
+      : 0;
+
+    return {
+      monthlyData,
+      bySource: toArray(sourceMap),
+      byOutcome: toArray(outcomeMap),
+      byReason,
+      byServiceLine: toArray(serviceLineMap),
+      totalLeads: total,
+      totalSignedUp,
+      totalNotSignedUp,
+      overallConversionRate,
+      currentMonthLeads,
+      previousMonthLeads,
+      monthOverMonthChange,
     };
   }
 
