@@ -4,10 +4,10 @@
  * Manual lead tracking with outcomes, reason codes, and basic reporting.
  * Phase 1: Manual entry only (no automatic capture).
  */
-import { useState, useMemo } from "react";
+import { useState, useMemo, Fragment } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSiteContext } from "@/hooks/useSiteContext";
-import { format } from "date-fns";
+import { format, startOfMonth, endOfMonth, subMonths, parseISO } from "date-fns";
 import {
   Contact,
   Plus,
@@ -668,7 +668,21 @@ export default function Leads() {
     status: "all",
     outcome: "all",
     serviceLine: "all",
+    month: "all", // "all", "current", "YYYY-MM" format
   });
+
+  // Generate month options for the last 12 months
+  const monthOptions = useMemo(() => {
+    const options = [];
+    const now = new Date();
+    for (let i = 0; i < 12; i++) {
+      const date = subMonths(now, i);
+      const value = format(date, "yyyy-MM");
+      const label = format(date, "MMMM yyyy");
+      options.push({ value, label });
+    }
+    return options;
+  }, []);
 
   // Build query params
   const queryParams = useMemo(() => {
@@ -677,6 +691,16 @@ export default function Leads() {
     if (filters.status && filters.status !== "all") params.status = filters.status;
     if (filters.outcome && filters.outcome !== "all") params.outcome = filters.outcome;
     if (filters.serviceLine && filters.serviceLine !== "all") params.serviceLine = filters.serviceLine;
+
+    // Handle month filter
+    if (filters.month && filters.month !== "all") {
+      const [year, month] = filters.month.split("-").map(Number);
+      const startDate = startOfMonth(new Date(year, month - 1));
+      const endDate = endOfMonth(new Date(year, month - 1));
+      params.startDate = startDate.toISOString();
+      params.endDate = endDate.toISOString();
+    }
+
     return params;
   }, [filters]);
 
@@ -705,10 +729,40 @@ export default function Leads() {
   };
 
   const clearFilters = () => {
-    setFilters({ search: "", status: "all", outcome: "all", serviceLine: "all" });
+    setFilters({ search: "", status: "all", outcome: "all", serviceLine: "all", month: "all" });
   };
 
-  const hasActiveFilters = filters.search || (filters.status && filters.status !== "all") || (filters.outcome && filters.outcome !== "all") || (filters.serviceLine && filters.serviceLine !== "all");
+  const hasActiveFilters = filters.search || (filters.status && filters.status !== "all") || (filters.outcome && filters.outcome !== "all") || (filters.serviceLine && filters.serviceLine !== "all") || (filters.month && filters.month !== "all");
+
+  // Group leads by month for display
+  const leadsByMonth = useMemo(() => {
+    if (!leadsData?.leads) return {};
+
+    const grouped: Record<string, typeof leadsData.leads> = {};
+
+    for (const lead of leadsData.leads) {
+      const monthKey = format(parseISO(lead.createdAt), "yyyy-MM");
+      const monthLabel = format(parseISO(lead.createdAt), "MMMM yyyy");
+
+      if (!grouped[monthKey]) {
+        grouped[monthKey] = [];
+      }
+      grouped[monthKey].push(lead);
+    }
+
+    // Sort by month (most recent first)
+    const sortedKeys = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
+    const sortedGrouped: Record<string, { label: string; leads: typeof leadsData.leads }> = {};
+
+    for (const key of sortedKeys) {
+      sortedGrouped[key] = {
+        label: format(parseISO(`${key}-01`), "MMMM yyyy"),
+        leads: grouped[key],
+      };
+    }
+
+    return sortedGrouped;
+  }, [leadsData?.leads]);
 
   if (!siteId) {
     return (
@@ -795,6 +849,21 @@ export default function Leads() {
                   ))}
                 </SelectContent>
               </Select>
+              <Select
+                value={filters.month}
+                onValueChange={(value) => setFilters({ ...filters, month: value })}
+              >
+                <SelectTrigger className="w-[160px]">
+                  <Calendar className="w-4 h-4 mr-2" />
+                  <SelectValue placeholder="Month" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Time</SelectItem>
+                  {monthOptions.map(({ value, label }) => (
+                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {hasActiveFilters && (
                 <Button variant="ghost" size="sm" onClick={clearFilters}>
                   <X className="w-4 h-4 mr-1" />
@@ -841,60 +910,77 @@ export default function Leads() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {leadsData.leads.map((lead) => {
-                    const statusInfo = STATUS_LABELS[lead.leadStatus] || STATUS_LABELS.new;
-                    const outcomeInfo = OUTCOME_LABELS[lead.outcome] || OUTCOME_LABELS.unknown;
-                    const OutcomeIcon = outcomeInfo.icon;
-
-                    return (
-                      <TableRow
-                        key={lead.leadId}
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => handleRowClick(lead)}
-                      >
-                        <TableCell className="text-sm text-muted-foreground">
-                          {format(new Date(lead.createdAt), "MMM d")}
-                        </TableCell>
-                        <TableCell className="font-medium">{lead.name}</TableCell>
-                        <TableCell>
-                          <div className="flex flex-col gap-0.5 text-sm">
-                            {lead.phone && (
-                              <span className="flex items-center gap-1 text-muted-foreground">
-                                <Phone className="w-3 h-3" />
-                                {lead.phone}
-                              </span>
-                            )}
-                            {lead.email && (
-                              <span className="flex items-center gap-1 text-muted-foreground truncate max-w-[150px]">
-                                <Mail className="w-3 h-3" />
-                                {lead.email}
-                              </span>
-                            )}
+                  {Object.entries(leadsByMonth).map(([monthKey, monthData]) => (
+                    <Fragment key={monthKey}>
+                      {/* Month section header */}
+                      <TableRow className="bg-muted/30 hover:bg-muted/30">
+                        <TableCell colSpan={8} className="py-3">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-primary" />
+                            <span className="font-semibold text-foreground">{monthData.label}</span>
+                            <Badge variant="secondary" className="ml-2 bg-primary/10 text-primary">
+                              {monthData.leads.length} lead{monthData.leads.length !== 1 ? "s" : ""}
+                            </Badge>
                           </div>
                         </TableCell>
-                        <TableCell className="text-sm">
-                          {SERVICE_LINE_LABELS[lead.serviceLine || ""] || "—"}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {SOURCE_TYPE_LABELS[lead.leadSourceType] || lead.leadSourceType}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary" className={statusInfo.color}>
-                            {statusInfo.label}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <span className="flex items-center gap-1 text-sm">
-                            <OutcomeIcon className="w-4 h-4" />
-                            {outcomeInfo.label}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {lead.noSignupReason ? NO_SIGNUP_REASON_LABELS[lead.noSignupReason] || lead.noSignupReason : "—"}
-                        </TableCell>
                       </TableRow>
-                    );
-                  })}
+                      {/* Leads for this month */}
+                      {monthData.leads.map((lead) => {
+                        const statusInfo = STATUS_LABELS[lead.leadStatus] || STATUS_LABELS.new;
+                        const outcomeInfo = OUTCOME_LABELS[lead.outcome] || OUTCOME_LABELS.unknown;
+                        const OutcomeIcon = outcomeInfo.icon;
+
+                        return (
+                          <TableRow
+                            key={lead.leadId}
+                            className="cursor-pointer hover:bg-muted/50"
+                            onClick={() => handleRowClick(lead)}
+                          >
+                            <TableCell className="text-sm text-muted-foreground">
+                              {format(new Date(lead.createdAt), "MMM d")}
+                            </TableCell>
+                            <TableCell className="font-medium">{lead.name}</TableCell>
+                            <TableCell>
+                              <div className="flex flex-col gap-0.5 text-sm">
+                                {lead.phone && (
+                                  <span className="flex items-center gap-1 text-muted-foreground">
+                                    <Phone className="w-3 h-3" />
+                                    {lead.phone}
+                                  </span>
+                                )}
+                                {lead.email && (
+                                  <span className="flex items-center gap-1 text-muted-foreground truncate max-w-[150px]">
+                                    <Mail className="w-3 h-3" />
+                                    {lead.email}
+                                  </span>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {SERVICE_LINE_LABELS[lead.serviceLine || ""] || "—"}
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {SOURCE_TYPE_LABELS[lead.leadSourceType] || lead.leadSourceType}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="secondary" className={statusInfo.color}>
+                                {statusInfo.label}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <span className="flex items-center gap-1 text-sm">
+                                <OutcomeIcon className="w-4 h-4" />
+                                {outcomeInfo.label}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {lead.noSignupReason ? NO_SIGNUP_REASON_LABELS[lead.noSignupReason] || lead.noSignupReason : "—"}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </Fragment>
+                  ))}
                 </TableBody>
               </Table>
             )}
