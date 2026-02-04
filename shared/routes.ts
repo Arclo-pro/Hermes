@@ -61,6 +61,7 @@ export const ROUTES = {
   AI_SEARCH: "/app/ai-search",
   LINK_BUILDING: "/app/link-building",
   AUTOMATION: "/app/automation",
+  LEADS: "/app/leads",
 
   // Legacy website-centric routes (redirected)
   SITE_HEALTH: "/app/site-health",
@@ -135,6 +136,7 @@ export const buildRoute = {
   
   // App route builders
   agent: (agentId: string) => `/app/agents/${agentId}`,
+  lead: (leadId: string) => `/app/leads/${leadId}`,
   run: (runId: string) => `/app/runs/${runId}`,
   site: (siteId: string) => `/app/sites/${siteId}`,
   settingsTab: (tab: string) => `/app/settings?tab=${tab}`,
@@ -272,6 +274,7 @@ const ALL_STATIC_ROUTES: Set<string> = new Set([
   ROUTES.AI_SEARCH,
   ROUTES.LINK_BUILDING,
   ROUTES.AUTOMATION,
+  ROUTES.LEADS,
   ROUTES.SITE_HEALTH,
   ROUTES.PAGES,
   ROUTES.COMPETITORS,

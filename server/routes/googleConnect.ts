@@ -120,6 +120,43 @@ router.get('/sites/:siteId/google/status', requireAuth, async (req, res) => {
 });
 
 // ════════════════════════════════════════════════════════════════════════════
+// GET /api/sites/:siteId/google/accounts — List GA4 accounts the user has access to
+// ════════════════════════════════════════════════════════════════════════════
+
+router.get('/sites/:siteId/google/accounts', requireAuth, async (req, res) => {
+  try {
+    const siteId = parseInt(req.params.siteId, 10);
+    if (isNaN(siteId)) {
+      return res.status(400).json({ ok: false, error: 'Invalid site ID' });
+    }
+
+    const auth = await googleAuth.getAuthenticatedClientForSite(siteId);
+    const adminApi = google.analyticsadmin('v1beta');
+
+    const accounts: Array<{ accountId: string; displayName: string }> = [];
+    try {
+      const accountsRes = await adminApi.accounts.list({ auth });
+      for (const account of accountsRes.data.accounts || []) {
+        const id = account.name?.replace('accounts/', '') || '';
+        if (id) {
+          accounts.push({
+            accountId: id,
+            displayName: account.displayName || id,
+          });
+        }
+      }
+    } catch (err: any) {
+      logger.warn('GoogleConnect', 'Failed to list GA4 accounts', { error: err.message });
+    }
+
+    res.json({ ok: true, accounts });
+  } catch (error: any) {
+    logger.error('GoogleConnect', 'Failed to fetch accounts', { error: error.message });
+    res.status(500).json({ ok: false, error: error.message || 'Failed to fetch Google accounts' });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════════════════
 // GET /api/sites/:siteId/google/properties — Discover available properties
 // ════════════════════════════════════════════════════════════════════════════
 
@@ -130,19 +167,21 @@ router.get('/sites/:siteId/google/properties', requireAuth, async (req, res) => 
       return res.status(400).json({ ok: false, error: 'Invalid site ID' });
     }
 
+    // Optional accountId filter - if provided, only return properties from that account
+    const accountIdFilter = req.query.accountId as string | undefined;
+
     const auth = await googleAuth.getAuthenticatedClientForSite(siteId);
 
     // Discover GA4 properties
-    const ga4Properties: Array<{ propertyId: string; displayName: string }> = [];
+    const ga4Properties: Array<{ propertyId: string; displayName: string; accountId: string }> = [];
     try {
       const adminApi = google.analyticsadmin('v1beta');
-      const accountsRes = await adminApi.accounts.list({ auth });
-      const accounts = accountsRes.data.accounts || [];
 
-      for (const account of accounts) {
+      if (accountIdFilter) {
+        // Fetch properties for specific account
         const propsRes = await adminApi.properties.list({
           auth,
-          filter: `parent:${account.name}`,
+          filter: `parent:accounts/${accountIdFilter}`,
         });
         for (const prop of propsRes.data.properties || []) {
           const id = prop.name?.replace('properties/', '') || '';
@@ -150,7 +189,30 @@ router.get('/sites/:siteId/google/properties', requireAuth, async (req, res) => 
             ga4Properties.push({
               propertyId: id,
               displayName: prop.displayName || id,
+              accountId: accountIdFilter,
             });
+          }
+        }
+      } else {
+        // Fetch properties from all accounts
+        const accountsRes = await adminApi.accounts.list({ auth });
+        const accounts = accountsRes.data.accounts || [];
+
+        for (const account of accounts) {
+          const accountId = account.name?.replace('accounts/', '') || '';
+          const propsRes = await adminApi.properties.list({
+            auth,
+            filter: `parent:${account.name}`,
+          });
+          for (const prop of propsRes.data.properties || []) {
+            const id = prop.name?.replace('properties/', '') || '';
+            if (id) {
+              ga4Properties.push({
+                propertyId: id,
+                displayName: prop.displayName || id,
+                accountId,
+              });
+            }
           }
         }
       }

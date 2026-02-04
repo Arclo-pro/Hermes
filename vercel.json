@@ -24,6 +24,7 @@
     { "source": "/api/sites/:siteId/google/connect", "destination": "/api/sites/google-connect?siteId=:siteId" },
     { "source": "/api/sites/:siteId/google/disconnect", "destination": "/api/sites/google-connect?siteId=:siteId" },
     { "source": "/api/sites/:siteId/google/status", "destination": "/api/sites/google-status?siteId=:siteId" },
+    { "source": "/api/sites/:siteId/google/accounts", "destination": "/api/sites/google-accounts?siteId=:siteId" },
     { "source": "/api/sites/:siteId/google/properties", "destination": "/api/sites/google-properties?siteId=:siteId" },
     { "source": "/api/sites/:siteId/google/streams", "destination": "/api/sites/google-streams?siteId=:siteId" },
     { "source": "/api/sites/:siteId/google/ga4/verify", "destination": "/api/sites/google-verify?siteId=:siteId" },

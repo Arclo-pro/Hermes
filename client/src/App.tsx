@@ -73,6 +73,7 @@ const AISearchDashboard = lazy(() => import("@/pages/AISearchDashboard"));
 const WebsiteReportPage = lazy(() => import("@/pages/WebsiteReportPage"));
 const DeveloperReportPage = lazy(() => import("@/pages/DeveloperReportPage"));
 const SettingsIntegrations = lazy(() => import("@/pages/SettingsIntegrations"));
+const Leads = lazy(() => import("@/pages/Leads"));
 
 const persister = typeof window !== 'undefined' 
   ? createSyncStoragePersister({
@@ -247,6 +248,7 @@ function Router() {
       <Route path={ROUTES.AI_SEARCH}><ProtectedRoute component={AISearchDashboard} lightMode /></Route>
       <Route path={ROUTES.LINK_BUILDING}><ProtectedRoute component={Authority} /></Route>
       <Route path={ROUTES.AUTOMATION}><ProtectedRoute component={Crew} /></Route>
+      <Route path={ROUTES.LEADS}><ProtectedRoute component={Leads} lightMode /></Route>
 
       {/* Legacy route redirects */}
       <Route path={ROUTES.SITE_HEALTH}><LegacyRedirect to={ROUTES.TECHNICAL_SEO} /></Route>

@@ -5,6 +5,7 @@
 export type WizardStep =
   | "explain"
   | "connecting"
+  | "account-selection"
   | "ga4-selection"
   | "gsc-selection"
   | "saving"
@@ -12,6 +13,8 @@ export type WizardStep =
 
 export interface WizardState {
   step: WizardStep;
+  // Account selection (GA4)
+  ga4AccountId: string | null;
   // GA4 selections
   ga4PropertyId: string | null;
   ga4StreamId: string | null;
@@ -36,6 +39,7 @@ export interface WizardActions {
 
 export const INITIAL_STATE: WizardState = {
   step: "explain",
+  ga4AccountId: null,
   ga4PropertyId: null,
   ga4StreamId: null,
   ga4Skipped: false,

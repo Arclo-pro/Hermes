@@ -4013,3 +4013,171 @@ export const WebsiteStatuses = {
   DELETED: "deleted",
 } as const;
 export type WebsiteStatusType = typeof WebsiteStatuses[keyof typeof WebsiteStatuses];
+
+// ════════════════════════════════════════════════════════════════════════════
+// LEADS MODULE (ArcFlow)
+// ════════════════════════════════════════════════════════════════════════════
+
+// Lead Status
+export const LeadStatuses = {
+  NEW: 'new',
+  IN_PROGRESS: 'in_progress',
+  CONTACTED: 'contacted',
+  SCHEDULED: 'scheduled',
+  SIGNED_UP: 'signed_up',
+  NOT_SIGNED_UP: 'not_signed_up',
+  CLOSED: 'closed',
+} as const;
+export type LeadStatus = typeof LeadStatuses[keyof typeof LeadStatuses];
+
+// Lead Outcome
+export const LeadOutcomes = {
+  UNKNOWN: 'unknown',
+  SIGNED_UP: 'signed_up',
+  NOT_SIGNED_UP: 'not_signed_up',
+} as const;
+export type LeadOutcome = typeof LeadOutcomes[keyof typeof LeadOutcomes];
+
+// Lead Source Types
+export const LeadSourceTypes = {
+  FORM_SUBMIT: 'form_submit',
+  PHONE_CLICK: 'phone_click',
+  MANUAL: 'manual',
+} as const;
+export type LeadSourceType = typeof LeadSourceTypes[keyof typeof LeadSourceTypes];
+
+// Service Lines
+export const ServiceLines = {
+  PSYCHIATRIC_SERVICES: 'psychiatric_services',
+  THERAPY: 'therapy',
+  GENERAL_INQUIRY: 'general_inquiry',
+  OTHER: 'other',
+} as const;
+export type ServiceLine = typeof ServiceLines[keyof typeof ServiceLines];
+
+// Form Types
+export const FormTypes = {
+  SHORT: 'short',
+  LONG: 'long',
+  PHONE_CLICK: 'phone_click',
+  OTHER: 'other',
+} as const;
+export type FormType = typeof FormTypes[keyof typeof FormTypes];
+
+// No Signup Reasons (17 options)
+export const NoSignupReasons = {
+  SPAM: 'spam',
+  WRONG_NUMBER: 'wrong_number',
+  NO_ANSWER: 'no_answer',
+  VOICEMAIL_LEFT: 'voicemail_left',
+  NOT_INTERESTED: 'not_interested',
+  GENERAL_INFO_ONLY: 'general_information_only',
+  WAITLIST: 'waitlist',
+  NO_AVAILABILITY: 'no_availability',
+  OUT_OF_AREA: 'out_of_area',
+  INSURANCE_ISSUE: 'insurance_issue',
+  MEDICAID: 'medicaid',
+  MEDICARE: 'medicare',
+  PRIVATE_PAY_TOO_EXPENSIVE: 'private_pay_too_expensive',
+  BENZOS_REQUEST: 'benzos_request',
+  WRONG_SERVICE: 'wrong_service',
+  DUPLICATE_LEAD: 'duplicate_lead',
+  OTHER: 'other',
+} as const;
+export type NoSignupReason = typeof NoSignupReasons[keyof typeof NoSignupReasons];
+
+// Signup Types
+export const SignupTypes = {
+  SCHEDULED_CONSULT: 'scheduled_consult',
+  SCHEDULED_INTAKE: 'scheduled_intake',
+  BECAME_PATIENT: 'became_patient',
+  REFERRAL_OUT: 'referral_out',
+  FOLLOW_UP_REQUIRED: 'follow_up_required',
+} as const;
+export type SignupType = typeof SignupTypes[keyof typeof SignupTypes];
+
+// Preferred Contact Methods
+export const PreferredContactMethods = {
+  PHONE: 'phone',
+  EMAIL: 'email',
+  TEXT: 'text',
+  UNKNOWN: 'unknown',
+} as const;
+export type PreferredContactMethod = typeof PreferredContactMethods[keyof typeof PreferredContactMethods];
+
+// Leads Table
+export const leads = pgTable("leads", {
+  id: serial("id").primaryKey(),
+  leadId: text("lead_id").notNull().unique(), // UUID business identifier
+
+  // Ownership
+  siteId: text("site_id").notNull(), // Multi-site ready
+  createdByUserId: integer("created_by_user_id").references(() => users.id),
+  assignedToUserId: integer("assigned_to_user_id").references(() => users.id),
+
+  // Source
+  leadSourceType: text("lead_source_type").notNull().default("manual"), // form_submit | phone_click | manual
+  landingPagePath: text("landing_page_path"),
+  sourcePath: text("source_path"),
+
+  // UTM Parameters
+  utmSource: text("utm_source"),
+  utmCampaign: text("utm_campaign"),
+  utmTerm: text("utm_term"),
+  utmMedium: text("utm_medium"),
+  utmContent: text("utm_content"),
+
+  // Contact Information
+  name: text("name").notNull(),
+  email: text("email"),
+  phone: text("phone"),
+  preferredContactMethod: text("preferred_contact_method").default("unknown"),
+
+  // Classification
+  serviceLine: text("service_line").default("general_inquiry"),
+  formType: text("form_type").default("other"),
+
+  // Status & Outcome
+  leadStatus: text("lead_status").notNull().default("new"),
+  outcome: text("outcome").notNull().default("unknown"),
+  outcomeDate: timestamp("outcome_date"),
+
+  // Not Signed Up Details
+  noSignupReason: text("no_signup_reason"),
+  noSignupReasonDetail: text("no_signup_reason_detail"),
+
+  // Signed Up Details
+  signupType: text("signup_type"),
+  appointmentDate: timestamp("appointment_date"),
+
+  // Activity Tracking
+  lastContactedAt: timestamp("last_contacted_at"),
+  contactAttemptsCount: integer("contact_attempts_count").default(0),
+  notes: text("notes"),
+
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertLeadSchema = createInsertSchema(leads).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertLead = z.infer<typeof insertLeadSchema>;
+export type Lead = typeof leads.$inferSelect;
+
+// Lead Stats type for reporting
+export interface LeadStats {
+  total: number;
+  signedUp: number;
+  notSignedUp: number;
+  conversionRate: number;
+  byReason: Record<string, number>;
+  byLandingPage: Record<string, number>;
+  byCampaign: Record<string, number>;
+  byServiceLine: Record<string, number>;
+  bySource: Record<string, number>;
+}

@@ -250,6 +250,10 @@ import {
   siteGoogleCredentials,
   type SiteGoogleCredentials,
   type InsertSiteGoogleCredentials,
+  leads,
+  type Lead,
+  type InsertLead,
+  type LeadStats,
 } from "@shared/schema";
 import { eq, desc, and, gte, lte, sql, asc, or, isNull, arrayContains } from "drizzle-orm";
 
@@ -700,6 +704,33 @@ export interface IStorage {
   saveManualActionCheck(data: InsertManualActionCheck): Promise<void>;
   getLatestManualActionCheck(siteId: string, checkType: string): Promise<ManualActionCheck | undefined>;
   updateManualActionStatus(id: number, status: string, userNotes?: string): Promise<void>;
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // LEADS (ArcFlow)
+  // ════════════════════════════════════════════════════════════════════════════
+  createLead(lead: InsertLead & { leadId: string }): Promise<Lead>;
+  getLeadById(leadId: string): Promise<Lead | undefined>;
+  getLeads(params: {
+    siteId: string;
+    status?: string;
+    outcome?: string;
+    serviceLine?: string;
+    noSignupReason?: string;
+    assignedToUserId?: number;
+    leadSourceType?: string;
+    landingPagePath?: string;
+    utmSource?: string;
+    utmCampaign?: string;
+    startDate?: Date;
+    endDate?: Date;
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ leads: Lead[]; total: number }>;
+  updateLead(leadId: string, updates: Partial<InsertLead>): Promise<Lead | undefined>;
+  deleteLead(leadId: string): Promise<void>;
+  getLeadStats(siteId: string, startDate?: Date, endDate?: Date): Promise<LeadStats>;
+  incrementLeadContactAttempts(leadId: string): Promise<void>;
 }
 
 class DBStorage implements IStorage {
@@ -4417,6 +4448,190 @@ class DBStorage implements IStorage {
         lastUserConfirmedAt: new Date(),
       })
       .where(eq(manualActionChecks.id, id));
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // LEADS (ArcFlow)
+  // ════════════════════════════════════════════════════════════════════════════
+
+  async createLead(lead: InsertLead & { leadId: string }): Promise<Lead> {
+    const [created] = await db.insert(leads).values(lead).returning();
+    return created;
+  }
+
+  async getLeadById(leadId: string): Promise<Lead | undefined> {
+    const rows = await db
+      .select()
+      .from(leads)
+      .where(eq(leads.leadId, leadId))
+      .limit(1);
+    return rows[0];
+  }
+
+  async getLeads(params: {
+    siteId: string;
+    status?: string;
+    outcome?: string;
+    serviceLine?: string;
+    noSignupReason?: string;
+    assignedToUserId?: number;
+    leadSourceType?: string;
+    landingPagePath?: string;
+    utmSource?: string;
+    utmCampaign?: string;
+    startDate?: Date;
+    endDate?: Date;
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ leads: Lead[]; total: number }> {
+    const {
+      siteId,
+      status,
+      outcome,
+      serviceLine,
+      noSignupReason,
+      assignedToUserId,
+      leadSourceType,
+      landingPagePath,
+      utmSource,
+      utmCampaign,
+      startDate,
+      endDate,
+      search,
+      limit = 50,
+      offset = 0,
+    } = params;
+
+    // Build conditions
+    const conditions = [eq(leads.siteId, siteId)];
+
+    if (status) conditions.push(eq(leads.leadStatus, status));
+    if (outcome) conditions.push(eq(leads.outcome, outcome));
+    if (serviceLine) conditions.push(eq(leads.serviceLine, serviceLine));
+    if (noSignupReason) conditions.push(eq(leads.noSignupReason, noSignupReason));
+    if (assignedToUserId) conditions.push(eq(leads.assignedToUserId, assignedToUserId));
+    if (leadSourceType) conditions.push(eq(leads.leadSourceType, leadSourceType));
+    if (landingPagePath) conditions.push(eq(leads.landingPagePath, landingPagePath));
+    if (utmSource) conditions.push(eq(leads.utmSource, utmSource));
+    if (utmCampaign) conditions.push(eq(leads.utmCampaign, utmCampaign));
+    if (startDate) conditions.push(gte(leads.createdAt, startDate));
+    if (endDate) conditions.push(lte(leads.createdAt, endDate));
+
+    // Search across name, email, phone
+    if (search) {
+      const searchPattern = `%${search}%`;
+      conditions.push(
+        or(
+          sql`${leads.name} ILIKE ${searchPattern}`,
+          sql`${leads.email} ILIKE ${searchPattern}`,
+          sql`${leads.phone} ILIKE ${searchPattern}`,
+          sql`${leads.utmTerm} ILIKE ${searchPattern}`
+        )!
+      );
+    }
+
+    const whereClause = and(...conditions);
+
+    // Get total count
+    const countResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(leads)
+      .where(whereClause);
+    const total = Number(countResult[0]?.count || 0);
+
+    // Get paginated results
+    const rows = await db
+      .select()
+      .from(leads)
+      .where(whereClause)
+      .orderBy(desc(leads.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    return { leads: rows, total };
+  }
+
+  async updateLead(leadId: string, updates: Partial<InsertLead>): Promise<Lead | undefined> {
+    await db
+      .update(leads)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(leads.leadId, leadId));
+    return this.getLeadById(leadId);
+  }
+
+  async deleteLead(leadId: string): Promise<void> {
+    await db.delete(leads).where(eq(leads.leadId, leadId));
+  }
+
+  async getLeadStats(siteId: string, startDate?: Date, endDate?: Date): Promise<LeadStats> {
+    const conditions = [eq(leads.siteId, siteId)];
+    if (startDate) conditions.push(gte(leads.createdAt, startDate));
+    if (endDate) conditions.push(lte(leads.createdAt, endDate));
+
+    const whereClause = and(...conditions);
+
+    // Get all leads for the period
+    const allLeads = await db
+      .select()
+      .from(leads)
+      .where(whereClause);
+
+    const total = allLeads.length;
+    const signedUp = allLeads.filter(l => l.outcome === 'signed_up').length;
+    const notSignedUp = allLeads.filter(l => l.outcome === 'not_signed_up').length;
+    const conversionRate = total > 0 ? (signedUp / total) * 100 : 0;
+
+    // Aggregate by reason
+    const byReason: Record<string, number> = {};
+    const byLandingPage: Record<string, number> = {};
+    const byCampaign: Record<string, number> = {};
+    const byServiceLine: Record<string, number> = {};
+    const bySource: Record<string, number> = {};
+
+    for (const lead of allLeads) {
+      if (lead.noSignupReason) {
+        byReason[lead.noSignupReason] = (byReason[lead.noSignupReason] || 0) + 1;
+      }
+      if (lead.landingPagePath) {
+        byLandingPage[lead.landingPagePath] = (byLandingPage[lead.landingPagePath] || 0) + 1;
+      }
+      if (lead.utmCampaign) {
+        byCampaign[lead.utmCampaign] = (byCampaign[lead.utmCampaign] || 0) + 1;
+      }
+      if (lead.serviceLine) {
+        byServiceLine[lead.serviceLine] = (byServiceLine[lead.serviceLine] || 0) + 1;
+      }
+      if (lead.leadSourceType) {
+        bySource[lead.leadSourceType] = (bySource[lead.leadSourceType] || 0) + 1;
+      }
+    }
+
+    return {
+      total,
+      signedUp,
+      notSignedUp,
+      conversionRate,
+      byReason,
+      byLandingPage,
+      byCampaign,
+      byServiceLine,
+      bySource,
+    };
+  }
+
+  async incrementLeadContactAttempts(leadId: string): Promise<void> {
+    const lead = await this.getLeadById(leadId);
+    if (!lead) return;
+
+    await db
+      .update(leads)
+      .set({
+        contactAttemptsCount: (lead.contactAttemptsCount || 0) + 1,
+        lastContactedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(leads.leadId, leadId));
   }
 }
 

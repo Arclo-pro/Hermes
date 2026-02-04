@@ -31,19 +31,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // GET: Discover properties
   if (req.method === "GET") {
     try {
+      // Optional accountId filter - if provided, only return properties from that account
+      const accountIdFilter = req.query.accountId as string | undefined;
+
       const auth = await getAuthenticatedClientForSite(siteId);
 
       // Discover GA4 properties
-      const ga4Properties: Array<{ propertyId: string; displayName: string }> = [];
+      const ga4Properties: Array<{ propertyId: string; displayName: string; accountId: string }> = [];
       try {
         const adminApi = google.analyticsadmin("v1beta");
-        const accountsRes = await adminApi.accounts.list({ auth });
-        const accounts = accountsRes.data.accounts || [];
 
-        for (const account of accounts) {
+        if (accountIdFilter) {
+          // Fetch properties for specific account
           const propsRes = await adminApi.properties.list({
             auth,
-            filter: `parent:${account.name}`,
+            filter: `parent:accounts/${accountIdFilter}`,
           });
           for (const prop of propsRes.data.properties || []) {
             const id = prop.name?.replace("properties/", "") || "";
@@ -51,7 +53,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               ga4Properties.push({
                 propertyId: id,
                 displayName: prop.displayName || id,
+                accountId: accountIdFilter,
               });
+            }
+          }
+        } else {
+          // Fetch properties from all accounts
+          const accountsRes = await adminApi.accounts.list({ auth });
+          const accounts = accountsRes.data.accounts || [];
+
+          for (const account of accounts) {
+            const accountId = account.name?.replace("accounts/", "") || "";
+            const propsRes = await adminApi.properties.list({
+              auth,
+              filter: `parent:${account.name}`,
+            });
+            for (const prop of propsRes.data.properties || []) {
+              const id = prop.name?.replace("properties/", "") || "";
+              if (id) {
+                ga4Properties.push({
+                  propertyId: id,
+                  displayName: prop.displayName || id,
+                  accountId,
+                });
+              }
             }
           }
         }

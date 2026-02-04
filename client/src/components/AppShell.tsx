@@ -20,6 +20,7 @@ import {
   Wrench,
   Sparkles,
   Link2,
+  Contact,
 } from "lucide-react";
 import arcloLogo from "@assets/A_small_logo_1765393189114.png";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,7 @@ const NAV_ITEMS = [
   { path: "/app/ai-search", label: "AI Search", icon: Sparkles },
   { path: "/app/link-building", label: "Link Building", icon: Link2 },
   { path: "/app/automation", label: "Automation & Agents", icon: Bot },
+  { path: "/app/leads", label: "Leads", icon: Contact },
 ];
 
 interface AppShellProps {

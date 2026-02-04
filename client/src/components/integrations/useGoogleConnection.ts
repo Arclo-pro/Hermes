@@ -5,9 +5,15 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 // Types
 // ---------------------------------------------------------------------------
 
+export interface GA4Account {
+  accountId: string;
+  displayName: string;
+}
+
 export interface GA4Property {
   propertyId: string;
   displayName: string;
+  accountId?: string;
 }
 
 export interface GA4Stream {
@@ -32,6 +38,10 @@ export interface GoogleConnectionStatus {
   ga4: { propertyId: string; streamId?: string } | null;
   gsc: { siteUrl: string } | null;
   ads: { customerId: string; loginCustomerId?: string } | null;
+}
+
+export interface GoogleAccounts {
+  accounts: GA4Account[];
 }
 
 export interface GoogleProperties {
@@ -61,6 +71,7 @@ export function useGoogleConnection(siteId: string | null) {
   const popupRef = useRef<Window | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
 
   // Clean up polling on unmount
@@ -88,15 +99,35 @@ export function useGoogleConnection(siteId: string | null) {
     staleTime: 30_000,
   });
 
-  // ── Properties query (manual trigger) ─────────────────────────────────
+  // ── Accounts query (manual trigger) ──────────────────────────────────
+  const {
+    data: accounts,
+    isLoading: isLoadingAccounts,
+    refetch: fetchAccounts,
+  } = useQuery<GA4Account[]>({
+    queryKey: ["google-accounts", siteId],
+    queryFn: async () => {
+      const res = await fetch(`/api/sites/${siteId}/google/accounts`);
+      if (!res.ok) throw new Error("Failed to fetch accounts");
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || "Failed to fetch accounts");
+      return data.accounts || [];
+    },
+    enabled: false, // Only fetch on demand
+  });
+
+  // ── Properties query (manual trigger, can filter by account) ──────────
   const {
     data: properties,
     isLoading: isLoadingProperties,
-    refetch: fetchProperties,
+    refetch: refetchProperties,
   } = useQuery<GoogleProperties>({
-    queryKey: ["google-properties", siteId],
+    queryKey: ["google-properties", siteId, selectedAccountId],
     queryFn: async () => {
-      const res = await fetch(`/api/sites/${siteId}/google/properties`);
+      const url = selectedAccountId
+        ? `/api/sites/${siteId}/google/properties?accountId=${selectedAccountId}`
+        : `/api/sites/${siteId}/google/properties`;
+      const res = await fetch(url);
       if (!res.ok) throw new Error("Failed to fetch properties");
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || "Failed to fetch properties");
@@ -104,6 +135,21 @@ export function useGoogleConnection(siteId: string | null) {
     },
     enabled: false, // Only fetch on demand
   });
+
+  // Fetch properties for a specific account
+  const fetchPropertiesForAccount = useCallback(async (accountId: string) => {
+    setSelectedAccountId(accountId);
+    // Small delay to allow the query key to update
+    await new Promise(resolve => setTimeout(resolve, 10));
+    return refetchProperties();
+  }, [refetchProperties]);
+
+  // Fetch all properties (no account filter)
+  const fetchProperties = useCallback(async () => {
+    setSelectedAccountId(null);
+    await new Promise(resolve => setTimeout(resolve, 10));
+    return refetchProperties();
+  }, [refetchProperties]);
 
   // ── Streams query (manual trigger, depends on property selection) ─────
   const {
@@ -283,10 +329,16 @@ export function useGoogleConnection(siteId: string | null) {
     startOAuth,
     isConnecting,
 
+    // Accounts
+    accounts: accounts ?? null,
+    isLoadingAccounts,
+    fetchAccounts,
+
     // Properties
     properties: properties ?? null,
     isLoadingProperties,
     fetchProperties,
+    fetchPropertiesForAccount,
 
     // Streams
     streams: streams ?? null,

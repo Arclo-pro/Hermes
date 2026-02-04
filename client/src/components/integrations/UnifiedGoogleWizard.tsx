@@ -4,6 +4,8 @@
  * Connects both GA4 and Search Console in a single OAuth flow.
  * Consumer-friendly: one-click to start, auto-select when possible,
  * partial success allowed (can connect just one service).
+ *
+ * Flow: OAuth → Account Selection → Property Selection → Stream Selection → GSC Selection → Verify
  */
 import { useState, useEffect, useCallback } from "react";
 import {
@@ -15,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { useGoogleConnection, type VerifyResult } from "./useGoogleConnection";
 import { StepExplain } from "./unified-wizard/StepExplain";
+import { StepAccountSelection } from "./unified-wizard/StepAccountSelection";
 import { StepGA4Selection } from "./unified-wizard/StepGA4Selection";
 import { StepGSCSelection } from "./unified-wizard/StepGSCSelection";
 import { StepVerifyConfirm } from "./unified-wizard/StepVerifyConfirm";
@@ -39,19 +42,21 @@ interface UnifiedGoogleWizardProps {
 
 function StepIndicator({ step, mode }: { step: WizardStep; mode: "full" | "ga4-only" | "gsc-only" }) {
   const steps = mode === "full"
-    ? ["Connect", "Analytics", "Search Console", "Confirm"]
+    ? ["Connect", "Account", "Property", "Search Console", "Confirm"]
     : mode === "ga4-only"
-      ? ["Connect", "Analytics", "Confirm"]
+      ? ["Connect", "Account", "Property", "Confirm"]
       : ["Connect", "Search Console", "Confirm"];
 
-  const stepIndex =
-    step === "explain" || step === "connecting"
-      ? 0
-      : step === "ga4-selection"
-        ? 1
-        : step === "gsc-selection"
-          ? mode === "full" ? 2 : 1
-          : mode === "full" ? 3 : 2;
+  const getStepIndex = () => {
+    if (step === "explain" || step === "connecting") return 0;
+    if (step === "account-selection") return 1;
+    if (step === "ga4-selection") return mode === "gsc-only" ? 1 : 2;
+    if (step === "gsc-selection") return mode === "full" ? 3 : (mode === "gsc-only" ? 1 : 2);
+    // saving or verify-confirm
+    return steps.length - 1;
+  };
+
+  const stepIndex = getStepIndex();
 
   return (
     <div className="flex items-center justify-center gap-2 mb-6">
@@ -98,6 +103,7 @@ export function UnifiedGoogleWizard({
   const [error, setError] = useState<string | null>(null);
 
   // Selection state
+  const [ga4AccountId, setGA4AccountId] = useState<string | null>(null);
   const [ga4PropertyId, setGA4PropertyId] = useState<string | null>(null);
   const [ga4StreamId, setGA4StreamId] = useState<string | null>(null);
   const [ga4Skipped, setGA4Skipped] = useState(false);
@@ -136,8 +142,10 @@ export function UnifiedGoogleWizard({
         const needsGSC = mode !== "ga4-only" && !google.status.gsc?.siteUrl;
 
         if (needsGA4) {
-          setStep("ga4-selection");
-          google.fetchProperties();
+          // Start with account selection
+          setStep("account-selection");
+          google.fetchAccounts();
+          google.fetchProperties(); // Also fetch GSC properties
         } else if (needsGSC) {
           setStep("gsc-selection");
           google.fetchProperties();
@@ -148,6 +156,7 @@ export function UnifiedGoogleWizard({
       } else {
         // Fresh start
         setStep("explain");
+        setGA4AccountId(null);
         setGA4PropertyId(null);
         setGA4StreamId(null);
         setGA4Skipped(mode === "gsc-only");
@@ -164,15 +173,19 @@ export function UnifiedGoogleWizard({
     try {
       const success = await google.startOAuth();
       if (success) {
-        // OAuth succeeded, fetch properties
-        await google.fetchProperties();
+        // OAuth succeeded, fetch accounts and GSC properties
+        await Promise.all([
+          google.fetchAccounts(),
+          google.fetchProperties(), // This fetches GSC properties too
+        ]);
 
         // Go to appropriate selection step
         if (mode === "gsc-only") {
           setGA4Skipped(true);
           setStep("gsc-selection");
         } else {
-          setStep("ga4-selection");
+          // Go to account selection first
+          setStep("account-selection");
         }
       } else {
         setError("Authorization was cancelled or timed out. Please try again.");
@@ -183,6 +196,31 @@ export function UnifiedGoogleWizard({
       setStep("explain");
     }
   }, [google, mode]);
+
+  // Handle account selection
+  const handleSelectAccount = useCallback(async (accountId: string) => {
+    setGA4AccountId(accountId);
+    // Fetch properties for this account
+    await google.fetchPropertiesForAccount(accountId);
+  }, [google]);
+
+  // Continue from account selection to property selection
+  const handleAccountContinue = useCallback(() => {
+    setStep("ga4-selection");
+  }, []);
+
+  // Skip account/GA4
+  const handleSkipAccount = useCallback(() => {
+    setGA4Skipped(true);
+    setGA4AccountId(null);
+    setGA4PropertyId(null);
+    setGA4StreamId(null);
+    if (mode === "ga4-only") {
+      setStep("verify-confirm");
+    } else {
+      setStep("gsc-selection");
+    }
+  }, [mode]);
 
   // Handle GA4 property selection
   const handleSelectGA4Property = useCallback(async (propertyId: string) => {
@@ -196,7 +234,7 @@ export function UnifiedGoogleWizard({
     setGA4StreamId(streamId);
   }, []);
 
-  // Skip GA4
+  // Skip GA4 (from property selection)
   const handleSkipGA4 = useCallback(() => {
     setGA4Skipped(true);
     setGA4PropertyId(null);
@@ -293,6 +331,10 @@ export function UnifiedGoogleWizard({
     setError(null);
   }, []);
 
+  const handleBackToAccount = useCallback(() => {
+    setStep("account-selection");
+  }, []);
+
   const handleBackToGA4 = useCallback(() => {
     setStep("ga4-selection");
   }, []);
@@ -336,7 +378,22 @@ export function UnifiedGoogleWizard({
           />
         )}
 
-        {/* Step: GA4 Selection */}
+        {/* Step: Account Selection */}
+        {step === "account-selection" && (
+          <StepAccountSelection
+            accounts={google.accounts ?? []}
+            isLoading={google.isLoadingAccounts}
+            selectedAccountId={ga4AccountId}
+            googleEmail={google.status?.googleEmail}
+            onSelectAccount={handleSelectAccount}
+            onSkip={handleSkipAccount}
+            onNext={handleAccountContinue}
+            onBack={handleBackToExplain}
+            allowSkip={mode === "full"}
+          />
+        )}
+
+        {/* Step: GA4 Property Selection */}
         {step === "ga4-selection" && (
           <StepGA4Selection
             properties={google.properties?.ga4 ?? []}
@@ -350,7 +407,7 @@ export function UnifiedGoogleWizard({
             onSelectStream={handleSelectGA4Stream}
             onSkip={handleSkipGA4}
             onNext={handleGA4Continue}
-            onBack={handleBackToExplain}
+            onBack={handleBackToAccount}
             allowSkip={mode === "full"}
           />
         )}
@@ -365,7 +422,7 @@ export function UnifiedGoogleWizard({
             onSelect={handleSelectGSC}
             onSkip={handleSkipGSC}
             onNext={handleGSCContinue}
-            onBack={mode === "gsc-only" ? handleBackToExplain : handleBackToGA4}
+            onBack={mode === "gsc-only" ? handleBackToExplain : (ga4Skipped ? handleBackToAccount : handleBackToGA4)}
             allowSkip={mode === "full"}
           />
         )}
