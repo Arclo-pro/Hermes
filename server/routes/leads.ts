@@ -215,6 +215,46 @@ router.get("/leads/stats", requireAuth, async (req, res) => {
 });
 
 // ════════════════════════════════════════════════════════════════════════════
+// GET /api/leads/enums - Get all enum values for UI dropdowns
+// ════════════════════════════════════════════════════════════════════════════
+
+router.get("/leads/enums", requireAuth, async (req, res) => {
+  res.json({
+    statuses: Object.values(LeadStatuses),
+    outcomes: Object.values(LeadOutcomes),
+    sourceTypes: Object.values(LeadSourceTypes),
+    serviceLines: Object.values(ServiceLines),
+    formTypes: Object.values(FormTypes),
+    noSignupReasons: Object.values(NoSignupReasons),
+    signupTypes: Object.values(SignupTypes),
+    contactMethods: Object.values(PreferredContactMethods),
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// GET /api/leads/analytics - Detailed analytics for dashboard
+// ════════════════════════════════════════════════════════════════════════════
+
+router.get("/leads/analytics", requireAuth, async (req, res) => {
+  try {
+    const { siteId, months } = req.query;
+
+    if (!siteId || typeof siteId !== "string") {
+      return res.status(400).json({ error: "siteId is required" });
+    }
+
+    const monthsToFetch = parseInt(months as string) || 12;
+
+    const analytics = await storage.getLeadAnalytics(siteId, monthsToFetch);
+
+    res.json(analytics);
+  } catch (error: any) {
+    logger.error("Leads", "Failed to get lead analytics", { error: error.message });
+    res.status(500).json({ error: "Failed to fetch lead analytics" });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════════════════
 // GET /api/leads/:leadId - Single lead detail
 // ════════════════════════════════════════════════════════════════════════════
 
@@ -369,46 +409,6 @@ router.post("/leads/:leadId/contact", requireAuth, async (req, res) => {
   } catch (error: any) {
     logger.error("Leads", "Failed to log contact", { error: error.message });
     res.status(500).json({ error: "Failed to log contact attempt" });
-  }
-});
-
-// ════════════════════════════════════════════════════════════════════════════
-// GET /api/leads/enums - Get all enum values for UI dropdowns
-// ════════════════════════════════════════════════════════════════════════════
-
-router.get("/leads/enums", requireAuth, async (req, res) => {
-  res.json({
-    statuses: Object.values(LeadStatuses),
-    outcomes: Object.values(LeadOutcomes),
-    sourceTypes: Object.values(LeadSourceTypes),
-    serviceLines: Object.values(ServiceLines),
-    formTypes: Object.values(FormTypes),
-    noSignupReasons: Object.values(NoSignupReasons),
-    signupTypes: Object.values(SignupTypes),
-    contactMethods: Object.values(PreferredContactMethods),
-  });
-});
-
-// ════════════════════════════════════════════════════════════════════════════
-// GET /api/leads/analytics - Detailed analytics for dashboard
-// ════════════════════════════════════════════════════════════════════════════
-
-router.get("/leads/analytics", requireAuth, async (req, res) => {
-  try {
-    const { siteId, months } = req.query;
-
-    if (!siteId || typeof siteId !== "string") {
-      return res.status(400).json({ error: "siteId is required" });
-    }
-
-    const monthsToFetch = parseInt(months as string) || 12;
-
-    const analytics = await storage.getLeadAnalytics(siteId, monthsToFetch);
-
-    res.json(analytics);
-  } catch (error: any) {
-    logger.error("Leads", "Failed to get lead analytics", { error: error.message });
-    res.status(500).json({ error: "Failed to fetch lead analytics" });
   }
 });
 
