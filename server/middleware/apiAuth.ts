@@ -54,6 +54,10 @@ const AUTHENTICATED_GET_PATHS = [
   "/api/crews",
   "/api/snapshots",
   "/api/popular",
+  "/api/leads",
+  "/api/websites",
+  "/api/notifications",
+  "/api/account",
 ];
 
 // Paths that allow unauthenticated POST access (only basic safe operations)
@@ -78,6 +82,10 @@ const DASHBOARD_POST_PATHS = [
   "/api/scan",
   "/api/analyze",
   "/api/report/free",
+  "/api/leads",
+  "/api/websites",
+  "/api/notifications",
+  "/api/account",
 ];
 
 // Paths that allow same-origin POST access (UI actions, protected by origin check)
@@ -133,6 +141,7 @@ export function apiKeyAuth(req: Request, res: Response, next: NextFunction) {
   const isGetRequest = req.method === "GET" || req.method === "HEAD";
   const isPostRequest = req.method === "POST";
   const isPatchRequest = req.method === "PATCH";
+  const isDeleteRequest = req.method === "DELETE";
   
   // Check if path matches fully public GET paths (health checks only)
   const matchesPublicGetPath = DASHBOARD_GET_PATHS.some(path =>
@@ -207,6 +216,12 @@ export function apiKeyAuth(req: Request, res: Response, next: NextFunction) {
   // Allow same-origin PATCH requests on dashboard paths (browser UI updates)
   if (isPatchRequest && matchesPostPath && isSameOriginRequest(req)) {
     logger.debug("API", "Allowing same-origin PATCH request", { path: req.path });
+    return next();
+  }
+
+  // Allow same-origin DELETE requests on dashboard paths (browser UI deletions)
+  if (isDeleteRequest && matchesPostPath && isSameOriginRequest(req)) {
+    logger.debug("API", "Allowing same-origin DELETE request", { path: req.path });
     return next();
   }
 
