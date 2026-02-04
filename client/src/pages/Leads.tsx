@@ -275,27 +275,69 @@ async function deleteLead(leadId: string): Promise<void> {
 
 function StatCards({ stats, isLoading }: { stats: LeadStats | undefined; isLoading: boolean }) {
   const cards = [
-    { label: "Total Leads", value: stats?.total ?? 0, icon: Contact, color: "text-blue-600" },
-    { label: "Signed Up", value: stats?.signedUp ?? 0, icon: CheckCircle2, color: "text-green-600" },
-    { label: "Not Signed Up", value: stats?.notSignedUp ?? 0, icon: XCircle, color: "text-red-600" },
-    { label: "Conversion Rate", value: `${(stats?.conversionRate ?? 0).toFixed(1)}%`, icon: AlertCircle, color: "text-amber-600" },
+    {
+      label: "Total Leads",
+      value: stats?.total ?? 0,
+      icon: Contact,
+      iconColor: "text-blue-600",
+      iconBg: "bg-blue-50",
+      border: "border-blue-200",
+      glow: "shadow-[inset_0_1px_0_0_rgba(59,130,246,0.15),0_0_20px_-5px_rgba(59,130,246,0.12)]",
+      bar: "bg-blue-500",
+    },
+    {
+      label: "Signed Up",
+      value: stats?.signedUp ?? 0,
+      icon: CheckCircle2,
+      iconColor: "text-green-600",
+      iconBg: "bg-green-50",
+      border: "border-green-200",
+      glow: "shadow-[inset_0_1px_0_0_rgba(34,197,94,0.15),0_0_20px_-5px_rgba(34,197,94,0.12)]",
+      bar: "bg-green-500",
+    },
+    {
+      label: "Not Signed Up",
+      value: stats?.notSignedUp ?? 0,
+      icon: XCircle,
+      iconColor: "text-red-600",
+      iconBg: "bg-red-50",
+      border: "border-red-200",
+      glow: "shadow-[inset_0_1px_0_0_rgba(239,68,68,0.15),0_0_20px_-5px_rgba(239,68,68,0.12)]",
+      bar: "bg-red-500",
+    },
+    {
+      label: "Conversion Rate",
+      value: `${(stats?.conversionRate ?? 0).toFixed(1)}%`,
+      icon: AlertCircle,
+      iconColor: "text-amber-600",
+      iconBg: "bg-amber-50",
+      border: "border-amber-200",
+      glow: "shadow-[inset_0_1px_0_0_rgba(234,179,8,0.15),0_0_20px_-5px_rgba(234,179,8,0.12)]",
+      bar: "bg-amber-500",
+    },
   ];
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {cards.map((card) => (
-        <Card key={card.label} className="bg-white border-gray-200">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
+        <Card
+          key={card.label}
+          className={`relative overflow-hidden rounded-2xl bg-white/80 backdrop-blur-sm transition-all ${card.border} ${card.glow}`}
+        >
+          <div className={`absolute top-0 left-0 right-0 h-1 ${card.bar}`} />
+          <CardContent className="p-5 pt-4">
+            <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm text-gray-500">{card.label}</p>
+                <p className="text-xs font-medium text-gray-500 mb-1">{card.label}</p>
                 {isLoading ? (
-                  <div className="h-8 w-16 bg-gray-100 animate-pulse rounded mt-1" />
+                  <div className="h-8 w-16 bg-gray-100 animate-pulse rounded" />
                 ) : (
-                  <p className="text-2xl font-bold text-gray-900">{card.value}</p>
+                  <p className="text-2xl font-bold text-gray-900 tabular-nums">{card.value}</p>
                 )}
               </div>
-              <card.icon className={`w-8 h-8 ${card.color} opacity-80`} />
+              <div className={`p-1.5 rounded-lg ${card.iconBg}`}>
+                <card.icon className={`w-5 h-5 ${card.iconColor}`} />
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -920,12 +962,12 @@ export default function Leads() {
 
         {/* Tabs */}
         <Tabs defaultValue="leads" className="w-full">
-          <TabsList className="bg-white/80 border border-gray-200">
-            <TabsTrigger value="leads" className="flex items-center gap-2 data-[state=active]:text-gray-900 text-gray-600">
+          <TabsList className="bg-gray-100 border border-gray-200">
+            <TabsTrigger value="leads" className="flex items-center gap-2 text-gray-600 data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm">
               <List className="w-4 h-4" />
               Leads
             </TabsTrigger>
-            <TabsTrigger value="analytics" className="flex items-center gap-2 data-[state=active]:text-gray-900 text-gray-600">
+            <TabsTrigger value="analytics" className="flex items-center gap-2 text-gray-600 data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm">
               <BarChart3 className="w-4 h-4" />
               Analytics
             </TabsTrigger>

@@ -227,7 +227,9 @@ const MAX_VISIBLE = 3;
 
 export function SetupCardsSection({ siteId }: SetupCardsSectionProps) {
   const { cards, isLoading } = useSetupCards(siteId);
-  const { siteDomain } = useSiteContext();
+  const { siteDomain, selectedSite } = useSiteContext();
+  // Use numeric DB id for Google API routes (backend expects integer site_id)
+  const numericSiteId = selectedSite?.id ? String(selectedSite.id) : null;
   const [googleWizardOpen, setGoogleWizardOpen] = useState(false);
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [collapsed, setCollapsed] = useState(() => {
@@ -327,12 +329,14 @@ export function SetupCardsSection({ siteId }: SetupCardsSectionProps) {
       </div>
 
       {/* Unified Google wizard */}
-      <UnifiedGoogleWizard
-        open={googleWizardOpen}
-        onOpenChange={setGoogleWizardOpen}
-        siteId={siteId}
-        siteDomain={siteDomain || undefined}
-      />
+      {numericSiteId && (
+        <UnifiedGoogleWizard
+          open={googleWizardOpen}
+          onOpenChange={setGoogleWizardOpen}
+          siteId={numericSiteId}
+          siteDomain={siteDomain || undefined}
+        />
+      )}
     </>
   );
 }

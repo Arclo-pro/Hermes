@@ -8,17 +8,18 @@ import { Label } from "@/components/ui/label";
 import { BarChart3, Search, Globe, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { useSiteContext } from "@/hooks/useSiteContext";
 import { IntegrationCard } from "@/components/integrations/IntegrationCard";
-import { GAConfigWizard } from "@/components/integrations/GAConfigWizard";
-import { GSCConfigWizard } from "@/components/integrations/GSCConfigWizard";
+import { UnifiedGoogleWizard } from "@/components/integrations/UnifiedGoogleWizard";
 import { useGoogleConnection } from "@/components/integrations/useGoogleConnection";
 import { toast } from "sonner";
 
 export default function SettingsIntegrations() {
   const { siteId, siteDomain, selectedSite } = useSiteContext();
-  const google = useGoogleConnection(siteId);
+  // Use the numeric DB id for Google API routes (backend expects integer site_id)
+  const numericSiteId = selectedSite?.id ? String(selectedSite.id) : null;
+  const google = useGoogleConnection(numericSiteId);
 
-  const [gaWizardOpen, setGaWizardOpen] = useState(false);
-  const [gscWizardOpen, setGscWizardOpen] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [wizardMode, setWizardMode] = useState<"full" | "ga4-only" | "gsc-only">("full");
 
   // Crawler state (kept as-is since it's not part of Google OAuth)
   const integrations = selectedSite?.integrations || {};
@@ -95,7 +96,7 @@ export default function SettingsIntegrations() {
                   ? `Property: ${google.status.ga4.propertyId}${google.status.ga4.streamId ? ` · Stream: ${google.status.ga4.streamId}` : ""}`
                   : undefined
               }
-              onConfigure={() => setGaWizardOpen(true)}
+              onConfigure={() => { setWizardMode("ga4-only"); setWizardOpen(true); }}
               onDisconnect={google.status?.connected ? handleDisconnect : undefined}
             />
             {/* GA4 integration status indicator */}
@@ -135,7 +136,7 @@ export default function SettingsIntegrations() {
               isConnected={!!google.status?.gsc}
               isLoading={google.isLoadingStatus}
               connectedDetail={google.status?.gsc?.siteUrl || undefined}
-              onConfigure={() => setGscWizardOpen(true)}
+              onConfigure={() => { setWizardMode("gsc-only"); setWizardOpen(true); }}
               onDisconnect={google.status?.connected ? handleDisconnect : undefined}
             />
           </div>
@@ -220,22 +221,15 @@ export default function SettingsIntegrations() {
         </div>
       </div>
 
-      {/* Wizard dialogs */}
-      {siteId && (
-        <>
-          <GAConfigWizard
-            open={gaWizardOpen}
-            onOpenChange={setGaWizardOpen}
-            siteId={siteId}
-            siteDomain={siteDomain || undefined}
-          />
-          <GSCConfigWizard
-            open={gscWizardOpen}
-            onOpenChange={setGscWizardOpen}
-            siteId={siteId}
-            siteDomain={siteDomain || undefined}
-          />
-        </>
+      {/* Unified Google wizard (handles GA4 + GSC in one flow) */}
+      {numericSiteId && (
+        <UnifiedGoogleWizard
+          open={wizardOpen}
+          onOpenChange={setWizardOpen}
+          siteId={numericSiteId}
+          siteDomain={siteDomain || undefined}
+          mode={wizardMode}
+        />
       )}
     </DashboardLayout>
   );
