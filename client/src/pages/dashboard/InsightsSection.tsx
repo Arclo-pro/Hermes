@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useInsights, type DashboardTip, type TipCategory, type TipSentiment } from "@/hooks/useOpsDashboard";
 import { GlassCard, GlassCardContent } from "@/components/ui/GlassCard";
 import {
@@ -9,6 +10,8 @@ import {
   Trophy,
   AlertTriangle,
   ArrowRight,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useLocation } from "wouter";
@@ -98,8 +101,29 @@ interface InsightsSectionProps {
   siteId: string;
 }
 
+const STORAGE_KEY = "arclo-insights-collapsed";
+
 export function InsightsSection({ siteId }: InsightsSectionProps) {
   const { data, isLoading } = useInsights(siteId);
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem(STORAGE_KEY) === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleCollapsed = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(STORAGE_KEY, String(next));
+      } catch {
+        // localStorage unavailable
+      }
+      return next;
+    });
+  };
 
   if (isLoading || !data || data.tips.length === 0) {
     return null;
@@ -107,17 +131,26 @@ export function InsightsSection({ siteId }: InsightsSectionProps) {
 
   return (
     <div className="space-y-3">
-      <p
-        className="text-xs font-semibold uppercase tracking-wide"
+      <button
+        onClick={toggleCollapsed}
+        className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide transition-colors hover:opacity-80"
         style={{ color: "#94A3B8" }}
       >
+        {collapsed ? (
+          <ChevronRight className="w-4 h-4" />
+        ) : (
+          <ChevronDown className="w-4 h-4" />
+        )}
         Insights
-      </p>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {data.tips.map((tip) => (
-          <InsightCard key={tip.id} tip={tip} />
-        ))}
-      </div>
+        <span className="ml-1 normal-case font-normal">({data.tips.length})</span>
+      </button>
+      {!collapsed && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {data.tips.map((tip) => (
+            <InsightCard key={tip.id} tip={tip} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
