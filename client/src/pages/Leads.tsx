@@ -665,18 +665,18 @@ export default function Leads() {
   // Filter state
   const [filters, setFilters] = useState({
     search: "",
-    status: "",
-    outcome: "",
-    serviceLine: "",
+    status: "all",
+    outcome: "all",
+    serviceLine: "all",
   });
 
   // Build query params
   const queryParams = useMemo(() => {
     const params: Record<string, string> = {};
     if (filters.search) params.search = filters.search;
-    if (filters.status) params.status = filters.status;
-    if (filters.outcome) params.outcome = filters.outcome;
-    if (filters.serviceLine) params.serviceLine = filters.serviceLine;
+    if (filters.status && filters.status !== "all") params.status = filters.status;
+    if (filters.outcome && filters.outcome !== "all") params.outcome = filters.outcome;
+    if (filters.serviceLine && filters.serviceLine !== "all") params.serviceLine = filters.serviceLine;
     return params;
   }, [filters]);
 
@@ -705,10 +705,10 @@ export default function Leads() {
   };
 
   const clearFilters = () => {
-    setFilters({ search: "", status: "", outcome: "", serviceLine: "" });
+    setFilters({ search: "", status: "all", outcome: "all", serviceLine: "all" });
   };
 
-  const hasActiveFilters = filters.search || filters.status || filters.outcome || filters.serviceLine;
+  const hasActiveFilters = filters.search || (filters.status && filters.status !== "all") || (filters.outcome && filters.outcome !== "all") || (filters.serviceLine && filters.serviceLine !== "all");
 
   if (!siteId) {
     return (
@@ -761,7 +761,7 @@ export default function Leads() {
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Statuses</SelectItem>
+                  <SelectItem value="all">All Statuses</SelectItem>
                   {Object.entries(STATUS_LABELS).map(([value, { label }]) => (
                     <SelectItem key={value} value={value}>{label}</SelectItem>
                   ))}
@@ -775,7 +775,7 @@ export default function Leads() {
                   <SelectValue placeholder="Outcome" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Outcomes</SelectItem>
+                  <SelectItem value="all">All Outcomes</SelectItem>
                   {Object.entries(OUTCOME_LABELS).map(([value, { label }]) => (
                     <SelectItem key={value} value={value}>{label}</SelectItem>
                   ))}
@@ -789,7 +789,7 @@ export default function Leads() {
                   <SelectValue placeholder="Service" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Services</SelectItem>
+                  <SelectItem value="all">All Services</SelectItem>
                   {Object.entries(SERVICE_LINE_LABELS).map(([value, label]) => (
                     <SelectItem key={value} value={value}>{label}</SelectItem>
                   ))}
