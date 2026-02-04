@@ -1,17 +1,27 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
 import { MarketingLayout } from "@/components/layout/MarketingLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import { ArrowRight, CheckCircle2, AlertCircle, Loader2, UserPlus, CheckCircle, Mail } from "lucide-react";
+import { ArrowRight, CheckCircle2, AlertCircle, Loader2, UserPlus, CheckCircle, Mail, Users } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PasswordRequirements, isPasswordValid } from "@/components/ui/PasswordRequirements";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { buildRoute, ROUTES } from "@shared/routes";
 import arcloLogo from "@assets/A_small_logo_1765393189114.png";
+
+interface InviteData {
+  success: boolean;
+  invitation?: {
+    email: string;
+    invitedBy: string;
+    expiresAt: string;
+  };
+  error?: string;
+}
 
 export default function Signup() {
   const [email, setEmail] = useState("");
@@ -21,13 +31,33 @@ export default function Signup() {
   const [error, setError] = useState<string | null>(null);
   const [existingAccount, setExistingAccount] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [invitedSuccess, setInvitedSuccess] = useState(false);
   const [, navigate] = useLocation();
   const searchString = useSearch();
   const params = new URLSearchParams(searchString);
   const scanId = params.get("scanId");
+  const inviteToken = params.get("invite");
+
+  // Fetch invite details if token present
+  const { data: inviteData, isLoading: inviteLoading } = useQuery<InviteData>({
+    queryKey: ['inviteValidation', inviteToken],
+    queryFn: async () => {
+      if (!inviteToken) return { success: false };
+      const res = await fetch(`/api/account/invite/${inviteToken}`);
+      return res.json();
+    },
+    enabled: !!inviteToken,
+  });
+
+  // Pre-fill email if from invitation
+  useEffect(() => {
+    if (inviteData?.success && inviteData.invitation?.email) {
+      setEmail(inviteData.invitation.email);
+    }
+  }, [inviteData]);
 
   const signupMutation = useMutation({
-    mutationFn: async (data: { email: string; password: string; displayName?: string; scanId?: string; websiteUrl?: string }) => {
+    mutationFn: async (data: { email: string; password: string; displayName?: string; scanId?: string; websiteUrl?: string; inviteToken?: string }) => {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -43,6 +73,9 @@ export default function Signup() {
       if (data.existingAccount) {
         setError(null);
         setExistingAccount(true);
+      } else if (data.invited) {
+        // Invited users can sign in immediately
+        setInvitedSuccess(true);
       } else {
         setSuccess(true);
       }
@@ -72,14 +105,59 @@ export default function Signup() {
       return;
     }
 
-    signupMutation.mutate({ 
-      email, 
-      password, 
+    signupMutation.mutate({
+      email,
+      password,
       displayName: displayName.trim() || undefined,
       scanId: scanId || undefined,
+      inviteToken: inviteToken || undefined,
     });
   };
 
+  // Success state for invited users (can sign in immediately)
+  if (invitedSuccess) {
+    return (
+      <MarketingLayout>
+        <div className="container mx-auto px-4 md:px-6 py-12 md:py-20">
+          <div className="max-w-md mx-auto">
+            <Card className="bg-white border border-[#CBD5E1] shadow-[0_8px_24px_rgba(15,23,42,0.08)] rounded-2xl">
+              <CardHeader className="text-center">
+                <div className="flex justify-center mb-4">
+                  <img src={arcloLogo} alt="Arclo" className="h-16 w-auto" />
+                </div>
+                <CardTitle className="text-2xl text-[#020617]">Welcome to the team!</CardTitle>
+                <CardDescription className="text-[#64748B]">
+                  Your account has been created successfully
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 text-center">
+                <div className="flex items-center justify-center gap-2 text-[#15803D]">
+                  <CheckCircle className="w-5 h-5" />
+                  <span className="font-medium">You're now part of the team</span>
+                </div>
+                <p className="text-[#64748B] text-sm">
+                  You have full access to all websites and features. Sign in to get started.
+                </p>
+              </CardContent>
+              <CardFooter>
+                <Button
+                  variant="primaryGradient"
+                  className="w-full h-12"
+                  onClick={() => navigate("/login")}
+                  data-testid="button-sign-in-after-invite"
+                >
+                  Sign In Now
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
+        </div>
+      </MarketingLayout>
+    );
+  }
+
+  // Success state for regular signups (need to verify email)
   if (success) {
     return (
       <MarketingLayout>
@@ -107,7 +185,7 @@ export default function Signup() {
                 </p>
               </CardContent>
               <CardFooter>
-                <Button 
+                <Button
                   variant="secondary"
                   className="w-full"
                   onClick={() => navigate("/login")}
@@ -132,9 +210,13 @@ export default function Signup() {
               <div className="flex justify-center mb-4">
                 <img src={arcloLogo} alt="Arclo" className="h-16 w-auto" />
               </div>
-              <CardTitle className="text-2xl text-[#020617]">Create Your Free Account</CardTitle>
+              <CardTitle className="text-2xl text-[#020617]">
+                {inviteData?.success ? "Join the Team" : "Create Your Free Account"}
+              </CardTitle>
               <CardDescription className="text-[#64748B]">
-                {scanId 
+                {inviteData?.success
+                  ? `${inviteData.invitation?.invitedBy} invited you to join their Arclo account`
+                  : scanId
                   ? "Unlock your full SEO report and start deploying fixes"
                   : "Get started with automated SEO"
                 }
@@ -142,6 +224,30 @@ export default function Signup() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Invitation context */}
+                {inviteData?.success && (
+                  <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mb-4">
+                    <div className="flex items-center gap-2 text-primary mb-2">
+                      <Users className="w-5 h-5" />
+                      <span className="font-medium">Team Invitation</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      You'll have full access to all websites and SEO tools in{" "}
+                      <strong>{inviteData.invitation?.invitedBy}'s</strong> account.
+                    </p>
+                  </div>
+                )}
+
+                {/* Invalid/expired invite warning */}
+                {inviteToken && !inviteLoading && !inviteData?.success && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      {inviteData?.error || "This invitation is invalid or has expired. Please request a new one."}
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 {existingAccount && (
                   <Alert className="border-[#15803D]/30 bg-[#15803D]/10">
                     <CheckCircle className="h-4 w-4 text-[#15803D]" />
@@ -182,9 +288,15 @@ export default function Signup() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    disabled={signupMutation.isPending}
+                    disabled={signupMutation.isPending || (inviteData?.success ?? false)}
+                    className={inviteData?.success ? "bg-muted" : ""}
                     data-testid="input-signup-email"
                   />
+                  {inviteData?.success && (
+                    <p className="text-xs text-muted-foreground">
+                      This email is linked to the team invitation
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">

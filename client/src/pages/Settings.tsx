@@ -3,12 +3,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  CheckCircle, 
-  XCircle, 
-  ExternalLink, 
-  Shield, 
-  RefreshCw, 
+import {
+  CheckCircle,
+  XCircle,
+  ExternalLink,
+  Shield,
+  RefreshCw,
   AlertTriangle,
   Key,
   Database,
@@ -22,7 +22,10 @@ import {
   Trash2,
   Activity,
   Zap,
-  Hand
+  Hand,
+  Users,
+  UserPlus,
+  Mail
 } from "lucide-react";
 import { useSiteContext } from "@/hooks/useSiteContext";
 import { toast } from "sonner";
@@ -386,6 +389,224 @@ function ApiKeysSection() {
   );
 }
 
+interface TeamMember {
+  id: number;
+  email: string;
+  displayName: string | null;
+  isOwner: boolean;
+  joinedAt: string;
+  lastLoginAt: string | null;
+}
+
+interface PendingInvite {
+  id: number;
+  email: string;
+  status: string;
+  expiresAt: string;
+  createdAt: string;
+}
+
+function TeamSection() {
+  const queryClient = useQueryClient();
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+
+  // Fetch team members
+  const { data: teamData, isLoading: teamLoading } = useQuery<{ success: boolean; team: TeamMember[] }>({
+    queryKey: ['accountTeam'],
+    queryFn: async () => {
+      const res = await fetch('/api/account/team');
+      if (!res.ok) throw new Error('Failed to fetch team');
+      return res.json();
+    },
+  });
+
+  // Fetch pending invitations
+  const { data: invitesData, isLoading: invitesLoading } = useQuery<{ success: boolean; invitations: PendingInvite[] }>({
+    queryKey: ['accountInvites'],
+    queryFn: async () => {
+      const res = await fetch('/api/account/invites');
+      if (!res.ok) throw new Error('Failed to fetch invitations');
+      return res.json();
+    },
+  });
+
+  // Send invitation mutation
+  const inviteMutation = useMutation({
+    mutationFn: async (email: string) => {
+      const res = await fetch('/api/account/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send invitation');
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Invitation sent!");
+      setShowInviteModal(false);
+      setInviteEmail("");
+      queryClient.invalidateQueries({ queryKey: ['accountInvites'] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  // Revoke invitation mutation
+  const revokeMutation = useMutation({
+    mutationFn: async (inviteId: number) => {
+      const res = await fetch(`/api/account/invites/${inviteId}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error('Failed to revoke invitation');
+      return res.json();
+    },
+    onSuccess: () => {
+      toast.success("Invitation revoked");
+      queryClient.invalidateQueries({ queryKey: ['accountInvites'] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  return (
+    <div className="space-y-6">
+      {/* Team Members Card */}
+      <div className="bg-card border border-border rounded-lg p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Users className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold">Team Members</h2>
+              <p className="text-sm text-muted-foreground">
+                Everyone on your team has full access to all websites
+              </p>
+            </div>
+          </div>
+          <Button onClick={() => setShowInviteModal(true)} data-testid="button-invite-user">
+            <UserPlus className="w-4 h-4 mr-2" />
+            Invite User
+          </Button>
+        </div>
+
+        {/* Team members list */}
+        {teamLoading ? (
+          <div className="flex justify-center py-8">
+            <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : teamData?.team && teamData.team.length > 0 ? (
+          <div className="divide-y border rounded-lg">
+            {teamData.team.map((member) => (
+              <div key={member.id} className="flex items-center gap-4 p-4" data-testid={`team-member-${member.id}`}>
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <span className="text-primary font-medium">
+                    {(member.displayName || member.email)[0].toUpperCase()}
+                  </span>
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{member.displayName || member.email}</span>
+                    {member.isOwner && (
+                      <Badge variant="outline">Owner</Badge>
+                    )}
+                  </div>
+                  <span className="text-sm text-muted-foreground">{member.email}</span>
+                </div>
+                <span className="text-sm text-muted-foreground">
+                  Joined {formatDate(member.joinedAt)}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 border rounded-lg bg-muted/30">
+            <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="font-medium mb-2">Just you so far</h3>
+            <p className="text-muted-foreground mb-4">Invite team members to collaborate</p>
+          </div>
+        )}
+      </div>
+
+      {/* Pending Invitations Card */}
+      {invitesData?.invitations && invitesData.invitations.length > 0 && (
+        <div className="bg-card border border-border rounded-lg p-6">
+          <h3 className="font-semibold mb-4 flex items-center gap-2">
+            <Mail className="w-4 h-4" />
+            Pending Invitations
+          </h3>
+          <div className="divide-y border rounded-lg">
+            {invitesData.invitations.map((invite) => (
+              <div key={invite.id} className="flex items-center gap-4 p-4" data-testid={`pending-invite-${invite.id}`}>
+                <Mail className="w-5 h-5 text-muted-foreground" />
+                <div className="flex-1">
+                  <span className="font-medium">{invite.email}</span>
+                  <span className="text-sm text-muted-foreground ml-2">
+                    Expires {formatDate(invite.expiresAt)}
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => revokeMutation.mutate(invite.id)}
+                  disabled={revokeMutation.isPending}
+                  data-testid={`button-revoke-invite-${invite.id}`}
+                >
+                  <XCircle className="w-4 h-4 mr-1" />
+                  Revoke
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Invite Modal */}
+      {showInviteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card border border-border rounded-lg p-6 w-full max-w-md shadow-xl">
+            <h3 className="text-lg font-semibold mb-4">Invite Team Member</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Invited users will have full access to all your websites.
+              They must create a new account to accept the invitation.
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Email Address</label>
+                <input
+                  type="email"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  placeholder="colleague@company.com"
+                  className="w-full px-3 py-2 border rounded-md bg-background"
+                  data-testid="input-invite-email"
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={() => setShowInviteModal(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => inviteMutation.mutate(inviteEmail)}
+                  disabled={inviteMutation.isPending || !inviteEmail}
+                  data-testid="button-send-invite"
+                >
+                  {inviteMutation.isPending && <RefreshCw className="w-4 h-4 mr-2 animate-spin" />}
+                  Send Invitation
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SitesSection() {
   const queryClient = useQueryClient();
 
@@ -709,7 +930,7 @@ export default function Settings() {
         </div>
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="vault" data-testid="tab-vault">
               <Shield className="w-4 h-4 mr-2" />
               Vault
@@ -729,6 +950,10 @@ export default function Settings() {
             <TabsTrigger value="api-keys" data-testid="tab-api-keys">
               <Key className="w-4 h-4 mr-2" />
               API Keys
+            </TabsTrigger>
+            <TabsTrigger value="team" data-testid="tab-team">
+              <Users className="w-4 h-4 mr-2" />
+              Team
             </TabsTrigger>
             <TabsTrigger value="autopilot" data-testid="tab-autopilot">
               <Zap className="w-4 h-4 mr-2" />
@@ -1013,6 +1238,10 @@ export default function Settings() {
 
           <TabsContent value="api-keys">
             <ApiKeysSection />
+          </TabsContent>
+
+          <TabsContent value="team">
+            <TeamSection />
           </TabsContent>
 
           <TabsContent value="autopilot" className="space-y-6">

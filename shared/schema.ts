@@ -36,6 +36,7 @@ export const users = pgTable("users", {
     competitive_intel?: boolean;
     authority_signals?: boolean;
   }>(),
+  accountId: integer("account_id"), // null = account owner, integer = linked to account owner's user.id
   verifiedAt: timestamp("verified_at"), // null = unverified, timestamp = verified
   lastLoginAt: timestamp("last_login_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -59,6 +60,28 @@ export const insertVerificationTokenSchema = createInsertSchema(verificationToke
 });
 export type InsertVerificationToken = z.infer<typeof insertVerificationTokenSchema>;
 export type VerificationToken = typeof verificationTokens.$inferSelect;
+
+// Account Invitations for team member invites
+export const accountInvitations = pgTable("account_invitations", {
+  id: serial("id").primaryKey(),
+  inviteToken: text("invite_token").notNull().unique(), // UUID for secure URL
+  invitedEmail: text("invited_email").notNull(),
+  invitedByUserId: integer("invited_by_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  status: text("status").notNull().default("pending"), // pending, accepted, revoked, expired
+  expiresAt: timestamp("expires_at").notNull(),
+  acceptedAt: timestamp("accepted_at"),
+  acceptedByUserId: integer("accepted_by_user_id").references(() => users.id), // The new user created
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertAccountInvitationSchema = createInsertSchema(accountInvitations).omit({
+  id: true,
+  createdAt: true,
+  acceptedAt: true,
+  acceptedByUserId: true,
+});
+export type InsertAccountInvitation = z.infer<typeof insertAccountInvitationSchema>;
+export type AccountInvitation = typeof accountInvitations.$inferSelect;
 
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,

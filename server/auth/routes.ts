@@ -3,7 +3,7 @@ import { z } from "zod";
 import crypto from "crypto";
 import { storage } from "../storage";
 import { hashPassword, verifyPassword, getSessionUser, requireAuth } from "./session";
-import { sendVerificationEmail, sendPasswordResetEmail, sendSignupNotification } from "../services/email";
+import { sendVerificationEmail, sendPasswordResetEmail, sendSignupNotification, sendTeamJoinNotification } from "../services/email";
 import { db } from "../db";
 import { sql } from "drizzle-orm";
 
@@ -18,6 +18,7 @@ const registerSchema = z.object({
   displayName: z.string().optional(),
   scanId: z.string().optional(),
   websiteUrl: z.string().optional(),
+  inviteToken: z.string().optional(), // Team invitation token
 });
 
 const selectWebsiteSchema = z.object({
@@ -149,20 +150,45 @@ export function registerAuthRoutes(app: Express): void {
         });
       }
 
-      const { email, password, displayName, scanId, websiteUrl } = parsed.data;
+      const { email, password, displayName, scanId, websiteUrl, inviteToken } = parsed.data;
 
       // Check if user exists
       const existingUser = await storage.getUserByEmail(email);
       if (existingUser) {
         // Tell user they already have an account
-        return res.json({ 
-          success: true, 
+        return res.json({
+          success: true,
           existingAccount: true,
-          message: "An account with this email already exists. Please sign in instead." 
+          message: "An account with this email already exists. Please sign in instead."
         });
       }
 
-      // Create user (unverified)
+      // If inviteToken provided, validate it first
+      let invitation = null;
+      if (inviteToken) {
+        invitation = await storage.getAccountInvitationByToken(inviteToken);
+        if (!invitation) {
+          return res.status(400).json({
+            success: false,
+            error: "Invalid or expired invitation link",
+          });
+        }
+        if (new Date() > invitation.expiresAt) {
+          return res.status(400).json({
+            success: false,
+            error: "This invitation has expired. Please request a new one.",
+          });
+        }
+        // Verify email matches invitation
+        if (invitation.invitedEmail.toLowerCase() !== email.toLowerCase()) {
+          return res.status(400).json({
+            success: false,
+            error: "This invitation was sent to a different email address.",
+          });
+        }
+      }
+
+      // Create user (unverified, unless invited)
       const passwordHash = await hashPassword(password);
       const user = await storage.createUser({
         email,
@@ -173,11 +199,61 @@ export function registerAuthRoutes(app: Express): void {
         addons: {},
       });
 
+      // Handle invitation acceptance
+      if (invitation) {
+        // Link user to the inviter's account
+        await storage.linkUserToAccount(user.id, invitation.invitedByUserId);
+
+        // Mark invitation as accepted
+        await storage.acceptAccountInvitation(invitation.id, user.id);
+
+        // Auto-verify the invited user (they came from a trusted source)
+        await storage.verifyUser(user.id);
+
+        // Send notification to inviter that user joined
+        setImmediate(async () => {
+          try {
+            const inviter = await storage.getUserById(invitation!.invitedByUserId);
+            if (inviter) {
+              await sendTeamJoinNotification(
+                inviter.email,
+                email,
+                displayName || email.split('@')[0]
+              );
+            }
+          } catch (err) {
+            console.error("[Auth] Error sending team join notification:", err);
+          }
+
+          // Also send signup notification
+          try {
+            await sendSignupNotification({
+              email,
+              websiteUrl,
+              scanId,
+              timestamp: new Date().toISOString(),
+            });
+          } catch (err) {
+            console.error("[Auth] Error sending signup notification:", err);
+          }
+        });
+
+        console.log(`[Auth] Invited user ${email} joined account of user ${invitation.invitedByUserId}`);
+
+        // Return success - invited users can sign in immediately
+        return res.status(201).json({
+          success: true,
+          message: "Account created successfully. You can now sign in.",
+          invited: true,
+          scanId,
+        });
+      }
+
       // Associate scanId with user email if provided
       if (scanId) {
         try {
           await db.execute(sql`
-            UPDATE scan_requests 
+            UPDATE scan_requests
             SET email = ${email}, updated_at = NOW()
             WHERE scan_id = ${scanId}
           `);
@@ -209,7 +285,7 @@ export function registerAuthRoutes(app: Express): void {
         } catch (err) {
           console.error("[Auth] Error sending verification email:", err);
         }
-        
+
         // Send signup notification to Kevin
         try {
           await sendSignupNotification({

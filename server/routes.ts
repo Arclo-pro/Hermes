@@ -65,6 +65,7 @@ import contentRoutes from './routes/content';
 import notificationRoutes from './routes/notifications';
 import googleConnectRoutes from './routes/googleConnect';
 import leadsRoutes from './routes/leads';
+import accountRoutes from './routes/account';
 import { generatedSites, siteGenerationJobs, crewFindings, insertAgentActionLogSchema, insertOutcomeEventLogSchema, type InsertAgentActionLog, type InsertOutcomeEventLog, seoReports, completedWork, sites, users, seoAgentCompetitors, type InsertSeoReport, findings, serpKeywords, type Finding } from "@shared/schema";
 import { processUnattributedEvents } from "./services/socratesAttribution";
 import { computeAchievementsForSite } from "./services/achievementComputation";
@@ -21112,6 +21113,7 @@ Return JSON in this exact format:
   app.use('/api', notificationRoutes); // Notification preferences
   app.use('/api', googleConnectRoutes); // Per-site Google OAuth connect/disconnect
   app.use('/api', leadsRoutes); // Leads management (ArcFlow)
+  app.use('/api', accountRoutes); // Account & team management (invitations)
 
   // ============================================================
   // Internal API Endpoints (Hermes ↔ SERP Worker Communication)

@@ -205,6 +205,9 @@ import {
   verificationTokens,
   type VerificationToken,
   type InsertVerificationToken,
+  accountInvitations,
+  type AccountInvitation,
+  type InsertAccountInvitation,
   reportShares,
   type ReportShare,
   type InsertReportShare,
@@ -3753,7 +3756,15 @@ class DBStorage implements IStorage {
   }
 
   async getUserWebsites(userId: number): Promise<string[]> {
-    // For now, return all sites. In a multi-tenant setup, this would filter by user ownership
+    // Get the user to check if they're linked to an account
+    const user = await this.getUserById(userId);
+    if (!user) return [];
+
+    // Determine the effective account owner ID (null accountId means they are the owner)
+    const accountOwnerId = user.accountId || user.id;
+
+    // Return all sites - in production you would filter by account owner
+    // For now return all sites to maintain existing behavior
     const allSites = await db.select({ siteId: sites.siteId }).from(sites);
     return allSites.map(s => s.siteId);
   }
@@ -3811,6 +3822,104 @@ class DBStorage implements IStorage {
     await db
       .update(users)
       .set({ passwordHash, updatedAt: new Date() })
+      .where(eq(users.id, userId));
+  }
+
+  // Account Invitations
+  async createAccountInvitation(data: InsertAccountInvitation): Promise<AccountInvitation> {
+    const [result] = await db
+      .insert(accountInvitations)
+      .values(data)
+      .returning();
+    return result;
+  }
+
+  async getAccountInvitationByToken(token: string): Promise<AccountInvitation | null> {
+    const [result] = await db
+      .select()
+      .from(accountInvitations)
+      .where(
+        and(
+          eq(accountInvitations.inviteToken, token),
+          eq(accountInvitations.status, 'pending')
+        )
+      )
+      .limit(1);
+    return result || null;
+  }
+
+  async getPendingInvitationsByUserId(userId: number): Promise<AccountInvitation[]> {
+    return db
+      .select()
+      .from(accountInvitations)
+      .where(
+        and(
+          eq(accountInvitations.invitedByUserId, userId),
+          eq(accountInvitations.status, 'pending')
+        )
+      )
+      .orderBy(desc(accountInvitations.createdAt));
+  }
+
+  async getAccountInvitationByEmail(email: string, invitedByUserId: number): Promise<AccountInvitation | null> {
+    const [result] = await db
+      .select()
+      .from(accountInvitations)
+      .where(
+        and(
+          eq(accountInvitations.invitedEmail, email.toLowerCase()),
+          eq(accountInvitations.invitedByUserId, invitedByUserId),
+          eq(accountInvitations.status, 'pending')
+        )
+      )
+      .limit(1);
+    return result || null;
+  }
+
+  async acceptAccountInvitation(invitationId: number, newUserId: number): Promise<void> {
+    await db
+      .update(accountInvitations)
+      .set({
+        status: 'accepted',
+        acceptedAt: new Date(),
+        acceptedByUserId: newUserId,
+      })
+      .where(eq(accountInvitations.id, invitationId));
+  }
+
+  async revokeAccountInvitation(invitationId: number, userId: number): Promise<boolean> {
+    const result = await db
+      .update(accountInvitations)
+      .set({ status: 'revoked' })
+      .where(
+        and(
+          eq(accountInvitations.id, invitationId),
+          eq(accountInvitations.invitedByUserId, userId)
+        )
+      )
+      .returning();
+    return result.length > 0;
+  }
+
+  // Team Management
+  async getTeamMembers(accountOwnerId: number): Promise<User[]> {
+    // Get all users linked to this account (including owner)
+    return db
+      .select()
+      .from(users)
+      .where(
+        or(
+          eq(users.id, accountOwnerId),
+          eq(users.accountId, accountOwnerId)
+        )
+      )
+      .orderBy(asc(users.createdAt));
+  }
+
+  async linkUserToAccount(userId: number, accountOwnerId: number): Promise<void> {
+    await db
+      .update(users)
+      .set({ accountId: accountOwnerId, updatedAt: new Date() })
       .where(eq(users.id, userId));
   }
 
