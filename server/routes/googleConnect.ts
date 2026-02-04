@@ -134,6 +134,7 @@ router.get('/sites/:siteId/google/accounts', requireAuth, async (req, res) => {
     const adminApi = google.analyticsadmin('v1beta');
 
     const accounts: Array<{ accountId: string; displayName: string }> = [];
+    let accountsError: string | null = null;
     try {
       const accountsRes = await adminApi.accounts.list({ auth });
       for (const account of accountsRes.data.accounts || []) {
@@ -146,10 +147,19 @@ router.get('/sites/:siteId/google/accounts', requireAuth, async (req, res) => {
         }
       }
     } catch (err: any) {
-      logger.warn('GoogleConnect', 'Failed to list GA4 accounts', { error: err.message });
+      logger.warn('GoogleConnect', 'Failed to list GA4 accounts', { error: err.message, code: err.code, status: err.status });
+      // Surface the error so the frontend can display helpful guidance
+      const msg = err.message || 'Unknown error';
+      if (msg.includes('has not been used') || msg.includes('is disabled') || err.code === 403) {
+        accountsError = 'The Google Analytics Admin API is not enabled in your Google Cloud project. Please enable it at console.cloud.google.com/apis/library/analyticsadmin.googleapis.com';
+      } else if (msg.includes('insufficient') || msg.includes('scope')) {
+        accountsError = 'Insufficient permissions. Try disconnecting and reconnecting your Google account.';
+      } else {
+        accountsError = `Failed to list accounts: ${msg}`;
+      }
     }
 
-    res.json({ ok: true, accounts });
+    res.json({ ok: true, accounts, error: accountsError });
   } catch (error: any) {
     logger.error('GoogleConnect', 'Failed to fetch accounts', { error: error.message });
     res.status(500).json({ ok: false, error: error.message || 'Failed to fetch Google accounts' });

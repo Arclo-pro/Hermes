@@ -42,6 +42,7 @@ export interface GoogleConnectionStatus {
 
 export interface GoogleAccounts {
   accounts: GA4Account[];
+  error?: string | null;
 }
 
 export interface GoogleProperties {
@@ -73,6 +74,7 @@ export function useGoogleConnection(siteId: string | null) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
+  const [accountsError, setAccountsError] = useState<string | null>(null);
 
   // Clean up polling on unmount
   useEffect(() => {
@@ -111,6 +113,12 @@ export function useGoogleConnection(siteId: string | null) {
       if (!res.ok) throw new Error("Failed to fetch accounts");
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || "Failed to fetch accounts");
+      // Surface API-level errors (e.g. Admin API not enabled) even when ok:true
+      if (data.error) {
+        setAccountsError(data.error);
+      } else {
+        setAccountsError(null);
+      }
       return data.accounts || [];
     },
     enabled: false, // Only fetch on demand
@@ -333,6 +341,7 @@ export function useGoogleConnection(siteId: string | null) {
     accounts: accounts ?? null,
     isLoadingAccounts,
     fetchAccounts,
+    accountsError,
 
     // Properties
     properties: properties ?? null,

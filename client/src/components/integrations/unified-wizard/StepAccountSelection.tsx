@@ -10,6 +10,7 @@ import {
   ArrowRight,
   ArrowLeft,
   ChevronRight,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { GA4Account } from "../useGoogleConnection";
@@ -19,6 +20,7 @@ interface StepAccountSelectionProps {
   isLoading: boolean;
   selectedAccountId: string | null;
   googleEmail?: string;
+  apiError?: string | null;
   onSelectAccount: (accountId: string) => void;
   onSkip: () => void;
   onNext: () => void;
@@ -31,6 +33,7 @@ export function StepAccountSelection({
   isLoading,
   selectedAccountId,
   googleEmail,
+  apiError,
   onSelectAccount,
   onSkip,
   onNext,
@@ -54,28 +57,61 @@ export function StepAccountSelection({
     );
   }
 
-  // No accounts found
+  // No accounts found (or API error)
   if (accounts.length === 0) {
+    const isApiError = !!apiError;
+    const isAdminApiError = apiError?.includes('Admin API') || apiError?.includes('not enabled');
+
     return (
       <div className="space-y-5">
         <div className="text-center py-4">
-          <AlertCircle className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-          <h3 className="text-lg font-semibold text-foreground">No GA4 Accounts Found</h3>
+          <AlertCircle className={`w-10 h-10 mx-auto mb-3 ${isApiError ? "text-amber-500" : "text-muted-foreground"}`} />
+          <h3 className="text-lg font-semibold text-foreground">
+            {isApiError ? "API Configuration Required" : "No GA4 Accounts Found"}
+          </h3>
           <p className="text-sm text-muted-foreground mt-2 max-w-sm mx-auto">
-            We couldn't find any Google Analytics 4 accounts connected to {googleEmail || "your Google account"}.
+            {isApiError
+              ? "We connected to Google but couldn't list your Analytics accounts."
+              : `We couldn't find any Google Analytics 4 accounts connected to ${googleEmail || "your Google account"}.`
+            }
           </p>
         </div>
-        <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground space-y-2">
-          <p className="font-medium text-foreground">This can happen if:</p>
-          <ul className="list-disc list-inside space-y-1">
-            <li>You don't have access to any GA4 properties</li>
-            <li>You need to be added as a user on someone else's GA4 account</li>
-            <li>You signed in with the wrong Google account</li>
-          </ul>
-          <p className="mt-3 text-xs">
-            Ask the GA4 account owner to add {googleEmail || "your email"} as a user with at least "Viewer" access.
-          </p>
-        </div>
+
+        {isApiError ? (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm space-y-3">
+            <p className="font-medium text-amber-900">
+              {isAdminApiError ? "Enable the Google Analytics Admin API" : "Error Details"}
+            </p>
+            <p className="text-amber-800 text-xs">{apiError}</p>
+            {isAdminApiError && (
+              <a
+                href="https://console.cloud.google.com/apis/library/analyticsadmin.googleapis.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                Open Google Cloud Console to enable it
+              </a>
+            )}
+            <p className="text-amber-700 text-xs mt-2">
+              After enabling the API, click "Back" and try connecting again.
+            </p>
+          </div>
+        ) : (
+          <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground space-y-2">
+            <p className="font-medium text-foreground">This can happen if:</p>
+            <ul className="list-disc list-inside space-y-1">
+              <li>You don't have access to any GA4 properties</li>
+              <li>You need to be added as a user on someone else's GA4 account</li>
+              <li>You signed in with the wrong Google account</li>
+            </ul>
+            <p className="mt-3 text-xs">
+              Ask the GA4 account owner to add {googleEmail || "your email"} as a user with at least "Viewer" access.
+            </p>
+          </div>
+        )}
+
         <div className="flex gap-2">
           <Button variant="outline" onClick={onBack} className="shrink-0">
             <ArrowLeft className="w-4 h-4 mr-1.5" />

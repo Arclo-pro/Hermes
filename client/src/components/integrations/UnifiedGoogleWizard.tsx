@@ -385,6 +385,7 @@ export function UnifiedGoogleWizard({
             isLoading={google.isLoadingAccounts}
             selectedAccountId={ga4AccountId}
             googleEmail={google.status?.googleEmail}
+            apiError={google.accountsError}
             onSelectAccount={handleSelectAccount}
             onSkip={handleSkipAccount}
             onNext={handleAccountContinue}
