@@ -17,6 +17,7 @@ import {
   Info,
   Settings,
   Key,
+  X,
 } from "lucide-react";
 import {
   Dialog,
@@ -174,6 +175,62 @@ function StepOAuth({
 // Step: OAuth Configuration (when credentials aren't set up)
 // ---------------------------------------------------------------------------
 
+function FieldHelp({
+  isOpen,
+  onClose,
+  children,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+      <div
+        className="relative bg-background border border-border rounded-xl shadow-xl max-w-sm w-full p-4 animate-in fade-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 p-1 rounded-lg hover:bg-muted transition-colors"
+        >
+          <X className="w-4 h-4 text-muted-foreground" />
+        </button>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function FieldLabel({
+  htmlFor,
+  children,
+  onHelpClick,
+}: {
+  htmlFor: string;
+  children: React.ReactNode;
+  onHelpClick: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <Label htmlFor={htmlFor} className="text-sm font-medium">
+        {children}
+      </Label>
+      <button
+        type="button"
+        onClick={onHelpClick}
+        className="p-0.5 rounded-full hover:bg-muted transition-colors"
+        title="Show help"
+      >
+        <Info className="w-3.5 h-3.5 text-muted-foreground hover:text-blue-500" />
+      </button>
+    </div>
+  );
+}
+
 function StepOAuthConfig({
   onSave,
   isSaving,
@@ -187,8 +244,8 @@ function StepOAuthConfig({
 }) {
   const [clientId, setClientId] = useState("");
   const [clientSecret, setClientSecret] = useState("");
-  const [showInstructions, setShowInstructions] = useState(false);
   const [localRedirectUri, setLocalRedirectUri] = useState(redirectUri);
+  const [activeHelp, setActiveHelp] = useState<"clientId" | "clientSecret" | "redirectUri" | null>(null);
 
   const isValid = clientId.trim() && clientSecret.trim() && localRedirectUri.trim();
 
@@ -200,98 +257,28 @@ function StepOAuthConfig({
         </div>
         <h3 className="text-lg font-semibold text-foreground">Setup Your Google API</h3>
         <p className="text-sm text-muted-foreground mt-2 max-w-sm mx-auto">
-          To connect Search Console, you need to create OAuth credentials in your own Google Cloud project.
+          Create OAuth credentials in Google Cloud to connect Search Console.
         </p>
       </div>
 
-      {/* Expandable instructions */}
-      <Card className="bg-blue-500/5 border-blue-500/20">
-        <CardContent className="py-3">
-          <button
-            type="button"
-            onClick={() => setShowInstructions(!showInstructions)}
-            className="flex items-center justify-between w-full text-left"
-          >
-            <span className="flex items-center gap-2 text-sm font-medium text-blue-600">
-              <Key className="w-4 h-4" />
-              {showInstructions ? "Hide setup instructions" : "Show step-by-step instructions"}
-            </span>
-            <ArrowRight className={`w-4 h-4 text-blue-600 transition-transform ${showInstructions ? "rotate-90" : ""}`} />
-          </button>
-
-          {showInstructions && (
-            <div className="mt-4 space-y-4 text-sm text-muted-foreground">
-              <div className="space-y-2">
-                <p className="font-medium text-foreground">Step 1: Create a Google Cloud Project</p>
-                <ol className="list-decimal list-inside space-y-1 ml-2">
-                  <li>Go to <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">console.cloud.google.com</a></li>
-                  <li>Click the project dropdown at the top</li>
-                  <li>Click "New Project" and give it a name (e.g., "My Analytics")</li>
-                  <li>Wait for the project to be created</li>
-                </ol>
-              </div>
-
-              <div className="space-y-2">
-                <p className="font-medium text-foreground">Step 2: Enable Required APIs</p>
-                <ol className="list-decimal list-inside space-y-1 ml-2">
-                  <li>Go to "APIs & Services" → "Library"</li>
-                  <li>Search for and enable these APIs:</li>
-                  <ul className="list-disc list-inside ml-4 space-y-0.5">
-                    <li><strong>Google Search Console API</strong> (for GSC data)</li>
-                    <li><strong>Google Analytics Data API</strong> (optional, for GA4)</li>
-                    <li><strong>Google Analytics Admin API</strong> (optional, for GA4)</li>
-                  </ul>
-                  <li>Click "Enable" for each API</li>
-                </ol>
-              </div>
-
-              <div className="space-y-2">
-                <p className="font-medium text-foreground">Step 3: Configure OAuth Consent Screen</p>
-                <ol className="list-decimal list-inside space-y-1 ml-2">
-                  <li>Go to "APIs & Services" → "OAuth consent screen"</li>
-                  <li>Select "External" (unless you have Workspace)</li>
-                  <li>Fill in app name, your email as support email</li>
-                  <li>Add scopes: search for "webmasters" and add readonly scopes</li>
-                  <li>Add your email as a test user</li>
-                  <li>Click "Save and Continue" through each step</li>
-                </ol>
-              </div>
-
-              <div className="space-y-2">
-                <p className="font-medium text-foreground">Step 4: Create OAuth Credentials</p>
-                <ol className="list-decimal list-inside space-y-1 ml-2">
-                  <li>Go to "APIs & Services" → "Credentials"</li>
-                  <li>Click "+ Create Credentials" → "OAuth client ID"</li>
-                  <li>Application type: <strong>Web application</strong></li>
-                  <li>Add this Authorized redirect URI:</li>
-                </ol>
-                <div className="bg-muted rounded p-2 font-mono text-xs break-all mt-1 ml-2">
-                  {localRedirectUri}
-                </div>
-                <ol className="list-decimal list-inside space-y-1 ml-2" start={5}>
-                  <li>Click "Create"</li>
-                  <li>Copy the <strong>Client ID</strong> and <strong>Client Secret</strong></li>
-                </ol>
-              </div>
-
-              <div className="bg-amber-500/10 rounded p-3 text-amber-700 dark:text-amber-400">
-                <p className="font-medium">Important: Add Test Users</p>
-                <p className="text-xs mt-1">
-                  While your app is in "Testing" mode, only emails listed as test users can sign in.
-                  Add the Google account you'll use to connect GSC under "OAuth consent screen" → "Test users".
-                </p>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Quick start link */}
+      <a
+        href="https://console.cloud.google.com/apis/credentials"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center justify-center gap-2 text-sm text-blue-600 hover:text-blue-700 transition-colors"
+      >
+        <ExternalLink className="w-4 h-4" />
+        Open Google Cloud Console
+      </a>
 
       <Card className="bg-muted/30 border-border">
         <CardContent className="py-4 space-y-4">
+          {/* Client ID Field */}
           <div className="space-y-2">
-            <Label htmlFor="gsc-clientId" className="text-sm font-medium">
+            <FieldLabel htmlFor="gsc-clientId" onHelpClick={() => setActiveHelp("clientId")}>
               Google Client ID
-            </Label>
+            </FieldLabel>
             <Input
               id="gsc-clientId"
               placeholder="xxxxx.apps.googleusercontent.com"
@@ -300,10 +287,11 @@ function StepOAuthConfig({
             />
           </div>
 
+          {/* Client Secret Field */}
           <div className="space-y-2">
-            <Label htmlFor="gsc-clientSecret" className="text-sm font-medium">
+            <FieldLabel htmlFor="gsc-clientSecret" onHelpClick={() => setActiveHelp("clientSecret")}>
               Google Client Secret
-            </Label>
+            </FieldLabel>
             <Input
               id="gsc-clientSecret"
               type="password"
@@ -313,19 +301,17 @@ function StepOAuthConfig({
             />
           </div>
 
+          {/* Redirect URI Field */}
           <div className="space-y-2">
-            <Label htmlFor="gsc-redirectUri" className="text-sm font-medium">
+            <FieldLabel htmlFor="gsc-redirectUri" onHelpClick={() => setActiveHelp("redirectUri")}>
               Redirect URI
-            </Label>
+            </FieldLabel>
             <Input
               id="gsc-redirectUri"
               placeholder="https://your-domain.com/api/auth/callback"
               value={localRedirectUri}
               onChange={(e) => setLocalRedirectUri(e.target.value)}
             />
-            <p className="text-xs text-muted-foreground">
-              Copy this exact URL to your Google Cloud Console OAuth settings as an Authorized redirect URI.
-            </p>
           </div>
         </CardContent>
       </Card>
@@ -353,6 +339,73 @@ function StepOAuthConfig({
           )}
         </Button>
       </div>
+
+      {/* Help Modals */}
+      <FieldHelp isOpen={activeHelp === "clientId"} onClose={() => setActiveHelp(null)}>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Key className="w-5 h-5 text-blue-500" />
+            <h4 className="font-semibold text-foreground">Google Client ID</h4>
+          </div>
+          <div className="text-sm text-muted-foreground space-y-2">
+            <p>To get your Client ID:</p>
+            <ol className="list-decimal list-inside space-y-1.5 ml-1">
+              <li>Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Google Cloud Console → Credentials</a></li>
+              <li>Click <strong>"+ Create Credentials"</strong> → <strong>"OAuth client ID"</strong></li>
+              <li>Select <strong>"Web application"</strong> as the type</li>
+              <li>Give it a name (e.g., "Arclo GSC")</li>
+              <li>Copy the <strong>Client ID</strong> shown after creation</li>
+            </ol>
+            <p className="text-xs bg-amber-500/10 text-amber-700 dark:text-amber-400 p-2 rounded mt-2">
+              <strong>First time?</strong> You'll need to create a project and configure the OAuth consent screen first. Select "External" user type and add your email as a test user.
+            </p>
+          </div>
+        </div>
+      </FieldHelp>
+
+      <FieldHelp isOpen={activeHelp === "clientSecret"} onClose={() => setActiveHelp(null)}>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-blue-500" />
+            <h4 className="font-semibold text-foreground">Google Client Secret</h4>
+          </div>
+          <div className="text-sm text-muted-foreground space-y-2">
+            <p>To get your Client Secret:</p>
+            <ol className="list-decimal list-inside space-y-1.5 ml-1">
+              <li>After creating your OAuth client ID, a popup shows both values</li>
+              <li>Copy the <strong>Client Secret</strong> (starts with <code className="bg-muted px-1 rounded">GOCSPX-</code>)</li>
+              <li>If you missed it, click your OAuth client in the credentials list</li>
+              <li>The secret is shown on the right side of the details page</li>
+            </ol>
+            <p className="text-xs bg-blue-500/10 text-blue-700 dark:text-blue-400 p-2 rounded mt-2">
+              <strong>Keep this secret!</strong> Never share this value publicly. It's stored securely on our servers.
+            </p>
+          </div>
+        </div>
+      </FieldHelp>
+
+      <FieldHelp isOpen={activeHelp === "redirectUri"} onClose={() => setActiveHelp(null)}>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Globe className="w-5 h-5 text-blue-500" />
+            <h4 className="font-semibold text-foreground">Redirect URI</h4>
+          </div>
+          <div className="text-sm text-muted-foreground space-y-2">
+            <p>This URL must be added to Google Cloud:</p>
+            <ol className="list-decimal list-inside space-y-1.5 ml-1">
+              <li>Go to your OAuth client in <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Google Cloud Console</a></li>
+              <li>Under <strong>"Authorized redirect URIs"</strong>, click <strong>"+ Add URI"</strong></li>
+              <li>Paste this exact URL:</li>
+            </ol>
+            <div className="bg-muted rounded p-2 font-mono text-xs break-all mt-2">
+              {localRedirectUri}
+            </div>
+            <p className="text-xs bg-red-500/10 text-red-700 dark:text-red-400 p-2 rounded mt-2">
+              <strong>Must match exactly!</strong> Google will reject the connection if this URI doesn't match what's configured in your OAuth client.
+            </p>
+          </div>
+        </div>
+      </FieldHelp>
     </div>
   );
 }
