@@ -284,15 +284,15 @@ function StatCards({ stats, isLoading }: { stats: LeadStats | undefined; isLoadi
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {cards.map((card) => (
-        <Card key={card.label} className="bg-white border-border/50">
+        <Card key={card.label} className="bg-white border-gray-200">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">{card.label}</p>
+                <p className="text-sm text-gray-500">{card.label}</p>
                 {isLoading ? (
-                  <div className="h-8 w-16 bg-muted animate-pulse rounded mt-1" />
+                  <div className="h-8 w-16 bg-gray-100 animate-pulse rounded mt-1" />
                 ) : (
-                  <p className="text-2xl font-bold text-foreground">{card.value}</p>
+                  <p className="text-2xl font-bold text-gray-900">{card.value}</p>
                 )}
               </div>
               <card.icon className={`w-8 h-8 ${card.color} opacity-80`} />
@@ -460,6 +460,10 @@ function LeadDetailDrawer({ lead, open, onOpenChange, onUpdate }: LeadDetailDraw
   useMemo(() => {
     if (lead) {
       setEditData({
+        name: lead.name,
+        email: lead.email,
+        phone: lead.phone,
+        serviceLine: lead.serviceLine,
         leadStatus: lead.leadStatus,
         outcome: lead.outcome,
         noSignupReason: lead.noSignupReason,
@@ -520,80 +524,123 @@ function LeadDetailDrawer({ lead, open, onOpenChange, onUpdate }: LeadDetailDraw
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+      <SheetContent className="w-full sm:max-w-lg overflow-y-auto !bg-white border-l border-gray-200">
         <SheetHeader>
-          <SheetTitle className="flex items-center gap-2">
-            <Contact className="w-5 h-5" />
+          <SheetTitle className="flex items-center gap-2 text-gray-900">
+            <Contact className="w-5 h-5 text-gray-600" />
             {lead.name}
           </SheetTitle>
-          <SheetDescription>
+          <SheetDescription className="text-gray-500">
             Created {format(new Date(lead.createdAt), "MMM d, yyyy 'at' h:mm a")}
           </SheetDescription>
         </SheetHeader>
 
         <div className="mt-6 space-y-6">
-          {/* Contact Info */}
+          {/* Contact Info - Editable */}
           <div className="space-y-3">
-            <h4 className="text-sm font-semibold text-foreground">Contact Information</h4>
-            {lead.phone && (
-              <div className="flex items-center gap-2 text-sm">
-                <Phone className="w-4 h-4 text-muted-foreground" />
-                <a href={`tel:${lead.phone}`} className="text-primary hover:underline">{lead.phone}</a>
-              </div>
-            )}
-            {lead.email && (
-              <div className="flex items-center gap-2 text-sm">
-                <Mail className="w-4 h-4 text-muted-foreground" />
-                <a href={`mailto:${lead.email}`} className="text-primary hover:underline">{lead.email}</a>
-              </div>
-            )}
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <MessageSquare className="w-4 h-4" />
-              {lead.contactAttemptsCount} contact attempt{lead.contactAttemptsCount !== 1 ? "s" : ""}
-              {lead.lastContactedAt && (
-                <span className="ml-1">
-                  (last: {format(new Date(lead.lastContactedAt), "MMM d")})
-                </span>
-              )}
+            <h4 className="text-sm font-semibold text-gray-900">Contact Information</h4>
+            <div className="space-y-2">
+              <Label className="text-gray-700">Name</Label>
+              <Input
+                value={editData.name || ""}
+                onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                className="bg-gray-50 border-gray-300 text-gray-900 placeholder:text-gray-400"
+              />
             </div>
-            <Button variant="outline" size="sm" onClick={handleLogContact}>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label className="text-gray-700">Phone</Label>
+                <Input
+                  value={editData.phone || ""}
+                  onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
+                  placeholder="555-123-4567"
+                  className="bg-gray-50 border-gray-300 text-gray-900 placeholder:text-gray-400"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-gray-700">Email</Label>
+                <Input
+                  type="email"
+                  value={editData.email || ""}
+                  onChange={(e) => setEditData({ ...editData, email: e.target.value })}
+                  placeholder="john@example.com"
+                  className="bg-gray-50 border-gray-300 text-gray-900 placeholder:text-gray-400"
+                />
+              </div>
+            </div>
+            {/* Quick actions row */}
+            <div className="flex items-center gap-3 pt-1">
+              {lead.phone && (
+                <a href={`tel:${lead.phone}`} className="text-sm text-purple-600 hover:underline flex items-center gap-1">
+                  <Phone className="w-3.5 h-3.5" /> Call
+                </a>
+              )}
+              {lead.email && (
+                <a href={`mailto:${lead.email}`} className="text-sm text-purple-600 hover:underline flex items-center gap-1">
+                  <Mail className="w-3.5 h-3.5" /> Email
+                </a>
+              )}
+              <span className="text-sm text-gray-500 flex items-center gap-1">
+                <MessageSquare className="w-3.5 h-3.5" />
+                {lead.contactAttemptsCount} contact{lead.contactAttemptsCount !== 1 ? "s" : ""}
+                {lead.lastContactedAt && (
+                  <span className="ml-0.5">(last: {format(new Date(lead.lastContactedAt), "MMM d")})</span>
+                )}
+              </span>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleLogContact} className="border-gray-300 text-gray-700 hover:bg-gray-100">
               <Phone className="w-4 h-4 mr-1.5" />
               Log Contact Attempt
             </Button>
           </div>
 
-          {/* Source Info */}
+          {/* Service & Source */}
           <div className="space-y-3">
-            <h4 className="text-sm font-semibold text-foreground">Source</h4>
-            <div className="text-sm space-y-1">
-              <p><span className="text-muted-foreground">Type:</span> {SOURCE_TYPE_LABELS[lead.leadSourceType] || lead.leadSourceType}</p>
-              <p><span className="text-muted-foreground">Service:</span> {SERVICE_LINE_LABELS[lead.serviceLine || ""] || lead.serviceLine || "—"}</p>
+            <h4 className="text-sm font-semibold text-gray-900">Service & Source</h4>
+            <div className="space-y-2">
+              <Label className="text-gray-700">Service Line</Label>
+              <Select
+                value={editData.serviceLine || ""}
+                onValueChange={(value) => setEditData({ ...editData, serviceLine: value })}
+              >
+                <SelectTrigger className="bg-gray-50 border-gray-300 text-gray-900">
+                  <SelectValue placeholder="Select service..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(SERVICE_LINE_LABELS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="text-sm space-y-1 text-gray-700">
+              <p><span className="text-gray-500">Source:</span> {SOURCE_TYPE_LABELS[lead.leadSourceType] || lead.leadSourceType}</p>
               {lead.landingPagePath && (
-                <p><span className="text-muted-foreground">Landing Page:</span> {lead.landingPagePath}</p>
+                <p><span className="text-gray-500">Landing Page:</span> {lead.landingPagePath}</p>
               )}
               {lead.utmSource && (
-                <p><span className="text-muted-foreground">UTM Source:</span> {lead.utmSource}</p>
+                <p><span className="text-gray-500">UTM Source:</span> {lead.utmSource}</p>
               )}
               {lead.utmCampaign && (
-                <p><span className="text-muted-foreground">Campaign:</span> {lead.utmCampaign}</p>
+                <p><span className="text-gray-500">Campaign:</span> {lead.utmCampaign}</p>
               )}
               {lead.utmTerm && (
-                <p><span className="text-muted-foreground">Keyword:</span> {lead.utmTerm}</p>
+                <p><span className="text-gray-500">Keyword:</span> {lead.utmTerm}</p>
               )}
             </div>
           </div>
 
           {/* Status & Outcome */}
           <div className="space-y-4">
-            <h4 className="text-sm font-semibold text-foreground">Status & Outcome</h4>
+            <h4 className="text-sm font-semibold text-gray-900">Status & Outcome</h4>
 
             <div className="space-y-2">
-              <Label>Status</Label>
+              <Label className="text-gray-700">Status</Label>
               <Select
                 value={editData.leadStatus || lead.leadStatus}
                 onValueChange={(value) => setEditData({ ...editData, leadStatus: value })}
               >
-                <SelectTrigger>
+                <SelectTrigger className="bg-gray-50 border-gray-300 text-gray-900">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -605,12 +652,12 @@ function LeadDetailDrawer({ lead, open, onOpenChange, onUpdate }: LeadDetailDraw
             </div>
 
             <div className="space-y-2">
-              <Label>Outcome</Label>
+              <Label className="text-gray-700">Outcome</Label>
               <Select
                 value={editData.outcome || lead.outcome}
                 onValueChange={(value) => setEditData({ ...editData, outcome: value, noSignupReason: null, signupType: null })}
               >
-                <SelectTrigger>
+                <SelectTrigger className="bg-gray-50 border-gray-300 text-gray-900">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -624,12 +671,12 @@ function LeadDetailDrawer({ lead, open, onOpenChange, onUpdate }: LeadDetailDraw
             {/* Conditional: Not Signed Up Reason */}
             {(editData.outcome || lead.outcome) === "not_signed_up" && (
               <div className="space-y-2">
-                <Label>Reason</Label>
+                <Label className="text-gray-700">Reason</Label>
                 <Select
                   value={editData.noSignupReason || ""}
                   onValueChange={(value) => setEditData({ ...editData, noSignupReason: value })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-gray-50 border-gray-300 text-gray-900">
                     <SelectValue placeholder="Select reason..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -643,6 +690,7 @@ function LeadDetailDrawer({ lead, open, onOpenChange, onUpdate }: LeadDetailDraw
                     placeholder="Specify reason..."
                     value={editData.noSignupReasonDetail || ""}
                     onChange={(e) => setEditData({ ...editData, noSignupReasonDetail: e.target.value })}
+                    className="bg-gray-50 border-gray-300 text-gray-900 placeholder:text-gray-400"
                   />
                 )}
               </div>
@@ -651,12 +699,12 @@ function LeadDetailDrawer({ lead, open, onOpenChange, onUpdate }: LeadDetailDraw
             {/* Conditional: Signed Up Type */}
             {(editData.outcome || lead.outcome) === "signed_up" && (
               <div className="space-y-2">
-                <Label>Signup Type</Label>
+                <Label className="text-gray-700">Signup Type</Label>
                 <Select
                   value={editData.signupType || ""}
                   onValueChange={(value) => setEditData({ ...editData, signupType: value })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-gray-50 border-gray-300 text-gray-900">
                     <SelectValue placeholder="Select type..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -671,17 +719,18 @@ function LeadDetailDrawer({ lead, open, onOpenChange, onUpdate }: LeadDetailDraw
 
           {/* Notes */}
           <div className="space-y-2">
-            <Label>Notes</Label>
+            <Label className="text-gray-700">Notes</Label>
             <Textarea
               value={editData.notes || ""}
               onChange={(e) => setEditData({ ...editData, notes: e.target.value })}
               rows={4}
               placeholder="Add notes about this lead..."
+              className="bg-gray-50 border-gray-300 text-gray-900 placeholder:text-gray-400"
             />
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-2 pt-4">
+          <div className="flex gap-2 pt-4 border-t border-gray-200">
             <Button
               variant="destructive"
               size="icon"
@@ -691,7 +740,7 @@ function LeadDetailDrawer({ lead, open, onOpenChange, onUpdate }: LeadDetailDraw
             >
               {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
             </Button>
-            <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
+            <Button variant="outline" className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-100" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
             <Button className="flex-1" onClick={handleSave} disabled={isSaving}>
@@ -835,9 +884,9 @@ export default function Leads() {
     return (
       <div className="min-h-screen flex items-center justify-center" style={PAGE_BG}>
         <div className="text-center">
-          <Contact className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-foreground mb-2">No Site Selected</h2>
-          <p className="text-muted-foreground">Please select a website to view leads.</p>
+          <Contact className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">No Site Selected</h2>
+          <p className="text-gray-500">Please select a website to view leads.</p>
         </div>
       </div>
     );
@@ -849,8 +898,8 @@ export default function Leads() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Leads</h1>
-            <p className="text-muted-foreground">Track and manage incoming leads</p>
+            <h1 className="text-2xl font-bold text-gray-900">Leads</h1>
+            <p className="text-gray-500">Track and manage incoming leads</p>
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -871,12 +920,12 @@ export default function Leads() {
 
         {/* Tabs */}
         <Tabs defaultValue="leads" className="w-full">
-          <TabsList className="bg-white/80 border border-border/50">
-            <TabsTrigger value="leads" className="flex items-center gap-2">
+          <TabsList className="bg-white/80 border border-gray-200">
+            <TabsTrigger value="leads" className="flex items-center gap-2 data-[state=active]:text-gray-900 text-gray-600">
               <List className="w-4 h-4" />
               Leads
             </TabsTrigger>
-            <TabsTrigger value="analytics" className="flex items-center gap-2">
+            <TabsTrigger value="analytics" className="flex items-center gap-2 data-[state=active]:text-gray-900 text-gray-600">
               <BarChart3 className="w-4 h-4" />
               Analytics
             </TabsTrigger>
@@ -892,23 +941,23 @@ export default function Leads() {
         <StatCards stats={stats} isLoading={statsLoading} />
 
         {/* Filters */}
-        <Card className="bg-white border-border/50">
+        <Card className="bg-white border-gray-200">
           <CardContent className="p-4">
             <div className="flex flex-wrap items-center gap-3">
               <div className="relative flex-1 min-w-[200px]">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
                   placeholder="Search by name, email, or phone..."
                   value={filters.search}
                   onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                  className="pl-9"
+                  className="pl-9 bg-gray-50 border-gray-300 text-gray-900 placeholder:text-gray-400"
                 />
               </div>
               <Select
                 value={filters.status}
                 onValueChange={(value) => setFilters({ ...filters, status: value })}
               >
-                <SelectTrigger className="w-[150px]">
+                <SelectTrigger className="w-[150px] bg-gray-50 border-gray-300 text-gray-900">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -922,7 +971,7 @@ export default function Leads() {
                 value={filters.outcome}
                 onValueChange={(value) => setFilters({ ...filters, outcome: value })}
               >
-                <SelectTrigger className="w-[150px]">
+                <SelectTrigger className="w-[150px] bg-gray-50 border-gray-300 text-gray-900">
                   <SelectValue placeholder="Outcome" />
                 </SelectTrigger>
                 <SelectContent>
@@ -936,7 +985,7 @@ export default function Leads() {
                 value={filters.serviceLine}
                 onValueChange={(value) => setFilters({ ...filters, serviceLine: value })}
               >
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-[180px] bg-gray-50 border-gray-300 text-gray-900">
                   <SelectValue placeholder="Service" />
                 </SelectTrigger>
                 <SelectContent>
@@ -950,8 +999,8 @@ export default function Leads() {
                 value={filters.month}
                 onValueChange={(value) => setFilters({ ...filters, month: value })}
               >
-                <SelectTrigger className="w-[160px]">
-                  <Calendar className="w-4 h-4 mr-2" />
+                <SelectTrigger className="w-[160px] bg-gray-50 border-gray-300 text-gray-900">
+                  <Calendar className="w-4 h-4 mr-2 text-gray-500" />
                   <SelectValue placeholder="Month" />
                 </SelectTrigger>
                 <SelectContent>
@@ -962,7 +1011,7 @@ export default function Leads() {
                 </SelectContent>
               </Select>
               {hasActiveFilters && (
-                <Button variant="ghost" size="sm" onClick={clearFilters}>
+                <Button variant="ghost" size="sm" onClick={clearFilters} className="text-gray-600 hover:text-gray-900">
                   <X className="w-4 h-4 mr-1" />
                   Clear
                 </Button>
@@ -972,17 +1021,17 @@ export default function Leads() {
         </Card>
 
         {/* Table */}
-        <Card className="bg-white border-border/50">
+        <Card className="bg-white border-gray-200">
           <CardContent className="p-0">
             {leadsLoading ? (
               <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
               </div>
             ) : !leadsData?.leads?.length ? (
               <div className="flex flex-col items-center justify-center py-12">
-                <Contact className="w-12 h-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold text-foreground mb-1">No leads found</h3>
-                <p className="text-muted-foreground mb-4">
+                <Contact className="w-12 h-12 text-gray-400 mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">No leads found</h3>
+                <p className="text-gray-500 mb-4">
                   {hasActiveFilters ? "Try adjusting your filters" : "Add your first lead to get started"}
                 </p>
                 {!hasActiveFilters && (
@@ -995,27 +1044,27 @@ export default function Leads() {
             ) : (
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[100px]">Created</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Service</TableHead>
-                    <TableHead>Source</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Outcome</TableHead>
-                    <TableHead>Reason</TableHead>
+                  <TableRow className="border-gray-200">
+                    <TableHead className="w-[100px] text-gray-600">Created</TableHead>
+                    <TableHead className="text-gray-600">Name</TableHead>
+                    <TableHead className="text-gray-600">Contact</TableHead>
+                    <TableHead className="text-gray-600">Service</TableHead>
+                    <TableHead className="text-gray-600">Source</TableHead>
+                    <TableHead className="text-gray-600">Status</TableHead>
+                    <TableHead className="text-gray-600">Outcome</TableHead>
+                    <TableHead className="text-gray-600">Reason</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {Object.entries(leadsByMonth).map(([monthKey, monthData]) => (
                     <Fragment key={monthKey}>
                       {/* Month section header */}
-                      <TableRow className="bg-muted/30 hover:bg-muted/30">
+                      <TableRow className="bg-gray-50 hover:bg-gray-50 border-gray-200">
                         <TableCell colSpan={8} className="py-3">
                           <div className="flex items-center gap-2">
-                            <Calendar className="w-4 h-4 text-primary" />
-                            <span className="font-semibold text-foreground">{monthData.label}</span>
-                            <Badge variant="secondary" className="ml-2 bg-primary/10 text-primary">
+                            <Calendar className="w-4 h-4 text-purple-600" />
+                            <span className="font-semibold text-gray-900">{monthData.label}</span>
+                            <Badge variant="secondary" className="ml-2 bg-purple-50 text-purple-700 border border-purple-200">
                               {monthData.leads.length} lead{monthData.leads.length !== 1 ? "s" : ""}
                             </Badge>
                           </div>
@@ -1030,33 +1079,33 @@ export default function Leads() {
                         return (
                           <TableRow
                             key={lead.leadId}
-                            className="cursor-pointer hover:bg-muted/50"
+                            className="cursor-pointer hover:bg-gray-50 border-gray-100"
                             onClick={() => handleRowClick(lead)}
                           >
-                            <TableCell className="text-sm text-muted-foreground">
+                            <TableCell className="text-sm text-gray-500">
                               {format(new Date(lead.createdAt), "MMM d")}
                             </TableCell>
-                            <TableCell className="font-medium">{lead.name}</TableCell>
+                            <TableCell className="font-medium text-gray-900">{lead.name}</TableCell>
                             <TableCell>
                               <div className="flex flex-col gap-0.5 text-sm">
                                 {lead.phone && (
-                                  <span className="flex items-center gap-1 text-muted-foreground">
+                                  <span className="flex items-center gap-1 text-gray-600">
                                     <Phone className="w-3 h-3" />
                                     {lead.phone}
                                   </span>
                                 )}
                                 {lead.email && (
-                                  <span className="flex items-center gap-1 text-muted-foreground truncate max-w-[150px]">
+                                  <span className="flex items-center gap-1 text-gray-600 truncate max-w-[150px]">
                                     <Mail className="w-3 h-3" />
                                     {lead.email}
                                   </span>
                                 )}
                               </div>
                             </TableCell>
-                            <TableCell className="text-sm">
+                            <TableCell className="text-sm text-gray-700">
                               {SERVICE_LINE_LABELS[lead.serviceLine || ""] || "—"}
                             </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
+                            <TableCell className="text-sm text-gray-500">
                               {SOURCE_TYPE_LABELS[lead.leadSourceType] || lead.leadSourceType}
                             </TableCell>
                             <TableCell>
@@ -1065,12 +1114,12 @@ export default function Leads() {
                               </Badge>
                             </TableCell>
                             <TableCell>
-                              <span className="flex items-center gap-1 text-sm">
+                              <span className="flex items-center gap-1 text-sm text-gray-700">
                                 <OutcomeIcon className="w-4 h-4" />
                                 {outcomeInfo.label}
                               </span>
                             </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
+                            <TableCell className="text-sm text-gray-500">
                               {lead.noSignupReason ? NO_SIGNUP_REASON_LABELS[lead.noSignupReason] || lead.noSignupReason : "—"}
                             </TableCell>
                           </TableRow>
@@ -1086,7 +1135,7 @@ export default function Leads() {
 
         {/* Total count */}
         {leadsData && leadsData.total > 0 && (
-          <p className="text-sm text-muted-foreground text-center">
+          <p className="text-sm text-gray-500 text-center">
             Showing {leadsData.leads.length} of {leadsData.total} leads
           </p>
         )}
