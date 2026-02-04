@@ -1,17 +1,15 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useInsights, type DashboardTip, type TipCategory, type TipSentiment } from "@/hooks/useOpsDashboard";
 import { GlassCard, GlassCardContent } from "@/components/ui/GlassCard";
 import {
-  TrendingUp,
-  TrendingDown,
   Lightbulb,
-  FileText,
-  Settings,
   Trophy,
   AlertTriangle,
   ArrowRight,
   ChevronDown,
   ChevronRight,
+  ChevronLeft,
+  Calendar,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useLocation } from "wouter";
@@ -43,15 +41,24 @@ const SENTIMENT_COLORS: Record<TipSentiment, string> = {
 
 // ── Individual tip card ──────────────────────────────────────
 
-function InsightCard({ tip }: { tip: DashboardTip }) {
+interface InsightCardProps {
+  tip: DashboardTip;
+  onScheduleAction?: (tip: DashboardTip) => void;
+}
+
+function InsightCard({ tip, onScheduleAction }: InsightCardProps) {
   const [, navigate] = useLocation();
   const badge = CATEGORY_STYLES[tip.category];
   const Icon = SENTIMENT_ICONS[tip.sentiment];
   const iconColor = SENTIMENT_COLORS[tip.sentiment];
 
+  // Determine if this is an actionable insight that can be scheduled
+  const isSchedulable = tip.sentiment === "action" && tip.category !== "system";
+  const isSetupAction = tip.category === "system";
+
   return (
-    <GlassCard variant="marketing" hover>
-      <GlassCardContent className="p-5">
+    <GlassCard variant="marketing" hover className="flex-shrink-0 w-full">
+      <GlassCardContent className="p-5 h-full flex flex-col">
         {/* Badge + icon row */}
         <div className="flex items-start justify-between mb-3">
           <span
@@ -75,21 +82,36 @@ function InsightCard({ tip }: { tip: DashboardTip }) {
         >
           {tip.title}
         </h4>
-        <p className="text-[13px] leading-relaxed" style={{ color: "#64748B" }}>
+        <p className="text-[13px] leading-relaxed flex-grow" style={{ color: "#64748B" }}>
           {tip.body}
         </p>
 
-        {/* Optional action */}
-        {tip.actionLabel && tip.actionRoute && (
-          <button
-            onClick={() => navigate(tip.actionRoute!)}
-            className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors hover:bg-purple-50"
-            style={{ color: "#7c3aed", border: "1px solid rgba(124, 58, 237, 0.2)" }}
-          >
-            {tip.actionLabel}
-            <ArrowRight className="w-3 h-3" />
-          </button>
-        )}
+        {/* Action buttons */}
+        <div className="mt-3 flex flex-wrap gap-2">
+          {/* Schedule button for actionable insights */}
+          {isSchedulable && onScheduleAction && (
+            <button
+              onClick={() => onScheduleAction(tip)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors hover:bg-green-50"
+              style={{ color: "#22c55e", border: "1px solid rgba(34, 197, 94, 0.3)", background: "rgba(34, 197, 94, 0.05)" }}
+            >
+              <Calendar className="w-3 h-3" />
+              Schedule Fix
+            </button>
+          )}
+
+          {/* Navigation button for setup actions or if actionRoute is provided */}
+          {tip.actionLabel && tip.actionRoute && (
+            <button
+              onClick={() => navigate(tip.actionRoute!)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors hover:bg-purple-50"
+              style={{ color: "#7c3aed", border: "1px solid rgba(124, 58, 237, 0.2)" }}
+            >
+              {tip.actionLabel}
+              <ArrowRight className="w-3 h-3" />
+            </button>
+          )}
+        </div>
       </GlassCardContent>
     </GlassCard>
   );
@@ -102,6 +124,7 @@ interface InsightsSectionProps {
 }
 
 const STORAGE_KEY = "arclo-insights-collapsed";
+const ITEMS_PER_PAGE = 4; // Show 4 items at a time on desktop
 
 export function InsightsSection({ siteId }: InsightsSectionProps) {
   const { data, isLoading } = useInsights(siteId);
@@ -112,6 +135,8 @@ export function InsightsSection({ siteId }: InsightsSectionProps) {
       return false;
     }
   });
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const carouselRef = useRef<HTMLDivElement>(null);
 
   const toggleCollapsed = () => {
     setCollapsed((prev) => {
@@ -125,29 +150,101 @@ export function InsightsSection({ siteId }: InsightsSectionProps) {
     });
   };
 
+  // Handle scheduling an action
+  const handleScheduleAction = (tip: DashboardTip) => {
+    // TODO: Open scheduling modal or navigate to content queue
+    console.log("Schedule action for:", tip.title);
+    alert(`Scheduling fix for: "${tip.title}"\n\nThis will be added to your weekly update queue.`);
+  };
+
+  // Navigation
+  const totalTips = data?.tips?.length || 0;
+  const maxIndex = Math.max(0, totalTips - ITEMS_PER_PAGE);
+
+  const goNext = () => {
+    setCurrentIndex((prev) => Math.min(prev + 1, maxIndex));
+  };
+
+  const goPrev = () => {
+    setCurrentIndex((prev) => Math.max(prev - 1, 0));
+  };
+
+  // Scroll carousel when index changes
+  useEffect(() => {
+    if (carouselRef.current) {
+      const scrollWidth = carouselRef.current.scrollWidth;
+      const containerWidth = carouselRef.current.clientWidth;
+      const itemWidth = (scrollWidth - (totalTips - 1) * 16) / totalTips; // 16px gap
+      const scrollLeft = currentIndex * (itemWidth + 16);
+      carouselRef.current.scrollTo({ left: scrollLeft, behavior: "smooth" });
+    }
+  }, [currentIndex, totalTips]);
+
   if (isLoading || !data || data.tips.length === 0) {
     return null;
   }
 
+  const showNavigation = totalTips > ITEMS_PER_PAGE;
+
   return (
     <div className="space-y-3">
-      <button
-        onClick={toggleCollapsed}
-        className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide transition-colors hover:opacity-80"
-        style={{ color: "#94A3B8" }}
-      >
-        {collapsed ? (
-          <ChevronRight className="w-4 h-4" />
-        ) : (
-          <ChevronDown className="w-4 h-4" />
+      {/* Header with collapse toggle and navigation */}
+      <div className="flex items-center justify-between">
+        <button
+          onClick={toggleCollapsed}
+          className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide transition-colors hover:opacity-80"
+          style={{ color: "#94A3B8" }}
+        >
+          {collapsed ? (
+            <ChevronRight className="w-4 h-4" />
+          ) : (
+            <ChevronDown className="w-4 h-4" />
+          )}
+          Insights
+          <span className="ml-1 normal-case font-normal">({data.tips.length})</span>
+        </button>
+
+        {/* Carousel navigation */}
+        {!collapsed && showNavigation && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs" style={{ color: "#94A3B8" }}>
+              {currentIndex + 1}-{Math.min(currentIndex + ITEMS_PER_PAGE, totalTips)} of {totalTips}
+            </span>
+            <button
+              onClick={goPrev}
+              disabled={currentIndex === 0}
+              className="p-1.5 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-100"
+              style={{ border: "1px solid rgba(15, 23, 42, 0.1)" }}
+            >
+              <ChevronLeft className="w-4 h-4" style={{ color: "#64748B" }} />
+            </button>
+            <button
+              onClick={goNext}
+              disabled={currentIndex >= maxIndex}
+              className="p-1.5 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-100"
+              style={{ border: "1px solid rgba(15, 23, 42, 0.1)" }}
+            >
+              <ChevronRight className="w-4 h-4" style={{ color: "#64748B" }} />
+            </button>
+          </div>
         )}
-        Insights
-        <span className="ml-1 normal-case font-normal">({data.tips.length})</span>
-      </button>
+      </div>
+
+      {/* Carousel container */}
       {!collapsed && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div
+          ref={carouselRef}
+          className="flex gap-4 overflow-x-auto scrollbar-hide"
+          style={{ scrollSnapType: "x mandatory", scrollbarWidth: "none", msOverflowStyle: "none" }}
+        >
           {data.tips.map((tip) => (
-            <InsightCard key={tip.id} tip={tip} />
+            <div
+              key={tip.id}
+              className="flex-shrink-0 w-[calc(100%-16px)] sm:w-[calc(50%-8px)] lg:w-[calc(25%-12px)]"
+              style={{ scrollSnapAlign: "start" }}
+            >
+              <InsightCard tip={tip} onScheduleAction={handleScheduleAction} />
+            </div>
           ))}
         </div>
       )}

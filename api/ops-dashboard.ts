@@ -129,26 +129,55 @@ function buildSerpSnapshot(fullReport: any) {
     return {
       hasBaseline: false,
       totalTracked: 0,
-      rankingCounts: { position1: 0, top3: 0, top10: 0, top100: 0 },
+      rankingCounts: { position1: 0, top3: 0, top10: 0, top100: 0, notRanking: 0 },
       weekOverWeek: { netChange: 0, gained: 0, lost: 0, improved: 0, declined: 0 },
       lastChecked: null,
     };
   }
 
-  let position1 = 0, top3 = 0, top10 = 0, top100 = 0;
+  // Count keywords in each EXCLUSIVE bucket
+  let position1 = 0;      // Exactly #1
+  let positions2to3 = 0;  // #2-3
+  let positions4to10 = 0; // #4-10
+  let positions11to100 = 0; // #11-100
+  let notRanking = 0;     // Not in top 100
+
   for (const r of serpResults) {
-    if (r.position != null) {
-      if (r.position === 1) position1++;
-      if (r.position <= 3) top3++;
-      if (r.position <= 10) top10++;
-      if (r.position <= 100) top100++;
+    if (r.position == null) {
+      notRanking++;
+    } else if (r.position === 1) {
+      position1++;
+    } else if (r.position <= 3) {
+      positions2to3++;
+    } else if (r.position <= 10) {
+      positions4to10++;
+    } else if (r.position <= 100) {
+      positions11to100++;
+    } else {
+      notRanking++;
     }
   }
+
+  // For display, we'll return both exclusive and cumulative counts
+  // Cumulative for the "Top X" stats
+  const top3 = position1 + positions2to3;
+  const top10 = top3 + positions4to10;
+  const top100 = top10 + positions11to100;
 
   return {
     hasBaseline: true,
     totalTracked: serpResults.length,
-    rankingCounts: { position1, top3, top10, top100 },
+    rankingCounts: {
+      position1,
+      top3,      // Cumulative: 1-3
+      top10,     // Cumulative: 1-10
+      top100,    // Cumulative: 1-100
+      notRanking,
+      // Also include exclusive counts for better UI
+      positions2to3,
+      positions4to10,
+      positions11to100,
+    },
     // No historical data yet for week-over-week — first scan is the baseline
     weekOverWeek: { netChange: 0, gained: 0, lost: 0, improved: 0, declined: 0 },
     lastChecked: new Date().toISOString().slice(0, 10),
@@ -537,14 +566,32 @@ function buildInsights(fullReport: any, scoreSummary: any, findings: any[], goog
 
   // SERP insights
   const serpResults: any[] = fullReport?.serp_results || fullReport?.serp?.results || [];
-  const ranking = serpResults.filter((r: any) => r.position != null);
+  const ranking = serpResults.filter((r: any) => r.position != null && r.position <= 100);
+  const notRanking = serpResults.filter((r: any) => r.position == null || r.position > 100);
   const top10 = ranking.filter((r: any) => r.position <= 10);
+
+  // Calculate ranking percentage
+  const rankingPercentage = serpResults.length > 0 ? Math.round((ranking.length / serpResults.length) * 100) : 0;
+
+  // URGENT: Keywords not ranking (potential lost rankings)
+  if (notRanking.length > 0 && notRanking.length >= serpResults.length * 0.3) {
+    // If 30% or more keywords are not ranking, this is a concern
+    const sampleKeywords = notRanking.slice(0, 3).map((r: any) => `"${r.keyword}"`).join(", ");
+    tips.push({
+      id: "serp-lost-rankings",
+      title: `${notRanking.length} keywords not ranking`,
+      body: `You're not appearing in search results for ${notRanking.length} tracked keywords including ${sampleKeywords}. Review content freshness and check for technical issues.`,
+      category: "rankings",
+      priority: priority++,
+      sentiment: "action",
+    });
+  }
 
   if (serpResults.length > 0 && ranking.length === 0) {
     tips.push({
       id: "serp-none",
-      title: "Not ranking for tracked keywords",
-      body: "None of your tracked keywords appear in the top 100. Consider targeting less competitive terms.",
+      title: "Not ranking for any tracked keywords",
+      body: "None of your tracked keywords appear in the top 100. This could indicate indexing issues or highly competitive terms.",
       category: "rankings",
       priority: priority++,
       sentiment: "action",
@@ -600,13 +647,14 @@ function buildInsights(fullReport: any, scoreSummary: any, findings: any[], goog
     });
   }
 
-  // Content gap tips based on SERP data
-  const notRanking = serpResults.filter((r: any) => r.position == null);
-  if (notRanking.length > 10) {
+  // Content gap tips - suggest creating content for keywords not ranking
+  // (notRanking is already defined above)
+  if (notRanking.length > 5 && !tips.some(t => t.id === "serp-lost-rankings")) {
+    // Only add this if we didn't already add the lost rankings alert
     tips.push({
       id: "content-gaps",
       title: `${notRanking.length} keyword opportunities`,
-      body: "Create content for keywords you're not ranking for to expand your search visibility.",
+      body: "Create targeted content for keywords you're not ranking for to expand your search visibility.",
       category: "content",
       priority: priority++,
       sentiment: "action",

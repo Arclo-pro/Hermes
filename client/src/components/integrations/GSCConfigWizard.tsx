@@ -129,11 +129,22 @@ function StepOAuth({
   isConnecting,
   error,
   onRetry,
+  onEditCredentials,
 }: {
   isConnecting: boolean;
   error: string | null;
   onRetry: () => void;
+  onEditCredentials?: () => void;
 }) {
+  // Check if the error suggests credential issues
+  const isCredentialError = error && (
+    error.toLowerCase().includes("access denied") ||
+    error.toLowerCase().includes("invalid") ||
+    error.toLowerCase().includes("unauthorized") ||
+    error.toLowerCase().includes("client") ||
+    error.toLowerCase().includes("secret")
+  );
+
   return (
     <div className="space-y-5 text-center">
       {error ? (
@@ -144,11 +155,24 @@ function StepOAuth({
           <div>
             <h3 className="text-lg font-semibold text-foreground">Connection Failed</h3>
             <p className="text-sm text-muted-foreground mt-2 max-w-sm mx-auto">{error}</p>
+            {isCredentialError && (
+              <p className="text-xs text-amber-600 mt-2">
+                This may be due to incorrect OAuth credentials.
+              </p>
+            )}
           </div>
-          <Button variant="primary" onClick={onRetry}>
-            <RefreshCw className="w-4 h-4 mr-1.5" />
-            Try Again
-          </Button>
+          <div className="flex flex-col gap-2">
+            <Button variant="primary" onClick={onRetry}>
+              <RefreshCw className="w-4 h-4 mr-1.5" />
+              Try Again
+            </Button>
+            {onEditCredentials && (
+              <Button variant="outline" onClick={onEditCredentials}>
+                <Settings className="w-4 h-4 mr-1.5" />
+                Update Credentials
+              </Button>
+            )}
+          </div>
         </>
       ) : (
         <>
@@ -789,6 +813,10 @@ export function GSCConfigWizard({ open, onOpenChange, siteId, siteDomain }: GSCC
             isConnecting={google.isConnecting}
             error={oauthError}
             onRetry={handleStartOAuth}
+            onEditCredentials={() => {
+              setOauthError(null);
+              setStep("oauth-config");
+            }}
           />
         )}
 

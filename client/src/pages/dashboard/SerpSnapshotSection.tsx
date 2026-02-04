@@ -108,13 +108,14 @@ export function SerpSnapshotSection({ siteId }: SerpSnapshotSectionProps) {
         </div>
       </GlassCardHeader>
       <GlassCardContent>
-        {/* Ranking Bucket Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-          <StatBucket label="Total Tracked" value={data.totalTracked} icon={Target} color="#7c3aed" />
-          <StatBucket label="#1 Rankings" value={rankingCounts.position1} icon={Trophy} color="#f59e0b" />
-          <StatBucket label="Top 3" value={rankingCounts.top3} icon={Trophy} color="#ec4899" />
-          <StatBucket label="Top 10" value={rankingCounts.top10} icon={TrendingUp} color="#22c55e" />
-          <StatBucket label="Top 100" value={rankingCounts.top100} icon={Target} color="#64748B" />
+        {/* Ranking Bucket Cards - Exclusive counts (don't overlap) */}
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-3 mb-6">
+          <StatBucket label="#1" value={rankingCounts.position1} icon={Trophy} color="#f59e0b" />
+          <StatBucket label="#2-3" value={rankingCounts.positions2to3 ?? (rankingCounts.top3 - rankingCounts.position1)} icon={Trophy} color="#ec4899" />
+          <StatBucket label="#4-10" value={rankingCounts.positions4to10 ?? (rankingCounts.top10 - rankingCounts.top3)} icon={TrendingUp} color="#22c55e" />
+          <StatBucket label="#11-100" value={rankingCounts.positions11to100 ?? (rankingCounts.top100 - rankingCounts.top10)} icon={Target} color="#3b82f6" />
+          <StatBucket label="Not Ranking" value={rankingCounts.notRanking ?? (data.totalTracked - rankingCounts.top100)} icon={Search} color="#ef4444" />
+          <StatBucket label="Total" value={data.totalTracked} icon={Target} color="#64748B" />
         </div>
 
         {/* Week-over-Week Summary */}

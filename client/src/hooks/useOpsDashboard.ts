@@ -30,6 +30,11 @@ export interface SerpSnapshotData {
     top3: number;
     top10: number;
     top100: number;
+    notRanking?: number;
+    // Exclusive counts (non-overlapping buckets)
+    positions2to3?: number;
+    positions4to10?: number;
+    positions11to100?: number;
   };
   weekOverWeek: {
     netChange: number;

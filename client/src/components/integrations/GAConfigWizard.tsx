@@ -89,11 +89,13 @@ function StepSignIn({
   error,
   onStart,
   onRetry,
+  onEditCredentials,
 }: {
   isConnecting: boolean;
   error: string | null;
   onStart: () => void;
   onRetry: () => void;
+  onEditCredentials?: () => void;
 }) {
   if (isConnecting) {
     return (
@@ -116,6 +118,13 @@ function StepSignIn({
   }
 
   if (error) {
+    // Check if the error suggests credential issues
+    const isCredentialError = error.toLowerCase().includes("access denied") ||
+                              error.toLowerCase().includes("invalid") ||
+                              error.toLowerCase().includes("unauthorized") ||
+                              error.toLowerCase().includes("client") ||
+                              error.toLowerCase().includes("secret");
+
     return (
       <div className="space-y-5 text-center">
         <div className="w-14 h-14 rounded-2xl bg-semantic-danger/10 flex items-center justify-center mx-auto">
@@ -124,11 +133,24 @@ function StepSignIn({
         <div>
           <h3 className="text-lg font-semibold text-foreground">Connection Failed</h3>
           <p className="text-sm text-muted-foreground mt-2 max-w-sm mx-auto">{error}</p>
+          {isCredentialError && (
+            <p className="text-xs text-amber-600 mt-2">
+              This may be due to incorrect OAuth credentials.
+            </p>
+          )}
         </div>
-        <Button variant="primary" onClick={onRetry}>
-          <RefreshCw className="w-4 h-4 mr-1.5" />
-          Try Again
-        </Button>
+        <div className="flex flex-col gap-2">
+          <Button variant="primary" onClick={onRetry}>
+            <RefreshCw className="w-4 h-4 mr-1.5" />
+            Try Again
+          </Button>
+          {onEditCredentials && (
+            <Button variant="outline" onClick={onEditCredentials}>
+              <Settings className="w-4 h-4 mr-1.5" />
+              Update Credentials
+            </Button>
+          )}
+        </div>
       </div>
     );
   }
@@ -978,6 +1000,10 @@ export function GAConfigWizard({ open, onOpenChange, siteId, siteDomain }: GACon
             error={oauthError}
             onStart={handleStartOAuth}
             onRetry={handleStartOAuth}
+            onEditCredentials={() => {
+              setOauthError(null);
+              setStep("oauth-config");
+            }}
           />
         )}
 
