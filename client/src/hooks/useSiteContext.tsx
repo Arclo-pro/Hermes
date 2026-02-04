@@ -53,8 +53,12 @@ export function SiteProvider({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
-    if (!selectedSiteId && sites.length > 0) {
-      setSelectedSiteIdState(sites[0].siteId);
+    if (sites.length > 0) {
+      // Auto-select first site if no selection or if stored siteId doesn't match any available site
+      const matchesSite = selectedSiteId && sites.some(s => s.siteId === selectedSiteId);
+      if (!matchesSite) {
+        setSelectedSiteIdState(sites[0].siteId);
+      }
     }
   }, [sites, selectedSiteId]);
 
