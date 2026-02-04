@@ -131,26 +131,53 @@ function ProtectedRoute({ component: Component, lightMode = false }: { component
   );
 }
 
-class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
-  state: { error: Error | null } = { error: null };
+class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null; isChunkError: boolean }> {
+  state: { error: Error | null; isChunkError: boolean } = { error: null, isChunkError: false };
 
   static getDerivedStateFromError(error: Error) {
-    return { error };
+    // Detect chunk load errors (dynamic import failures after deployment)
+    const isChunkError = error.message.includes("Failed to fetch dynamically imported module") ||
+                         error.message.includes("Loading chunk") ||
+                         error.message.includes("Loading CSS chunk") ||
+                         error.name === "ChunkLoadError";
+    return { error, isChunkError };
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error("[ErrorBoundary]", error, info.componentStack);
+
+    // Auto-reload for chunk errors (stale deployment)
+    if (this.state.isChunkError) {
+      console.log("[ErrorBoundary] Chunk load error detected, reloading page...");
+      // Small delay to avoid rapid reload loops
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
+    }
   }
 
   render() {
     if (this.state.error) {
+      // For chunk errors, show a brief loading state while reload happens
+      if (this.state.isChunkError) {
+        return (
+          <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#fff", padding: "2rem" }}>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ width: 48, height: 48, border: "4px solid #2563EB", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 1s linear infinite", margin: "0 auto 1rem" }} />
+              <p style={{ color: "#475569" }}>Updating to latest version...</p>
+              <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+            </div>
+          </div>
+        );
+      }
+
       return (
         <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#fff", padding: "2rem" }}>
           <div style={{ maxWidth: 480, textAlign: "center" }}>
             <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "#0F172A", marginBottom: "1rem" }}>Something went wrong</h1>
             <p style={{ color: "#475569", marginBottom: "1.5rem" }}>{this.state.error.message}</p>
             <button
-              onClick={() => { this.setState({ error: null }); window.location.href = "/"; }}
+              onClick={() => { this.setState({ error: null, isChunkError: false }); window.location.href = "/"; }}
               style={{ padding: "0.75rem 1.5rem", background: "#2563EB", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: "1rem" }}
             >
               Go Home

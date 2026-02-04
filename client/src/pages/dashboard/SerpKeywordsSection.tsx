@@ -6,7 +6,9 @@ import {
   GlassCardTitle,
   GlassCardContent,
 } from "@/components/ui/GlassCard";
-import { TrendingUp, ArrowUp, ArrowDown, Minus, Sparkles, Loader2, BarChart3, Table2 } from "lucide-react";
+import { TrendingUp, ArrowUp, ArrowDown, Minus, Sparkles, Loader2, BarChart3, Table2, ChevronLeft, ChevronRight } from "lucide-react";
+
+const ITEMS_PER_PAGE = 20;
 import {
   LineChart,
   Line,
@@ -36,6 +38,7 @@ export function SerpKeywordsSection({ siteId }: SerpKeywordsSectionProps) {
   const [view, setView] = useState<"chart" | "table">("chart");
   const [visibleKeywords, setVisibleKeywords] = useState<Set<number>>(new Set());
   const [initialized, setInitialized] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Initialize visible keywords to top 5 by default
   if (data?.keywords && data.keywords.length > 0 && !initialized) {
@@ -64,6 +67,22 @@ export function SerpKeywordsSection({ siteId }: SerpKeywordsSectionProps) {
       (a.date as any as string).localeCompare(b.date as any as string)
     );
   }, [data, visibleKeywords]);
+
+  // Pagination logic for table view
+  const totalPages = Math.ceil((data?.keywords?.length || 0) / ITEMS_PER_PAGE);
+  const paginatedKeywords = useMemo(() => {
+    if (!data?.keywords) return [];
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return data.keywords.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [data?.keywords, currentPage]);
+
+  // Reset to page 1 when switching to table view or when data changes
+  const handleViewChange = (newView: "chart" | "table") => {
+    setView(newView);
+    if (newView === "table") {
+      setCurrentPage(1);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -125,7 +144,7 @@ export function SerpKeywordsSection({ siteId }: SerpKeywordsSectionProps) {
           </GlassCardTitle>
           <div className="flex items-center gap-1 rounded-lg p-0.5" style={{ background: "rgba(15, 23, 42, 0.04)" }}>
             <button
-              onClick={() => setView("chart")}
+              onClick={() => handleViewChange("chart")}
               className="px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
               style={{
                 background: view === "chart" ? "#FFFFFF" : "transparent",
@@ -137,7 +156,7 @@ export function SerpKeywordsSection({ siteId }: SerpKeywordsSectionProps) {
               Chart
             </button>
             <button
-              onClick={() => setView("table")}
+              onClick={() => handleViewChange("table")}
               className="px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
               style={{
                 background: view === "table" ? "#FFFFFF" : "transparent",
@@ -245,57 +264,99 @@ export function SerpKeywordsSection({ siteId }: SerpKeywordsSectionProps) {
         )}
 
         {view === "table" && (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr style={{ borderBottom: "1px solid rgba(15, 23, 42, 0.08)" }}>
-                  <th className="text-left text-xs font-semibold py-3 px-3" style={{ color: "#64748B" }}>Keyword</th>
-                  <th className="text-center text-xs font-semibold py-3 px-3" style={{ color: "#64748B" }}>Position</th>
-                  <th className="text-center text-xs font-semibold py-3 px-3" style={{ color: "#64748B" }}>7d</th>
-                  <th className="text-center text-xs font-semibold py-3 px-3" style={{ color: "#64748B" }}>30d</th>
-                  <th className="text-center text-xs font-semibold py-3 px-3" style={{ color: "#64748B" }}>90d</th>
-                  <th className="text-center text-xs font-semibold py-3 px-3" style={{ color: "#64748B" }}>Volume</th>
-                  <th className="text-center text-xs font-semibold py-3 px-3" style={{ color: "#64748B" }}>Intent</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.keywords.map((kw) => (
-                  <tr
-                    key={kw.id}
-                    style={{ borderBottom: "1px solid rgba(15, 23, 42, 0.04)" }}
-                  >
-                    <td className="py-3 px-3">
-                      <div className="flex items-center gap-2">
-                        <DirectionIcon direction={kw.direction} />
-                        <span className="text-sm font-medium" style={{ color: "#0F172A" }}>{kw.keyword}</span>
-                      </div>
-                    </td>
-                    <td className="text-center py-3 px-3">
-                      <span className="text-sm font-bold" style={{ color: "#0F172A" }}>
-                        {kw.currentPosition != null ? `#${kw.currentPosition}` : "---"}
-                      </span>
-                    </td>
-                    <td className="text-center py-3 px-3">
-                      <ChangeCell value={kw.change7d} />
-                    </td>
-                    <td className="text-center py-3 px-3">
-                      <ChangeCell value={kw.change30d} />
-                    </td>
-                    <td className="text-center py-3 px-3">
-                      <ChangeCell value={kw.change90d} />
-                    </td>
-                    <td className="text-center py-3 px-3">
-                      <span className="text-xs" style={{ color: "#64748B" }}>
-                        {kw.volume != null ? kw.volume.toLocaleString() : "---"}
-                      </span>
-                    </td>
-                    <td className="text-center py-3 px-3">
-                      <IntentBadge intent={kw.intent} />
-                    </td>
+          <div className="space-y-4">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr style={{ borderBottom: "1px solid rgba(15, 23, 42, 0.08)" }}>
+                    <th className="text-left text-xs font-semibold py-3 px-3" style={{ color: "#64748B" }}>Keyword</th>
+                    <th className="text-center text-xs font-semibold py-3 px-3" style={{ color: "#64748B" }}>Position</th>
+                    <th className="text-center text-xs font-semibold py-3 px-3" style={{ color: "#64748B" }}>7d</th>
+                    <th className="text-center text-xs font-semibold py-3 px-3" style={{ color: "#64748B" }}>30d</th>
+                    <th className="text-center text-xs font-semibold py-3 px-3" style={{ color: "#64748B" }}>90d</th>
+                    <th className="text-center text-xs font-semibold py-3 px-3" style={{ color: "#64748B" }}>Volume</th>
+                    <th className="text-center text-xs font-semibold py-3 px-3" style={{ color: "#64748B" }}>Intent</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {paginatedKeywords.map((kw) => (
+                    <tr
+                      key={kw.id}
+                      style={{ borderBottom: "1px solid rgba(15, 23, 42, 0.04)" }}
+                    >
+                      <td className="py-3 px-3">
+                        <div className="flex items-center gap-2">
+                          <DirectionIcon direction={kw.direction} />
+                          <span className="text-sm font-medium" style={{ color: "#0F172A" }}>{kw.keyword}</span>
+                        </div>
+                      </td>
+                      <td className="text-center py-3 px-3">
+                        <span className="text-sm font-bold" style={{ color: "#0F172A" }}>
+                          {kw.currentPosition != null ? `#${kw.currentPosition}` : "---"}
+                        </span>
+                      </td>
+                      <td className="text-center py-3 px-3">
+                        <ChangeCell value={kw.change7d} />
+                      </td>
+                      <td className="text-center py-3 px-3">
+                        <ChangeCell value={kw.change30d} />
+                      </td>
+                      <td className="text-center py-3 px-3">
+                        <ChangeCell value={kw.change90d} />
+                      </td>
+                      <td className="text-center py-3 px-3">
+                        <span className="text-xs" style={{ color: "#64748B" }}>
+                          {kw.volume != null ? kw.volume.toLocaleString() : "---"}
+                        </span>
+                      </td>
+                      <td className="text-center py-3 px-3">
+                        <IntentBadge intent={kw.intent} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-2" style={{ borderTop: "1px solid rgba(15, 23, 42, 0.06)" }}>
+                <span className="text-xs" style={{ color: "#64748B" }}>
+                  Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, data.keywords.length)} of {data.keywords.length} keywords
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    style={{
+                      background: currentPage === 1 ? "transparent" : "rgba(15, 23, 42, 0.04)",
+                      color: "#64748B",
+                      border: "1px solid rgba(15, 23, 42, 0.08)",
+                    }}
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                    Previous
+                  </button>
+                  <span className="text-xs font-medium px-2" style={{ color: "#0F172A" }}>
+                    {currentPage} / {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    style={{
+                      background: currentPage === totalPages ? "transparent" : "rgba(15, 23, 42, 0.04)",
+                      color: "#64748B",
+                      border: "1px solid rgba(15, 23, 42, 0.08)",
+                    }}
+                  >
+                    Next
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </GlassCardContent>
@@ -335,6 +396,7 @@ const INTENT_STYLES: Record<NonNullable<KeywordIntent>, { label: string; bg: str
   transactional: { label: "Txn", bg: "rgba(34, 197, 94, 0.1)", color: "#22c55e", border: "rgba(34, 197, 94, 0.25)" },
   navigational: { label: "Nav", bg: "rgba(168, 85, 247, 0.1)", color: "#a855f7", border: "rgba(168, 85, 247, 0.25)" },
   commercial: { label: "Comm", bg: "rgba(245, 158, 11, 0.1)", color: "#f59e0b", border: "rgba(245, 158, 11, 0.25)" },
+  local: { label: "Local", bg: "rgba(236, 72, 153, 0.1)", color: "#ec4899", border: "rgba(236, 72, 153, 0.25)" },
 };
 
 function IntentBadge({ intent }: { intent: KeywordIntent }) {
@@ -342,6 +404,17 @@ function IntentBadge({ intent }: { intent: KeywordIntent }) {
     return <span className="text-xs" style={{ color: "#CBD5E1" }}>---</span>;
   }
   const style = INTENT_STYLES[intent];
+  if (!style) {
+    // Fallback for unknown intent types
+    return (
+      <span
+        className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+        style={{ background: "rgba(148, 163, 184, 0.1)", color: "#94A3B8", border: "1px solid rgba(148, 163, 184, 0.25)" }}
+      >
+        {intent}
+      </span>
+    );
+  }
   return (
     <span
       className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"

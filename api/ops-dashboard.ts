@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getPool } from "./_lib/db.js";
 import { getSessionUser, setCorsHeaders } from "./_lib/auth.js";
+import { fetchPageSpeedData } from "./_lib/pagespeed.js";
 
 /**
  * GET /api/ops-dashboard/:siteId/:section
@@ -83,7 +84,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       case "insights":
         return res.json(buildInsights(fullReport, scoreSummary, findings, googleCreds));
       case "technical-seo":
-        return res.json(buildTechnicalSeo(fullReport, scoreSummary, findings));
+        return res.json(await buildTechnicalSeo(fullReport, scoreSummary, findings, baseUrl));
       default:
         return res.status(400).json({ error: `Unknown section: ${section}` });
     }
@@ -674,7 +675,7 @@ function buildInsights(fullReport: any, scoreSummary: any, findings: any[], goog
   return { tips };
 }
 
-function buildTechnicalSeo(fullReport: any, scoreSummary: any, findings: any[]) {
+async function buildTechnicalSeo(fullReport: any, scoreSummary: any, findings: any[], baseUrl: string) {
   // Extract technical SEO findings from the scan
   const techFindings = (findings || []).filter((f: any) =>
     f.category === "technical" || f.category === "performance" || f.category === "crawlability"
@@ -686,14 +687,61 @@ function buildTechnicalSeo(fullReport: any, scoreSummary: any, findings: any[]) 
   const info = techFindings.filter((f: any) => f.severity === "info" || f.severity === "notice");
 
   // Extract performance metrics from report
-  const performance = fullReport?.performance || fullReport?.pagespeed || {};
-  const coreWebVitals = {
+  let performance = fullReport?.performance || fullReport?.pagespeed || {};
+  let coreWebVitals = {
     lcp: performance.lcp || performance.largest_contentful_paint || null,
     fid: performance.fid || performance.first_input_delay || null,
     cls: performance.cls || performance.cumulative_layout_shift || null,
     fcp: performance.fcp || performance.first_contentful_paint || null,
     ttfb: performance.ttfb || performance.time_to_first_byte || null,
   };
+
+  // If no CWV data stored, fetch live from PageSpeed Insights
+  const hasCwvData = Object.values(coreWebVitals).some(v => v != null);
+  let livePerformanceScore: number | null = scoreSummary?.performance ?? null;
+  let opportunities: any[] = [];
+  let diagnostics: any[] = [];
+
+  if (!hasCwvData && baseUrl) {
+    try {
+      console.log(`[TechnicalSeo] Fetching live PageSpeed data for ${baseUrl}`);
+      const psiResult = await fetchPageSpeedData(baseUrl, "mobile");
+
+      if (psiResult.ok) {
+        // CWV already in correct format from the utility
+        coreWebVitals = psiResult.coreWebVitals;
+
+        // Use performance score from live data
+        livePerformanceScore = psiResult.performanceScore;
+
+        // Extract opportunities as issues
+        opportunities = psiResult.opportunities.map((opp, i) => ({
+          id: `psi-opp-${i}`,
+          title: opp.title,
+          description: opp.description || (opp.savingsMs ? `Potential savings: ${opp.savingsMs}ms` : null),
+          severity: opp.severity,
+          category: "performance",
+          url: "/",
+        }));
+
+        // Extract diagnostics as issues
+        diagnostics = psiResult.diagnostics.map((diag, i) => ({
+          id: `psi-diag-${i}`,
+          title: diag.title,
+          description: diag.displayValue,
+          severity: "info" as const,
+          category: "performance",
+          url: "/",
+        }));
+
+        console.log(`[TechnicalSeo] Live PageSpeed data: LCP=${coreWebVitals.lcp}s, CLS=${coreWebVitals.cls}, FCP=${coreWebVitals.fcp}s, Score=${livePerformanceScore}`);
+      } else {
+        console.warn(`[TechnicalSeo] PageSpeed fetch failed: ${psiResult.error}`);
+      }
+    } catch (err: any) {
+      console.warn(`[TechnicalSeo] PageSpeed fetch error: ${err.message}`);
+    }
+  }
 
   // Check for common technical issues
   const issues: any[] = [];
@@ -745,17 +793,24 @@ function buildTechnicalSeo(fullReport: any, scoreSummary: any, findings: any[]) 
     });
   }
 
-  // Slow performance
-  if (scoreSummary?.performance != null && scoreSummary.performance < 50) {
+  // Slow performance (use live score if available)
+  const performanceScore = livePerformanceScore ?? scoreSummary?.performance ?? null;
+  if (performanceScore != null && performanceScore < 50) {
     issues.push({
       id: "slow-performance",
-      title: `Performance score: ${scoreSummary.performance}/100`,
+      title: `Performance score: ${performanceScore}/100`,
       description: "Slow pages hurt user experience and search rankings.",
-      severity: "warning",
+      severity: performanceScore < 30 ? "error" : "warning",
       category: "performance",
       url: "/",
     });
   }
+
+  // Add PageSpeed opportunities (from live data)
+  issues.push(...opportunities);
+
+  // Add PageSpeed diagnostics (from live data)
+  issues.push(...diagnostics);
 
   // Add findings from the scan
   for (const f of techFindings.slice(0, 10)) {
@@ -769,17 +824,23 @@ function buildTechnicalSeo(fullReport: any, scoreSummary: any, findings: any[]) 
     });
   }
 
+  // Count issues by severity (including live data)
+  const allIssues = issues;
+  const errorCount = allIssues.filter(i => i.severity === "error").length;
+  const warningCount = allIssues.filter(i => i.severity === "warning").length;
+  const infoCount = allIssues.filter(i => i.severity === "info").length;
+
   return {
     hasData: issues.length > 0 || Object.values(coreWebVitals).some(v => v != null),
     summary: {
-      score: scoreSummary?.performance ?? null,
-      errorCount: errors.length,
-      warningCount: warnings.length,
-      infoCount: info.length,
+      score: performanceScore,
+      errorCount,
+      warningCount,
+      infoCount,
     },
     coreWebVitals,
     issues: issues.slice(0, 15), // Limit to 15 issues
-    lastCrawled: fullReport?.crawled_at || null,
+    lastCrawled: fullReport?.crawled_at || new Date().toISOString(), // Show current time for live data
   };
 }
 
