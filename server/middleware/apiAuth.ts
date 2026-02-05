@@ -24,6 +24,7 @@ const AUTHENTICATED_GET_PATHS = [
   "/api/dashboard",
   "/api/campaigns",
   "/api/serp",
+  "/api/ops-dashboard",
   "/api/sites",
   "/api/ai",
   "/api/vault",

@@ -58,15 +58,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             }
           }
         } else {
-          // Fetch properties from all accounts
-          const accountsRes = await adminApi.accounts.list({ auth });
-          const accounts = accountsRes.data.accounts || [];
+          // Fetch properties from all accessible accounts using accountSummaries
+          // (includes accounts where user has property-level access only)
+          const summariesRes = await adminApi.accountSummaries.list({ auth });
+          const summaries = summariesRes.data.accountSummaries || [];
 
-          for (const account of accounts) {
-            const accountId = account.name?.replace("accounts/", "") || "";
+          for (const summary of summaries) {
+            const accountId = summary.account?.replace("accounts/", "") || "";
             const propsRes = await adminApi.properties.list({
               auth,
-              filter: `parent:${account.name}`,
+              filter: `parent:${summary.account}`,
             });
             for (const prop of propsRes.data.properties || []) {
               const id = prop.name?.replace("properties/", "") || "";

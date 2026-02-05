@@ -1,59 +1,23 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { Search, TrendingUp, TrendingDown, Minus, RefreshCw, Download, ArrowUp, ArrowDown, Target, Filter, Trophy, Crown } from "lucide-react";
+import { Search, TrendingUp, TrendingDown, Minus, ArrowUp, ArrowDown, Target, Filter, Trophy, Crown, Loader2, Sparkles } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useSiteContext } from "@/hooks/useSiteContext";
+import { useSerpKeywords, useSerpSnapshot, type SerpKeywordEntry, type KeywordIntent } from "@/hooks/useOpsDashboard";
 
-interface KeywordData {
-  id: number;
-  keyword: string;
-  intent: string | null;
-  priority: number | null;
-  targetUrl: string | null;
-  tags: string[] | null;
-  currentPosition: number | null;
-  currentUrl: string | null;
-  lastChecked: string | null;
-  avg7Day: number | null;
-  avg30Day: number | null;
-  avg90Day: number | null;
-  trend: 'up' | 'down' | 'stable' | 'new';
-  volume: number | null;
-}
-
-interface FullRankingsResponse {
-  domain: string;
-  totalKeywords: number;
-  displayedKeywords: number;
-  lastUpdated: string | null;
-  summary: {
-    ranking: number;
-    notRanking: number;
-    numberOne: number;
-    inTop3: number;
-    inTop10: number;
-    inTop20: number;
-    improving: number;
-    declining: number;
-    avgPosition: number | null;
-  };
-  keywords: KeywordData[];
-}
-
-function getTrendIcon(trend: string) {
-  switch (trend) {
+function getDirectionIcon(direction: SerpKeywordEntry["direction"]) {
+  switch (direction) {
     case 'up':
       return <TrendingUp className="h-4 w-4 text-semantic-success" />;
     case 'down':
       return <TrendingDown className="h-4 w-4 text-semantic-danger" />;
+    case 'new':
+      return <Sparkles className="h-4 w-4 text-semantic-info" />;
     case 'stable':
-      return <Minus className="h-4 w-4 text-muted-foreground" />;
     default:
       return <Minus className="h-4 w-4 text-muted-foreground" />;
   }
@@ -92,61 +56,45 @@ function getPositionBadge(position: number | null) {
   return <Badge className={`${base} bg-destructive/10 text-destructive`}>{position}</Badge>;
 }
 
-function formatAvg(avg: number | null): string {
-  if (avg === null) return '-';
-  return avg.toFixed(1);
+function formatChange(value: number | null): string {
+  if (value === null) return '-';
+  if (value > 0) return `+${value}`;
+  return String(value);
 }
 
+function getChangeColor(value: number | null): string {
+  if (value === null) return 'text-muted-foreground';
+  if (value > 0) return 'text-semantic-success';
+  if (value < 0) return 'text-semantic-danger';
+  return 'text-muted-foreground';
+}
+
+const INTENT_LABELS: Record<NonNullable<KeywordIntent>, string> = {
+  local: "Local",
+  informational: "Info",
+  transactional: "Txn",
+  navigational: "Nav",
+  commercial: "Comm",
+};
+
 export default function KeywordRankings() {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const { siteId } = useSiteContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [trendFilter, setTrendFilter] = useState<string>('all');
   const [positionFilter, setPositionFilter] = useState<string>('all');
 
-  const { data, isLoading, refetch } = useQuery<FullRankingsResponse>({
-    queryKey: ['keyword-rankings-full'],
-    queryFn: async () => {
-      const res = await fetch('/api/serp/rankings/full');
-      if (!res.ok) throw new Error('Failed to fetch keyword rankings');
-      return res.json();
-    },
-    refetchInterval: 120000,
-  });
+  const keywords = useSerpKeywords(siteId);
+  const snapshot = useSerpSnapshot(siteId);
 
-  const syncFromService = useMutation({
-    mutationFn: async () => {
-      const res = await fetch('/api/serp/sync-from-service', { 
-        method: 'POST',
-        credentials: 'include'
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || 'Failed to sync keywords');
-      }
-      return res.json();
-    },
-    onSuccess: (result) => {
-      toast({
-        title: "Keywords Synced",
-        description: result.message,
-      });
-      queryClient.invalidateQueries({ queryKey: ['keyword-rankings-full'] });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Sync Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
+  const isLoading = keywords.isLoading || snapshot.isLoading;
 
-  const filteredKeywords = data?.keywords.filter(kw => {
+  const allKeywords = keywords.data?.keywords || [];
+
+  const filteredKeywords = allKeywords.filter(kw => {
     if (searchTerm && !kw.keyword.toLowerCase().includes(searchTerm.toLowerCase())) {
       return false;
     }
-    if (trendFilter !== 'all' && kw.trend !== trendFilter) {
+    if (trendFilter !== 'all' && kw.direction !== trendFilter) {
       return false;
     }
     if (positionFilter === 'top10' && (kw.currentPosition === null || kw.currentPosition > 10)) {
@@ -159,7 +107,23 @@ export default function KeywordRankings() {
       return false;
     }
     return true;
-  }) || [];
+  });
+
+  // Compute summary stats from snapshot data
+  const snapshotData = snapshot.data;
+  const totalKeywords = snapshotData?.totalTracked ?? allKeywords.length;
+  const ranking = snapshotData?.rankingCounts.top100 ?? 0;
+  const numberOne = snapshotData?.rankingCounts.position1 ?? 0;
+  const inTop3 = snapshotData?.rankingCounts.top3 ?? 0;
+  const inTop10 = snapshotData?.rankingCounts.top10 ?? 0;
+  const improving = snapshotData?.weekOverWeek.improved ?? 0;
+  const declining = snapshotData?.weekOverWeek.declined ?? 0;
+
+  // Calculate average position from keyword data
+  const rankedKeywords = allKeywords.filter(k => k.currentPosition !== null);
+  const avgPosition = rankedKeywords.length > 0
+    ? (rankedKeywords.reduce((sum, k) => sum + (k.currentPosition ?? 0), 0) / rankedKeywords.length).toFixed(1)
+    : '-';
 
   return (
     <DashboardLayout className="dashboard-light">
@@ -168,7 +132,7 @@ export default function KeywordRankings() {
           <Card>
             <CardContent className="pt-4">
               <div className="text-2xl font-bold" data-testid="stat-total-keywords">
-                {data?.totalKeywords ?? '-'}
+                {totalKeywords}
               </div>
               <div className="text-sm text-muted-foreground">Total Keywords</div>
             </CardContent>
@@ -176,7 +140,7 @@ export default function KeywordRankings() {
           <Card>
             <CardContent className="pt-4">
               <div className="text-2xl font-bold text-semantic-info" data-testid="stat-ranking">
-                {data?.summary.ranking ?? '-'}
+                {ranking}
               </div>
               <div className="text-sm text-muted-foreground">Total Ranking</div>
             </CardContent>
@@ -185,7 +149,7 @@ export default function KeywordRankings() {
             <CardContent className="pt-4">
               <div className="text-2xl font-bold text-gold flex items-center gap-1" data-testid="stat-top-1">
                 <Crown className="h-5 w-5" />
-                {data?.summary.numberOne ?? '-'}
+                {numberOne}
               </div>
               <div className="text-sm text-muted-foreground">Top 1</div>
             </CardContent>
@@ -194,7 +158,7 @@ export default function KeywordRankings() {
             <CardContent className="pt-4">
               <div className="text-2xl font-bold text-muted-foreground flex items-center gap-1" data-testid="stat-top-3">
                 <Trophy className="h-4 w-4" />
-                {data?.summary.inTop3 ?? '-'}
+                {inTop3}
               </div>
               <div className="text-sm text-muted-foreground">Top 3</div>
             </CardContent>
@@ -203,7 +167,7 @@ export default function KeywordRankings() {
             <CardContent className="pt-4">
               <div className="text-2xl font-bold text-gold flex items-center gap-1" data-testid="stat-top-10">
                 <Trophy className="h-4 w-4" />
-                {data?.summary.inTop10 ?? '-'}
+                {inTop10}
               </div>
               <div className="text-sm text-muted-foreground">Top 10</div>
             </CardContent>
@@ -211,7 +175,7 @@ export default function KeywordRankings() {
           <Card>
             <CardContent className="pt-4">
               <div className="text-2xl font-bold" data-testid="stat-avg-position">
-                {data?.summary.avgPosition ?? '-'}
+                {avgPosition}
               </div>
               <div className="text-sm text-muted-foreground">Avg Position</div>
             </CardContent>
@@ -220,7 +184,7 @@ export default function KeywordRankings() {
             <CardContent className="pt-4">
               <div className="text-2xl font-bold text-semantic-success flex items-center gap-1" data-testid="stat-improving">
                 <ArrowUp className="h-4 w-4" />
-                {data?.summary.improving ?? '-'}
+                {improving}
               </div>
               <div className="text-sm text-muted-foreground">Improving</div>
             </CardContent>
@@ -229,7 +193,7 @@ export default function KeywordRankings() {
             <CardContent className="pt-4">
               <div className="text-2xl font-bold text-semantic-danger flex items-center gap-1" data-testid="stat-declining">
                 <ArrowDown className="h-4 w-4" />
-                {data?.summary.declining ?? '-'}
+                {declining}
               </div>
               <div className="text-sm text-muted-foreground">Declining</div>
             </CardContent>
@@ -245,29 +209,10 @@ export default function KeywordRankings() {
                   Keyword Rankings
                 </CardTitle>
                 <CardDescription>
-                  {data?.domain} - Last updated: {data?.lastUpdated || 'Never'}
+                  {snapshotData?.lastChecked
+                    ? `Last checked: ${new Date(snapshotData.lastChecked).toLocaleDateString()}`
+                    : 'Tracking keyword positions across search engines'}
                 </CardDescription>
-              </div>
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => syncFromService.mutate()}
-                  disabled={syncFromService.isPending}
-                  data-testid="button-sync-keywords"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  {syncFromService.isPending ? 'Syncing...' : 'Sync from Service'}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => refetch()}
-                  data-testid="button-refresh"
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Refresh
-                </Button>
               </div>
             </div>
           </CardHeader>
@@ -312,7 +257,10 @@ export default function KeywordRankings() {
             </div>
 
             {isLoading ? (
-              <div className="text-center py-8 text-muted-foreground">Loading keywords...</div>
+              <div className="flex items-center justify-center py-8 text-muted-foreground gap-2">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Loading keywords...
+              </div>
             ) : (
               <div className="rounded-md border">
                 <Table>
@@ -320,10 +268,10 @@ export default function KeywordRankings() {
                     <TableRow>
                       <TableHead className="w-[40px]">#</TableHead>
                       <TableHead>Keyword</TableHead>
-                      <TableHead className="text-center w-[100px]">Current</TableHead>
-                      <TableHead className="text-center w-[80px]">7-Day Avg</TableHead>
-                      <TableHead className="text-center w-[80px]">30-Day Avg</TableHead>
-                      <TableHead className="text-center w-[80px]">90-Day Avg</TableHead>
+                      <TableHead className="text-center w-[100px]">Position</TableHead>
+                      <TableHead className="text-center w-[80px]">7d Change</TableHead>
+                      <TableHead className="text-center w-[80px]">30d Change</TableHead>
+                      <TableHead className="text-center w-[80px]">90d Change</TableHead>
                       <TableHead className="text-center w-[60px]">Trend</TableHead>
                       <TableHead className="text-center w-[80px]">Volume</TableHead>
                       <TableHead className="w-[80px]">Intent</TableHead>
@@ -333,8 +281,8 @@ export default function KeywordRankings() {
                     {filteredKeywords.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                          {data?.keywords.length === 0 
-                            ? 'No keywords tracked. Click "Sync from Service" to import keywords.'
+                          {allKeywords.length === 0
+                            ? 'No keywords tracked yet. Keywords will appear once Arclo analyzes your site.'
                             : 'No keywords match your filters.'}
                         </TableCell>
                       </TableRow>
@@ -344,26 +292,21 @@ export default function KeywordRankings() {
                           <TableCell className="text-muted-foreground">{idx + 1}</TableCell>
                           <TableCell>
                             <div className="font-medium">{kw.keyword}</div>
-                            {kw.currentUrl && (
-                              <div className="text-xs text-muted-foreground truncate max-w-[300px]">
-                                {kw.currentUrl}
-                              </div>
-                            )}
                           </TableCell>
                           <TableCell className="text-center">
                             {getPositionBadge(kw.currentPosition)}
                           </TableCell>
-                          <TableCell className="text-center font-mono text-sm">
-                            {formatAvg(kw.avg7Day)}
+                          <TableCell className={`text-center font-mono text-sm ${getChangeColor(kw.change7d)}`}>
+                            {formatChange(kw.change7d)}
                           </TableCell>
-                          <TableCell className="text-center font-mono text-sm">
-                            {formatAvg(kw.avg30Day)}
+                          <TableCell className={`text-center font-mono text-sm ${getChangeColor(kw.change30d)}`}>
+                            {formatChange(kw.change30d)}
                           </TableCell>
-                          <TableCell className="text-center font-mono text-sm">
-                            {formatAvg(kw.avg90Day)}
+                          <TableCell className={`text-center font-mono text-sm ${getChangeColor(kw.change90d)}`}>
+                            {formatChange(kw.change90d)}
                           </TableCell>
                           <TableCell className="text-center">
-                            {getTrendIcon(kw.trend)}
+                            {getDirectionIcon(kw.direction)}
                           </TableCell>
                           <TableCell className="text-center text-sm text-muted-foreground">
                             {kw.volume?.toLocaleString() ?? '-'}
@@ -371,7 +314,7 @@ export default function KeywordRankings() {
                           <TableCell>
                             {kw.intent && (
                               <Badge variant="outline" className="text-xs">
-                                {kw.intent}
+                                {INTENT_LABELS[kw.intent] ?? kw.intent}
                               </Badge>
                             )}
                           </TableCell>
@@ -384,7 +327,7 @@ export default function KeywordRankings() {
             )}
 
             <div className="mt-4 text-sm text-muted-foreground">
-              Showing {filteredKeywords.length} of {data?.displayedKeywords ?? 0} keywords
+              Showing {filteredKeywords.length} of {allKeywords.length} keywords
             </div>
           </CardContent>
         </Card>

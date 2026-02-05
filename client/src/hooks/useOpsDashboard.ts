@@ -201,7 +201,7 @@ export interface TechnicalSeoData {
 // ============================================================
 
 function buildOpsDashboardUrl(siteId: string, section: string): string {
-  return `/api/ops-dashboard?siteId=${encodeURIComponent(siteId)}&section=${encodeURIComponent(section)}`;
+  return `/api/ops-dashboard/${encodeURIComponent(siteId)}/${encodeURIComponent(section)}`;
 }
 
 async function fetchOpsDashboard<T>(siteId: string, section: string): Promise<T> {

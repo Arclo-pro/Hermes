@@ -34,22 +34,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const adminApi = google.analyticsadmin("v1beta");
 
     const accounts: Array<{ accountId: string; displayName: string }> = [];
+    let accountsError: string | null = null;
     try {
-      const accountsRes = await adminApi.accounts.list({ auth });
-      for (const account of accountsRes.data.accounts || []) {
-        const id = account.name?.replace("accounts/", "") || "";
+      // Use accountSummaries.list() to include accounts where user has
+      // property-level access only (not just account-level)
+      const summariesRes = await adminApi.accountSummaries.list({ auth });
+      for (const summary of summariesRes.data.accountSummaries || []) {
+        const accountRef = summary.account || "";
+        const id = accountRef.replace("accounts/", "");
         if (id) {
           accounts.push({
             accountId: id,
-            displayName: account.displayName || id,
+            displayName: summary.displayName || id,
           });
         }
       }
     } catch (err: any) {
       console.warn("[GoogleAccounts] Failed to list GA4 accounts:", err.message);
+      const msg = err.message || "Unknown error";
+      if (msg.includes("has not been used") || msg.includes("is disabled") || err.code === 403) {
+        accountsError = "The Google Analytics Admin API is not enabled in your Google Cloud project.";
+      } else {
+        accountsError = `Failed to list accounts: ${msg}`;
+      }
     }
 
-    return res.json({ ok: true, accounts });
+    return res.json({ ok: true, accounts, error: accountsError });
   } catch (error: any) {
     console.error("[GoogleAccounts] Failed to fetch accounts:", error.message);
     return res.status(500).json({

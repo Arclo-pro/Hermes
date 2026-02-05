@@ -136,13 +136,17 @@ router.get('/sites/:siteId/google/accounts', requireAuth, async (req, res) => {
     const accounts: Array<{ accountId: string; displayName: string }> = [];
     let accountsError: string | null = null;
     try {
-      const accountsRes = await adminApi.accounts.list({ auth });
-      for (const account of accountsRes.data.accounts || []) {
-        const id = account.name?.replace('accounts/', '') || '';
+      // Use accountSummaries.list() instead of accounts.list() because it returns
+      // ALL accounts the user can access — including those where they only have
+      // property-level access (not account-level). This matches SEMrush behavior.
+      const summariesRes = await adminApi.accountSummaries.list({ auth });
+      for (const summary of summariesRes.data.accountSummaries || []) {
+        const accountRef = summary.account || '';
+        const id = accountRef.replace('accounts/', '');
         if (id) {
           accounts.push({
             accountId: id,
-            displayName: account.displayName || id,
+            displayName: summary.displayName || id,
           });
         }
       }
@@ -204,15 +208,16 @@ router.get('/sites/:siteId/google/properties', requireAuth, async (req, res) => 
           }
         }
       } else {
-        // Fetch properties from all accounts
-        const accountsRes = await adminApi.accounts.list({ auth });
-        const accounts = accountsRes.data.accounts || [];
+        // Fetch properties from all accessible accounts using accountSummaries
+        // (includes accounts where user has property-level access only)
+        const summariesRes = await adminApi.accountSummaries.list({ auth });
+        const summaries = summariesRes.data.accountSummaries || [];
 
-        for (const account of accounts) {
-          const accountId = account.name?.replace('accounts/', '') || '';
+        for (const summary of summaries) {
+          const accountId = summary.account?.replace('accounts/', '') || '';
           const propsRes = await adminApi.properties.list({
             auth,
-            filter: `parent:${account.name}`,
+            filter: `parent:${summary.account}`,
           });
           for (const prop of propsRes.data.properties || []) {
             const id = prop.name?.replace('properties/', '') || '';

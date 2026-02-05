@@ -35,6 +35,8 @@ const RunDetail = lazy(() => import("@/pages/RunDetail"));
 const Audit = lazy(() => import("@/pages/Audit"));
 const Help = lazy(() => import("@/pages/Help"));
 const Benchmarks = lazy(() => import("@/pages/Benchmarks"));
+const TechnicalSeoDashboard = lazy(() => import("@/pages/TechnicalSeoDashboard"));
+const CompetitiveDashboard = lazy(() => import("@/pages/CompetitiveDashboard"));
 const CrewPalette = lazy(() => import("@/pages/CrewPalette"));
 const DevLineage = lazy(() => import("@/pages/DevLineage"));
 const Speedster = lazy(() => import("@/pages/Speedster"));
@@ -240,10 +242,10 @@ function Router() {
       {/* APP ROUTES - Website-centric views */}
       {/* ============================================ */}
       <Route path={ROUTES.OVERVIEW}><ProtectedRoute component={Dashboard} lightMode /></Route>
-      <Route path={ROUTES.COMPETITIVE_ANALYSIS}><ProtectedRoute component={Benchmarks} /></Route>
-      <Route path={ROUTES.RANKINGS}><ProtectedRoute component={KeywordRankings} /></Route>
-      <Route path={ROUTES.PERFORMANCE}><ProtectedRoute component={Speedster} /></Route>
-      <Route path={ROUTES.TECHNICAL_SEO}><ProtectedRoute component={Audit} /></Route>
+      <Route path={ROUTES.COMPETITIVE_ANALYSIS}><ProtectedRoute component={CompetitiveDashboard} lightMode /></Route>
+      <Route path={ROUTES.RANKINGS}><ProtectedRoute component={KeywordRankings} lightMode /></Route>
+      <Route path={ROUTES.PERFORMANCE}><ProtectedRoute component={Speedster} lightMode /></Route>
+      <Route path={ROUTES.TECHNICAL_SEO}><ProtectedRoute component={TechnicalSeoDashboard} lightMode /></Route>
       <Route path={ROUTES.CONTENT}><ProtectedRoute component={ContentDashboard} lightMode /></Route>
       <Route path={ROUTES.AI_SEARCH}><ProtectedRoute component={AISearchDashboard} lightMode /></Route>
       <Route path={ROUTES.LINK_BUILDING}><ProtectedRoute component={Authority} /></Route>
