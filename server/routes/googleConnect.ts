@@ -140,6 +140,10 @@ router.get('/sites/:siteId/google/accounts', requireAuth, async (req, res) => {
       // ALL accounts the user can access — including those where they only have
       // property-level access (not account-level). This matches SEMrush behavior.
       const summariesRes = await adminApi.accountSummaries.list({ auth });
+      logger.info('GoogleConnect', 'accountSummaries.list() response', {
+        count: summariesRes.data.accountSummaries?.length ?? 0,
+        raw: JSON.stringify(summariesRes.data).slice(0, 500),
+      });
       for (const summary of summariesRes.data.accountSummaries || []) {
         const accountRef = summary.account || '';
         const id = accountRef.replace('accounts/', '');
