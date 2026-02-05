@@ -62,7 +62,7 @@ interface AppShellProps {
 
 export default function AppShell({ children, lightMode = false }: AppShellProps) {
   const { authenticated, user, loading, logout, activeWebsiteId, selectWebsite } = useAuth();
-  const { sites } = useSiteContext();
+  const { sites, selectedSite } = useSiteContext();
   const [location, navigate] = useLocation();
 
   useEffect(() => {
@@ -98,7 +98,9 @@ export default function AppShell({ children, lightMode = false }: AppShellProps)
     return null;
   }
 
-  const currentSite = sites?.find(s => s.siteId === activeWebsiteId);
+  // Use selectedSite from useSiteContext (auto-selects first site)
+  // instead of matching activeWebsiteId from useAuth (can be null)
+  const currentSite = selectedSite;
 
   // Prefetch data on nav hover for instant page loads
   const handleNavHover = useCallback((path: string) => {
@@ -155,7 +157,7 @@ export default function AppShell({ children, lightMode = false }: AppShellProps)
                     onClick={() => selectWebsite(site.siteId)}
                     className={cn(
                       "cursor-pointer text-foreground/80 focus:bg-secondary focus:text-foreground",
-                      site.siteId === activeWebsiteId && "bg-secondary text-gold"
+                      site.siteId === selectedSite?.siteId && "bg-secondary text-gold"
                     )}
                     data-testid={`menu-item-site-${site.siteId}`}
                   >
