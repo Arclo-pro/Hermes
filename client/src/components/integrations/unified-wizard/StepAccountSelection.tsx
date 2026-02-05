@@ -25,6 +25,7 @@ interface StepAccountSelectionProps {
   onSkip: () => void;
   onNext: () => void;
   onBack: () => void;
+  onRetry?: () => void;
   allowSkip?: boolean;
 }
 
@@ -38,6 +39,7 @@ export function StepAccountSelection({
   onSkip,
   onNext,
   onBack,
+  onRetry,
   allowSkip = true,
 }: StepAccountSelectionProps) {
   // Auto-select if only one account
@@ -61,6 +63,9 @@ export function StepAccountSelection({
   if (accounts.length === 0) {
     const isApiError = !!apiError;
     const isAdminApiError = apiError?.includes('Admin API') || apiError?.includes('not enabled');
+    // Extract project-specific activation URL from the error message if present
+    const urlMatch = apiError?.match(/https:\/\/\S+/);
+    const activationUrl = urlMatch?.[0] || 'https://console.cloud.google.com/apis/library/analyticsadmin.googleapis.com';
 
     return (
       <div className="space-y-5">
@@ -82,20 +87,37 @@ export function StepAccountSelection({
             <p className="font-medium text-amber-900">
               {isAdminApiError ? "Enable the Google Analytics Admin API" : "Error Details"}
             </p>
-            <p className="text-amber-800 text-xs">{apiError}</p>
-            {isAdminApiError && (
-              <a
-                href="https://console.cloud.google.com/apis/library/analyticsadmin.googleapis.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-                Open Google Cloud Console to enable it
-              </a>
+            {isAdminApiError ? (
+              <div className="space-y-2">
+                <p className="text-amber-800 text-xs">
+                  The Google Analytics Admin API needs to be enabled in your Google Cloud project before Arclo can discover your accounts.
+                </p>
+                <a
+                  href={activationUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  Enable Google Analytics Admin API
+                </a>
+                <p className="text-amber-800 text-xs mt-1">
+                  You'll also need the <strong>Google Analytics Data API</strong> enabled for report data.{" "}
+                  <a
+                    href="https://console.cloud.google.com/apis/library/analyticsdata.googleapis.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-700 underline"
+                  >
+                    Enable it here
+                  </a>.
+                </p>
+              </div>
+            ) : (
+              <p className="text-amber-800 text-xs">{apiError}</p>
             )}
             <p className="text-amber-700 text-xs mt-2">
-              After enabling the API, click "Back" and try connecting again.
+              After enabling the API(s), wait a minute then click "Retry" below.
             </p>
           </div>
         ) : (
@@ -117,7 +139,13 @@ export function StepAccountSelection({
             <ArrowLeft className="w-4 h-4 mr-1.5" />
             Back
           </Button>
-          {allowSkip && (
+          {isApiError && onRetry && (
+            <Button variant="primary" fullWidth onClick={onRetry}>
+              Retry
+              <ArrowRight className="w-4 h-4 ml-1.5" />
+            </Button>
+          )}
+          {allowSkip && !isApiError && (
             <Button variant="outline" fullWidth onClick={onSkip}>
               Skip GA4, continue to Search Console
               <ArrowRight className="w-4 h-4 ml-1.5" />

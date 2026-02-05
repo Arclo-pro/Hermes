@@ -390,6 +390,7 @@ export function UnifiedGoogleWizard({
             onSkip={handleSkipAccount}
             onNext={handleAccountContinue}
             onBack={handleBackToExplain}
+            onRetry={() => google.fetchAccounts()}
             allowSkip={mode === "full"}
           />
         )}

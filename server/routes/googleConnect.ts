@@ -159,7 +159,11 @@ router.get('/sites/:siteId/google/accounts', requireAuth, async (req, res) => {
       // Surface the error so the frontend can display helpful guidance
       const msg = err.message || 'Unknown error';
       if (msg.includes('has not been used') || msg.includes('is disabled') || err.code === 403) {
-        accountsError = 'The Google Analytics Admin API is not enabled in your Google Cloud project. Please enable it at console.cloud.google.com/apis/library/analyticsadmin.googleapis.com';
+        // Extract project-specific activation URL from the error response if available
+        const activationUrl = err.response?.data?.error?.details
+          ?.find((d: any) => d.metadata?.activationUrl)?.metadata?.activationUrl
+          || 'https://console.cloud.google.com/apis/library/analyticsadmin.googleapis.com';
+        accountsError = `The Google Analytics Admin API is not enabled in your Google Cloud project. Enable it here: ${activationUrl}`;
       } else if (msg.includes('insufficient') || msg.includes('scope')) {
         accountsError = 'Insufficient permissions. Try disconnecting and reconnecting your Google account.';
       } else {
