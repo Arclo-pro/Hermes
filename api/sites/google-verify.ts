@@ -7,12 +7,76 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { google } from "googleapis";
 import { getSessionUser, setCorsHeaders } from "../_lib/auth.js";
+import { getPool } from "../_lib/db.js";
 import {
   getAuthenticatedClientForSite,
   getSiteGoogleCredentials,
   updateSiteGoogleCredentials,
   resolveNumericSiteId,
 } from "../_lib/googleOAuth.js";
+
+/**
+ * Fetch and save GA4 daily data to ga4_daily table for dashboard display
+ */
+async function populateGA4DailyData(
+  auth: any,
+  propertyId: string,
+  textSiteId: string,
+  startDate: string,
+  endDate: string
+): Promise<number> {
+  const analyticsData = google.analyticsdata("v1beta");
+  const pool = getPool();
+
+  // Fetch daily metrics aggregated by date
+  const response = await analyticsData.properties.runReport({
+    auth,
+    property: `properties/${propertyId}`,
+    requestBody: {
+      dateRanges: [{ startDate, endDate }],
+      dimensions: [{ name: "date" }],
+      metrics: [
+        { name: "sessions" },
+        { name: "activeUsers" },
+        { name: "eventCount" },
+        { name: "conversions" },
+        { name: "bounceRate" },
+        { name: "averageSessionDuration" },
+        { name: "screenPageViewsPerSession" },
+      ],
+      orderBys: [{ dimension: { dimensionName: "date" } }],
+    },
+  });
+
+  const rows = response.data.rows || [];
+  if (rows.length === 0) return 0;
+
+  // Delete existing data for this site and date range to avoid duplicates
+  await pool.query(
+    `DELETE FROM ga4_daily WHERE site_id = $1 AND date >= $2 AND date <= $3`,
+    [textSiteId, startDate, endDate]
+  );
+
+  // Insert new data
+  for (const row of rows) {
+    const date = row.dimensionValues?.[0]?.value || "";
+    const sessions = parseInt(row.metricValues?.[0]?.value || "0", 10);
+    const users = parseInt(row.metricValues?.[1]?.value || "0", 10);
+    const events = parseInt(row.metricValues?.[2]?.value || "0", 10);
+    const conversions = parseInt(row.metricValues?.[3]?.value || "0", 10);
+    const bounceRate = parseFloat(row.metricValues?.[4]?.value || "0") * 100; // Convert to percentage
+    const avgSessionDuration = parseFloat(row.metricValues?.[5]?.value || "0");
+    const pagesPerSession = parseFloat(row.metricValues?.[6]?.value || "0");
+
+    await pool.query(
+      `INSERT INTO ga4_daily (site_id, date, sessions, users, events, conversions, bounce_rate, avg_session_duration, pages_per_session)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [textSiteId, date, sessions, users, events, conversions, bounceRate, avgSessionDuration, pagesPerSession]
+    );
+  }
+
+  return rows.length;
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCorsHeaders(res);
@@ -29,6 +93,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!siteId) {
     return res.status(400).json({ ok: false, error: "Invalid or unknown site ID" });
   }
+
+  // Get the text site_id for ga4_daily table
+  const pool = getPool();
+  const siteResult = await pool.query(`SELECT site_id FROM sites WHERE id = $1`, [siteId]);
+  const textSiteId = siteResult.rows[0]?.site_id || siteIdParam;
 
   try {
     const creds = await getSiteGoogleCredentials(siteId);
@@ -111,6 +180,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         lastErrorMessage: null,
       });
 
+      // Populate ga4_daily table with historical data for dashboard display
+      let rowsPopulated = 0;
+      try {
+        // Fetch last 14 days of daily data for the dashboard
+        const dailyStart = new Date();
+        dailyStart.setDate(dailyStart.getDate() - 14);
+        rowsPopulated = await populateGA4DailyData(
+          auth,
+          creds.ga4PropertyId!,
+          textSiteId,
+          formatDate(dailyStart),
+          formatDate(endDate)
+        );
+        console.log(`[GoogleVerify] Populated ${rowsPopulated} days of GA4 data for site ${textSiteId}`);
+      } catch (populateErr: any) {
+        // Non-fatal: verification still succeeded, just couldn't populate cache
+        console.warn(`[GoogleVerify] Failed to populate GA4 daily data:`, populateErr.message);
+      }
+
       console.log(`[GoogleVerify] Site ${siteId} GA4 verified - ${totalSessions} sessions, ${totalUsers} users`);
 
       return res.json({
@@ -124,6 +212,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             end: formatDate(endDate),
           },
         },
+        dataPopulated: rowsPopulated,
       });
     } catch (gaError: any) {
       // Update integration status to error
