@@ -1,3 +1,4 @@
+import { useState, useCallback } from "react";
 import { RefreshCw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -8,14 +9,28 @@ interface DashboardHeaderProps {
 
 export function DashboardHeader({ domain, siteId }: DashboardHeaderProps) {
   const queryClient = useQueryClient();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const handleRefresh = () => {
-    // Invalidate all ops-dashboard queries (keywords, content, technical SEO, etc.)
-    queryClient.invalidateQueries({ queryKey: ["/api/ops-dashboard"] });
-    // Also invalidate dashboard-specific stats and missions
-    queryClient.invalidateQueries({ queryKey: ["/api/dashboard-stats"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/missions"] });
-  };
+  const handleRefresh = useCallback(async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+
+    // Invalidate all dashboard-related queries
+    await Promise.all([
+      // Ops-dashboard queries (metrics, keywords, content, technical SEO, insights, etc.)
+      queryClient.invalidateQueries({ queryKey: ["/api/ops-dashboard"] }),
+      // Achievements
+      queryClient.invalidateQueries({ queryKey: ["achievements"] }),
+      // Sites data
+      queryClient.invalidateQueries({ queryKey: ["sites"] }),
+      // Legacy dashboard queries
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard-stats"] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/missions"] }),
+    ]);
+
+    // Brief delay so the spinner is visible even if queries are fast
+    setTimeout(() => setIsRefreshing(false), 500);
+  }, [queryClient, isRefreshing]);
 
   return (
     <div className="mb-8 flex items-start justify-between">
@@ -34,15 +49,16 @@ export function DashboardHeader({ domain, siteId }: DashboardHeaderProps) {
       </div>
       <button
         onClick={handleRefresh}
-        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5"
+        disabled={isRefreshing}
+        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
         style={{
           background: "linear-gradient(135deg, rgba(124,58,237,0.08), rgba(236,72,153,0.06))",
           border: "1px solid rgba(124, 58, 237, 0.15)",
           color: "#7c3aed",
         }}
       >
-        <RefreshCw className="w-4 h-4" />
-        Refresh
+        <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} />
+        {isRefreshing ? "Refreshing..." : "Refresh"}
       </button>
     </div>
   );
