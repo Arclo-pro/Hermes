@@ -66,7 +66,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           dimensions: [{ name: "landingPage" }],
           metrics: [{ name: "sessions" }, { name: "activeUsers" }],
           orderBys: [{ metric: { metricName: "sessions" }, desc: true }],
-          limit: 5,
+          limit: "5",
         },
       });
 

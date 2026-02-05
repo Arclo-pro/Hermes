@@ -240,11 +240,11 @@ export function createOAuth2Client(): InstanceType<typeof google.auth.OAuth2> {
   }
 
   // Check cache (populated by async calls)
-  if (cachedOAuthConfig) {
+  if (cachedPlatformConfig) {
     return new google.auth.OAuth2(
-      cachedOAuthConfig.clientId,
-      cachedOAuthConfig.clientSecret,
-      cachedOAuthConfig.redirectUri
+      cachedPlatformConfig.clientId,
+      cachedPlatformConfig.clientSecret,
+      cachedPlatformConfig.redirectUri
     );
   }
 
@@ -257,7 +257,7 @@ export async function isOAuthConfiguredAsync(): Promise<boolean> {
 }
 
 export function isOAuthConfigured(): boolean {
-  return !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) || !!cachedOAuthConfig;
+  return !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) || !!cachedPlatformConfig;
 }
 
 // ============================================================
