@@ -224,8 +224,11 @@ async function fetchLeads(siteId: string, params: Record<string, string>): Promi
   return res.json();
 }
 
-async function fetchLeadStats(siteId: string): Promise<LeadStats> {
-  const res = await fetch(`/api/leads/stats?siteId=${siteId}`);
+async function fetchLeadStats(siteId: string, startDate?: string, endDate?: string): Promise<LeadStats> {
+  const params = new URLSearchParams({ siteId });
+  if (startDate) params.set("startDate", startDate);
+  if (endDate) params.set("endDate", endDate);
+  const res = await fetch(`/api/leads/stats?${params}`);
   if (!res.ok) throw new Error("Failed to fetch lead stats");
   return res.json();
 }
@@ -273,7 +276,37 @@ async function deleteLead(leadId: string): Promise<void> {
 // Stat Cards Component
 // ============================================
 
-function StatCards({ stats, isLoading }: { stats: LeadStats | undefined; isLoading: boolean }) {
+function computeChange(current: number, previous: number): { pct: number; direction: "up" | "down" | "flat" } {
+  if (previous === 0) return { pct: current > 0 ? 100 : 0, direction: current > 0 ? "up" : "flat" };
+  const pct = ((current - previous) / previous) * 100;
+  return { pct: Math.abs(pct), direction: pct > 0.5 ? "up" : pct < -0.5 ? "down" : "flat" };
+}
+
+function ChangeIndicator({ pct, direction, invertColors }: { pct: number; direction: "up" | "down" | "flat"; invertColors?: boolean }) {
+  if (direction === "flat") return <span className="text-xs text-gray-400 ml-1">—</span>;
+  const isGood = invertColors ? direction === "down" : direction === "up";
+  const color = isGood ? "text-green-600" : "text-red-600";
+  const arrow = direction === "up" ? "↑" : "↓";
+  return (
+    <span className={`text-xs font-medium ${color} ml-1.5`}>
+      {arrow} {pct.toFixed(1)}%
+    </span>
+  );
+}
+
+interface StatCardsProps {
+  stats: LeadStats | undefined;
+  prevStats: LeadStats | undefined;
+  isLoading: boolean;
+  hasPeriodComparison: boolean;
+}
+
+function StatCards({ stats, prevStats, isLoading, hasPeriodComparison }: StatCardsProps) {
+  const totalChange = hasPeriodComparison && stats && prevStats ? computeChange(stats.total, prevStats.total) : null;
+  const signedUpChange = hasPeriodComparison && stats && prevStats ? computeChange(stats.signedUp, prevStats.signedUp) : null;
+  const notSignedUpChange = hasPeriodComparison && stats && prevStats ? computeChange(stats.notSignedUp, prevStats.notSignedUp) : null;
+  const conversionChange = hasPeriodComparison && stats && prevStats ? computeChange(stats.conversionRate, prevStats.conversionRate) : null;
+
   const cards = [
     {
       label: "Total Leads",
@@ -284,6 +317,8 @@ function StatCards({ stats, isLoading }: { stats: LeadStats | undefined; isLoadi
       border: "border-blue-200",
       glow: "shadow-[inset_0_1px_0_0_rgba(59,130,246,0.15),0_0_20px_-5px_rgba(59,130,246,0.12)]",
       bar: "bg-blue-500",
+      change: totalChange,
+      invertColors: false,
     },
     {
       label: "Signed Up",
@@ -294,6 +329,8 @@ function StatCards({ stats, isLoading }: { stats: LeadStats | undefined; isLoadi
       border: "border-green-200",
       glow: "shadow-[inset_0_1px_0_0_rgba(34,197,94,0.15),0_0_20px_-5px_rgba(34,197,94,0.12)]",
       bar: "bg-green-500",
+      change: signedUpChange,
+      invertColors: false,
     },
     {
       label: "Not Signed Up",
@@ -304,6 +341,8 @@ function StatCards({ stats, isLoading }: { stats: LeadStats | undefined; isLoadi
       border: "border-red-200",
       glow: "shadow-[inset_0_1px_0_0_rgba(239,68,68,0.15),0_0_20px_-5px_rgba(239,68,68,0.12)]",
       bar: "bg-red-500",
+      change: notSignedUpChange,
+      invertColors: true,
     },
     {
       label: "Conversion Rate",
@@ -314,6 +353,8 @@ function StatCards({ stats, isLoading }: { stats: LeadStats | undefined; isLoadi
       border: "border-amber-200",
       glow: "shadow-[inset_0_1px_0_0_rgba(234,179,8,0.15),0_0_20px_-5px_rgba(234,179,8,0.12)]",
       bar: "bg-amber-500",
+      change: conversionChange,
+      invertColors: false,
     },
   ];
 
@@ -332,7 +373,12 @@ function StatCards({ stats, isLoading }: { stats: LeadStats | undefined; isLoadi
                 {isLoading ? (
                   <div className="h-8 w-16 bg-gray-100 animate-pulse rounded" />
                 ) : (
-                  <p className="text-2xl font-bold text-gray-900 tabular-nums">{card.value}</p>
+                  <div className="flex items-baseline">
+                    <p className="text-2xl font-bold text-gray-900 tabular-nums">{card.value}</p>
+                    {card.change && (
+                      <ChangeIndicator pct={card.change.pct} direction={card.change.direction} invertColors={card.invertColors} />
+                    )}
+                  </div>
                 )}
               </div>
               <div className={`p-1.5 rounded-lg ${card.iconBg}`}>
@@ -869,11 +915,35 @@ export default function Leads() {
     staleTime: 2 * 60 * 1000, // 2 minutes
   });
 
+  // Compute date ranges for stats (current period + previous period for comparison)
+  const { statsStartDate, statsEndDate, prevStartDate, prevEndDate, hasMonthFilter } = useMemo(() => {
+    if (filters.month && filters.month !== "all") {
+      const [year, month] = filters.month.split("-").map(Number);
+      const current = new Date(year, month - 1);
+      const prev = subMonths(current, 1);
+      return {
+        statsStartDate: startOfMonth(current).toISOString(),
+        statsEndDate: endOfMonth(current).toISOString(),
+        prevStartDate: startOfMonth(prev).toISOString(),
+        prevEndDate: endOfMonth(prev).toISOString(),
+        hasMonthFilter: true,
+      };
+    }
+    return { statsStartDate: undefined, statsEndDate: undefined, prevStartDate: undefined, prevEndDate: undefined, hasMonthFilter: false };
+  }, [filters.month]);
+
   const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ["leads-stats", siteId],
-    queryFn: () => fetchLeadStats(siteId!),
+    queryKey: ["leads-stats", siteId, statsStartDate, statsEndDate],
+    queryFn: () => fetchLeadStats(siteId!, statsStartDate, statsEndDate),
     enabled: !!siteId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: prevStats } = useQuery({
+    queryKey: ["leads-stats", siteId, prevStartDate, prevEndDate],
+    queryFn: () => fetchLeadStats(siteId!, prevStartDate, prevEndDate),
+    enabled: !!siteId && hasMonthFilter,
+    staleTime: 5 * 60 * 1000,
   });
 
   // Handlers
@@ -982,7 +1052,7 @@ export default function Leads() {
           <TabsContent value="leads" className="mt-6 space-y-6">
 
         {/* Stat Cards */}
-        <StatCards stats={stats} isLoading={statsLoading} />
+        <StatCards stats={stats} prevStats={prevStats} isLoading={statsLoading} hasPeriodComparison={hasMonthFilter} />
 
         {/* Filters */}
         <Card className="bg-white border-gray-200">
