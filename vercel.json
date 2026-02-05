@@ -28,6 +28,11 @@
     { "source": "/api/sites/:siteId/google/properties", "destination": "/api/sites/google-properties?siteId=:siteId" },
     { "source": "/api/sites/:siteId/google/streams", "destination": "/api/sites/google-streams?siteId=:siteId" },
     { "source": "/api/sites/:siteId/google/ga4/verify", "destination": "/api/sites/google-verify?siteId=:siteId" },
+    { "source": "/api/leads/stats", "destination": "/api/leads-stats" },
+    { "source": "/api/leads/enums", "destination": "/api/leads-enums" },
+    { "source": "/api/leads/analytics", "destination": "/api/leads-analytics" },
+    { "source": "/api/leads/:leadId/contact", "destination": "/api/leads-contact?leadId=:leadId" },
+    { "source": "/api/leads/:leadId", "destination": "/api/leads-detail?leadId=:leadId" },
     { "source": "/:path*", "destination": "/index" }
   ]
 }
