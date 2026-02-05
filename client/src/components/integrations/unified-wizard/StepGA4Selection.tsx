@@ -1,17 +1,22 @@
 /**
- * Step 3: GA4 Selection - Property + Stream picker combined
+ * Step 3: GA4 Selection - Property + Stream picker as dropdowns
  */
 import { useEffect } from "react";
 import {
   BarChart3,
-  CheckCircle2,
   Loader2,
   AlertCircle,
   ArrowRight,
   ArrowLeft,
-  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 import type { GA4Property, GA4Stream } from "../useGoogleConnection";
 
 interface StepGA4SelectionProps {
@@ -111,88 +116,53 @@ export function StepGA4Selection({
         </p>
       </div>
 
-      {/* Property list */}
-      <div className="space-y-2 max-h-64 overflow-y-auto">
-        {properties.map((prop) => {
-          const isSelected = selectedPropertyId === prop.propertyId;
-          const showStreams = isSelected && !isLoadingStreams && streams.length > 0;
-
-          return (
-            <div key={prop.propertyId}>
-              <button
-                onClick={() => onSelectProperty(prop.propertyId)}
-                className={`w-full text-left p-3 rounded-xl border transition-colors ${
-                  isSelected
-                    ? "border-[#7c3aed] bg-[#7c3aed]/5"
-                    : "border-border hover:border-[#7c3aed]/30 hover:bg-muted/30"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{prop.displayName}</p>
-                    <p className="text-xs text-muted-foreground font-mono mt-0.5">
-                      ID: {prop.propertyId}
-                    </p>
-                  </div>
-                  {isSelected ? (
-                    <CheckCircle2 className="w-5 h-5 text-[#7c3aed] shrink-0" />
-                  ) : (
-                    <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-                  )}
-                </div>
-              </button>
-
-              {/* Inline stream selection */}
-              {isSelected && isLoadingStreams && (
-                <div className="ml-4 mt-2 py-3 flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Loading streams...
-                </div>
-              )}
-
-              {showStreams && (
-                <div className="ml-4 mt-2 space-y-1.5">
-                  <p className="text-xs font-medium text-muted-foreground mb-1">Select data stream:</p>
-                  {streams.map((stream) => {
-                    const streamSelected = selectedStreamId === stream.streamId;
-                    return (
-                      <button
-                        key={stream.streamId}
-                        onClick={() => onSelectStream(stream.streamId)}
-                        className={`w-full text-left p-2.5 rounded-lg border transition-colors ${
-                          streamSelected
-                            ? "border-[#7c3aed] bg-[#7c3aed]/5"
-                            : "border-border hover:border-[#7c3aed]/30 hover:bg-muted/30"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm text-foreground">{stream.streamName}</p>
-                            {stream.measurementId && (
-                              <p className="text-xs text-muted-foreground font-mono">
-                                {stream.measurementId}
-                              </p>
-                            )}
-                          </div>
-                          {streamSelected && (
-                            <CheckCircle2 className="w-4 h-4 text-[#7c3aed] shrink-0" />
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-
-              {isSelected && !isLoadingStreams && streams.length === 0 && (
-                <div className="ml-4 mt-2 py-2 text-xs text-amber-600">
-                  No web streams found for this property.
-                </div>
-              )}
-            </div>
-          );
-        })}
+      {/* Property dropdown */}
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-foreground">GA4 Property</label>
+        <Select value={selectedPropertyId || undefined} onValueChange={onSelectProperty}>
+          <SelectTrigger className="w-full h-11 rounded-xl">
+            <SelectValue placeholder="Select a property..." />
+          </SelectTrigger>
+          <SelectContent>
+            {properties.map((prop) => (
+              <SelectItem key={prop.propertyId} value={prop.propertyId}>
+                {prop.displayName} ({prop.propertyId})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
+
+      {/* Stream dropdown — shown once a property is selected */}
+      {selectedPropertyId && (
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-foreground">Data Stream</label>
+          {isLoadingStreams ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Loading streams...
+            </div>
+          ) : streams.length === 0 ? (
+            <p className="text-xs text-amber-600 py-2">
+              No web streams found for this property.
+            </p>
+          ) : (
+            <Select value={selectedStreamId || undefined} onValueChange={onSelectStream}>
+              <SelectTrigger className="w-full h-11 rounded-xl">
+                <SelectValue placeholder="Select a data stream..." />
+              </SelectTrigger>
+              <SelectContent>
+                {streams.map((stream) => (
+                  <SelectItem key={stream.streamId} value={stream.streamId}>
+                    {stream.streamName}
+                    {stream.measurementId ? ` (${stream.measurementId})` : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+      )}
 
       {/* Actions */}
       <div className="flex gap-2">

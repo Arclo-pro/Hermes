@@ -1,19 +1,23 @@
 /**
- * Step 4: GSC Selection - Site picker with domain matching
+ * Step 4: GSC Selection - Site picker as dropdown with domain matching
  */
 import { useEffect } from "react";
 import {
   Search,
-  CheckCircle2,
   Loader2,
   AlertCircle,
   ArrowRight,
   ArrowLeft,
-  Globe,
   ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 import type { GSCProperty } from "../useGoogleConnection";
 
 // ---------------------------------------------------------------------------
@@ -62,12 +66,18 @@ export function StepGSCSelection({
   onBack,
   allowSkip = true,
 }: StepGSCSelectionProps) {
-  // Auto-select if only one property
+  // Auto-select best match
   useEffect(() => {
-    if (properties.length === 1 && !selectedSiteUrl) {
-      onSelect(properties[0].siteUrl);
+    if (properties.length > 0 && !selectedSiteUrl) {
+      // Prefer domain match, then first domain property, then first property
+      const match = properties.find((p) => domainMatch(p.siteUrl, siteDomain));
+      if (match) {
+        onSelect(match.siteUrl);
+      } else if (properties.length === 1) {
+        onSelect(properties[0].siteUrl);
+      }
     }
-  }, [properties, selectedSiteUrl, onSelect]);
+  }, [properties, selectedSiteUrl, siteDomain, onSelect]);
 
   // Loading state
   if (isLoading) {
@@ -145,52 +155,34 @@ export function StepGSCSelection({
         </p>
       </div>
 
-      {/* Property list */}
-      <div className="space-y-2 max-h-64 overflow-y-auto">
-        {sorted.map((prop) => {
-          const isSelected = selectedSiteUrl === prop.siteUrl;
-          const type = getPropertyType(prop.siteUrl);
-          const isMatch = domainMatch(prop.siteUrl, siteDomain);
-
-          return (
-            <button
-              key={prop.siteUrl}
-              onClick={() => onSelect(prop.siteUrl)}
-              className={`w-full text-left p-3 rounded-xl border transition-colors ${
-                isSelected
-                  ? "border-[#ec4899] bg-[#ec4899]/5"
-                  : "border-border hover:border-[#ec4899]/30 hover:bg-muted/30"
-              }`}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <Globe className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {getPropertyDisplay(prop.siteUrl)}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge
-                      variant={type === "domain" ? "default" : "secondary"}
-                      className="text-[10px] py-0"
-                    >
-                      {type === "domain" ? "Domain" : "URL Prefix"}
-                    </Badge>
-                    {isMatch && (
-                      <span className="text-[10px] text-semantic-success font-medium">
-                        Matches your site
-                      </span>
-                    )}
-                  </div>
-                </div>
-                {isSelected && (
-                  <CheckCircle2 className="w-5 h-5 text-[#ec4899] shrink-0" />
-                )}
-              </div>
-            </button>
-          );
-        })}
+      {/* Property dropdown */}
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-foreground">Search Console Property</label>
+        <Select value={selectedSiteUrl || undefined} onValueChange={onSelect}>
+          <SelectTrigger className="w-full h-11 rounded-xl">
+            <SelectValue placeholder="Select a property..." />
+          </SelectTrigger>
+          <SelectContent>
+            {sorted.map((prop) => {
+              const type = getPropertyType(prop.siteUrl);
+              const isMatch = domainMatch(prop.siteUrl, siteDomain);
+              return (
+                <SelectItem key={prop.siteUrl} value={prop.siteUrl}>
+                  {getPropertyDisplay(prop.siteUrl)}
+                  {" "}
+                  <span className="text-muted-foreground">
+                    ({type === "domain" ? "Domain" : "URL Prefix"})
+                  </span>
+                  {isMatch && (
+                    <span className="text-semantic-success ml-1">
+                      — Matches your site
+                    </span>
+                  )}
+                </SelectItem>
+              );
+            })}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Actions */}

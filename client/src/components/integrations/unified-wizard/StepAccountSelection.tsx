@@ -1,18 +1,22 @@
 /**
  * Step 2: Account Selection - Choose which Google account to use for GA4
  */
-import { useEffect } from "react";
 import {
   Users,
-  CheckCircle2,
   Loader2,
   AlertCircle,
   ArrowRight,
   ArrowLeft,
-  ChevronRight,
   ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 import type { GA4Account } from "../useGoogleConnection";
 
 interface StepAccountSelectionProps {
@@ -42,13 +46,6 @@ export function StepAccountSelection({
   onRetry,
   allowSkip = true,
 }: StepAccountSelectionProps) {
-  // Auto-select if only one account
-  useEffect(() => {
-    if (accounts.length === 1 && !selectedAccountId) {
-      onSelectAccount(accounts[0].accountId);
-    }
-  }, [accounts, selectedAccountId, onSelectAccount]);
-
   // Loading state
   if (isLoading) {
     return (
@@ -174,37 +171,24 @@ export function StepAccountSelection({
         )}
       </div>
 
-      {/* Account list */}
-      <div className="space-y-2 max-h-64 overflow-y-auto">
-        {accounts.map((account) => {
-          const isSelected = selectedAccountId === account.accountId;
-
-          return (
-            <button
-              key={account.accountId}
-              onClick={() => onSelectAccount(account.accountId)}
-              className={`w-full text-left p-3 rounded-xl border transition-colors ${
-                isSelected
-                  ? "border-[#7c3aed] bg-[#7c3aed]/5"
-                  : "border-border hover:border-[#7c3aed]/30 hover:bg-muted/30"
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-foreground">{account.displayName}</p>
-                  <p className="text-xs text-muted-foreground font-mono mt-0.5">
-                    ID: {account.accountId}
-                  </p>
-                </div>
-                {isSelected ? (
-                  <CheckCircle2 className="w-5 h-5 text-[#7c3aed] shrink-0" />
-                ) : (
-                  <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-                )}
-              </div>
-            </button>
-          );
-        })}
+      {/* Account dropdown */}
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-foreground">Google Analytics Account</label>
+        <Select value={selectedAccountId || undefined} onValueChange={onSelectAccount}>
+          <SelectTrigger className="w-full h-11 rounded-xl">
+            <SelectValue placeholder="Select an account..." />
+          </SelectTrigger>
+          <SelectContent>
+            {accounts.map((account) => (
+              <SelectItem key={account.accountId} value={account.accountId}>
+                <span className="flex flex-col">
+                  <span>{account.displayName}</span>
+                  <span className="text-xs text-muted-foreground font-mono">ID: {account.accountId}</span>
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Actions */}
