@@ -27,7 +27,7 @@ interface KeywordRankingsSectionProps {
   siteId: string;
 }
 
-const ITEMS_PER_PAGE = 25;
+const ITEMS_PER_PAGE = 10;
 
 // Keyword tier limits
 const KEYWORD_TIERS = [

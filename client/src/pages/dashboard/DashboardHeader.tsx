@@ -10,7 +10,11 @@ export function DashboardHeader({ domain, siteId }: DashboardHeaderProps) {
   const queryClient = useQueryClient();
 
   const handleRefresh = () => {
-    queryClient.invalidateQueries({ queryKey: ["/api/ops-dashboard", siteId] });
+    // Invalidate all ops-dashboard queries (keywords, content, technical SEO, etc.)
+    queryClient.invalidateQueries({ queryKey: ["/api/ops-dashboard"] });
+    // Also invalidate dashboard-specific stats and missions
+    queryClient.invalidateQueries({ queryKey: ["/api/dashboard-stats"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/missions"] });
   };
 
   return (

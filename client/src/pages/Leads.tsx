@@ -816,21 +816,20 @@ export default function Leads() {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [showDetailDrawer, setShowDetailDrawer] = useState(false);
 
-  // Filter state - default to current month
-  const currentMonth = format(new Date(), "yyyy-MM");
+  // Filter state - default to all time so historical data is visible
   const [filters, setFilters] = useState({
     search: "",
     status: "all",
     outcome: "all",
     serviceLine: "all",
-    month: currentMonth, // Default to current month for faster loading
+    month: "all",
   });
 
-  // Generate month options for the last 12 months
+  // Generate month options for the last 24 months to cover all historical data
   const monthOptions = useMemo(() => {
     const options = [];
     const now = new Date();
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 24; i++) {
       const date = subMonths(now, i);
       const value = format(date, "yyyy-MM");
       const label = format(date, "MMMM yyyy");
@@ -855,6 +854,9 @@ export default function Leads() {
       params.startDate = startDate.toISOString();
       params.endDate = endDate.toISOString();
     }
+
+    // Load all leads at once (grouped by month in UI)
+    params.limit = "10000";
 
     return params;
   }, [filters]);

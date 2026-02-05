@@ -220,6 +220,7 @@ function EarlyPublishWarningModal({
   onConfirm,
   isPublishing,
 }: EarlyPublishWarningModalProps) {
+  const isScheduled = entry.scheduledForAutoPublish && entry.autoPublishDate;
   const scheduledDate = entry.autoPublishDate
     ? new Date(entry.autoPublishDate).toLocaleDateString("en-US", {
         weekday: "long",
@@ -228,7 +229,7 @@ function EarlyPublishWarningModal({
         hour: "numeric",
         minute: "2-digit",
       })
-    : "later";
+    : null;
 
   return (
     <div
@@ -254,10 +255,12 @@ function EarlyPublishWarningModal({
             </div>
             <div>
               <h3 className="font-semibold text-lg" style={{ color: "#0F172A" }}>
-                Publish Ahead of Schedule?
+                {isScheduled ? "Publish Ahead of Schedule?" : "Are you sure?"}
               </h3>
               <p className="text-xs" style={{ color: "#64748B" }}>
-                This content is scheduled for {scheduledDate}
+                {isScheduled
+                  ? `This content is scheduled for ${scheduledDate}`
+                  : "We recommend spacing out your content publishing"}
               </p>
             </div>
           </div>
@@ -293,8 +296,9 @@ function EarlyPublishWarningModal({
         </div>
 
         <p className="text-sm mb-4" style={{ color: "#475569" }}>
-          We recommend waiting until the scheduled date for optimal SEO performance.
-          Are you sure you want to publish now?
+          {isScheduled
+            ? "We recommend waiting until the scheduled date for optimal SEO performance. Are you sure you want to publish now?"
+            : "We recommend spacing out your publishing schedule for optimal SEO performance. Are you sure you want to publish now?"}
         </p>
 
         <div className="flex gap-3">
@@ -303,7 +307,7 @@ function EarlyPublishWarningModal({
             className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
             style={{ background: "rgba(15, 23, 42, 0.04)", color: "#64748B" }}
           >
-            Wait for Schedule
+            {isScheduled ? "Wait for Schedule" : "Don't Publish"}
           </button>
           <button
             onClick={onConfirm}
@@ -363,12 +367,15 @@ function StateBadge({
 function ContentEntry({
   entry,
   onDraftClick,
+  onPublishClick,
 }: {
   entry: ContentDraftEntry;
   onDraftClick: (entry: ContentDraftEntry) => void;
+  onPublishClick?: (entry: ContentDraftEntry) => void;
 }) {
   const typeLabel = TYPE_LABELS[entry.contentType] || entry.contentType;
   const isScheduled = entry.scheduledForAutoPublish && entry.autoPublishDate;
+  const isPublishable = ["qa_passed", "approved"].includes(entry.state);
 
   return (
     <div
@@ -434,6 +441,20 @@ function ContentEntry({
             Auto-publish: {new Date(entry.autoPublishDate).toLocaleDateString()}
           </span>
         </div>
+      )}
+      {isPublishable && onPublishClick && (
+        <button
+          onClick={() => onPublishClick(entry)}
+          className="mt-2 w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors"
+          style={{
+            background: "rgba(124, 58, 237, 0.06)",
+            border: "1px solid rgba(124, 58, 237, 0.15)",
+            color: "#7c3aed",
+          }}
+        >
+          <Send className="w-3 h-3" />
+          Publish Now
+        </button>
       )}
     </div>
   );
@@ -600,6 +621,12 @@ export function ContentStatusSection({ siteId }: ContentStatusSectionProps) {
     setPendingPublishEntry(null);
   };
 
+  const handleCardPublishClick = (entry: ContentDraftEntry) => {
+    // Always show the frequency warning when publishing from a card
+    setPendingPublishEntry(entry);
+    setShowEarlyPublishWarning(true);
+  };
+
   const handleAutoPublishToggle = async () => {
     const newValue = !autoPublishEnabled;
     setAutoPublishEnabled(newValue);
@@ -729,6 +756,7 @@ export function ContentStatusSection({ siteId }: ContentStatusSectionProps) {
               entries={newBlogs}
               emptyText="No blog posts"
               onDraftClick={handleDraftClick}
+              onPublishClick={handleCardPublishClick}
             />
 
             {/* New Web Pages */}
@@ -739,6 +767,7 @@ export function ContentStatusSection({ siteId }: ContentStatusSectionProps) {
               entries={newWebPages}
               emptyText="No new pages"
               onDraftClick={handleDraftClick}
+              onPublishClick={handleCardPublishClick}
             />
 
             {/* Web Page Edits */}
@@ -749,6 +778,7 @@ export function ContentStatusSection({ siteId }: ContentStatusSectionProps) {
               entries={webPageEdits}
               emptyText="No edits pending"
               onDraftClick={handleDraftClick}
+              onPublishClick={handleCardPublishClick}
             />
           </div>
 
@@ -795,6 +825,7 @@ function ContentColumn({
   entries,
   emptyText,
   onDraftClick,
+  onPublishClick,
 }: {
   icon: typeof FileText;
   iconColor: string;
@@ -802,6 +833,7 @@ function ContentColumn({
   entries: ContentDraftEntry[];
   emptyText: string;
   onDraftClick: (entry: ContentDraftEntry) => void;
+  onPublishClick?: (entry: ContentDraftEntry) => void;
 }) {
   return (
     <div>
@@ -814,7 +846,7 @@ function ContentColumn({
       {entries.length > 0 ? (
         <div className="space-y-2">
           {entries.map(entry => (
-            <ContentEntry key={entry.draftId} entry={entry} onDraftClick={onDraftClick} />
+            <ContentEntry key={entry.draftId} entry={entry} onDraftClick={onDraftClick} onPublishClick={onPublishClick} />
           ))}
         </div>
       ) : (

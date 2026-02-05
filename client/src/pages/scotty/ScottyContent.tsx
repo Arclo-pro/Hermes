@@ -759,7 +759,79 @@ export default function ScottyContent() {
     ),
   };
 
-  const inspectorTabs: InspectorTab[] = [findingsTab, trendsTab, controlsTab];
+  // Planned weekly fixes tab — shows fixable issues scheduled for automated weekly resolution
+  const fixableFindings = data.findings.filter(f => f.fixable);
+  const plannedFixesTab: InspectorTab = {
+    id: "planned-fixes",
+    label: "Planned Fixes",
+    icon: <Clock className="w-4 h-4" />,
+    badge: fixableFindings.length || undefined,
+    state: isLoading ? "loading" : fixableFindings.length > 0 ? "ready" : "empty",
+    content: (
+      <div className="p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h4 className="font-semibold text-sm">Weekly Automated Fixes</h4>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Fixable issues are automatically resolved every Monday at 6 AM
+            </p>
+          </div>
+          <Badge variant="outline" className="text-xs gap-1">
+            <Clock className="w-3 h-3" />
+            Next: Monday 6 AM
+          </Badge>
+        </div>
+        {fixableFindings.length > 0 ? (
+          <div className="space-y-2">
+            {fixableFindings.map((finding) => (
+              <div
+                key={finding.id}
+                className={cn(
+                  "flex items-center justify-between p-3 rounded-lg border",
+                  getSeverityColor(finding.severity)
+                )}
+              >
+                <div className="flex items-start gap-3 flex-1 min-w-0">
+                  {getSeverityIcon(finding.severity)}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-medium text-sm">{finding.issueType}</span>
+                      <Badge variant="outline" className="text-xs">{finding.category}</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">{finding.url}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 ml-4">
+                  <Badge className="text-xs bg-emerald-100 text-emerald-700 border-emerald-200">
+                    <Clock className="w-3 h-3 mr-1" />
+                    Scheduled
+                  </Badge>
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={() => fixIssueMutation.mutate(finding)}
+                  >
+                    <Zap className="w-3 h-3 mr-1" />
+                    Fix Now
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <CheckCircle2 className="w-10 h-10 text-semantic-success mb-3" />
+            <p className="font-medium text-sm">No fixes needed</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              All fixable issues have been resolved.
+            </p>
+          </div>
+        )}
+      </div>
+    ),
+  };
+
+  const inspectorTabs: InspectorTab[] = [findingsTab, plannedFixesTab, trendsTab, controlsTab];
 
   const missionPrompt: MissionPromptConfig = {
     label: "Ask Scotty",

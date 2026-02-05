@@ -168,11 +168,11 @@ export default function AppShell({ children, lightMode = false }: AppShellProps)
             </DropdownMenu>
           ) : sites && sites.length === 1 ? (
             <div
-              className="w-full flex items-center space-x-2 px-3 py-2 rounded-lg bg-sidebar-accent border border-sidebar-border text-sidebar-foreground text-sm"
+              className="w-full flex items-center space-x-2 px-3 py-2 rounded-lg text-sidebar-foreground/70 text-sm"
               data-testid="site-label-single"
             >
-              <Building2 className="h-4 w-4 shrink-0" />
-              <span className="truncate font-medium">{currentSite?.displayName}</span>
+              <Building2 className="h-4 w-4 shrink-0 text-gold" />
+              <span className="truncate font-medium text-sidebar-foreground">{currentSite?.displayName || "Loading..."}</span>
             </div>
           ) : (
             <Link href="/app/sites/new">
@@ -268,9 +268,35 @@ export default function AppShell({ children, lightMode = false }: AppShellProps)
         </div>
       </aside>
 
-      <main className="flex-1 overflow-auto">
-        {children}
-      </main>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Top bar */}
+        <header className={cn(
+          "h-12 flex items-center justify-end px-6 border-b shrink-0",
+          lightMode ? "bg-white border-gray-200" : "bg-background border-border"
+        )}>
+          <div className="flex items-center gap-3">
+            <Link href="/app/notifications">
+              <span className={cn(
+                "p-1.5 rounded-md transition-colors cursor-pointer",
+                lightMode ? "text-gray-500 hover:text-gray-900 hover:bg-gray-100" : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+              )}>
+                <Bell className="h-4 w-4" />
+              </span>
+            </Link>
+            <Link href="/app/settings">
+              <span className={cn(
+                "p-1.5 rounded-md transition-colors cursor-pointer",
+                lightMode ? "text-gray-500 hover:text-gray-900 hover:bg-gray-100" : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+              )}>
+                <Settings className="h-4 w-4" />
+              </span>
+            </Link>
+          </div>
+        </header>
+        <main className="flex-1 overflow-auto">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }
