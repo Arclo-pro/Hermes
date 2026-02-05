@@ -234,48 +234,7 @@ export function UnifiedGoogleWizard({
     setGA4StreamId(streamId);
   }, []);
 
-  // Skip GA4 (from property selection)
-  const handleSkipGA4 = useCallback(() => {
-    setGA4Skipped(true);
-    setGA4PropertyId(null);
-    setGA4StreamId(null);
-    if (mode === "ga4-only") {
-      setStep("verify-confirm");
-    } else {
-      setStep("gsc-selection");
-    }
-  }, [mode]);
-
-  // Continue from GA4 to GSC
-  const handleGA4Continue = useCallback(() => {
-    if (mode === "ga4-only") {
-      setStep("saving");
-      handleSaveAndVerify();
-    } else {
-      setStep("gsc-selection");
-    }
-  }, [mode, handleSaveAndVerify]);
-
-  // Handle GSC selection
-  const handleSelectGSC = useCallback((siteUrl: string) => {
-    setGscSiteUrl(siteUrl);
-  }, []);
-
-  // Skip GSC
-  const handleSkipGSC = useCallback(() => {
-    setGscSkipped(true);
-    setGscSiteUrl(null);
-    setStep("saving");
-    handleSaveAndVerify();
-  }, [handleSaveAndVerify]);
-
-  // Continue from GSC to verify
-  const handleGSCContinue = useCallback(() => {
-    setStep("saving");
-    handleSaveAndVerify();
-  }, [handleSaveAndVerify]);
-
-  // Save and verify
+  // Save and verify - defined first so other callbacks can reference it
   const handleSaveAndVerify = useCallback(async () => {
     setVerifyError(null);
     setVerifyResult(null);
@@ -316,6 +275,47 @@ export function UnifiedGoogleWizard({
       setStep("verify-confirm");
     }
   }, [ga4PropertyId, ga4StreamId, ga4Skipped, gscSiteUrl, gscSkipped, google]);
+
+  // Skip GA4 (from property selection)
+  const handleSkipGA4 = useCallback(() => {
+    setGA4Skipped(true);
+    setGA4PropertyId(null);
+    setGA4StreamId(null);
+    if (mode === "ga4-only") {
+      setStep("verify-confirm");
+    } else {
+      setStep("gsc-selection");
+    }
+  }, [mode]);
+
+  // Continue from GA4 to GSC
+  const handleGA4Continue = useCallback(() => {
+    if (mode === "ga4-only") {
+      setStep("saving");
+      handleSaveAndVerify();
+    } else {
+      setStep("gsc-selection");
+    }
+  }, [mode, handleSaveAndVerify]);
+
+  // Handle GSC selection
+  const handleSelectGSC = useCallback((siteUrl: string) => {
+    setGscSiteUrl(siteUrl);
+  }, []);
+
+  // Skip GSC
+  const handleSkipGSC = useCallback(() => {
+    setGscSkipped(true);
+    setGscSiteUrl(null);
+    setStep("saving");
+    handleSaveAndVerify();
+  }, [handleSaveAndVerify]);
+
+  // Continue from GSC to verify
+  const handleGSCContinue = useCallback(() => {
+    setStep("saving");
+    handleSaveAndVerify();
+  }, [handleSaveAndVerify]);
 
   // Retry verification
   const handleRetryVerify = useCallback(async () => {
