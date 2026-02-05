@@ -48,6 +48,7 @@ export interface GoogleAccounts {
 export interface GoogleProperties {
   ga4: GA4Property[];
   gsc: GSCProperty[];
+  gscError?: string | null;
 }
 
 export interface VerifyResult {
@@ -139,7 +140,7 @@ export function useGoogleConnection(siteId: string | null) {
       if (!res.ok) throw new Error("Failed to fetch properties");
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || "Failed to fetch properties");
-      return { ga4: data.ga4 || [], gsc: data.gsc || [] };
+      return { ga4: data.ga4 || [], gsc: data.gsc || [], gscError: data.gscError || null };
     },
     enabled: false, // Only fetch on demand
   });

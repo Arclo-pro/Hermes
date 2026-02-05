@@ -15,10 +15,10 @@ export interface MetricsData {
   ga4Connected: boolean;
   gscConnected: boolean;
   metrics: {
-    sessions: MetricValue;
-    bounceRate: MetricValue;
-    avgSessionDuration: MetricValue;
-    pagesPerSession: MetricValue;
+    activeUsers: MetricValue;
+    eventCount: MetricValue;
+    newUsers: MetricValue;
+    avgEngagement: MetricValue;
   };
 }
 

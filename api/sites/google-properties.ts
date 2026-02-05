@@ -87,6 +87,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       // Discover GSC sites
       const gscSites: Array<{ siteUrl: string; permissionLevel: string }> = [];
+      let gscError: string | null = null;
       try {
         const searchConsole = google.searchconsole("v1");
         const sitesRes = await searchConsole.sites.list({ auth });
@@ -100,12 +101,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       } catch (err: any) {
         console.warn("[GoogleProperties] Failed to list GSC sites:", err.message);
+        const msg = err.message || "Unknown error";
+        if (msg.includes("has not been used") || msg.includes("is disabled") || err.code === 403) {
+          gscError = "The Google Search Console API is not enabled in your Google Cloud project. Enable it here: https://console.cloud.google.com/apis/library/searchconsole.googleapis.com";
+        } else {
+          gscError = `Failed to list Search Console sites: ${msg}`;
+        }
       }
 
       return res.json({
         ok: true,
         ga4: ga4Properties,
         gsc: gscSites,
+        gscError,
       });
     } catch (error: any) {
       console.error("[GoogleProperties] Failed to discover properties:", error.message);

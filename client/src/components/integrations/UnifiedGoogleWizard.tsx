@@ -421,10 +421,12 @@ export function UnifiedGoogleWizard({
             isLoading={google.isLoadingProperties}
             selectedSiteUrl={gscSiteUrl}
             siteDomain={siteDomain}
+            apiError={google.properties?.gscError}
             onSelect={handleSelectGSC}
             onSkip={handleSkipGSC}
             onNext={handleGSCContinue}
             onBack={mode === "gsc-only" ? handleBackToExplain : (ga4Skipped ? handleBackToAccount : handleBackToGA4)}
+            onRetry={() => google.fetchProperties()}
             allowSkip={mode === "full"}
           />
         )}

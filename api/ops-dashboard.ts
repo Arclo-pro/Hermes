@@ -1,7 +1,9 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { google } from "googleapis";
 import { getPool } from "./_lib/db.js";
 import { getSessionUser, setCorsHeaders } from "./_lib/auth.js";
 import { fetchPageSpeedData } from "./_lib/pagespeed.js";
+import { getAuthenticatedClientForSite } from "./_lib/googleOAuth.js";
 
 /**
  * GET /api/ops-dashboard/:siteId/:section
@@ -70,7 +72,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     switch (section) {
       case "metrics":
-        return res.json(buildMetrics(fullReport, scoreSummary, googleCreds));
+        return res.json(await buildMetrics(fullReport, scoreSummary, googleCreds, numericSiteId));
       case "serp-snapshot":
         return res.json(buildSerpSnapshot(fullReport));
       case "serp-keywords":
@@ -98,28 +100,133 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 // Section Builders
 // ============================================================
 
-function buildMetrics(fullReport: any, scoreSummary: any, googleCreds: any) {
+async function buildMetrics(fullReport: any, scoreSummary: any, googleCreds: any, numericSiteId: number) {
   // Check if GA4 and GSC are connected
   const ga4Connected = !!(googleCreds?.ga4_property_id && googleCreds?.integration_status === "connected");
   const gscConnected = !!googleCreds?.gsc_site_url;
 
-  // GA4 metrics - show different messages based on connection state
-  const ga4Reason = googleCreds?.ga4_property_id
-    ? (googleCreds?.integration_status === "connected"
-      ? "GA4 data will be available soon"
-      : "Verify GA4 connection in settings")
-    : "Connect Google Analytics to see this metric";
+  // If GA4 is not connected, return unavailable with appropriate reason
+  if (!ga4Connected) {
+    const ga4Reason = googleCreds?.ga4_property_id
+      ? "Verify GA4 connection in settings"
+      : "Connect Google Analytics to see this metric";
 
-  return {
-    ga4Connected,
-    gscConnected,
-    metrics: {
-      activeUsers: notAvailable(ga4Reason),
-      eventCount: notAvailable(ga4Reason),
-      newUsers: notAvailable(ga4Reason),
-      avgEngagement: notAvailable(ga4Reason),
-    },
-  };
+    return {
+      ga4Connected,
+      gscConnected,
+      metrics: {
+        activeUsers: notAvailable(ga4Reason),
+        eventCount: notAvailable(ga4Reason),
+        newUsers: notAvailable(ga4Reason),
+        avgEngagement: notAvailable(ga4Reason),
+      },
+    };
+  }
+
+  // GA4 is connected — fetch real data from the GA4 Data API
+  try {
+    const authClient = await getAuthenticatedClientForSite(numericSiteId);
+    const analyticsData = google.analyticsdata({ version: "v1beta", auth: authClient });
+    const propertyId = googleCreds.ga4_property_id;
+
+    // Calculate date range: last 28 days vs previous 28 days
+    const now = new Date();
+    const endDate = new Date(now);
+    endDate.setDate(endDate.getDate() - 1); // yesterday (today may be incomplete)
+    const startDate = new Date(endDate);
+    startDate.setDate(startDate.getDate() - 27); // 28 day window
+
+    const prevEndDate = new Date(startDate);
+    prevEndDate.setDate(prevEndDate.getDate() - 1);
+    const prevStartDate = new Date(prevEndDate);
+    prevStartDate.setDate(prevStartDate.getDate() - 27);
+
+    const fmt = (d: Date) => d.toISOString().slice(0, 10);
+
+    // Run report for current period
+    const [currentReport, previousReport] = await Promise.all([
+      analyticsData.properties.runReport({
+        property: `properties/${propertyId}`,
+        requestBody: {
+          dateRanges: [{ startDate: fmt(startDate), endDate: fmt(endDate) }],
+          metrics: [
+            { name: "activeUsers" },
+            { name: "eventCount" },
+            { name: "newUsers" },
+            { name: "averageSessionDuration" },
+          ],
+        },
+      }),
+      analyticsData.properties.runReport({
+        property: `properties/${propertyId}`,
+        requestBody: {
+          dateRanges: [{ startDate: fmt(prevStartDate), endDate: fmt(prevEndDate) }],
+          metrics: [
+            { name: "activeUsers" },
+            { name: "eventCount" },
+            { name: "newUsers" },
+            { name: "averageSessionDuration" },
+          ],
+        },
+      }),
+    ]);
+
+    const currentRow = currentReport.data.rows?.[0]?.metricValues || [];
+    const previousRow = previousReport.data.rows?.[0]?.metricValues || [];
+
+    const parseVal = (row: any[], idx: number) => parseFloat(row[idx]?.value || "0");
+    const calcChange = (current: number, previous: number) =>
+      previous > 0 ? Math.round(((current - previous) / previous) * 100) : null;
+
+    const curActiveUsers = parseVal(currentRow, 0);
+    const curEventCount = parseVal(currentRow, 1);
+    const curNewUsers = parseVal(currentRow, 2);
+    const curAvgEngagement = parseVal(currentRow, 3); // seconds
+
+    const prevActiveUsers = parseVal(previousRow, 0);
+    const prevEventCount = parseVal(previousRow, 1);
+    const prevNewUsers = parseVal(previousRow, 2);
+    const prevAvgEngagement = parseVal(previousRow, 3);
+
+    return {
+      ga4Connected,
+      gscConnected,
+      metrics: {
+        activeUsers: {
+          value: curActiveUsers,
+          change7d: calcChange(curActiveUsers, prevActiveUsers),
+          available: true,
+        },
+        eventCount: {
+          value: curEventCount,
+          change7d: calcChange(curEventCount, prevEventCount),
+          available: true,
+        },
+        newUsers: {
+          value: curNewUsers,
+          change7d: calcChange(curNewUsers, prevNewUsers),
+          available: true,
+        },
+        avgEngagement: {
+          value: curAvgEngagement, // raw seconds — frontend formats as "Xm Ys"
+          change7d: calcChange(curAvgEngagement, prevAvgEngagement),
+          available: true,
+        },
+      },
+    };
+  } catch (err: any) {
+    console.error("[Metrics] GA4 Data API error:", err.message);
+    return {
+      ga4Connected,
+      gscConnected,
+      metrics: {
+        activeUsers: notAvailable("Error fetching GA4 data"),
+        eventCount: notAvailable("Error fetching GA4 data"),
+        newUsers: notAvailable("Error fetching GA4 data"),
+        avgEngagement: notAvailable("Error fetching GA4 data"),
+      },
+    };
+  }
 }
 
 function buildSerpSnapshot(fullReport: any) {

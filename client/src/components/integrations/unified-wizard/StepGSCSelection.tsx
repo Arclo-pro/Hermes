@@ -48,10 +48,12 @@ interface StepGSCSelectionProps {
   isLoading: boolean;
   selectedSiteUrl: string | null;
   siteDomain?: string;
+  apiError?: string | null;
   onSelect: (siteUrl: string) => void;
   onSkip: () => void;
   onNext: () => void;
   onBack: () => void;
+  onRetry?: () => void;
   allowSkip?: boolean;
 }
 
@@ -60,16 +62,17 @@ export function StepGSCSelection({
   isLoading,
   selectedSiteUrl,
   siteDomain,
+  apiError,
   onSelect,
   onSkip,
   onNext,
   onBack,
+  onRetry,
   allowSkip = true,
 }: StepGSCSelectionProps) {
   // Auto-select best match
   useEffect(() => {
     if (properties.length > 0 && !selectedSiteUrl) {
-      // Prefer domain match, then first domain property, then first property
       const match = properties.find((p) => domainMatch(p.siteUrl, siteDomain));
       if (match) {
         onSelect(match.siteUrl);
@@ -89,40 +92,77 @@ export function StepGSCSelection({
     );
   }
 
-  // No properties found
+  // No properties found (or API error)
   if (properties.length === 0) {
+    const isApiError = !!apiError;
+    const isApiDisabled = apiError?.includes("not enabled") || apiError?.includes("API");
+    const urlMatch = apiError?.match(/https:\/\/\S+/);
+    const activationUrl = urlMatch?.[0] || "https://console.cloud.google.com/apis/library/searchconsole.googleapis.com";
+
     return (
       <div className="space-y-5">
         <div className="text-center py-4">
-          <AlertCircle className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-          <h3 className="text-lg font-semibold text-foreground">No Search Console Properties Found</h3>
+          <AlertCircle className={`w-10 h-10 mx-auto mb-3 ${isApiError ? "text-amber-500" : "text-muted-foreground"}`} />
+          <h3 className="text-lg font-semibold text-foreground">
+            {isApiError ? "API Configuration Required" : "No Search Console Properties Found"}
+          </h3>
           <p className="text-sm text-muted-foreground mt-2 max-w-sm mx-auto">
-            You may need to verify your site with Google first.
+            {isApiError
+              ? "We connected to Google but couldn't list your Search Console properties."
+              : "We couldn't find any Search Console properties for your Google account."}
           </p>
         </div>
-        <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground space-y-2">
-          <p className="font-medium text-foreground">How to add your site:</p>
-          <ol className="list-decimal list-inside space-y-1">
-            <li>Go to search.google.com/search-console</li>
-            <li>Click "Add Property"</li>
-            <li>Complete verification</li>
-          </ol>
-          <a
-            href="https://support.google.com/webmasters/answer/9008080"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-primary hover:underline mt-2"
-          >
-            Google's verification guide
-            <ExternalLink className="w-3 h-3" />
-          </a>
-        </div>
+
+        {isApiError ? (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm space-y-3">
+            <p className="font-medium text-amber-900">
+              {isApiDisabled ? "Enable the Google Search Console API" : "Error Details"}
+            </p>
+            {isApiDisabled ? (
+              <div className="space-y-2">
+                <p className="text-amber-800 text-xs">
+                  The Google Search Console API needs to be enabled in your Google Cloud project.
+                </p>
+                <a
+                  href={activationUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  Enable Search Console API
+                </a>
+              </div>
+            ) : (
+              <p className="text-amber-800 text-xs">{apiError}</p>
+            )}
+            <p className="text-amber-700 text-xs mt-2">
+              After enabling the API, wait a minute then click "Retry" below.
+            </p>
+          </div>
+        ) : (
+          <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground space-y-2">
+            <p className="font-medium text-foreground">This can happen if:</p>
+            <ul className="list-disc list-inside space-y-1">
+              <li>Your site hasn't been verified in Search Console yet</li>
+              <li>You signed in with the wrong Google account</li>
+              <li>You need to be added as a user on someone else's property</li>
+            </ul>
+          </div>
+        )}
+
         <div className="flex gap-2">
           <Button variant="outline" onClick={onBack} className="shrink-0">
             <ArrowLeft className="w-4 h-4 mr-1.5" />
             Back
           </Button>
-          {allowSkip && (
+          {isApiError && onRetry && (
+            <Button variant="primary" fullWidth onClick={onRetry}>
+              Retry
+              <ArrowRight className="w-4 h-4 ml-1.5" />
+            </Button>
+          )}
+          {allowSkip && !isApiError && (
             <Button variant="outline" fullWidth onClick={onSkip}>
               Skip Search Console
               <ArrowRight className="w-4 h-4 ml-1.5" />
