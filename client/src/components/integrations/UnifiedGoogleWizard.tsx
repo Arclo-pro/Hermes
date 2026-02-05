@@ -254,7 +254,7 @@ export function UnifiedGoogleWizard({
     } else {
       setStep("gsc-selection");
     }
-  }, [mode]);
+  }, [mode, handleSaveAndVerify]);
 
   // Handle GSC selection
   const handleSelectGSC = useCallback((siteUrl: string) => {
@@ -267,13 +267,13 @@ export function UnifiedGoogleWizard({
     setGscSiteUrl(null);
     setStep("saving");
     handleSaveAndVerify();
-  }, []);
+  }, [handleSaveAndVerify]);
 
   // Continue from GSC to verify
   const handleGSCContinue = useCallback(() => {
     setStep("saving");
     handleSaveAndVerify();
-  }, []);
+  }, [handleSaveAndVerify]);
 
   // Save and verify
   const handleSaveAndVerify = useCallback(async () => {
@@ -358,7 +358,7 @@ export function UnifiedGoogleWizard({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader className="sr-only">
           <DialogTitle>Connect Google</DialogTitle>
           <DialogDescription>Connect Google Analytics and Search Console</DialogDescription>

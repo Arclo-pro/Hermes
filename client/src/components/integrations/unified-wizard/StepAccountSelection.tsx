@@ -8,6 +8,7 @@ import {
   ArrowRight,
   ArrowLeft,
   ExternalLink,
+  Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -64,60 +65,78 @@ export function StepAccountSelection({
     const urlMatch = apiError?.match(/https:\/\/\S+/);
     const activationUrl = urlMatch?.[0] || 'https://console.cloud.google.com/apis/library/analyticsadmin.googleapis.com';
 
+    // API needs to be enabled — show as a setup step, not an error
+    if (isAdminApiError) {
+      return (
+        <div className="space-y-5">
+          <div className="text-center">
+            <div className="w-12 h-12 rounded-xl bg-[#7c3aed]/10 flex items-center justify-center mx-auto mb-3">
+              <Settings className="w-6 h-6 text-[#7c3aed]" />
+            </div>
+            <h3 className="text-lg font-semibold text-foreground">Enable Google APIs</h3>
+            <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
+              One quick setup step — enable these APIs in your Google Cloud project so Arclo can read your analytics data.
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <a
+              href={activationUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-between w-full rounded-xl border border-input bg-background px-4 py-3 text-sm hover:bg-accent transition-colors"
+            >
+              <span className="font-medium">1. Analytics Admin API</span>
+              <ExternalLink className="w-4 h-4 text-muted-foreground" />
+            </a>
+            <a
+              href="https://console.cloud.google.com/apis/library/analyticsdata.googleapis.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-between w-full rounded-xl border border-input bg-background px-4 py-3 text-sm hover:bg-accent transition-colors"
+            >
+              <span className="font-medium">2. Analytics Data API</span>
+              <ExternalLink className="w-4 h-4 text-muted-foreground" />
+            </a>
+          </div>
+
+          <p className="text-xs text-muted-foreground text-center">
+            Click each link above, then click "Enable" on the Google page. Once done, come back and continue.
+          </p>
+
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onBack} className="shrink-0">
+              <ArrowLeft className="w-4 h-4 mr-1.5" />
+              Back
+            </Button>
+            {onRetry && (
+              <Button variant="primary" fullWidth onClick={onRetry}>
+                Continue
+                <ArrowRight className="w-4 h-4 ml-1.5" />
+              </Button>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // Other API error or no accounts found
     return (
       <div className="space-y-5">
         <div className="text-center py-4">
-          <AlertCircle className={`w-10 h-10 mx-auto mb-3 ${isApiError ? "text-amber-500" : "text-muted-foreground"}`} />
+          <AlertCircle className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
           <h3 className="text-lg font-semibold text-foreground">
-            {isApiError ? "API Configuration Required" : "No GA4 Accounts Found"}
+            {isApiError ? "Something went wrong" : "No GA4 Accounts Found"}
           </h3>
           <p className="text-sm text-muted-foreground mt-2 max-w-sm mx-auto">
             {isApiError
-              ? "We connected to Google but couldn't list your Analytics accounts."
+              ? apiError
               : `We couldn't find any Google Analytics 4 accounts connected to ${googleEmail || "your Google account"}.`
             }
           </p>
         </div>
 
-        {isApiError ? (
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm space-y-3">
-            <p className="font-medium text-amber-900">
-              {isAdminApiError ? "Enable the Google Analytics Admin API" : "Error Details"}
-            </p>
-            {isAdminApiError ? (
-              <div className="space-y-2">
-                <p className="text-amber-800 text-xs">
-                  The Google Analytics Admin API needs to be enabled in your Google Cloud project before Arclo can discover your accounts.
-                </p>
-                <a
-                  href={activationUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                  Enable Google Analytics Admin API
-                </a>
-                <p className="text-amber-800 text-xs mt-1">
-                  You'll also need the <strong>Google Analytics Data API</strong> enabled for report data.{" "}
-                  <a
-                    href="https://console.cloud.google.com/apis/library/analyticsdata.googleapis.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-700 underline"
-                  >
-                    Enable it here
-                  </a>.
-                </p>
-              </div>
-            ) : (
-              <p className="text-amber-800 text-xs">{apiError}</p>
-            )}
-            <p className="text-amber-700 text-xs mt-2">
-              After enabling the API(s), wait a minute then click "Retry" below.
-            </p>
-          </div>
-        ) : (
+        {!isApiError && (
           <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground space-y-2">
             <p className="font-medium text-foreground">This can happen if:</p>
             <ul className="list-disc list-inside space-y-1">
