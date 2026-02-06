@@ -23,6 +23,8 @@ import {
   AlertCircle,
   MoreHorizontal,
   ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
   X,
   Loader2,
   MessageSquare,
@@ -31,10 +33,12 @@ import {
   List,
   Trash2,
   RefreshCw,
+  TrendingUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { GlassCard, GlassCardContent } from "@/components/ui/GlassCard";
 import {
   Table,
   TableBody,
@@ -273,25 +277,63 @@ async function deleteLead(leadId: string): Promise<void> {
 }
 
 // ============================================
-// Stat Cards Component
+// Stat Cards Component (GlassCard pattern)
 // ============================================
 
-function computeChange(current: number, previous: number): { pct: number; direction: "up" | "down" | "flat" } {
-  if (previous === 0) return { pct: current > 0 ? 100 : 0, direction: current > 0 ? "up" : "flat" };
-  const pct = ((current - previous) / previous) * 100;
-  return { pct: Math.abs(pct), direction: pct > 0.5 ? "up" : pct < -0.5 ? "down" : "flat" };
+interface LeadStatCardConfig {
+  key: "total" | "signedUp" | "notSignedUp" | "conversionRate";
+  label: string;
+  icon: typeof Contact;
+  color: string;
+  bgGrad: string;
+  tint: "cyan" | "purple" | "green" | "pink" | "amber";
+  format: (v: number) => string;
+  invertChange?: boolean; // For metrics where "down" is good (like not signed up)
 }
 
-function ChangeIndicator({ pct, direction, invertColors }: { pct: number; direction: "up" | "down" | "flat"; invertColors?: boolean }) {
-  if (direction === "flat") return <span className="text-xs text-gray-400 ml-1">—</span>;
-  const isGood = invertColors ? direction === "down" : direction === "up";
-  const color = isGood ? "text-green-600" : "text-red-600";
-  const arrow = direction === "up" ? "↑" : "↓";
-  return (
-    <span className={`text-xs font-medium ${color} ml-1.5`}>
-      {arrow} {pct.toFixed(1)}%
-    </span>
-  );
+const LEAD_STAT_CARDS: LeadStatCardConfig[] = [
+  {
+    key: "total",
+    label: "Total Leads",
+    icon: Contact,
+    color: "#7c3aed",
+    bgGrad: "rgba(124,58,237,0.12), rgba(59,130,246,0.08)",
+    tint: "purple",
+    format: (v: number) => v.toLocaleString(),
+  },
+  {
+    key: "signedUp",
+    label: "Signed Up",
+    icon: CheckCircle2,
+    color: "#22c55e",
+    bgGrad: "rgba(34,197,94,0.12), rgba(34,197,94,0.06)",
+    tint: "green",
+    format: (v: number) => v.toLocaleString(),
+  },
+  {
+    key: "notSignedUp",
+    label: "Not Signed Up",
+    icon: XCircle,
+    color: "#ef4444",
+    bgGrad: "rgba(239,68,68,0.12), rgba(239,68,68,0.06)",
+    tint: "pink",
+    format: (v: number) => v.toLocaleString(),
+    invertChange: true,
+  },
+  {
+    key: "conversionRate",
+    label: "Conversion Rate",
+    icon: TrendingUp,
+    color: "#f59e0b",
+    bgGrad: "rgba(245,158,11,0.12), rgba(236,72,153,0.08)",
+    tint: "amber",
+    format: (v: number) => `${v.toFixed(1)}%`,
+  },
+];
+
+function computeChange(current: number, previous: number): number | null {
+  if (previous === 0) return current > 0 ? 100 : null;
+  return ((current - previous) / previous) * 100;
 }
 
 interface StatCardsProps {
@@ -302,92 +344,85 @@ interface StatCardsProps {
 }
 
 function StatCards({ stats, prevStats, isLoading, hasPeriodComparison }: StatCardsProps) {
-  const totalChange = hasPeriodComparison && stats && prevStats ? computeChange(stats.total, prevStats.total) : null;
-  const signedUpChange = hasPeriodComparison && stats && prevStats ? computeChange(stats.signedUp, prevStats.signedUp) : null;
-  const notSignedUpChange = hasPeriodComparison && stats && prevStats ? computeChange(stats.notSignedUp, prevStats.notSignedUp) : null;
-  const conversionChange = hasPeriodComparison && stats && prevStats ? computeChange(stats.conversionRate, prevStats.conversionRate) : null;
-
-  const cards = [
-    {
-      label: "Total Leads",
-      value: stats?.total ?? 0,
-      icon: Contact,
-      iconColor: "text-blue-600",
-      iconBg: "bg-blue-50",
-      border: "border-blue-200",
-      glow: "shadow-[inset_0_1px_0_0_rgba(59,130,246,0.15),0_0_20px_-5px_rgba(59,130,246,0.12)]",
-      bar: "bg-blue-500",
-      change: totalChange,
-      invertColors: false,
-    },
-    {
-      label: "Signed Up",
-      value: stats?.signedUp ?? 0,
-      icon: CheckCircle2,
-      iconColor: "text-green-600",
-      iconBg: "bg-green-50",
-      border: "border-green-200",
-      glow: "shadow-[inset_0_1px_0_0_rgba(34,197,94,0.15),0_0_20px_-5px_rgba(34,197,94,0.12)]",
-      bar: "bg-green-500",
-      change: signedUpChange,
-      invertColors: false,
-    },
-    {
-      label: "Not Signed Up",
-      value: stats?.notSignedUp ?? 0,
-      icon: XCircle,
-      iconColor: "text-red-600",
-      iconBg: "bg-red-50",
-      border: "border-red-200",
-      glow: "shadow-[inset_0_1px_0_0_rgba(239,68,68,0.15),0_0_20px_-5px_rgba(239,68,68,0.12)]",
-      bar: "bg-red-500",
-      change: notSignedUpChange,
-      invertColors: true,
-    },
-    {
-      label: "Conversion Rate",
-      value: `${(stats?.conversionRate ?? 0).toFixed(1)}%`,
-      icon: AlertCircle,
-      iconColor: "text-amber-600",
-      iconBg: "bg-amber-50",
-      border: "border-amber-200",
-      glow: "shadow-[inset_0_1px_0_0_rgba(234,179,8,0.15),0_0_20px_-5px_rgba(234,179,8,0.12)]",
-      bar: "bg-amber-500",
-      change: conversionChange,
-      invertColors: false,
-    },
-  ];
+  const changes = useMemo(() => {
+    if (!hasPeriodComparison || !stats || !prevStats) {
+      return {
+        total: null as number | null,
+        signedUp: null as number | null,
+        notSignedUp: null as number | null,
+        conversionRate: null as number | null,
+      };
+    }
+    return {
+      total: computeChange(stats.total, prevStats.total),
+      signedUp: computeChange(stats.signedUp, prevStats.signedUp),
+      notSignedUp: computeChange(stats.notSignedUp, prevStats.notSignedUp),
+      conversionRate: computeChange(stats.conversionRate, prevStats.conversionRate),
+    };
+  }, [stats, prevStats, hasPeriodComparison]);
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      {cards.map((card) => (
-        <Card
-          key={card.label}
-          className={`relative overflow-hidden rounded-2xl bg-white/80 backdrop-blur-sm transition-all ${card.border} ${card.glow}`}
-        >
-          <div className={`absolute top-0 left-0 right-0 h-1 ${card.bar}`} />
-          <CardContent className="p-5 pt-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-500 mb-1">{card.label}</p>
-                {isLoading ? (
-                  <div className="h-8 w-16 bg-gray-100 animate-pulse rounded" />
-                ) : (
-                  <div className="flex items-baseline">
-                    <p className="text-2xl font-bold text-gray-900 tabular-nums">{card.value}</p>
-                    {card.change && (
-                      <ChangeIndicator pct={card.change.pct} direction={card.change.direction} invertColors={card.invertColors} />
-                    )}
-                  </div>
-                )}
+      {LEAD_STAT_CARDS.map((card) => {
+        const value = stats?.[card.key] ?? 0;
+        const change = changes[card.key];
+        const Icon = card.icon;
+
+        // For inverted metrics (like "not signed up"), flip the color logic
+        const effectiveChange = card.invertChange && change != null ? -change : change;
+
+        return (
+          <GlassCard key={card.key} variant="marketing" hover tint={card.tint}>
+            <GlassCardContent className="p-6">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-medium" style={{ color: "#475569" }}>{card.label}</p>
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center"
+                  style={{
+                    background: `linear-gradient(135deg, ${card.bgGrad})`,
+                    border: `1px solid ${card.color}20`,
+                  }}
+                >
+                  {isLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" style={{ color: "#94A3B8" }} />
+                  ) : (
+                    <Icon className="w-4 h-4" style={{ color: card.color }} />
+                  )}
+                </div>
               </div>
-              <div className={`p-1.5 rounded-lg ${card.iconBg}`}>
-                <card.icon className={`w-5 h-5 ${card.iconColor}`} />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+
+              {isLoading ? (
+                <div className="h-8 w-20 rounded bg-gray-100 animate-pulse" />
+              ) : (
+                <>
+                  <p className="text-3xl font-bold" style={{ color: "#0F172A" }}>
+                    {card.format(value)}
+                  </p>
+                  {change != null && (
+                    <div className="flex items-center gap-1 mt-1">
+                      {effectiveChange != null && effectiveChange > 0 ? (
+                        <ArrowUp className="w-3.5 h-3.5" style={{ color: "#22c55e" }} />
+                      ) : effectiveChange != null && effectiveChange < 0 ? (
+                        <ArrowDown className="w-3.5 h-3.5" style={{ color: "#ef4444" }} />
+                      ) : null}
+                      <span
+                        className="text-xs font-medium"
+                        style={{
+                          color: effectiveChange != null && effectiveChange > 0.5 ? "#22c55e"
+                               : effectiveChange != null && effectiveChange < -0.5 ? "#ef4444"
+                               : "#94A3B8",
+                        }}
+                      >
+                        {change > 0 ? "+" : ""}{change.toFixed(1)}% vs last month
+                      </span>
+                    </div>
+                  )}
+                </>
+              )}
+            </GlassCardContent>
+          </GlassCard>
+        );
+      })}
     </div>
   );
 }
@@ -862,20 +897,20 @@ export default function Leads() {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [showDetailDrawer, setShowDetailDrawer] = useState(false);
 
-  // Filter state - default to all time so historical data is visible
-  const [filters, setFilters] = useState({
+  // Filter state - default to current month
+  const [filters, setFilters] = useState(() => ({
     search: "",
     status: "all",
     outcome: "all",
     serviceLine: "all",
-    month: "all",
-  });
+    month: format(new Date(), "yyyy-MM"), // Default to current month
+  }));
 
-  // Generate month options for the last 24 months to cover all historical data
+  // Generate month options for the last 18 months
   const monthOptions = useMemo(() => {
     const options = [];
     const now = new Date();
-    for (let i = 0; i < 24; i++) {
+    for (let i = 0; i < 18; i++) {
       const date = subMonths(now, i);
       const value = format(date, "yyyy-MM");
       const label = format(date, "MMMM yyyy");

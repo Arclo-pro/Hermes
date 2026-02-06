@@ -166,6 +166,44 @@ export interface InsightsData {
   tips: DashboardTip[];
 }
 
+// Traffic Diagnosis Types
+export interface DiagnosisInsight {
+  id: string;
+  category: "channel" | "device" | "geo" | "landing_page" | "overall";
+  severity: "high" | "medium" | "low";
+  title: string;
+  body: string;
+  metric: string;
+  change: number;
+}
+
+export interface DimensionBreakdown {
+  dimension: string;
+  current: number;
+  previous: number;
+  change: number;
+  changePercent: number;
+  contributionPercent: number;
+}
+
+export interface TrafficDiagnosisData {
+  ok: boolean;
+  hasDrop: boolean;
+  summary: {
+    usersChange: number;
+    sessionsChange: number;
+    periodLabel: string;
+  };
+  insights: DiagnosisInsight[];
+  breakdowns: {
+    channels: DimensionBreakdown[];
+    devices: DimensionBreakdown[];
+    geos: DimensionBreakdown[];
+    landingPages: DimensionBreakdown[];
+  };
+  message?: string;
+}
+
 export interface TechnicalSeoIssue {
   id: string;
   title: string;
@@ -275,6 +313,21 @@ export function useInsights(siteId: string | null | undefined) {
     queryFn: () => fetchOpsDashboard<InsightsData>(siteId!, "insights"),
     enabled: !!siteId,
     staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useTrafficDiagnosis(siteId: string | null | undefined) {
+  return useQuery<TrafficDiagnosisData>({
+    queryKey: ["/api/sites", siteId, "traffic-diagnosis"],
+    queryFn: async () => {
+      const res = await fetch(`/api/sites/${encodeURIComponent(siteId!)}/traffic-diagnosis`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch traffic diagnosis");
+      return res.json();
+    },
+    enabled: !!siteId,
+    staleTime: 10 * 60 * 1000, // 10 minutes - expensive operation
   });
 }
 

@@ -33,6 +33,7 @@
     { "source": "/api/leads/analytics", "destination": "/api/leads-analytics" },
     { "source": "/api/leads/:leadId/contact", "destination": "/api/leads-contact?leadId=:leadId" },
     { "source": "/api/leads/:leadId", "destination": "/api/leads-detail?leadId=:leadId" },
+    { "source": "/api/sites/:siteId/traffic-diagnosis", "destination": "/api/sites/traffic-diagnosis?siteId=:siteId" },
     { "source": "/:path*", "destination": "/index" }
   ]
 }

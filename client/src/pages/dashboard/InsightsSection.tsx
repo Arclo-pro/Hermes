@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from "react";
-import { useInsights, type DashboardTip, type TipCategory, type TipSentiment } from "@/hooks/useOpsDashboard";
+import { useState, useRef, useEffect, useMemo } from "react";
+import { useInsights, useTrafficDiagnosis, type DashboardTip, type TipCategory, type TipSentiment, type DiagnosisInsight } from "@/hooks/useOpsDashboard";
 import { GlassCard, GlassCardContent } from "@/components/ui/GlassCard";
 import {
   Lightbulb,
@@ -10,19 +10,36 @@ import {
   ChevronRight,
   ChevronLeft,
   Calendar,
+  TrendingDown,
+  Smartphone,
+  Globe,
+  FileText,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useLocation } from "wouter";
 
 // ── Category badge styles ────────────────────────────────────
 
-const CATEGORY_STYLES: Record<TipCategory, { label: string; color: string; bg: string }> = {
+type ExtendedTipCategory = TipCategory | "diagnosis";
+
+const CATEGORY_STYLES: Record<ExtendedTipCategory, { label: string; color: string; bg: string }> = {
   rankings:  { label: "Rankings",  color: "#7c3aed", bg: "rgba(124,58,237,0.08)" },
   traffic:   { label: "Traffic",   color: "#ec4899", bg: "rgba(236,72,153,0.08)" },
   content:   { label: "Content",   color: "#f59e0b", bg: "rgba(245,158,11,0.08)" },
   technical: { label: "Technical", color: "#ef4444", bg: "rgba(239,68,68,0.08)" },
   system:    { label: "Setup",     color: "#3b82f6", bg: "rgba(59,130,246,0.08)" },
   win:       { label: "Win",       color: "#22c55e", bg: "rgba(34,197,94,0.08)" },
+  diagnosis: { label: "Why?",      color: "#f97316", bg: "rgba(249,115,22,0.08)" },
+};
+
+// ── Diagnosis category icons ─────────────────────────────────
+
+const DIAGNOSIS_ICONS: Record<DiagnosisInsight["category"], LucideIcon> = {
+  overall: TrendingDown,
+  channel: TrendingDown,
+  device: Smartphone,
+  geo: Globe,
+  landing_page: FileText,
 };
 
 // ── Sentiment → icon mapping ─────────────────────────────────
@@ -48,12 +65,22 @@ interface InsightCardProps {
 
 function InsightCard({ tip, onScheduleAction }: InsightCardProps) {
   const [, navigate] = useLocation();
-  const badge = CATEGORY_STYLES[tip.category];
-  const Icon = SENTIMENT_ICONS[tip.sentiment];
-  const iconColor = SENTIMENT_COLORS[tip.sentiment];
+
+  // Check if this is a diagnosis insight
+  const isDiagnosis = tip.id.startsWith("diagnosis-");
+  const diagnosisCategory = (tip as any)._diagnosisCategory as DiagnosisInsight["category"] | undefined;
+
+  // Use "Why?" badge for diagnosis insights, otherwise use the standard category badge
+  const badge = isDiagnosis ? CATEGORY_STYLES.diagnosis : CATEGORY_STYLES[tip.category];
+
+  // Use diagnosis-specific icon or standard sentiment icon
+  const Icon = isDiagnosis && diagnosisCategory
+    ? DIAGNOSIS_ICONS[diagnosisCategory]
+    : SENTIMENT_ICONS[tip.sentiment];
+  const iconColor = isDiagnosis ? "#f97316" : SENTIMENT_COLORS[tip.sentiment];
 
   // Determine if this is an actionable insight that can be scheduled
-  const isSchedulable = tip.sentiment === "action" && tip.category !== "system";
+  const isSchedulable = tip.sentiment === "action" && tip.category !== "system" && !isDiagnosis;
   const isSetupAction = tip.category === "system";
 
   return (
@@ -128,6 +155,7 @@ const ITEMS_PER_PAGE = 4; // Show 4 items at a time on desktop
 
 export function InsightsSection({ siteId }: InsightsSectionProps) {
   const { data, isLoading } = useInsights(siteId);
+  const { data: diagnosisData, isLoading: diagnosisLoading } = useTrafficDiagnosis(siteId);
   const [collapsed, setCollapsed] = useState(() => {
     try {
       return localStorage.getItem(STORAGE_KEY) === "true";
@@ -137,6 +165,36 @@ export function InsightsSection({ siteId }: InsightsSectionProps) {
   });
   const [currentIndex, setCurrentIndex] = useState(0);
   const carouselRef = useRef<HTMLDivElement>(null);
+
+  // Convert diagnosis insights to DashboardTip format and merge with regular tips
+  const allTips = useMemo(() => {
+    const tips: DashboardTip[] = [];
+
+    // Add diagnosis insights first (they explain the "why")
+    if (diagnosisData?.hasDrop && diagnosisData.insights.length > 0) {
+      for (const insight of diagnosisData.insights) {
+        tips.push({
+          id: `diagnosis-${insight.id}`,
+          title: insight.title,
+          body: insight.body,
+          category: "traffic" as TipCategory, // Use traffic category for styling
+          priority: insight.severity === "high" ? 100 : insight.severity === "medium" ? 95 : 90,
+          sentiment: "action" as TipSentiment,
+          // Store diagnosis category for custom rendering
+          _diagnosisCategory: insight.category,
+        } as DashboardTip & { _diagnosisCategory?: string });
+      }
+    }
+
+    // Add regular insights
+    if (data?.tips) {
+      tips.push(...data.tips);
+    }
+
+    // Sort by priority
+    tips.sort((a, b) => b.priority - a.priority);
+    return tips;
+  }, [data, diagnosisData]);
 
   const toggleCollapsed = () => {
     setCollapsed((prev) => {
@@ -158,7 +216,7 @@ export function InsightsSection({ siteId }: InsightsSectionProps) {
   };
 
   // Navigation
-  const totalTips = data?.tips?.length || 0;
+  const totalTips = allTips.length;
   const maxIndex = Math.max(0, totalTips - ITEMS_PER_PAGE);
 
   const goNext = () => {
@@ -171,7 +229,7 @@ export function InsightsSection({ siteId }: InsightsSectionProps) {
 
   // Scroll carousel when index changes
   useEffect(() => {
-    if (carouselRef.current) {
+    if (carouselRef.current && totalTips > 0) {
       const scrollWidth = carouselRef.current.scrollWidth;
       const containerWidth = carouselRef.current.clientWidth;
       const itemWidth = (scrollWidth - (totalTips - 1) * 16) / totalTips; // 16px gap
@@ -180,11 +238,15 @@ export function InsightsSection({ siteId }: InsightsSectionProps) {
     }
   }, [currentIndex, totalTips]);
 
-  if (isLoading || !data || data.tips.length === 0) {
-    return null;
-  }
+  // Still loading both data sources
+  const stillLoading = isLoading && diagnosisLoading;
+  if (stillLoading) return null;
+
+  // No insights to show
+  if (allTips.length === 0) return null;
 
   const showNavigation = totalTips > ITEMS_PER_PAGE;
+  const hasDiagnosisInsights = diagnosisData?.hasDrop && diagnosisData.insights.length > 0;
 
   return (
     <div className="space-y-3">
@@ -200,8 +262,8 @@ export function InsightsSection({ siteId }: InsightsSectionProps) {
           ) : (
             <ChevronDown className="w-4 h-4" />
           )}
-          Insights
-          <span className="ml-1 normal-case font-normal">({data.tips.length})</span>
+          {hasDiagnosisInsights ? "Traffic Analysis" : "Insights"}
+          <span className="ml-1 normal-case font-normal">({allTips.length})</span>
         </button>
 
         {/* Carousel navigation */}
@@ -237,7 +299,7 @@ export function InsightsSection({ siteId }: InsightsSectionProps) {
           className="flex gap-4 overflow-x-auto scrollbar-hide"
           style={{ scrollSnapType: "x mandatory", scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
-          {data.tips.map((tip) => (
+          {allTips.map((tip) => (
             <div
               key={tip.id}
               className="flex-shrink-0 w-[calc(100%-16px)] sm:w-[calc(50%-8px)] lg:w-[calc(25%-12px)]"
