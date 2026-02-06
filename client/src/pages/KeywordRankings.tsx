@@ -1,10 +1,10 @@
-import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle, GlassCardDescription } from "@/components/ui/GlassCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useState, useCallback } from "react";
-import { Search, TrendingUp, TrendingDown, Minus, ArrowUp, ArrowDown, Target, Filter, Trophy, Crown, Loader2, Sparkles, RefreshCw } from "lucide-react";
+import { Search, TrendingUp, TrendingDown, Minus, ArrowUp, ArrowDown, Target, Filter, Trophy, Crown, Loader2, Sparkles, RefreshCw, AlertCircle } from "lucide-react";
+import { colors, pageStyles, badgeStyles, gradients } from "@/lib/design-system";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSiteContext } from "@/hooks/useSiteContext";
@@ -15,48 +15,48 @@ import { useToast } from "@/hooks/use-toast";
 function getDirectionIcon(direction: SerpKeywordEntry["direction"]) {
   switch (direction) {
     case 'up':
-      return <TrendingUp className="h-4 w-4 text-green-600" />;
+      return <TrendingUp className="h-4 w-4" style={{ color: colors.semantic.success }} />;
     case 'down':
-      return <TrendingDown className="h-4 w-4 text-red-600" />;
+      return <TrendingDown className="h-4 w-4" style={{ color: colors.semantic.danger }} />;
     case 'new':
-      return <Sparkles className="h-4 w-4 text-blue-600" />;
+      return <Sparkles className="h-4 w-4" style={{ color: colors.brand.blue }} />;
     case 'stable':
     default:
-      return <Minus className="h-4 w-4 text-gray-500" />;
+      return <Minus className="h-4 w-4" style={{ color: colors.text.muted }} />;
   }
 }
 
 function getPositionBadge(position: number | null) {
-  const base = "h-6 inline-flex items-center";
+  const base = "h-6 px-2 py-0.5 rounded-md text-xs font-semibold inline-flex items-center";
   if (position === null) {
-    return <Badge className={`${base} bg-destructive text-white`}>N/R</Badge>;
+    return <span className={base} style={{ background: badgeStyles.red.bg, color: badgeStyles.red.color }}>N/R</span>;
   }
   if (position === 1) {
     return (
-      <Badge className={`${base} bg-gold text-white gap-1`}>
+      <span className={`${base} gap-1`} style={{ background: badgeStyles.amber.bg, color: badgeStyles.amber.color }}>
         <Crown className="h-3 w-3" />
         {position}
-      </Badge>
+      </span>
     );
   }
   if (position <= 3) {
     return (
-      <Badge className={`${base} bg-blue-500 text-white gap-1`}>
+      <span className={`${base} gap-1`} style={{ background: badgeStyles.blue.bg, color: badgeStyles.blue.color }}>
         <Trophy className="h-3 w-3" />
         {position}
-      </Badge>
+      </span>
     );
   }
   if (position <= 10) {
-    return <Badge className={`${base} bg-emerald-500 text-white`}>{position}</Badge>;
+    return <span className={base} style={{ background: badgeStyles.green.bg, color: badgeStyles.green.color }}>{position}</span>;
   }
   if (position <= 20) {
-    return <Badge className={`${base} bg-amber-500 text-white`}>{position}</Badge>;
+    return <span className={base} style={{ background: badgeStyles.amber.bg, color: badgeStyles.amber.color }}>{position}</span>;
   }
   if (position <= 50) {
-    return <Badge className={`${base} bg-muted text-foreground`}>{position}</Badge>;
+    return <span className={base} style={{ background: badgeStyles.gray.bg, color: badgeStyles.gray.color }}>{position}</span>;
   }
-  return <Badge className={`${base} bg-destructive/10 text-destructive`}>{position}</Badge>;
+  return <span className={base} style={{ background: badgeStyles.red.bg, color: badgeStyles.red.color }}>{position}</span>;
 }
 
 function formatChange(value: number | null): string {
@@ -65,11 +65,11 @@ function formatChange(value: number | null): string {
   return String(value);
 }
 
-function getChangeColor(value: number | null): string {
-  if (value === null) return 'text-gray-500';
-  if (value > 0) return 'text-green-600';
-  if (value < 0) return 'text-red-600';
-  return 'text-gray-500';
+function getChangeColorStyle(value: number | null): React.CSSProperties {
+  if (value === null) return { color: colors.text.muted };
+  if (value > 0) return { color: colors.semantic.success };
+  if (value < 0) return { color: colors.semantic.danger };
+  return { color: colors.text.muted };
 }
 
 const INTENT_LABELS: Record<NonNullable<KeywordIntent>, string> = {
@@ -94,6 +94,11 @@ export default function KeywordRankings() {
   const refreshUsage = useSerpRefreshUsage(siteId);
 
   const isLoading = keywords.isLoading || snapshot.isLoading;
+  const isError = keywords.isError || snapshot.isError;
+  const handleRetryData = useCallback(() => {
+    keywords.refetch();
+    snapshot.refetch();
+  }, [keywords, snapshot]);
 
   const handleRefresh = useCallback(async () => {
     if (!siteId || isRefreshing) return;
@@ -172,93 +177,102 @@ export default function KeywordRankings() {
     : '-';
 
   return (
-    <DashboardLayout className="dashboard-light">
-      <div className="space-y-6">
+    <div className="min-h-screen p-6" style={pageStyles.background}>
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Page Header */}
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold mb-2" style={{ color: colors.text.primary, letterSpacing: "-0.03em" }}>
+            <span style={gradients.brandText}>Keyword Rankings</span>
+          </h1>
+          <p style={{ color: colors.text.secondary }}>Track your search visibility across all keywords</p>
+        </div>
+
+        {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
-          <Card>
-            <CardContent className="pt-4">
-              <div className="text-2xl font-bold" data-testid="stat-total-keywords">
+          <GlassCard variant="marketing">
+            <GlassCardContent className="pt-4">
+              <div className="text-2xl font-bold" style={{ color: colors.text.primary }} data-testid="stat-total-keywords">
                 {totalKeywords}
               </div>
-              <div className="text-sm text-gray-500">Total Keywords</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-blue-600" data-testid="stat-ranking">
+              <div className="text-sm" style={{ color: colors.text.muted }}>Total Keywords</div>
+            </GlassCardContent>
+          </GlassCard>
+          <GlassCard variant="marketing">
+            <GlassCardContent className="pt-4">
+              <div className="text-2xl font-bold" style={{ color: colors.brand.blue }} data-testid="stat-ranking">
                 {ranking}
               </div>
-              <div className="text-sm text-gray-500">Total Ranking</div>
-            </CardContent>
-          </Card>
-          <Card className="bg-gradient-to-br from-gold/10 to-gold/5 border-gold-border">
-            <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-gold flex items-center gap-1" data-testid="stat-top-1">
+              <div className="text-sm" style={{ color: colors.text.muted }}>Total Ranking</div>
+            </GlassCardContent>
+          </GlassCard>
+          <GlassCard variant="marketing" tint="amber">
+            <GlassCardContent className="pt-4">
+              <div className="text-2xl font-bold flex items-center gap-1" style={{ color: colors.brand.amber }} data-testid="stat-top-1">
                 <Crown className="h-5 w-5" />
                 {numberOne}
               </div>
-              <div className="text-sm text-gray-500">Top 1</div>
-            </CardContent>
-          </Card>
-          <Card className="bg-gradient-to-br from-muted-foreground/10 to-muted-foreground/5 border-border">
-            <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-gray-500 flex items-center gap-1" data-testid="stat-top-3">
+              <div className="text-sm" style={{ color: colors.text.muted }}>Top 1</div>
+            </GlassCardContent>
+          </GlassCard>
+          <GlassCard variant="marketing">
+            <GlassCardContent className="pt-4">
+              <div className="text-2xl font-bold flex items-center gap-1" style={{ color: colors.text.muted }} data-testid="stat-top-3">
                 <Trophy className="h-4 w-4" />
                 {inTop3}
               </div>
-              <div className="text-sm text-gray-500">Top 3</div>
-            </CardContent>
-          </Card>
-          <Card className="bg-gradient-to-br from-gold/10 to-gold/5 border-gold-border">
-            <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-gold flex items-center gap-1" data-testid="stat-top-10">
+              <div className="text-sm" style={{ color: colors.text.muted }}>Top 3</div>
+            </GlassCardContent>
+          </GlassCard>
+          <GlassCard variant="marketing" tint="amber">
+            <GlassCardContent className="pt-4">
+              <div className="text-2xl font-bold flex items-center gap-1" style={{ color: colors.brand.amber }} data-testid="stat-top-10">
                 <Trophy className="h-4 w-4" />
                 {inTop10}
               </div>
-              <div className="text-sm text-gray-500">Top 10</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="text-2xl font-bold" data-testid="stat-avg-position">
+              <div className="text-sm" style={{ color: colors.text.muted }}>Top 10</div>
+            </GlassCardContent>
+          </GlassCard>
+          <GlassCard variant="marketing">
+            <GlassCardContent className="pt-4">
+              <div className="text-2xl font-bold" style={{ color: colors.text.primary }} data-testid="stat-avg-position">
                 {avgPosition}
               </div>
-              <div className="text-sm text-gray-500">Avg Position</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-green-600 flex items-center gap-1" data-testid="stat-improving">
+              <div className="text-sm" style={{ color: colors.text.muted }}>Avg Position</div>
+            </GlassCardContent>
+          </GlassCard>
+          <GlassCard variant="marketing" tint="green">
+            <GlassCardContent className="pt-4">
+              <div className="text-2xl font-bold flex items-center gap-1" style={{ color: colors.semantic.success }} data-testid="stat-improving">
                 <ArrowUp className="h-4 w-4" />
                 {improving}
               </div>
-              <div className="text-sm text-gray-500">Improving</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-red-600 flex items-center gap-1" data-testid="stat-declining">
+              <div className="text-sm" style={{ color: colors.text.muted }}>Improving</div>
+            </GlassCardContent>
+          </GlassCard>
+          <GlassCard variant="marketing" tint="red">
+            <GlassCardContent className="pt-4">
+              <div className="text-2xl font-bold flex items-center gap-1" style={{ color: colors.semantic.danger }} data-testid="stat-declining">
                 <ArrowDown className="h-4 w-4" />
                 {declining}
               </div>
-              <div className="text-sm text-gray-500">Declining</div>
-            </CardContent>
-          </Card>
+              <div className="text-sm" style={{ color: colors.text.muted }}>Declining</div>
+            </GlassCardContent>
+          </GlassCard>
         </div>
 
-        <Card>
-          <CardHeader>
+        <GlassCard variant="marketing" tint="purple">
+          <GlassCardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="flex items-center gap-2">
-                  <Target className="h-5 w-5" />
-                  Keyword Rankings
-                </CardTitle>
-                <CardDescription>
+                <GlassCardTitle className="flex items-center gap-2">
+                  <Target className="h-5 w-5" style={{ color: colors.brand.purple }} />
+                  <span style={{ color: colors.text.primary }}>Keyword Rankings</span>
+                </GlassCardTitle>
+                <GlassCardDescription>
                   {snapshotData?.lastChecked
                     ? `Last checked: ${new Date(snapshotData.lastChecked).toLocaleDateString()}`
                     : 'Tracking keyword positions across search engines'}
-                </CardDescription>
+                </GlassCardDescription>
               </div>
               <div className="flex items-center gap-3">
                 {refreshUsage.data && (
@@ -278,8 +292,8 @@ export default function KeywordRankings() {
                 </Button>
               </div>
             </div>
-          </CardHeader>
-          <CardContent>
+          </GlassCardHeader>
+          <GlassCardContent>
             <div className="flex flex-wrap gap-4 mb-4">
               <div className="flex-1 min-w-[200px]">
                 <div className="relative">
@@ -319,7 +333,22 @@ export default function KeywordRankings() {
               </Select>
             </div>
 
-            {isLoading ? (
+            {isError ? (
+              <div className="flex flex-col items-center justify-center py-8 text-gray-500 gap-3">
+                <AlertCircle className="h-8 w-8" style={{ color: colors.semantic.danger }} />
+                <p>Unable to load keyword rankings</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRetryData}
+                  disabled={keywords.isRefetching || snapshot.isRefetching}
+                  className="gap-2"
+                >
+                  <RefreshCw className={`h-4 w-4 ${(keywords.isRefetching || snapshot.isRefetching) ? 'animate-spin' : ''}`} />
+                  Retry
+                </Button>
+              </div>
+            ) : isLoading ? (
               <div className="flex items-center justify-center py-8 text-gray-500 gap-2">
                 <Loader2 className="h-5 w-5 animate-spin" />
                 Loading keywords...
@@ -359,13 +388,13 @@ export default function KeywordRankings() {
                           <TableCell className="text-center">
                             {getPositionBadge(kw.currentPosition)}
                           </TableCell>
-                          <TableCell className={`text-center font-mono text-sm ${getChangeColor(kw.change7d)}`}>
+                          <TableCell className="text-center font-mono text-sm" style={getChangeColorStyle(kw.change7d)}>
                             {formatChange(kw.change7d)}
                           </TableCell>
-                          <TableCell className={`text-center font-mono text-sm ${getChangeColor(kw.change30d)}`}>
+                          <TableCell className="text-center font-mono text-sm" style={getChangeColorStyle(kw.change30d)}>
                             {formatChange(kw.change30d)}
                           </TableCell>
-                          <TableCell className={`text-center font-mono text-sm ${getChangeColor(kw.change90d)}`}>
+                          <TableCell className="text-center font-mono text-sm" style={getChangeColorStyle(kw.change90d)}>
                             {formatChange(kw.change90d)}
                           </TableCell>
                           <TableCell className="text-center">
@@ -389,12 +418,12 @@ export default function KeywordRankings() {
               </div>
             )}
 
-            <div className="mt-4 text-sm text-gray-500">
+            <div className="mt-4 text-sm" style={{ color: colors.text.muted }}>
               Showing {filteredKeywords.length} of {allKeywords.length} keywords
             </div>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

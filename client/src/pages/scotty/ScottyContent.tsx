@@ -414,7 +414,16 @@ export default function ScottyContent() {
         if (!res.ok) {
           return { ...MOCK_SCOTTY_DATA, isRealData: false, provenance: "sample" };
         }
-        const data = await res.json();
+        const text = await res.text();
+        if (!text) {
+          return { ...MOCK_SCOTTY_DATA, isRealData: false, provenance: "sample" };
+        }
+        let data: any;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          return { ...MOCK_SCOTTY_DATA, isRealData: false, provenance: "sample" };
+        }
         if (!data.ok) {
           return { ...MOCK_SCOTTY_DATA, isRealData: false, provenance: "sample" };
         }
@@ -439,15 +448,21 @@ export default function ScottyContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ site_id: siteId }),
       });
-      if (!res.ok) throw new Error("Failed to start crawl");
-      return res.json();
+      const text = await res.text();
+      if (!res.ok) throw new Error(text || "Failed to start crawl");
+      if (!text) return { ok: true };
+      try {
+        return JSON.parse(text);
+      } catch {
+        return { ok: true };
+      }
     },
     onSuccess: () => {
       toast.success("Site crawl started");
       queryClient.invalidateQueries({ queryKey: ["scotty-data"] });
     },
-    onError: () => {
-      toast.error("Failed to start crawl");
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to start crawl");
     },
   });
 
@@ -458,15 +473,21 @@ export default function ScottyContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ site_id: siteId }),
       });
-      if (!res.ok) throw new Error("Failed to check indexing");
-      return res.json();
+      const text = await res.text();
+      if (!res.ok) throw new Error(text || "Failed to check indexing");
+      if (!text) return { ok: true };
+      try {
+        return JSON.parse(text);
+      } catch {
+        return { ok: true };
+      }
     },
     onSuccess: () => {
       toast.success("Indexing check complete");
       queryClient.invalidateQueries({ queryKey: ["scotty-data"] });
     },
-    onError: () => {
-      toast.error("Failed to check indexing");
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to check indexing");
     },
   });
 
@@ -477,15 +498,21 @@ export default function ScottyContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ site_id: siteId }),
       });
-      if (!res.ok) throw new Error("Failed to audit CWV");
-      return res.json();
+      const text = await res.text();
+      if (!res.ok) throw new Error(text || "Failed to audit CWV");
+      if (!text) return { ok: true };
+      try {
+        return JSON.parse(text);
+      } catch {
+        return { ok: true };
+      }
     },
     onSuccess: () => {
       toast.success("Core Web Vitals audit complete");
       queryClient.invalidateQueries({ queryKey: ["scotty-data"] });
     },
-    onError: () => {
-      toast.error("Failed to audit Core Web Vitals");
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to audit Core Web Vitals");
     },
   });
 

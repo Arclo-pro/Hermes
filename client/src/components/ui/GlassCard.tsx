@@ -143,3 +143,16 @@ export function GlassCardContent({ children, className }: GlassCardContentProps)
     </div>
   );
 }
+
+interface GlassCardDescriptionProps {
+  children: ReactNode;
+  className?: string;
+}
+
+export function GlassCardDescription({ children, className }: GlassCardDescriptionProps) {
+  return (
+    <p className={cn("text-sm text-gray-500 mt-1", className)}>
+      {children}
+    </p>
+  );
+}

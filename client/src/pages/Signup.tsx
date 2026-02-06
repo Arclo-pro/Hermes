@@ -4,7 +4,7 @@ import { MarketingLayout } from "@/components/layout/MarketingLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from "@/components/ui/GlassCard";
 import { ArrowRight, CheckCircle2, AlertCircle, Loader2, UserPlus, CheckCircle, Mail, Users } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PasswordRequirements, isPasswordValid } from "@/components/ui/PasswordRequirements";
@@ -12,6 +12,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { buildRoute, ROUTES } from "@shared/routes";
 import arcloLogo from "@assets/A_small_logo_1765393189114.png";
+import { colors, gradients } from "@/lib/design-system";
 
 interface InviteData {
   success: boolean;
@@ -120,17 +121,17 @@ export default function Signup() {
       <MarketingLayout>
         <div className="container mx-auto px-4 md:px-6 py-12 md:py-20">
           <div className="max-w-md mx-auto">
-            <Card className="bg-white border border-[#CBD5E1] shadow-[0_8px_24px_rgba(15,23,42,0.08)] rounded-2xl">
-              <CardHeader className="text-center">
+            <GlassCard variant="marketing"className="bg-white border border-[#CBD5E1] shadow-[0_8px_24px_rgba(15,23,42,0.08)] rounded-2xl">
+              <GlassCardHeader className="text-center">
                 <div className="flex justify-center mb-4">
                   <img src={arcloLogo} alt="Arclo" className="h-16 w-auto" />
                 </div>
-                <CardTitle className="text-2xl text-[#020617]">Welcome to the team!</CardTitle>
-                <CardDescription className="text-[#64748B]">
+                <GlassCardTitle className="text-2xl text-[#020617]">Welcome to the team!</GlassCardTitle>
+                <p className="text-sm" style={{ color: colors.text.muted }}>
                   Your account has been created successfully
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4 text-center">
+                </p>
+              </GlassCardHeader>
+              <GlassCardContent className="space-y-4 text-center">
                 <div className="flex items-center justify-center gap-2 text-[#15803D]">
                   <CheckCircle className="w-5 h-5" />
                   <span className="font-medium">You're now part of the team</span>
@@ -138,8 +139,8 @@ export default function Signup() {
                 <p className="text-[#64748B] text-sm">
                   You have full access to all websites and features. Sign in to get started.
                 </p>
-              </CardContent>
-              <CardFooter>
+              </GlassCardContent>
+              <div className="p-6 pt-0">
                 <Button
                   variant="primaryGradient"
                   className="w-full h-12"
@@ -149,8 +150,8 @@ export default function Signup() {
                   Sign In Now
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
-              </CardFooter>
-            </Card>
+              </div>
+            </GlassCard>
           </div>
         </div>
       </MarketingLayout>
@@ -163,17 +164,17 @@ export default function Signup() {
       <MarketingLayout>
         <div className="container mx-auto px-4 md:px-6 py-12 md:py-20">
           <div className="max-w-md mx-auto">
-            <Card className="bg-white border border-[#CBD5E1] shadow-[0_8px_24px_rgba(15,23,42,0.08)] rounded-2xl">
-              <CardHeader className="text-center">
+            <GlassCard variant="marketing"className="bg-white border border-[#CBD5E1] shadow-[0_8px_24px_rgba(15,23,42,0.08)] rounded-2xl">
+              <GlassCardHeader className="text-center">
                 <div className="flex justify-center mb-4">
                   <img src={arcloLogo} alt="Arclo" className="h-16 w-auto" />
                 </div>
-                <CardTitle className="text-2xl text-[#020617]">Check your email</CardTitle>
-                <CardDescription className="text-[#64748B]">
+                <GlassCardTitle className="text-2xl text-[#020617]">Check your email</GlassCardTitle>
+                <p className="text-sm" style={{ color: colors.text.muted }}>
                   We sent a verification link to <span className="text-[#15803D] font-medium">{email}</span>
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4 text-center">
+                </p>
+              </GlassCardHeader>
+              <GlassCardContent className="space-y-4 text-center">
                 <p className="text-[#64748B] text-sm">
                   Click the link in the email to verify your account. The link expires in 24 hours.
                 </p>
@@ -183,8 +184,8 @@ export default function Signup() {
                     request a new link
                   </a>
                 </p>
-              </CardContent>
-              <CardFooter>
+              </GlassCardContent>
+              <div className="p-6 pt-0">
                 <Button
                   variant="secondary"
                   className="w-full"
@@ -193,8 +194,8 @@ export default function Signup() {
                 >
                   Back to Sign In
                 </Button>
-              </CardFooter>
-            </Card>
+              </div>
+            </GlassCard>
           </div>
         </div>
       </MarketingLayout>
@@ -205,24 +206,24 @@ export default function Signup() {
     <MarketingLayout>
       <div className="container mx-auto px-4 md:px-6 py-12 md:py-20">
         <div className="max-w-md mx-auto">
-          <Card className="bg-white border border-[#CBD5E1] shadow-[0_8px_24px_rgba(15,23,42,0.08)] rounded-2xl">
-            <CardHeader className="text-center">
+          <GlassCard variant="marketing"className="bg-white border border-[#CBD5E1] shadow-[0_8px_24px_rgba(15,23,42,0.08)] rounded-2xl">
+            <GlassCardHeader className="text-center">
               <div className="flex justify-center mb-4">
                 <img src={arcloLogo} alt="Arclo" className="h-16 w-auto" />
               </div>
-              <CardTitle className="text-2xl text-[#020617]">
+              <GlassCardTitle className="text-2xl text-[#020617]">
                 {inviteData?.success ? "Join the Team" : "Create Your Free Account"}
-              </CardTitle>
-              <CardDescription className="text-[#64748B]">
+              </GlassCardTitle>
+              <p className="text-sm" style={{ color: colors.text.muted }}>
                 {inviteData?.success
                   ? `${inviteData.invitation?.invitedBy} invited you to join their Arclo account`
                   : scanId
                   ? "Unlock your full SEO report and start deploying fixes"
                   : "Get started with automated SEO"
                 }
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+              </p>
+            </GlassCardHeader>
+            <GlassCardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Invitation context */}
                 {inviteData?.success && (
@@ -370,8 +371,8 @@ export default function Signup() {
                   Sign in
                 </a>
               </p>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         </div>
       </div>
     </MarketingLayout>

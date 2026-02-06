@@ -1,7 +1,5 @@
-import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { ArcloCard } from "@/components/ui/card";
+import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from "@/components/ui/GlassCard";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
@@ -14,6 +12,7 @@ import { Bell, Mail, Clock, CheckCircle, ShieldAlert, MessageSquare, FileText } 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSiteContext } from "@/hooks/useSiteContext";
 import { toast } from "sonner";
+import { colors, pageStyles, badgeStyles, gradients } from "@/lib/design-system";
 
 interface DigestPrefs {
   enabled: boolean;
@@ -136,263 +135,280 @@ export default function Notifications() {
 
   if (!siteId) {
     return (
-      <DashboardLayout className="dashboard-light">
-        <div className="space-y-6">
+      <div className="min-h-screen p-6" style={pageStyles.background}>
+        <div className="max-w-4xl mx-auto space-y-6">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight" data-testid="text-page-title">Notifications</h1>
-            <p className="text-muted-foreground">Control how and when Arclo keeps you informed</p>
+            <h1 className="text-4xl font-bold" style={{ color: colors.text.primary, letterSpacing: "-0.03em" }} data-testid="text-page-title">
+              <span style={gradients.brandText}>Notifications</span>
+            </h1>
+            <p className="text-sm mt-1" style={{ color: colors.text.muted }}>Control how and when Arclo keeps you informed</p>
           </div>
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <Bell className="h-12 w-12 text-muted-foreground/50 mb-4" />
-            <p className="text-muted-foreground">Select a site to manage notification preferences.</p>
+            <Bell className="h-12 w-12 mb-4" style={{ color: colors.text.disabled }} />
+            <p style={{ color: colors.text.muted }}>Select a site to manage notification preferences.</p>
           </div>
         </div>
-      </DashboardLayout>
+      </div>
     );
   }
 
   return (
-    <DashboardLayout className="dashboard-light">
-      <div className="space-y-6">
+    <div className="min-h-screen p-6" style={pageStyles.background}>
+      <div className="max-w-4xl mx-auto space-y-6">
         {/* Page header */}
         <div>
-          <h1 className="text-2xl font-bold tracking-tight" data-testid="text-page-title">Notifications</h1>
-          <p className="text-muted-foreground">Control how and when Arclo keeps you informed</p>
+          <h1 className="text-4xl font-bold" style={{ color: colors.text.primary, letterSpacing: "-0.03em" }} data-testid="text-page-title">
+            <span style={gradients.brandText}>Notifications</span>
+          </h1>
+          <p className="text-sm mt-1" style={{ color: colors.text.muted }}>Control how and when Arclo keeps you informed</p>
         </div>
 
         {/* Section 1: Status Summary */}
         {isLoading ? (
-          <ArcloCard tone="soft">
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              {[1, 2, 3, 4].map(i => (
-                <div key={i} className="space-y-2">
-                  <Skeleton className="h-4 w-20" />
-                  <Skeleton className="h-6 w-16" />
-                </div>
-              ))}
-            </div>
-          </ArcloCard>
+          <GlassCard variant="marketing" tint="purple">
+            <GlassCardContent>
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} className="space-y-2">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-6 w-16" />
+                  </div>
+                ))}
+              </div>
+            </GlassCardContent>
+          </GlassCard>
         ) : prefs ? (
-          <ArcloCard
-            tone="soft"
-            rightSlot={
-              <Badge variant={digestEnabled ? "default" : "secondary"}>
-                {digestEnabled ? "Active" : "Paused"}
-              </Badge>
-            }
-          >
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <div>
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Mail className="h-3.5 w-3.5" />
-                  Digest
+          <GlassCard variant="marketing" tint="purple">
+            <GlassCardContent>
+              <div className="flex items-center justify-between mb-4">
+                <span></span>
+                <span
+                  className="px-2 py-0.5 rounded-md text-xs font-semibold"
+                  style={digestEnabled
+                    ? { color: badgeStyles.green.color, background: badgeStyles.green.bg }
+                    : { color: colors.text.muted, background: colors.background.muted }
+                  }
+                >
+                  {digestEnabled ? "Active" : "Paused"}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                <div>
+                  <div className="flex items-center gap-1.5 text-xs" style={{ color: colors.text.muted }}>
+                    <Mail className="h-3.5 w-3.5" />
+                    Digest
+                  </div>
+                  <div className="mt-1 text-sm font-medium" style={{ color: colors.text.primary }}>
+                    {digestEnabled
+                      ? `${frequency.charAt(0).toUpperCase() + frequency.slice(1)}`
+                      : "Paused"}
+                  </div>
                 </div>
-                <div className="mt-1 text-sm font-medium">
-                  {digestEnabled
-                    ? `${frequency.charAt(0).toUpperCase() + frequency.slice(1)}`
-                    : "Paused"}
+                <div>
+                  <div className="flex items-center gap-1.5 text-xs" style={{ color: colors.text.muted }}>
+                    <Clock className="h-3.5 w-3.5" />
+                    Last sent
+                  </div>
+                  <div className="mt-1 text-sm font-medium" style={{ color: colors.text.primary }}>
+                    {digest?.lastSentAt ? formatDate(digest.lastSentAt) : "Never"}
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5 text-xs" style={{ color: colors.text.muted }}>
+                    <Clock className="h-3.5 w-3.5" />
+                    Next digest
+                  </div>
+                  <div className="mt-1 text-sm font-medium" style={{ color: colors.text.primary }}>
+                    {digest?.nextScheduledAt && digestEnabled
+                      ? formatDay(digest.nextScheduledAt)
+                      : "—"}
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5 text-xs" style={{ color: colors.text.muted }}>
+                    <Bell className="h-3.5 w-3.5" />
+                    Alerts (30d)
+                  </div>
+                  <div className="mt-1 text-sm font-medium" style={{ color: colors.text.primary }}>
+                    {prefs.stats.alertsSentThisMonth}
+                  </div>
                 </div>
               </div>
-              <div>
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Clock className="h-3.5 w-3.5" />
-                  Last sent
-                </div>
-                <div className="mt-1 text-sm font-medium">
-                  {digest?.lastSentAt ? formatDate(digest.lastSentAt) : "Never"}
-                </div>
-              </div>
-              <div>
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Clock className="h-3.5 w-3.5" />
-                  Next digest
-                </div>
-                <div className="mt-1 text-sm font-medium">
-                  {digest?.nextScheduledAt && digestEnabled
-                    ? formatDay(digest.nextScheduledAt)
-                    : "—"}
-                </div>
-              </div>
-              <div>
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Bell className="h-3.5 w-3.5" />
-                  Alerts (30d)
-                </div>
-                <div className="mt-1 text-sm font-medium">
-                  {prefs.stats.alertsSentThisMonth}
-                </div>
-              </div>
-            </div>
-          </ArcloCard>
+            </GlassCardContent>
+          </GlassCard>
         ) : null}
 
         {/* Section 2: Digest Email Preferences */}
-        <div className="bg-card border border-border rounded-lg p-6 space-y-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <Mail className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <h2 className="text-lg font-semibold">Digest Emails</h2>
-                <p className="text-sm text-muted-foreground">
-                  Periodic summaries of what Arclo has done for your site
-                </p>
-              </div>
-            </div>
-            <Switch
-              checked={digestEnabled}
-              onCheckedChange={(checked) =>
-                updateMutation.mutate({ digest: { enabled: checked } })
-              }
-              disabled={isLoading}
-            />
-          </div>
-
-          {digestEnabled && (
-            <div className="space-y-4 pl-14">
-              {/* Frequency */}
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">Frequency</label>
-                <Select
-                  value={frequency}
-                  onValueChange={(value) =>
-                    updateMutation.mutate({ digest: { frequency: value } })
-                  }
-                >
-                  <SelectTrigger className="w-36">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="weekly">Weekly</SelectItem>
-                    <SelectItem value="monthly">Monthly</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Delivery day */}
-              {frequency === "weekly" && (
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium">Delivery day</label>
-                  <Select
-                    value={String(digest?.dayOfWeek ?? 1)}
-                    onValueChange={(value) =>
-                      updateMutation.mutate({ digest: { dayOfWeek: Number(value) } })
-                    }
-                  >
-                    <SelectTrigger className="w-36">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {DAYS_OF_WEEK.map((d) => (
-                        <SelectItem key={d.value} value={d.value}>
-                          {d.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+        <GlassCard variant="marketing">
+          <GlassCardContent className="space-y-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg" style={{ backgroundColor: `${colors.brand.purple}15` }}>
+                  <Mail className="w-5 h-5" style={{ color: colors.brand.purple }} />
                 </div>
-              )}
-
-              {frequency === "monthly" && (
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium">Day of month</label>
-                  <Select
-                    value={String(digest?.dayOfMonth ?? 1)}
-                    onValueChange={(value) =>
-                      updateMutation.mutate({ digest: { dayOfMonth: Number(value) } })
-                    }
-                  >
-                    <SelectTrigger className="w-36">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.from({ length: 28 }, (_, i) => (
-                        <SelectItem key={i + 1} value={String(i + 1)}>
-                          {i + 1}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {/* Smart sending */}
-              <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-sm font-medium">Smart sending</div>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Skip the digest if Arclo had nothing new to report
+                  <h2 className="text-lg font-semibold" style={{ color: colors.text.primary }}>Digest Emails</h2>
+                  <p className="text-sm" style={{ color: colors.text.muted }}>
+                    Periodic summaries of what Arclo has done for your site
                   </p>
                 </div>
-                <Switch
-                  checked={digest?.includeOnlyIfChanges ?? true}
-                  onCheckedChange={(checked) =>
-                    updateMutation.mutate({ digest: { includeOnlyIfChanges: checked } })
-                  }
-                />
               </div>
-
-              {prefs?.deliveryEmail && (
-                <p className="text-xs text-muted-foreground pt-2 border-t border-border">
-                  Digests are sent to {prefs.deliveryEmail}
-                </p>
-              )}
+              <Switch
+                checked={digestEnabled}
+                onCheckedChange={(checked) =>
+                  updateMutation.mutate({ digest: { enabled: checked } })
+                }
+                disabled={isLoading}
+              />
             </div>
-          )}
-        </div>
 
-        {/* Section 3: Real-time Alerts */}
-        <div className="bg-card border border-border rounded-lg p-6 space-y-5">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Bell className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold">Real-time Alerts</h2>
-              <p className="text-sm text-muted-foreground">
-                Get notified immediately when something important happens
-              </p>
-            </div>
-          </div>
+            {digestEnabled && (
+              <div className="space-y-4 pl-14">
+                {/* Frequency */}
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium" style={{ color: colors.text.primary }}>Frequency</label>
+                  <Select
+                    value={frequency}
+                    onValueChange={(value) =>
+                      updateMutation.mutate({ digest: { frequency: value } })
+                    }
+                  >
+                    <SelectTrigger className="w-36">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="weekly">Weekly</SelectItem>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-          <div className="space-y-1">
-            {ALERT_CATEGORIES.map((cat) => {
-              const Icon = cat.icon;
-              const enabled = alertPreferences[cat.key] ?? false;
-              return (
-                <div
-                  key={cat.key}
-                  className="flex items-center justify-between py-3 pl-2 pr-1"
-                >
-                  <div className="flex items-center gap-3">
-                    <Icon className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <div className="text-sm font-medium">{cat.label}</div>
-                      <p className="text-xs text-muted-foreground">{cat.description}</p>
-                    </div>
+                {/* Delivery day */}
+                {frequency === "weekly" && (
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium" style={{ color: colors.text.primary }}>Delivery day</label>
+                    <Select
+                      value={String(digest?.dayOfWeek ?? 1)}
+                      onValueChange={(value) =>
+                        updateMutation.mutate({ digest: { dayOfWeek: Number(value) } })
+                      }
+                    >
+                      <SelectTrigger className="w-36">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DAYS_OF_WEEK.map((d) => (
+                          <SelectItem key={d.value} value={d.value}>
+                            {d.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {frequency === "monthly" && (
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium" style={{ color: colors.text.primary }}>Day of month</label>
+                    <Select
+                      value={String(digest?.dayOfMonth ?? 1)}
+                      onValueChange={(value) =>
+                        updateMutation.mutate({ digest: { dayOfMonth: Number(value) } })
+                      }
+                    >
+                      <SelectTrigger className="w-36">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 28 }, (_, i) => (
+                          <SelectItem key={i + 1} value={String(i + 1)}>
+                            {i + 1}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* Smart sending */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-medium" style={{ color: colors.text.primary }}>Smart sending</div>
+                    <p className="text-xs mt-0.5" style={{ color: colors.text.muted }}>
+                      Skip the digest if Arclo had nothing new to report
+                    </p>
                   </div>
                   <Switch
-                    checked={enabled}
+                    checked={digest?.includeOnlyIfChanges ?? true}
                     onCheckedChange={(checked) =>
-                      updateMutation.mutate({
-                        alertPreferences: { [cat.key]: checked },
-                      })
+                      updateMutation.mutate({ digest: { includeOnlyIfChanges: checked } })
                     }
-                    disabled={isLoading}
                   />
                 </div>
-              );
-            })}
-          </div>
 
-          {prefs?.deliveryEmail && (
-            <p className="text-xs text-muted-foreground pt-2 border-t border-border">
-              Alerts are sent via email to {prefs.deliveryEmail}
-            </p>
-          )}
-        </div>
+                {prefs?.deliveryEmail && (
+                  <p className="text-xs pt-2" style={{ color: colors.text.muted, borderTop: `1px solid ${colors.border.default}` }}>
+                    Digests are sent to {prefs.deliveryEmail}
+                  </p>
+                )}
+              </div>
+            )}
+          </GlassCardContent>
+        </GlassCard>
+
+        {/* Section 3: Real-time Alerts */}
+        <GlassCard variant="marketing">
+          <GlassCardContent className="space-y-5">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg" style={{ backgroundColor: `${colors.brand.purple}15` }}>
+                <Bell className="w-5 h-5" style={{ color: colors.brand.purple }} />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold" style={{ color: colors.text.primary }}>Real-time Alerts</h2>
+                <p className="text-sm" style={{ color: colors.text.muted }}>
+                  Get notified immediately when something important happens
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              {ALERT_CATEGORIES.map((cat) => {
+                const Icon = cat.icon;
+                const enabled = alertPreferences[cat.key] ?? false;
+                return (
+                  <div
+                    key={cat.key}
+                    className="flex items-center justify-between py-3 pl-2 pr-1"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon className="h-4 w-4" style={{ color: colors.text.muted }} />
+                      <div>
+                        <div className="text-sm font-medium" style={{ color: colors.text.primary }}>{cat.label}</div>
+                        <p className="text-xs" style={{ color: colors.text.muted }}>{cat.description}</p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={enabled}
+                      onCheckedChange={(checked) =>
+                        updateMutation.mutate({
+                          alertPreferences: { [cat.key]: checked },
+                        })
+                      }
+                      disabled={isLoading}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+
+            {prefs?.deliveryEmail && (
+              <p className="text-xs pt-2" style={{ color: colors.text.muted, borderTop: `1px solid ${colors.border.default}` }}>
+                Alerts are sent via email to {prefs.deliveryEmail}
+              </p>
+            )}
+          </GlassCardContent>
+        </GlassCard>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

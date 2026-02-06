@@ -276,11 +276,18 @@ export default function SpeedsterContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ siteId, question, metrics }),
       });
-      const data = await res.json();
-      if (data.ok && data.answer) {
+      const text = await res.text();
+      let data: any = null;
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch {
+        toast.error('Invalid response from server');
+        return;
+      }
+      if (data?.ok && data?.answer) {
         toast.success(data.answer, { duration: 10000 });
       } else {
-        toast.error(data.error || 'Failed to get answer from Speedster');
+        toast.error(data?.error || 'Failed to get answer from Speedster');
       }
     } catch (error) {
       toast.error('Failed to ask Speedster');
@@ -294,8 +301,14 @@ export default function SpeedsterContent() {
     queryKey: ['fix-plan-speedster', siteId],
     queryFn: async () => {
       const res = await fetch(`/api/fix-plan/speedster/latest?siteId=${siteId}`);
-      if (!res.ok) throw new Error('Failed to fetch fix plan');
-      return res.json();
+      const text = await res.text();
+      if (!res.ok) throw new Error(text || 'Failed to fetch fix plan');
+      if (!text) return null;
+      try {
+        return JSON.parse(text);
+      } catch {
+        throw new Error('Invalid response format');
+      }
     },
     staleTime: 30000,
   });
@@ -310,8 +323,14 @@ export default function SpeedsterContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ siteId }),
       });
-      if (!res.ok) throw new Error('Failed to generate fix plan');
-      return res.json();
+      const text = await res.text();
+      if (!res.ok) throw new Error(text || 'Failed to generate fix plan');
+      if (!text) throw new Error('Empty response');
+      try {
+        return JSON.parse(text);
+      } catch {
+        throw new Error('Invalid response format');
+      }
     },
     onSuccess: () => {
       refetchPlan();
@@ -403,22 +422,34 @@ export default function SpeedsterContent() {
     },
   });
   
-  const { data: speedsterData, isLoading, refetch, isRefetching } = useQuery({
+  const { data: speedsterData, isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ['speedster-summary', siteId],
     queryFn: async () => {
       const res = await fetch(`/api/crew/speedster/summary?siteId=${siteId}`);
-      if (!res.ok) throw new Error('Failed to fetch speedster data');
-      return res.json();
+      const text = await res.text();
+      if (!res.ok) throw new Error(text || 'Failed to fetch speedster data');
+      if (!text) return null;
+      try {
+        return JSON.parse(text);
+      } catch {
+        throw new Error('Invalid response format');
+      }
     },
     staleTime: 60000,
   });
-  
+
   const { data: dashboardStats } = useQuery({
     queryKey: ["dashboard-stats"],
     queryFn: async () => {
       const res = await fetch("/api/dashboard/stats");
+      const text = await res.text();
       if (!res.ok) return null;
-      return res.json();
+      if (!text) return null;
+      try {
+        return JSON.parse(text);
+      } catch {
+        return null;
+      }
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -427,8 +458,14 @@ export default function SpeedsterContent() {
     queryKey: ['speedster-correlations', siteId],
     queryFn: async () => {
       const res = await fetch(`/api/crew/speedster/correlations?siteId=${siteId}&days=30`);
+      const text = await res.text();
       if (!res.ok) return null;
-      return res.json();
+      if (!text) return null;
+      try {
+        return JSON.parse(text);
+      } catch {
+        return null;
+      }
     },
     staleTime: 5 * 60 * 1000,
   });

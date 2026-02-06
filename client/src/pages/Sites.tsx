@@ -1,13 +1,12 @@
-import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from "@/components/ui/GlassCard";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { Globe, Plus, Settings, Trash2, ExternalLink, Activity, RefreshCw, AlertTriangle, CheckCircle, Clock } from "lucide-react";
 import { Link } from "wouter";
 import { ROUTES } from "@shared/routes";
+import { colors, pageStyles, badgeStyles, gradients } from "@/lib/design-system";
 
 interface Site {
   id: number;
@@ -56,24 +55,41 @@ export default function Sites() {
   });
 
   const getStatusBadge = (status: string) => {
+    const baseClass = "inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold";
     switch (status) {
       case 'active':
-        return <Badge className="bg-semantic-success-soft text-semantic-success border-semantic-success-border"><CheckCircle className="w-3 h-3 mr-1" />Active</Badge>;
+        return (
+          <span className={baseClass} style={{ color: badgeStyles.green.color, background: badgeStyles.green.bg }}>
+            <CheckCircle className="w-3 h-3 mr-1" />Active
+          </span>
+        );
       case 'paused':
-        return <Badge className="bg-semantic-warning-soft text-semantic-warning border-semantic-warning-border"><Clock className="w-3 h-3 mr-1" />Paused</Badge>;
+        return (
+          <span className={baseClass} style={{ color: badgeStyles.amber.color, background: badgeStyles.amber.bg }}>
+            <Clock className="w-3 h-3 mr-1" />Paused
+          </span>
+        );
       case 'onboarding':
-        return <Badge className="bg-semantic-info-soft text-semantic-info border-semantic-info-border"><Activity className="w-3 h-3 mr-1" />Onboarding</Badge>;
+        return (
+          <span className={baseClass} style={{ color: badgeStyles.blue.color, background: badgeStyles.blue.bg }}>
+            <Activity className="w-3 h-3 mr-1" />Onboarding
+          </span>
+        );
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return (
+          <span className={baseClass} style={{ color: colors.text.muted, background: colors.background.muted }}>
+            {status}
+          </span>
+        );
     }
   };
 
-  const getHealthColor = (score: number | null) => {
-    if (score === null) return "bg-muted-foreground";
-    if (score >= 80) return "bg-semantic-success";
-    if (score >= 60) return "bg-semantic-warning";
-    if (score >= 40) return "bg-gold";
-    return "bg-semantic-danger";
+  const getHealthColorStyle = (score: number | null): React.CSSProperties => {
+    if (score === null) return { backgroundColor: colors.text.muted };
+    if (score >= 80) return { backgroundColor: colors.semantic.success };
+    if (score >= 60) return { backgroundColor: colors.semantic.warning };
+    if (score >= 40) return { backgroundColor: colors.brand.amber };
+    return { backgroundColor: colors.semantic.danger };
   };
 
   const formatDate = (date: string | null) => {
@@ -87,12 +103,14 @@ export default function Sites() {
   };
 
   return (
-    <DashboardLayout className="dashboard-light">
-      <div className="space-y-6">
+    <div className="min-h-screen p-6" style={pageStyles.background}>
+      <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight" data-testid="page-title">Sites Registry</h1>
-            <p className="text-muted-foreground">Manage your monitored websites and their configurations</p>
+            <h1 className="text-4xl font-bold" style={{ color: colors.text.primary, letterSpacing: "-0.03em" }} data-testid="page-title">
+              <span style={gradients.brandText}>Sites Registry</span>
+            </h1>
+            <p className="text-sm mt-1" style={{ color: colors.text.muted }}>Manage your monitored websites and their configurations</p>
           </div>
           <Link href={ROUTES.SITE_NEW}>
             <Button data-testid="button-add-site">
@@ -103,79 +121,88 @@ export default function Sites() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardContent className="pt-6">
+          <GlassCard variant="marketing" tint="purple">
+            <GlassCardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Globe className="w-6 h-6 text-primary" />
+                <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${colors.brand.purple}15` }}>
+                  <Globe className="w-6 h-6" style={{ color: colors.brand.purple }} />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold" data-testid="text-total-sites">{sites?.length || 0}</p>
-                  <p className="text-sm text-muted-foreground">Total Sites</p>
+                  <p className="text-2xl font-bold" style={{ color: colors.text.primary }} data-testid="text-total-sites">{sites?.length || 0}</p>
+                  <p className="text-sm" style={{ color: colors.text.muted }}>Total Sites</p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
+            </GlassCardContent>
+          </GlassCard>
+          <GlassCard variant="marketing" tint="green">
+            <GlassCardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-lg bg-semantic-success-soft flex items-center justify-center">
-                  <CheckCircle className="w-6 h-6 text-semantic-success" />
+                <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${colors.semantic.success}15` }}>
+                  <CheckCircle className="w-6 h-6" style={{ color: colors.semantic.success }} />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold" data-testid="text-active-sites">{sites?.filter(s => s.status === 'active').length || 0}</p>
-                  <p className="text-sm text-muted-foreground">Active</p>
+                  <p className="text-2xl font-bold" style={{ color: colors.text.primary }} data-testid="text-active-sites">{sites?.filter(s => s.status === 'active').length || 0}</p>
+                  <p className="text-sm" style={{ color: colors.text.muted }}>Active</p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
+            </GlassCardContent>
+          </GlassCard>
+          <GlassCard variant="marketing" tint="amber">
+            <GlassCardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-lg bg-gold-soft flex items-center justify-center">
-                  <AlertTriangle className="w-6 h-6 text-gold" />
+                <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${colors.brand.amber}15` }}>
+                  <AlertTriangle className="w-6 h-6" style={{ color: colors.brand.amber }} />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold" data-testid="text-needs-attention">{sites?.filter(s => s.healthScore !== null && s.healthScore < 60).length || 0}</p>
-                  <p className="text-sm text-muted-foreground">Needs Attention</p>
+                  <p className="text-2xl font-bold" style={{ color: colors.text.primary }} data-testid="text-needs-attention">{sites?.filter(s => s.healthScore !== null && s.healthScore < 60).length || 0}</p>
+                  <p className="text-sm" style={{ color: colors.text.muted }}>Needs Attention</p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>All Sites</CardTitle>
-            <CardDescription>Click on a site to view details and run diagnostics</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <GlassCard variant="marketing">
+          <GlassCardHeader>
+            <GlassCardTitle style={{ color: colors.text.primary }}>All Sites</GlassCardTitle>
+            <p className="text-sm" style={{ color: colors.text.muted }}>Click on a site to view details and run diagnostics</p>
+          </GlassCardHeader>
+          <GlassCardContent>
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
-                <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
+                <RefreshCw className="w-6 h-6 animate-spin" style={{ color: colors.text.muted }} />
               </div>
             ) : sites && sites.length > 0 ? (
               <div className="space-y-3">
                 {sites.map((site) => (
-                  <div 
-                    key={site.siteId} 
-                    className="flex items-center gap-4 p-4 rounded-lg border hover:bg-muted/50 transition-colors"
+                  <div
+                    key={site.siteId}
+                    className="flex items-center gap-4 p-4 rounded-lg transition-colors hover:bg-slate-50"
+                    style={{ border: `1px solid ${colors.border.default}` }}
                     data-testid={`card-site-${site.siteId}`}
                   >
-                    <div className={`w-3 h-3 rounded-full ${getHealthColor(site.healthScore)}`} title={`Health: ${site.healthScore ?? 'N/A'}`} />
-                    
+                    <div className="w-3 h-3 rounded-full" style={getHealthColorStyle(site.healthScore)} title={`Health: ${site.healthScore ?? 'N/A'}`} />
+
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <h3 className="font-medium truncate" data-testid={`text-site-name-${site.siteId}`}>{site.displayName}</h3>
+                        <h3 className="font-medium truncate" style={{ color: colors.text.primary }} data-testid={`text-site-name-${site.siteId}`}>{site.displayName}</h3>
                         {getStatusBadge(site.status)}
-                        {site.category && <Badge variant="outline" className="text-xs">{site.category}</Badge>}
+                        {site.category && (
+                          <span
+                            className="px-2 py-0.5 rounded-md text-xs font-medium"
+                            style={{ color: colors.text.muted, border: `1px solid ${colors.border.default}` }}
+                          >
+                            {site.category}
+                          </span>
+                        )}
                       </div>
-                      <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
-                        <a 
-                          href={site.baseUrl} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="flex items-center gap-1 hover:text-foreground"
+                      <div className="flex items-center gap-3 text-sm mt-1" style={{ color: colors.text.muted }}>
+                        <a
+                          href={site.baseUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 hover:opacity-70"
+                          style={{ color: colors.text.secondary }}
                           data-testid={`link-site-url-${site.siteId}`}
                         >
                           {site.baseUrl.replace(/^https?:\/\//, '')}
@@ -186,8 +213,8 @@ export default function Sites() {
                     </div>
 
                     <div className="text-right text-sm hidden md:block">
-                      <p className="text-muted-foreground">Last diagnosis</p>
-                      <p className="font-medium">{formatDate(site.lastDiagnosisAt)}</p>
+                      <p style={{ color: colors.text.muted }}>Last diagnosis</p>
+                      <p className="font-medium" style={{ color: colors.text.primary }}>{formatDate(site.lastDiagnosisAt)}</p>
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -196,10 +223,11 @@ export default function Sites() {
                           <Settings className="w-4 h-4" />
                         </Button>
                       </Link>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="text-destructive hover:bg-destructive/10"
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="hover:bg-red-50"
+                        style={{ color: colors.semantic.danger }}
                         onClick={() => {
                           if (confirm('Are you sure you want to archive this site?')) {
                             deleteSite.mutate(site.siteId);
@@ -215,9 +243,9 @@ export default function Sites() {
               </div>
             ) : (
               <div className="text-center py-12">
-                <Globe className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="font-medium mb-2">No sites configured yet</h3>
-                <p className="text-muted-foreground mb-4">Add your first site to start monitoring</p>
+                <Globe className="w-12 h-12 mx-auto mb-4" style={{ color: colors.text.muted }} />
+                <h3 className="font-medium mb-2" style={{ color: colors.text.primary }}>No sites configured yet</h3>
+                <p className="mb-4" style={{ color: colors.text.muted }}>Add your first site to start monitoring</p>
                 <Link href={ROUTES.SITE_NEW}>
                   <Button data-testid="button-add-first-site">
                     <Plus className="w-4 h-4 mr-2" />
@@ -226,9 +254,9 @@ export default function Sites() {
                 </Link>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

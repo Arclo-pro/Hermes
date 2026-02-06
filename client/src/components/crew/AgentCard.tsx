@@ -1,5 +1,5 @@
 import { getCrewMember } from "@/config/agents";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { GlassCard, GlassCardContent, GlassCardHeader } from "@/components/ui/GlassCard";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -8,6 +8,7 @@ import { useSiteContext } from "@/hooks/useSiteContext";
 import type { AgentFinding, AgentNextStep } from "@shared/agentInsight";
 import { SERVICE_TO_CREW } from "@shared/registry";
 import { UnlockOverlay } from "@/components/overlays";
+import { colors, buttonStyles } from "@/lib/design-system";
 
 interface AgentCardProps {
   serviceId: string;
@@ -29,7 +30,10 @@ const DEFAULT_NEXT_STEPS: AgentNextStep[] = [
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5" style={{ opacity: 1 }}>
+    <p
+      className="text-[10px] font-semibold uppercase tracking-wider mb-1.5"
+      style={{ color: colors.text.disabled }}
+    >
       {children}
     </p>
   );
@@ -67,24 +71,28 @@ export function AgentCard({
   const showUnlockOverlay = showSubscribeButton && !isSubscribed;
 
   return (
-    <Card 
+    <GlassCard
+      variant="marketing"
       className={cn(
-        "agent-card relative overflow-hidden transition-all rounded-2xl border bg-card shadow-card text-foreground",
-        !isActive && "opacity-60 border-dashed",
-        onClick && !showUnlockOverlay && "cursor-pointer hover:shadow-cardHover",
+        "agent-card relative overflow-hidden transition-all",
+        !isActive && "opacity-60",
+        onClick && !showUnlockOverlay && "cursor-pointer hover:shadow-lg",
         className
       )}
-      style={{ borderColor: crew.color, opacity: isActive ? 1 : undefined }}
+      style={{
+        borderColor: crew.color,
+        borderStyle: isActive ? "solid" : "dashed",
+      }}
       onClick={showUnlockOverlay ? undefined : onClick}
       onMouseEnter={handleMouseEnter}
       data-testid={`agent-card-${serviceId}`}
     >
-      <CardHeader className={cn("pb-3 pt-4 px-5", showUnlockOverlay && "blur-sm")}>
+      <GlassCardHeader className={cn("pb-3 pt-4 px-5", showUnlockOverlay && "blur-sm")}>
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             {crew.avatar ? (
-              <img 
-                src={crew.avatar} 
+              <img
+                src={crew.avatar}
                 alt={crew.nickname}
                 className="w-12 h-12 object-contain flex-shrink-0"
               />
@@ -98,15 +106,19 @@ export function AgentCard({
             )}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
-                <h3 className="font-medium text-base leading-tight text-foreground">
+                <h3
+                  className="font-medium text-base leading-tight"
+                  style={{ color: colors.text.primary }}
+                >
                   {crew.nickname}
                 </h3>
                 {crew.tooltipInfo && (
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <button 
-                          className="text-muted-foreground hover:text-foreground transition-colors"
+                        <button
+                          className="transition-colors hover:opacity-70"
+                          style={{ color: colors.text.muted }}
                           onClick={(e) => e.stopPropagation()}
                           data-testid={`button-tooltip-${serviceId}`}
                         >
@@ -117,15 +129,15 @@ export function AgentCard({
                         <div className="space-y-2">
                           <div>
                             <p className="font-semibold" style={{ color: crew.color }}>{crew.nickname}</p>
-                            <p className="text-xs text-muted-foreground">{crew.role}</p>
+                            <p className="text-xs" style={{ color: colors.text.muted }}>{crew.role}</p>
                           </div>
                           <div>
-                            <p className="text-xs font-medium mb-1">What it does</p>
-                            <p className="text-xs text-muted-foreground">{crew.tooltipInfo.whatItDoes}</p>
+                            <p className="text-xs font-medium mb-1" style={{ color: colors.text.primary }}>What it does</p>
+                            <p className="text-xs" style={{ color: colors.text.muted }}>{crew.tooltipInfo.whatItDoes}</p>
                           </div>
                           <div>
-                            <p className="text-xs font-medium mb-1">What it outputs</p>
-                            <ul className="text-xs text-muted-foreground space-y-0.5">
+                            <p className="text-xs font-medium mb-1" style={{ color: colors.text.primary }}>What it outputs</p>
+                            <ul className="text-xs space-y-0.5" style={{ color: colors.text.muted }}>
                               {crew.tooltipInfo.outputs.map((output, i) => (
                                 <li key={i} className="flex items-center gap-1">
                                   <span className="w-1 h-1 rounded-full bg-current" />
@@ -140,12 +152,12 @@ export function AgentCard({
                   </TooltipProvider>
                 )}
               </div>
-              <p className="text-xs text-foreground" style={{ opacity: 1 }}>{crew.role}</p>
+              <p className="text-xs" style={{ color: colors.text.secondary }}>{crew.role}</p>
               {crew.shortDescription && (
-                <p className="text-xs text-muted-foreground truncate mt-0.5" style={{ opacity: 1 }}>{crew.shortDescription}</p>
+                <p className="text-xs truncate mt-0.5" style={{ color: colors.text.muted }}>{crew.shortDescription}</p>
               )}
               {!isActive && (
-                <p className="text-xs text-muted-foreground mt-1" style={{ opacity: 1 }}>Not active</p>
+                <p className="text-xs mt-1" style={{ color: colors.text.muted }}>Not active</p>
               )}
             </div>
           </div>
@@ -156,24 +168,30 @@ export function AgentCard({
                 onToggleSubscribe();
               }}
               className={cn(
-                "px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex-shrink-0",
-                isSubscribed
-                  ? "border border-border text-foreground hover:bg-muted"
-                  : "bg-primary text-primary-foreground hover:bg-primary/90"
+                buttonStyles.secondary.base,
+                "px-3 py-1.5 text-xs font-medium rounded-xl flex-shrink-0"
               )}
+              style={isSubscribed ? {
+                background: "transparent",
+                border: `1px solid ${colors.border.default}`,
+                color: colors.text.secondary,
+              } : {
+                background: colors.brand.purple,
+                color: "#FFFFFF",
+              }}
               data-testid={`button-subscribe-${serviceId}`}
             >
               {isSubscribed ? "Unsubscribe" : "Subscribe"}
             </button>
           )}
         </div>
-      </CardHeader>
+      </GlassCardHeader>
 
-      <CardContent className={cn("px-5 pb-5 pt-0", showUnlockOverlay && "blur-sm")}>
+      <GlassCardContent className={cn("px-5 pb-5 pt-0", showUnlockOverlay && "blur-sm")}>
         {crew.watchDescription && (
           <div className="mb-4">
             <SectionLabel>What I watch</SectionLabel>
-            <p className="text-sm text-foreground" style={{ opacity: 1 }}>{crew.watchDescription}</p>
+            <p className="text-sm" style={{ color: colors.text.primary }}>{crew.watchDescription}</p>
           </div>
         )}
 
@@ -184,37 +202,37 @@ export function AgentCard({
               <div className="space-y-1.5">
                 {displayFindings.map((finding, i) => (
                   <div key={i} className="flex justify-between items-baseline gap-2">
-                    <span className="text-sm text-muted-foreground" style={{ opacity: 1 }}>{finding.label}</span>
-                    <span className="text-sm font-medium text-foreground tabular-nums" style={{ opacity: 1 }}>{finding.value}</span>
+                    <span className="text-sm" style={{ color: colors.text.muted }}>{finding.label}</span>
+                    <span className="text-sm font-medium tabular-nums" style={{ color: colors.text.primary }}>{finding.value}</span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground italic" style={{ opacity: 1 }}>No data yet</p>
+              <p className="text-sm italic" style={{ color: colors.text.muted }}>No data yet</p>
             )}
           </div>
 
           <div>
             <SectionLabel>Last checked</SectionLabel>
-            <p className="text-sm text-foreground mb-4" style={{ opacity: 1 }}>{lastCheckIn || "Never"}</p>
+            <p className="text-sm mb-4" style={{ color: colors.text.primary }}>{lastCheckIn || "Never"}</p>
 
             <SectionLabel>Next steps</SectionLabel>
             <ol className="space-y-1.5">
               {displaySteps.slice(0, 3).map((step) => (
                 <li key={step.step} className="flex items-start gap-2">
-                  <span 
+                  <span
                     className="flex-shrink-0 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center mt-0.5"
                     style={{ backgroundColor: `${crew.color}20`, color: crew.color }}
                   >
                     {step.step}
                   </span>
-                  <span className="text-sm text-foreground leading-snug" style={{ opacity: 1 }}>{step.action}</span>
+                  <span className="text-sm leading-snug" style={{ color: colors.text.primary }}>{step.action}</span>
                 </li>
               ))}
             </ol>
           </div>
         </div>
-      </CardContent>
+      </GlassCardContent>
 
       {showUnlockOverlay && (
         <UnlockOverlay
@@ -226,6 +244,6 @@ export function AgentCard({
           }}
         />
       )}
-    </Card>
+    </GlassCard>
   );
 }

@@ -4,10 +4,11 @@ import { MarketingLayout } from "@/components/layout/MarketingLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from "@/components/ui/GlassCard";
 import { AlertCircle, Loader2, KeyRound, CheckCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import arcloLogo from "@assets/A_small_logo_1765393189114.png";
+import { colors } from "@/lib/design-system";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -47,22 +48,22 @@ export default function ForgotPassword() {
       <MarketingLayout>
         <div className="container mx-auto px-4 md:px-6 py-12 md:py-20">
           <div className="max-w-md mx-auto">
-            <Card className="bg-white border border-[#CBD5E1] shadow-[0_8px_24px_rgba(15,23,42,0.08)] rounded-2xl">
-              <CardHeader className="text-center">
+            <GlassCard variant="marketing"className="bg-white border border-[#CBD5E1] shadow-[0_8px_24px_rgba(15,23,42,0.08)] rounded-2xl">
+              <GlassCardHeader className="text-center">
                 <div className="flex justify-center mb-4">
                   <img src={arcloLogo} alt="Arclo" className="h-16 w-auto" />
                 </div>
-                <CardTitle className="text-2xl text-[#020617]">Check your email</CardTitle>
-                <CardDescription className="text-[#64748B]">
+                <GlassCardTitle className="text-2xl text-[#020617]">Check your email</GlassCardTitle>
+                <p className="text-sm" style={{ color: colors.text.muted }}>
                   If an account exists with this email, you will receive a password reset link.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="text-center">
+                </p>
+              </GlassCardHeader>
+              <GlassCardContent className="text-center">
                 <p className="text-[#64748B] text-sm">
                   The link expires in 1 hour. Check your spam folder if you don't see it.
                 </p>
-              </CardContent>
-              <CardFooter>
+              </GlassCardContent>
+              <div className="p-6 pt-0">
                 <Button 
                   variant="secondary"
                   className="w-full"
@@ -71,8 +72,8 @@ export default function ForgotPassword() {
                 >
                   Back to Sign In
                 </Button>
-              </CardFooter>
-            </Card>
+              </div>
+            </GlassCard>
           </div>
         </div>
       </MarketingLayout>
@@ -83,17 +84,17 @@ export default function ForgotPassword() {
     <MarketingLayout>
       <div className="container mx-auto px-4 md:px-6 py-12 md:py-20">
         <div className="max-w-md mx-auto">
-          <Card className="bg-white border border-[#CBD5E1] shadow-[0_8px_24px_rgba(15,23,42,0.08)] rounded-2xl">
-            <CardHeader className="text-center">
+          <GlassCard variant="marketing"className="bg-white border border-[#CBD5E1] shadow-[0_8px_24px_rgba(15,23,42,0.08)] rounded-2xl">
+            <GlassCardHeader className="text-center">
               <div className="flex justify-center mb-4">
                 <img src={arcloLogo} alt="Arclo" className="h-16 w-auto" />
               </div>
-              <CardTitle className="text-2xl text-[#020617]">Forgot your password?</CardTitle>
-              <CardDescription className="text-[#64748B]">
+              <GlassCardTitle className="text-2xl text-[#020617]">Forgot your password?</GlassCardTitle>
+              <p className="text-sm" style={{ color: colors.text.muted }}>
                 Enter your email to receive a password reset link
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+              </p>
+            </GlassCardHeader>
+            <GlassCardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 {error && (
                   <Alert variant="destructive">
@@ -140,8 +141,8 @@ export default function ForgotPassword() {
                   Sign in
                 </a>
               </p>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         </div>
       </div>
     </MarketingLayout>

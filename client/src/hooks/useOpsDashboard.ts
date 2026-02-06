@@ -246,11 +246,24 @@ async function fetchOpsDashboard<T>(siteId: string, section: string): Promise<T>
   const res = await fetch(buildOpsDashboardUrl(siteId, section), {
     credentials: "include",
   });
+
+  // Always read response text first for safe parsing
+  const text = await res.text();
+
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`${res.status}: ${text}`);
+    throw new Error(`${res.status}: ${text || res.statusText}`);
   }
-  return res.json();
+
+  // Safely parse JSON
+  if (!text) {
+    throw new Error("Empty response from server");
+  }
+
+  try {
+    return JSON.parse(text) as T;
+  } catch (e) {
+    throw new Error(`Invalid JSON response: ${text.slice(0, 100)}`);
+  }
 }
 
 export function useMetricCards(siteId: string | null | undefined) {
@@ -323,8 +336,14 @@ export function useTrafficDiagnosis(siteId: string | null | undefined) {
       const res = await fetch(`/api/sites/${encodeURIComponent(siteId!)}/traffic-diagnosis`, {
         credentials: "include",
       });
-      if (!res.ok) throw new Error("Failed to fetch traffic diagnosis");
-      return res.json();
+      const text = await res.text();
+      if (!res.ok) throw new Error(`Failed to fetch traffic diagnosis: ${text || res.statusText}`);
+      if (!text) throw new Error("Empty response");
+      try {
+        return JSON.parse(text);
+      } catch {
+        throw new Error("Invalid response format");
+      }
     },
     enabled: !!siteId,
     staleTime: 10 * 60 * 1000, // 10 minutes - expensive operation
@@ -368,8 +387,14 @@ export function useSerpRefreshUsage(siteId: string | null | undefined) {
       const res = await fetch(`/api/sites/${encodeURIComponent(siteId!)}/serp-refresh`, {
         credentials: "include",
       });
-      if (!res.ok) throw new Error("Failed to fetch SERP refresh usage");
-      return res.json();
+      const text = await res.text();
+      if (!res.ok) throw new Error(`Failed to fetch SERP refresh usage: ${text || res.statusText}`);
+      if (!text) throw new Error("Empty response");
+      try {
+        return JSON.parse(text);
+      } catch {
+        throw new Error("Invalid response format");
+      }
     },
     enabled: !!siteId,
     staleTime: 30 * 1000, // 30 seconds
@@ -381,5 +406,13 @@ export async function triggerSerpRefresh(siteId: string): Promise<SerpRefreshRes
     method: "POST",
     credentials: "include",
   });
-  return res.json();
+  const text = await res.text();
+  if (!text) {
+    return { success: false, message: "Empty response from server", used: 0, remaining: 0, limit: 0 };
+  }
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { success: false, message: "Invalid response from server", used: 0, remaining: 0, limit: 0 };
+  }
 }

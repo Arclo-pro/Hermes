@@ -5,6 +5,7 @@ import {
   GlassCardTitle,
   GlassCardContent,
 } from "@/components/ui/GlassCard";
+import { Button } from "@/components/ui/button";
 import {
   Settings2,
   AlertTriangle,
@@ -142,7 +143,17 @@ export function TechnicalSeoSection({ siteId }: TechnicalSeoSectionProps) {
         </GlassCardHeader>
         <GlassCardContent>
           <div className="py-6 text-center">
-            <p className="text-sm" style={{ color: "#94A3B8" }}>Unable to load technical SEO data</p>
+            <AlertCircle className="w-8 h-8 mx-auto mb-3" style={{ color: "#ef4444" }} />
+            <p className="text-sm mb-3" style={{ color: "#94A3B8" }}>Unable to load technical SEO data</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              disabled={isRefetching}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${isRefetching ? "animate-spin" : ""}`} />
+              Retry
+            </Button>
           </div>
         </GlassCardContent>
       </GlassCard>

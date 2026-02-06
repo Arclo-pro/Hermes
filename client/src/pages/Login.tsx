@@ -5,10 +5,11 @@ import { MarketingLayout } from "@/components/layout/MarketingLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from "@/components/ui/GlassCard";
 import { AlertCircle, Loader2, LogIn, CheckCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import arcloLogo from "@assets/A_small_logo_1765393189114.png";
+import { colors, gradients } from "@/lib/design-system";
 
 export default function Login() {
   const searchString = useSearch();
@@ -60,22 +61,22 @@ export default function Login() {
     <MarketingLayout>
       <div className="container mx-auto px-4 md:px-6 py-12 md:py-20">
         <div className="max-w-md mx-auto">
-          <Card className="bg-white border border-[#CBD5E1] shadow-[0_8px_24px_rgba(15,23,42,0.08)] rounded-2xl">
-            <CardHeader className="space-y-1 text-center">
+          <GlassCard variant="marketing">
+            <GlassCardHeader className="space-y-1 text-center">
               <div className="flex justify-center mb-4">
                 <img src={arcloLogo} alt="Arclo" className="h-16 w-auto" />
               </div>
-              <CardTitle className="text-2xl font-bold text-[#020617]">Welcome to Arclo</CardTitle>
-              <CardDescription className="text-[#64748B]">
+              <GlassCardTitle className="text-2xl font-bold" style={{ color: colors.text.primary }}>Welcome to Arclo</GlassCardTitle>
+              <p className="text-sm" style={{ color: colors.text.muted }}>
                 Sign in to access your SEO dashboard
-              </CardDescription>
-            </CardHeader>
+              </p>
+            </GlassCardHeader>
             <form onSubmit={handleSubmit}>
-              <CardContent className="space-y-4">
+              <GlassCardContent className="space-y-4">
                 {infoMessage && (
-                  <Alert className="border-[#15803D]/30 bg-[#15803D]/10">
-                    <CheckCircle className="h-4 w-4 text-[#15803D]" />
-                    <AlertDescription className="text-[#15803D]">
+                  <Alert style={{ borderColor: `${colors.semantic.success}30`, background: `${colors.semantic.success}10` }}>
+                    <CheckCircle className="h-4 w-4" style={{ color: colors.semantic.success }} />
+                    <AlertDescription style={{ color: colors.semantic.success }}>
                       {infoMessage}
                     </AlertDescription>
                   </Alert>
@@ -96,9 +97,9 @@ export default function Login() {
                     </AlertDescription>
                   </Alert>
                 )}
-                
+
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-[#334155]">Email</Label>
+                  <Label htmlFor="email" style={{ color: colors.text.secondary }}>Email</Label>
                   <Input
                     id="email"
                     type="email"
@@ -110,9 +111,9 @@ export default function Login() {
                     data-testid="input-email"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
-                  <Label htmlFor="password" className="text-[#334155]">Password</Label>
+                  <Label htmlFor="password" style={{ color: colors.text.secondary }}>Password</Label>
                   <Input
                     id="password"
                     type="password"
@@ -124,18 +125,15 @@ export default function Login() {
                     data-testid="input-password"
                   />
                 </div>
-              </CardContent>
-              
-              <CardFooter className="flex flex-col space-y-4">
+              </GlassCardContent>
+
+              <div className="flex flex-col space-y-4 p-6 pt-0">
                 <Button
                   type="submit"
-                  className="w-full"
+                  className="w-full rounded-xl"
                   disabled={loading}
                   data-testid="button-login"
-                  style={{
-                    background: "linear-gradient(90deg, #6D28D9, #7C3AED, #A855F7, #EC4899, #F97316, #F59E0B)",
-                    color: "#FFFFFF",
-                  }}
+                  style={gradients.brandText}
                 >
                   {loading ? (
                     <>
@@ -149,23 +147,23 @@ export default function Login() {
                     </>
                   )}
                 </Button>
-                
+
                 <div className="space-y-2 text-center">
-                  <p className="text-sm text-[#64748B]">
+                  <p className="text-sm" style={{ color: colors.text.muted }}>
                     Need an account?{" "}
-                    <a href="/signup" className="text-[#15803D] hover:text-[#166534] hover:underline font-medium">
+                    <a href="/signup" className="font-medium hover:underline" style={{ color: colors.brand.purple }}>
                       Create one
                     </a>
                   </p>
-                  <p className="text-sm text-[#64748B]">
-                    <a href="/forgot-password" className="hover:underline hover:text-[#0F172A]">
+                  <p className="text-sm" style={{ color: colors.text.muted }}>
+                    <a href="/forgot-password" className="hover:underline" style={{ color: colors.text.muted }}>
                       Forgot your password?
                     </a>
                   </p>
                 </div>
-              </CardFooter>
+              </div>
             </form>
-          </Card>
+          </GlassCard>
         </div>
       </div>
     </MarketingLayout>

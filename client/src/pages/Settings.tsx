@@ -1,8 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  GlassCard,
+  GlassCardHeader,
+  GlassCardTitle,
+  GlassCardContent,
+} from "@/components/ui/GlassCard";
 import {
   XCircle,
   Shield,
@@ -17,6 +20,8 @@ import {
   UserPlus,
   Mail,
   Send,
+  Loader2,
+  X,
 } from "lucide-react";
 import { useSiteContext } from "@/hooks/useSiteContext";
 import { toast } from "sonner";
@@ -27,12 +32,9 @@ import { IntegrationCard } from "@/components/integrations/IntegrationCard";
 import { UnifiedGoogleWizard } from "@/components/integrations/UnifiedGoogleWizard";
 import { useGoogleConnection } from "@/components/integrations/useGoogleConnection";
 import { Footer } from "@/components/layout/Footer";
+import { colors, pageStyles, modalStyles, buttonStyles } from "@/lib/design-system";
 
-const PAGE_BG = {
-  background: `radial-gradient(1200px circle at 10% 0%, rgba(139, 92, 246, 0.06), transparent 40%),
-               radial-gradient(1200px circle at 90% 10%, rgba(236, 72, 153, 0.04), transparent 40%),
-               #FFFFFF`,
-};
+const PAGE_BG = pageStyles.background;
 
 function formatDate(date: string | null) {
   if (!date) return "Never";
@@ -249,144 +251,236 @@ function TeamSection() {
 
   return (
     <div className="space-y-6">
-      <Card className="bg-white border-gray-200">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between mb-6">
+      <GlassCard variant="marketing" tint="purple">
+        <GlassCardHeader>
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-50 rounded-lg">
-                <Users className="w-5 h-5 text-purple-600" />
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center"
+                style={{ background: "rgba(124, 58, 237, 0.1)" }}
+              >
+                <Users className="w-5 h-5" style={{ color: "#7c3aed" }} />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Team Members</h2>
-                <p className="text-sm text-gray-500">
+                <GlassCardTitle>Team Members</GlassCardTitle>
+                <p className="text-sm" style={{ color: colors.text.muted }}>
                   Everyone on your team has full access to all websites
                 </p>
               </div>
             </div>
-            <Button onClick={() => setShowInviteModal(true)} data-testid="button-invite-user">
-              <UserPlus className="w-4 h-4 mr-2" />
+            <button
+              onClick={() => setShowInviteModal(true)}
+              className={buttonStyles.primary.base}
+              style={buttonStyles.primary.purple}
+              data-testid="button-invite-user"
+            >
+              <UserPlus className="w-4 h-4" />
               Invite User
-            </Button>
+            </button>
           </div>
-
+        </GlassCardHeader>
+        <GlassCardContent>
           {teamLoading ? (
             <div className="flex justify-center py-8">
-              <RefreshCw className="w-6 h-6 animate-spin text-gray-400" />
+              <Loader2 className="w-6 h-6 animate-spin" style={{ color: colors.text.disabled }} />
             </div>
           ) : teamData?.team && teamData.team.length > 0 ? (
-            <div className="divide-y divide-gray-100 border border-gray-200 rounded-lg">
+            <div className="space-y-2">
               {teamData.team.map((member) => (
-                <div key={member.id} className="flex items-center gap-4 p-4" data-testid={`team-member-${member.id}`}>
-                  <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center">
-                    <span className="text-purple-600 font-medium">
+                <div
+                  key={member.id}
+                  className="flex items-center gap-4 p-4 rounded-xl"
+                  style={{ background: "#FFFFFF", border: "1px solid rgba(15, 23, 42, 0.06)" }}
+                  data-testid={`team-member-${member.id}`}
+                >
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center"
+                    style={{ background: "rgba(124, 58, 237, 0.1)" }}
+                  >
+                    <span className="font-medium" style={{ color: "#7c3aed" }}>
                       {(member.displayName || member.email)[0].toUpperCase()}
                     </span>
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900">{member.displayName || member.email}</span>
+                      <span className="font-medium" style={{ color: colors.text.primary }}>
+                        {member.displayName || member.email}
+                      </span>
                       {member.isOwner && (
-                        <Badge variant="outline" className="border-purple-200 text-purple-700 bg-purple-50">Owner</Badge>
+                        <span
+                          className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold"
+                          style={{ color: "#7c3aed", background: "rgba(124, 58, 237, 0.08)" }}
+                        >
+                          Owner
+                        </span>
                       )}
                     </div>
-                    <span className="text-sm text-gray-500">{member.email}</span>
+                    <span className="text-sm" style={{ color: colors.text.muted }}>
+                      {member.email}
+                    </span>
                   </div>
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm" style={{ color: colors.text.muted }}>
                     Joined {formatDate(member.joinedAt)}
                   </span>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 border border-gray-200 rounded-lg bg-gray-50">
-              <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="font-medium text-gray-900 mb-2">Just you so far</h3>
-              <p className="text-gray-500 mb-4">Invite team members to collaborate</p>
+            <div className="py-8 text-center">
+              <Users className="w-12 h-12 mx-auto mb-4" style={{ color: colors.text.placeholder }} />
+              <h3 className="font-medium mb-2" style={{ color: colors.text.primary }}>Just you so far</h3>
+              <p style={{ color: colors.text.muted }}>Invite team members to collaborate</p>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
 
       {invitesData?.invitations && invitesData.invitations.length > 0 && (
-        <Card className="bg-white border-gray-200">
-          <CardContent className="p-6">
-            <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <Mail className="w-4 h-4 text-gray-600" />
+        <GlassCard variant="marketing" tint="amber">
+          <GlassCardHeader>
+            <GlassCardTitle className="flex items-center gap-2">
+              <Mail className="w-5 h-5" style={{ color: "#f59e0b" }} />
               Pending Invitations
-            </h3>
-            <div className="divide-y divide-gray-100 border border-gray-200 rounded-lg">
+            </GlassCardTitle>
+          </GlassCardHeader>
+          <GlassCardContent>
+            <div className="space-y-2">
               {invitesData.invitations.map((invite) => (
-                <div key={invite.id} className="flex items-center gap-4 p-4" data-testid={`pending-invite-${invite.id}`}>
-                  <Mail className="w-5 h-5 text-gray-400" />
+                <div
+                  key={invite.id}
+                  className="flex items-center gap-4 p-4 rounded-xl"
+                  style={{ background: "#FFFFFF", border: "1px solid rgba(15, 23, 42, 0.06)" }}
+                  data-testid={`pending-invite-${invite.id}`}
+                >
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center"
+                    style={{ background: "rgba(245, 158, 11, 0.1)" }}
+                  >
+                    <Mail className="w-4 h-4" style={{ color: "#f59e0b" }} />
+                  </div>
                   <div className="flex-1">
-                    <span className="font-medium text-gray-900">{invite.email}</span>
-                    <span className="text-sm text-gray-500 ml-2">
+                    <span className="font-medium" style={{ color: colors.text.primary }}>
+                      {invite.email}
+                    </span>
+                    <span className="text-sm ml-2" style={{ color: colors.text.muted }}>
                       Expires {formatDate(invite.expiresAt)}
                     </span>
                   </div>
                   <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
+                    <button
                       onClick={() => resendMutation.mutate(invite.id)}
                       disabled={resendMutation.isPending}
-                      className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors hover:bg-purple-50 disabled:opacity-50"
+                      style={{ color: "#7c3aed", border: "1px solid rgba(124, 58, 237, 0.2)" }}
                       data-testid={`button-resend-invite-${invite.id}`}
                     >
-                      <Send className="w-4 h-4 mr-1" />
+                      <Send className="w-3.5 h-3.5" />
                       {resendMutation.isPending ? 'Sending...' : 'Resend'}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
+                    </button>
+                    <button
                       onClick={() => revokeMutation.mutate(invite.id)}
                       disabled={revokeMutation.isPending}
-                      className="border-gray-300 text-gray-700 hover:bg-gray-100"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors hover:bg-gray-100 disabled:opacity-50"
+                      style={{ color: colors.text.muted, border: "1px solid rgba(15, 23, 42, 0.12)" }}
                       data-testid={`button-revoke-invite-${invite.id}`}
                     >
-                      <XCircle className="w-4 h-4 mr-1" />
+                      <XCircle className="w-3.5 h-3.5" />
                       Revoke
-                    </Button>
+                    </button>
                   </div>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       )}
 
       {showInviteModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white border border-gray-200 rounded-xl p-6 w-full max-w-md shadow-2xl mx-4">
-            <h3 className="text-lg font-semibold mb-4 text-gray-900">Invite Team Member</h3>
-            <p className="text-sm text-gray-500 mb-4">
-              Invited users will have full access to all your websites.
-              They must create a new account to accept the invitation.
-            </p>
+        <div
+          className={modalStyles.overlay.className}
+          style={modalStyles.overlay.style}
+          onClick={() => setShowInviteModal(false)}
+        >
+          <div
+            className={modalStyles.container.className}
+            style={modalStyles.container.style}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={modalStyles.header.className}>
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center"
+                  style={{ background: "rgba(124, 58, 237, 0.1)" }}
+                >
+                  <UserPlus className="w-5 h-5" style={{ color: "#7c3aed" }} />
+                </div>
+                <div>
+                  <h3 className={modalStyles.title.className} style={modalStyles.title.style}>
+                    Invite Team Member
+                  </h3>
+                  <p className={modalStyles.description.className} style={modalStyles.description.style}>
+                    Full access to all websites
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowInviteModal(false)}
+                className="p-1.5 rounded-lg transition-colors hover:bg-slate-100"
+              >
+                <X className="w-4 h-4" style={{ color: colors.text.muted }} />
+              </button>
+            </div>
+
+            <div
+              className="p-4 rounded-xl mb-4"
+              style={{ background: "rgba(15, 23, 42, 0.02)", border: "1px solid rgba(15, 23, 42, 0.06)" }}
+            >
+              <p className="text-sm" style={{ color: colors.text.secondary }}>
+                Invited users will have full access to all your websites.
+                They must create a new account to accept the invitation.
+              </p>
+            </div>
+
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1 text-gray-700">Email Address</label>
+                <label
+                  className="text-sm font-medium mb-2 block"
+                  style={{ color: colors.text.primary }}
+                >
+                  Email Address
+                </label>
                 <input
                   type="email"
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
                   placeholder="colleague@company.com"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+                  style={{
+                    background: "#FFFFFF",
+                    border: "1px solid rgba(15, 23, 42, 0.12)",
+                    color: colors.text.primary,
+                  }}
                   data-testid="input-invite-email"
                 />
               </div>
-              <div className="flex gap-2 justify-end pt-2">
-                <Button variant="outline" onClick={() => setShowInviteModal(false)} className="border-gray-300 text-gray-700 hover:bg-gray-100">
+              <div className={modalStyles.footer.className}>
+                <button
+                  onClick={() => setShowInviteModal(false)}
+                  className={`flex-1 ${buttonStyles.secondary.base}`}
+                  style={buttonStyles.secondary.default}
+                >
                   Cancel
-                </Button>
-                <Button
+                </button>
+                <button
                   onClick={() => inviteMutation.mutate(inviteEmail)}
                   disabled={inviteMutation.isPending || !inviteEmail}
+                  className={`flex-1 ${buttonStyles.primary.base}`}
+                  style={buttonStyles.primary.purple}
                   data-testid="button-send-invite"
                 >
-                  {inviteMutation.isPending && <RefreshCw className="w-4 h-4 mr-2 animate-spin" />}
+                  {inviteMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
                   Send Invitation
-                </Button>
+                </button>
               </div>
             </div>
           </div>
@@ -423,39 +517,86 @@ export default function Settings() {
   return (
     <div className="flex-1 flex flex-col min-w-0">
       <div className="flex-1 overflow-y-auto">
-        <div className="min-h-full p-6" style={PAGE_BG}>
+        <div className={pageStyles.container} style={PAGE_BG}>
           <div className="max-w-4xl mx-auto space-y-6">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900" data-testid="text-page-title">Settings</h1>
-              <p className="text-gray-500">Manage integrations, team, and automation preferences</p>
+            {/* Page Header - Dashboard style */}
+            <div className="mb-8">
+              <h1
+                className="text-4xl font-bold mb-2"
+                style={{ color: colors.text.primary, letterSpacing: "-0.03em" }}
+                data-testid="text-page-title"
+              >
+                Sett<span
+                  style={{
+                    backgroundImage: "linear-gradient(90deg, #7c3aed, #ec4899, #f59e0b)",
+                    WebkitBackgroundClip: "text",
+                    backgroundClip: "text",
+                    color: "transparent",
+                  }}
+                >ings</span>
+              </h1>
+              <p style={{ color: colors.text.secondary }}>
+                Manage integrations, team, and automation preferences
+              </p>
             </div>
 
             <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-              <TabsList className="bg-gray-100 border border-gray-200">
-                <TabsTrigger
-                  value="integrations"
-                  className="flex items-center gap-2 text-gray-600 data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm"
+              <div
+                className="inline-flex rounded-xl p-1"
+                style={{ background: "rgba(15, 23, 42, 0.04)", border: "1px solid rgba(15, 23, 42, 0.06)" }}
+              >
+                <button
+                  onClick={() => handleTabChange("integrations")}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    activeTab === "integrations" ? "" : "hover:bg-white/50"
+                  }`}
+                  style={
+                    activeTab === "integrations"
+                      ? { background: "#FFFFFF", color: colors.text.primary, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.08)" }
+                      : { color: colors.text.muted }
+                  }
                   data-testid="tab-integrations"
                 >
                   <BarChart3 className="w-4 h-4" />
                   Integrations
-                </TabsTrigger>
-                <TabsTrigger
-                  value="team"
-                  className="flex items-center gap-2 text-gray-600 data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm"
+                </button>
+                <button
+                  onClick={() => handleTabChange("team")}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    activeTab === "team" ? "" : "hover:bg-white/50"
+                  }`}
+                  style={
+                    activeTab === "team"
+                      ? { background: "#FFFFFF", color: colors.text.primary, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.08)" }
+                      : { color: colors.text.muted }
+                  }
                   data-testid="tab-team"
                 >
                   <Users className="w-4 h-4" />
                   Team
-                </TabsTrigger>
-                <TabsTrigger
-                  value="autopilot"
-                  className="flex items-center gap-2 text-gray-600 data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm"
+                </button>
+                <button
+                  onClick={() => handleTabChange("autopilot")}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    activeTab === "autopilot" ? "" : "hover:bg-white/50"
+                  }`}
+                  style={
+                    activeTab === "autopilot"
+                      ? { background: "#FFFFFF", color: colors.text.primary, boxShadow: "0 1px 3px rgba(15, 23, 42, 0.08)" }
+                      : { color: colors.text.muted }
+                  }
                   data-testid="tab-autopilot"
                 >
                   <Zap className="w-4 h-4" />
                   Autopilot
-                </TabsTrigger>
+                </button>
+              </div>
+
+              {/* Keep TabsList hidden for accessibility but use custom buttons for visual */}
+              <TabsList className="hidden">
+                <TabsTrigger value="integrations">Integrations</TabsTrigger>
+                <TabsTrigger value="team">Team</TabsTrigger>
+                <TabsTrigger value="autopilot">Autopilot</TabsTrigger>
               </TabsList>
 
               <TabsContent value="integrations" className="space-y-6">
@@ -467,123 +608,192 @@ export default function Settings() {
               </TabsContent>
 
               <TabsContent value="autopilot" className="space-y-6">
-                <Card className="bg-white border-gray-200">
-                  <CardContent className="p-6 space-y-6">
+                <GlassCard variant="marketing" tint="amber">
+                  <GlassCardHeader>
                     <div className="flex items-center gap-3">
-                      <div className="p-2 bg-amber-50 rounded-lg">
-                        <Zap className="w-5 h-5 text-amber-600" />
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center"
+                        style={{ background: "rgba(245, 158, 11, 0.1)" }}
+                      >
+                        <Zap className="w-5 h-5" style={{ color: "#f59e0b" }} />
                       </div>
                       <div>
-                        <h2 className="text-lg font-semibold text-gray-900">Autopilot Settings</h2>
-                        <p className="text-sm text-gray-500">Control how Arclo makes changes to your site automatically.</p>
+                        <GlassCardTitle>Autopilot Settings</GlassCardTitle>
+                        <p className="text-sm" style={{ color: colors.text.muted }}>
+                          Control how Arclo makes changes to your site automatically.
+                        </p>
                       </div>
                     </div>
-
-                    <div className="grid gap-4">
+                  </GlassCardHeader>
+                  <GlassCardContent>
+                    <div className="space-y-3">
+                      {/* Full Autopilot Option */}
                       <div
-                        className={`p-4 rounded-lg border-2 cursor-pointer transition-colors ${
-                          autopilotMode === 'full'
-                            ? 'border-purple-500 bg-purple-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
+                        className="p-4 rounded-xl cursor-pointer transition-all"
+                        style={{
+                          background: autopilotMode === 'full'
+                            ? "linear-gradient(135deg, rgba(124,58,237,0.04), rgba(124,58,237,0.02))"
+                            : "#FFFFFF",
+                          border: autopilotMode === 'full'
+                            ? "2px solid rgba(124, 58, 237, 0.3)"
+                            : "1px solid rgba(15, 23, 42, 0.06)",
+                        }}
                         onClick={() => setAutopilotMode('full')}
                         data-testid="card-autopilot-full"
                       >
                         <div className="flex items-start gap-4">
-                          <div className={`p-2 rounded-lg ${autopilotMode === 'full' ? 'bg-purple-100' : 'bg-gray-100'}`}>
-                            <Zap className={`w-5 h-5 ${autopilotMode === 'full' ? 'text-purple-600' : 'text-gray-500'}`} />
+                          <div
+                            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                            style={{
+                              background: autopilotMode === 'full' ? "rgba(124, 58, 237, 0.12)" : "rgba(15, 23, 42, 0.04)",
+                            }}
+                          >
+                            <Zap
+                              className="w-5 h-5"
+                              style={{ color: autopilotMode === 'full' ? "#7c3aed" : colors.text.muted }}
+                            />
                           </div>
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <h3 className="font-medium text-gray-900">Full Autopilot</h3>
+                              <h3 className="font-semibold" style={{ color: colors.text.primary }}>
+                                Full Autopilot
+                              </h3>
                               {autopilotMode === 'full' && (
-                                <Badge className="bg-purple-600 text-white text-xs">Active</Badge>
+                                <span
+                                  className="px-2 py-0.5 rounded-md text-xs font-semibold"
+                                  style={{ background: "#7c3aed", color: "#FFFFFF" }}
+                                >
+                                  Active
+                                </span>
                               )}
                             </div>
-                            <p className="text-sm text-gray-500 mt-1">
+                            <p className="text-sm mt-1" style={{ color: colors.text.muted }}>
                               Arclo makes all changes automatically. You'll see everything in your activity log.
                             </p>
                           </div>
-                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                            autopilotMode === 'full' ? 'border-purple-500' : 'border-gray-300'
-                          }`}>
+                          <div
+                            className="w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0"
+                            style={{ borderColor: autopilotMode === 'full' ? "#7c3aed" : "rgba(15, 23, 42, 0.15)" }}
+                          >
                             {autopilotMode === 'full' && (
-                              <div className="w-3 h-3 rounded-full bg-purple-500" />
+                              <div className="w-3 h-3 rounded-full" style={{ background: "#7c3aed" }} />
                             )}
                           </div>
                         </div>
                       </div>
 
+                      {/* Approve Major Option */}
                       <div
-                        className={`p-4 rounded-lg border-2 cursor-pointer transition-colors ${
-                          autopilotMode === 'approve-major'
-                            ? 'border-purple-500 bg-purple-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
+                        className="p-4 rounded-xl cursor-pointer transition-all"
+                        style={{
+                          background: autopilotMode === 'approve-major'
+                            ? "linear-gradient(135deg, rgba(124,58,237,0.04), rgba(124,58,237,0.02))"
+                            : "#FFFFFF",
+                          border: autopilotMode === 'approve-major'
+                            ? "2px solid rgba(124, 58, 237, 0.3)"
+                            : "1px solid rgba(15, 23, 42, 0.06)",
+                        }}
                         onClick={() => setAutopilotMode('approve-major')}
                         data-testid="card-autopilot-approve-major"
                       >
                         <div className="flex items-start gap-4">
-                          <div className={`p-2 rounded-lg ${autopilotMode === 'approve-major' ? 'bg-purple-100' : 'bg-gray-100'}`}>
-                            <Shield className={`w-5 h-5 ${autopilotMode === 'approve-major' ? 'text-purple-600' : 'text-gray-500'}`} />
+                          <div
+                            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                            style={{
+                              background: autopilotMode === 'approve-major' ? "rgba(124, 58, 237, 0.12)" : "rgba(15, 23, 42, 0.04)",
+                            }}
+                          >
+                            <Shield
+                              className="w-5 h-5"
+                              style={{ color: autopilotMode === 'approve-major' ? "#7c3aed" : colors.text.muted }}
+                            />
                           </div>
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <h3 className="font-medium text-gray-900">Approve Major Changes</h3>
+                              <h3 className="font-semibold" style={{ color: colors.text.primary }}>
+                                Approve Major Changes
+                              </h3>
                               {autopilotMode === 'approve-major' && (
-                                <Badge className="bg-purple-600 text-white text-xs">Active</Badge>
+                                <span
+                                  className="px-2 py-0.5 rounded-md text-xs font-semibold"
+                                  style={{ background: "#7c3aed", color: "#FFFFFF" }}
+                                >
+                                  Active
+                                </span>
                               )}
                             </div>
-                            <p className="text-sm text-gray-500 mt-1">
+                            <p className="text-sm mt-1" style={{ color: colors.text.muted }}>
                               Minor fixes are automatic. New pages and major content edits require your approval.
                             </p>
                           </div>
-                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                            autopilotMode === 'approve-major' ? 'border-purple-500' : 'border-gray-300'
-                          }`}>
+                          <div
+                            className="w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0"
+                            style={{ borderColor: autopilotMode === 'approve-major' ? "#7c3aed" : "rgba(15, 23, 42, 0.15)" }}
+                          >
                             {autopilotMode === 'approve-major' && (
-                              <div className="w-3 h-3 rounded-full bg-purple-500" />
+                              <div className="w-3 h-3 rounded-full" style={{ background: "#7c3aed" }} />
                             )}
                           </div>
                         </div>
                       </div>
 
+                      {/* Manual Mode Option */}
                       <div
-                        className={`p-4 rounded-lg border-2 cursor-pointer transition-colors ${
-                          autopilotMode === 'manual'
-                            ? 'border-purple-500 bg-purple-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
+                        className="p-4 rounded-xl cursor-pointer transition-all"
+                        style={{
+                          background: autopilotMode === 'manual'
+                            ? "linear-gradient(135deg, rgba(124,58,237,0.04), rgba(124,58,237,0.02))"
+                            : "#FFFFFF",
+                          border: autopilotMode === 'manual'
+                            ? "2px solid rgba(124, 58, 237, 0.3)"
+                            : "1px solid rgba(15, 23, 42, 0.06)",
+                        }}
                         onClick={() => setAutopilotMode('manual')}
                         data-testid="card-autopilot-manual"
                       >
                         <div className="flex items-start gap-4">
-                          <div className={`p-2 rounded-lg ${autopilotMode === 'manual' ? 'bg-purple-100' : 'bg-gray-100'}`}>
-                            <Hand className={`w-5 h-5 ${autopilotMode === 'manual' ? 'text-purple-600' : 'text-gray-500'}`} />
+                          <div
+                            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                            style={{
+                              background: autopilotMode === 'manual' ? "rgba(124, 58, 237, 0.12)" : "rgba(15, 23, 42, 0.04)",
+                            }}
+                          >
+                            <Hand
+                              className="w-5 h-5"
+                              style={{ color: autopilotMode === 'manual' ? "#7c3aed" : colors.text.muted }}
+                            />
                           </div>
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <h3 className="font-medium text-gray-900">Manual Mode</h3>
+                              <h3 className="font-semibold" style={{ color: colors.text.primary }}>
+                                Manual Mode
+                              </h3>
                               {autopilotMode === 'manual' && (
-                                <Badge className="bg-purple-600 text-white text-xs">Active</Badge>
+                                <span
+                                  className="px-2 py-0.5 rounded-md text-xs font-semibold"
+                                  style={{ background: "#7c3aed", color: "#FFFFFF" }}
+                                >
+                                  Active
+                                </span>
                               )}
                             </div>
-                            <p className="text-sm text-gray-500 mt-1">
+                            <p className="text-sm mt-1" style={{ color: colors.text.muted }}>
                               All changes require your approval before going live.
                             </p>
                           </div>
-                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                            autopilotMode === 'manual' ? 'border-purple-500' : 'border-gray-300'
-                          }`}>
+                          <div
+                            className="w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0"
+                            style={{ borderColor: autopilotMode === 'manual' ? "#7c3aed" : "rgba(15, 23, 42, 0.15)" }}
+                          >
                             {autopilotMode === 'manual' && (
-                              <div className="w-3 h-3 rounded-full bg-purple-500" />
+                              <div className="w-3 h-3 rounded-full" style={{ background: "#7c3aed" }} />
                             )}
                           </div>
                         </div>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
+                  </GlassCardContent>
+                </GlassCard>
               </TabsContent>
             </Tabs>
           </div>

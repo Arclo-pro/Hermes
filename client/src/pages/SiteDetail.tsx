@@ -1,6 +1,5 @@
-import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from "@/components/ui/GlassCard";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -14,6 +13,7 @@ import { ArrowLeft, Save, Globe, Loader2, MapPin, Pencil, AlertTriangle, HelpCir
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Link } from "wouter";
 import { GeoScopeSelector, type GeoScopeValue } from "@/components/site/GeoScopeSelector";
+import { colors, pageStyles, gradients } from "@/lib/design-system";
 
 interface Site {
   id: number;
@@ -242,17 +242,17 @@ export default function SiteDetail() {
 
   if (!isNew && isLoading) {
     return (
-      <DashboardLayout className="dashboard-light">
+      <div className="min-h-screen p-6" style={pageStyles.background}>
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          <Loader2 className="w-8 h-8 animate-spin" style={{ color: colors.text.muted }} />
         </div>
-      </DashboardLayout>
+      </div>
     );
   }
 
   return (
-    <DashboardLayout className="dashboard-light">
-      <div className="space-y-6 max-w-3xl">
+    <div className="min-h-screen p-6" style={pageStyles.background}>
+      <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex items-center gap-4">
           <Link href="/sites">
             <Button variant="ghost" size="icon" data-testid="button-back">
@@ -260,25 +260,25 @@ export default function SiteDetail() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight" data-testid="page-title">
-              {isNew ? 'Add New Site' : `Edit ${site?.displayName || 'Site'}`}
+            <h1 className="text-4xl font-bold" style={{ color: colors.text.primary, letterSpacing: "-0.03em" }} data-testid="page-title">
+              <span style={gradients.brandText}>{isNew ? 'Add New Site' : `Edit ${site?.displayName || 'Site'}`}</span>
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-sm mt-1" style={{ color: colors.text.muted }}>
               {isNew ? 'Configure a new site for monitoring' : 'Update site configuration'}
             </p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Globe className="w-5 h-5" />
+          <GlassCard variant="marketing">
+            <GlassCardHeader>
+              <GlassCardTitle className="flex items-center gap-2" style={{ color: colors.text.primary }}>
+                <Globe className="w-5 h-5" style={{ color: colors.brand.purple }} />
                 Basic Information
-              </CardTitle>
-              <CardDescription>Core site details and identification</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              </GlassCardTitle>
+              <p className="text-sm" style={{ color: colors.text.muted }}>Core site details and identification</p>
+            </GlassCardHeader>
+            <GlassCardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="displayName">Display Name *</Label>
@@ -350,18 +350,18 @@ export default function SiteDetail() {
                   </Select>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
 
-          <Card data-testid="card-business-details">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="w-5 h-5" />
+          <GlassCard variant="marketing" data-testid="card-business-details">
+            <GlassCardHeader>
+              <GlassCardTitle className="flex items-center gap-2" style={{ color: colors.text.primary }}>
+                <Building2 className="w-5 h-5" style={{ color: colors.brand.purple }} />
                 Business Details
-              </CardTitle>
-              <CardDescription>Contact info, hours, and services displayed on your site</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              </GlassCardTitle>
+              <p className="text-sm" style={{ color: colors.text.muted }}>Contact info, hours, and services displayed on your site</p>
+            </GlassCardHeader>
+            <GlassCardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="businessPhone">Phone Number</Label>
@@ -427,18 +427,18 @@ export default function SiteDetail() {
                   data-testid="input-business-services"
                 />
               </div>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
 
-          <Card data-testid="card-geo-scope">
-            <CardHeader>
+          <GlassCard variant="marketing" data-testid="card-geo-scope">
+            <GlassCardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <MapPin className="w-5 h-5" />
+                  <GlassCardTitle className="flex items-center gap-2" style={{ color: colors.text.primary }}>
+                    <MapPin className="w-5 h-5" style={{ color: colors.brand.purple }} />
                     Geographic Scope
-                  </CardTitle>
-                  <CardDescription>How your search rankings are evaluated</CardDescription>
+                  </GlassCardTitle>
+                  <p className="text-sm" style={{ color: colors.text.muted }}>How your search rankings are evaluated</p>
                 </div>
                 <Button
                   type="button"
@@ -454,46 +454,46 @@ export default function SiteDetail() {
                   Edit
                 </Button>
               </div>
-            </CardHeader>
-            <CardContent>
+            </GlassCardHeader>
+            <GlassCardContent>
               {!geoScope.scope || geoScope.scope === 'national' ? (
                 geoScope.scope === 'national' ? (
-                  <div className="flex items-center gap-3 p-4 bg-muted rounded-lg border border-border">
-                    <Globe className="w-5 h-5 text-muted-foreground" />
+                  <div className="flex items-center gap-3 p-4 rounded-lg" style={{ backgroundColor: colors.background.muted, border: `1px solid ${colors.border.default}` }}>
+                    <Globe className="w-5 h-5" style={{ color: colors.text.muted }} />
                     <div>
-                      <p className="font-medium text-foreground">National</p>
-                      <p className="text-sm text-muted-foreground">Keyword rankings evaluated nationally</p>
+                      <p className="font-medium" style={{ color: colors.text.primary }}>National</p>
+                      <p className="text-sm" style={{ color: colors.text.muted }}>Keyword rankings evaluated nationally</p>
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-3 p-4 bg-gold-soft rounded-lg border border-warning">
-                    <AlertTriangle className="w-5 h-5 text-gold" />
+                  <div className="flex items-center gap-3 p-4 rounded-lg" style={{ backgroundColor: `${colors.brand.amber}10`, border: `1px solid ${colors.brand.amber}` }}>
+                    <AlertTriangle className="w-5 h-5" style={{ color: colors.brand.amber }} />
                     <div>
-                      <p className="font-medium text-foreground">Not configured</p>
-                      <p className="text-sm text-gold">Configure geographic scope to enable SERP analysis</p>
+                      <p className="font-medium" style={{ color: colors.text.primary }}>Not configured</p>
+                      <p className="text-sm" style={{ color: colors.brand.amber }}>Configure geographic scope to enable SERP analysis</p>
                     </div>
                   </div>
                 )
               ) : (
-                <div className="flex items-center gap-3 p-4 bg-brand-soft rounded-lg border border-primary">
-                  <MapPin className="w-5 h-5 text-brand" />
+                <div className="flex items-center gap-3 p-4 rounded-lg" style={{ backgroundColor: `${colors.brand.purple}10`, border: `1px solid ${colors.brand.purple}` }}>
+                  <MapPin className="w-5 h-5" style={{ color: colors.brand.purple }} />
                   <div>
-                    <p className="font-medium text-foreground">Local</p>
-                    <p className="text-sm text-brand">
+                    <p className="font-medium" style={{ color: colors.text.primary }}>Local</p>
+                    <p className="text-sm" style={{ color: colors.brand.purple }}>
                       {[geoScope.city, geoScope.state, geoScope.country].filter(Boolean).join(', ')}
                     </p>
                   </div>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Repository & Deployment</CardTitle>
-              <CardDescription>Code repository and deployment settings</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <GlassCard variant="marketing">
+            <GlassCardHeader>
+              <GlassCardTitle style={{ color: colors.text.primary }}>Repository & Deployment</GlassCardTitle>
+              <p className="text-sm" style={{ color: colors.text.muted }}>Code repository and deployment settings</p>
+            </GlassCardHeader>
+            <GlassCardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="repoProvider">Repository Provider</Label>
@@ -535,15 +535,15 @@ export default function SiteDetail() {
                   </SelectContent>
                 </Select>
               </div>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Google Integrations</CardTitle>
-              <CardDescription>Connect Google Analytics, Search Console, and Ads</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <GlassCard variant="marketing">
+            <GlassCardHeader>
+              <GlassCardTitle style={{ color: colors.text.primary }}>Google Integrations</GlassCardTitle>
+              <p className="text-sm" style={{ color: colors.text.muted }}>Connect Google Analytics, Search Console, and Ads</p>
+            </GlassCardHeader>
+            <GlassCardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
                   <div className="flex items-center gap-1.5">
@@ -633,15 +633,15 @@ export default function SiteDetail() {
                   />
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Sitemaps & Key Pages</CardTitle>
-              <CardDescription>Important URLs to monitor</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <GlassCard variant="marketing">
+            <GlassCardHeader>
+              <GlassCardTitle style={{ color: colors.text.primary }}>Sitemaps & Key Pages</GlassCardTitle>
+              <p className="text-sm" style={{ color: colors.text.muted }}>Important URLs to monitor</p>
+            </GlassCardHeader>
+            <GlassCardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="sitemaps">Sitemaps (one per line)</Label>
                 <Textarea
@@ -664,15 +664,15 @@ export default function SiteDetail() {
                   data-testid="input-key-pages"
                 />
               </div>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Owner Information</CardTitle>
-              <CardDescription>Contact details for notifications</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <GlassCard variant="marketing">
+            <GlassCardHeader>
+              <GlassCardTitle style={{ color: colors.text.primary }}>Owner Information</GlassCardTitle>
+              <p className="text-sm" style={{ color: colors.text.muted }}>Contact details for notifications</p>
+            </GlassCardHeader>
+            <GlassCardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="ownerName">Owner Name</Label>
@@ -695,8 +695,8 @@ export default function SiteDetail() {
                   />
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
 
           <div className="flex justify-end gap-4">
             <Link href="/sites">
@@ -760,6 +760,6 @@ export default function SiteDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </DashboardLayout>
+    </div>
   );
 }

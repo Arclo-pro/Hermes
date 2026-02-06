@@ -5,14 +5,15 @@ import {
   GlassCardTitle,
   GlassCardContent,
 } from "@/components/ui/GlassCard";
-import { Trophy, Target, TrendingUp, ArrowUp, ArrowDown, Search, Info, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Trophy, Target, TrendingUp, ArrowUp, ArrowDown, Search, Info, Loader2, RefreshCw, AlertCircle } from "lucide-react";
 
 interface SerpSnapshotSectionProps {
   siteId: string;
 }
 
 export function SerpSnapshotSection({ siteId }: SerpSnapshotSectionProps) {
-  const { data, isLoading, isError } = useSerpSnapshot(siteId);
+  const { data, isLoading, isError, refetch, isRefetching } = useSerpSnapshot(siteId);
 
   if (isLoading) {
     return (
@@ -43,7 +44,17 @@ export function SerpSnapshotSection({ siteId }: SerpSnapshotSectionProps) {
         </GlassCardHeader>
         <GlassCardContent>
           <div className="py-6 text-center">
-            <p className="text-sm" style={{ color: "#94A3B8" }}>Unable to load SERP data</p>
+            <AlertCircle className="w-8 h-8 mx-auto mb-3" style={{ color: "#ef4444" }} />
+            <p className="text-sm mb-3" style={{ color: "#94A3B8" }}>Unable to load SERP data</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              disabled={isRefetching}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${isRefetching ? "animate-spin" : ""}`} />
+              Retry
+            </Button>
           </div>
         </GlassCardContent>
       </GlassCard>

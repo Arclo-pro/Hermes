@@ -1,14 +1,13 @@
 import { useLocation, useSearch } from "wouter";
 import { useEffect, useState, useRef } from "react";
 import { buildRoute } from "@shared/routes";
-import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Badge } from "@/components/ui/badge";
 import { AgentCard } from "@/components/crew/AgentCard";
 import { AgentCoveragePanel } from "@/components/crew/AgentCoveragePanel";
 import { USER_FACING_AGENTS, getCrewMember } from "@/config/agents";
 import { getMockAgentData } from "@/config/mockAgentInsights";
 import { Bot } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { colors, pageStyles, badgeStyles, gradients } from "@/lib/design-system";
 
 function formatRelativeTime(dateString: string): string {
   const date = new Date(dateString);
@@ -94,50 +93,84 @@ export default function CrewPage() {
     : 0;
   const needsAttention = userFacingAgents.filter((a) => a.score < 50).length;
 
+  // Get badge style based on score
+  const getScoreBadgeStyle = (score: number) => {
+    if (score >= 70) return badgeStyles.green;
+    if (score >= 40) return badgeStyles.amber;
+    return badgeStyles.red;
+  };
+
   return (
-    <DashboardLayout className="dashboard-light">
-      <div className="space-y-6" data-testid="agents-page">
-        <div>
-          <h1 className="text-3xl font-semibold text-foreground flex items-center gap-3">
-            <Bot className="w-8 h-8 text-brand" />
-            Agents
-          </h1>
-          <p className="text-muted-foreground mt-1">
+    <div className="min-h-screen p-6" style={pageStyles.background} data-testid="agents-page">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Page Header */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-2">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center"
+              style={{ background: `${colors.brand.purple}14` }}
+            >
+              <Bot className="w-5 h-5" style={{ color: colors.brand.purple }} />
+            </div>
+            <h1 className="text-4xl font-bold" style={{ color: colors.text.primary, letterSpacing: "-0.03em" }}>
+              <span style={gradients.brandText}>Agents</span>
+            </h1>
+          </div>
+          <p style={{ color: colors.text.secondary }}>
             Your hired specialists analyzing and improving your site
           </p>
         </div>
 
+        {/* Stats Row */}
         <div className="flex flex-wrap items-center gap-6 text-sm">
           <div className="flex items-center gap-2">
-            <span className="text-muted-foreground">Active Agents:</span>
-            <Badge variant="secondary" className="bg-secondary text-foreground">{userFacingAgents.length}</Badge>
+            <span style={{ color: colors.text.muted }}>Active Agents:</span>
+            <span
+              className="px-2 py-0.5 rounded-md text-xs font-semibold uppercase tracking-wide"
+              style={{ color: badgeStyles.gray.color, background: badgeStyles.gray.bg }}
+            >
+              {userFacingAgents.length}
+            </span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-muted-foreground">Avg Score:</span>
-            <Badge className={avgScore >= 70 ? "bg-success-soft text-success" : avgScore >= 40 ? "bg-gold-soft text-gold" : "bg-danger-soft text-danger"}>
+            <span style={{ color: colors.text.muted }}>Avg Score:</span>
+            <span
+              className="px-2 py-0.5 rounded-md text-xs font-semibold uppercase tracking-wide"
+              style={{ color: getScoreBadgeStyle(avgScore).color, background: getScoreBadgeStyle(avgScore).bg }}
+            >
               {avgScore}
-            </Badge>
+            </span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-muted-foreground">Needs Attention:</span>
-            <Badge className="bg-gold-soft text-gold">{needsAttention}</Badge>
+            <span style={{ color: colors.text.muted }}>Needs Attention:</span>
+            <span
+              className="px-2 py-0.5 rounded-md text-xs font-semibold uppercase tracking-wide"
+              style={{ color: badgeStyles.amber.color, background: badgeStyles.amber.bg }}
+            >
+              {needsAttention}
+            </span>
           </div>
         </div>
 
+        {/* Agent Sections */}
         <div className="space-y-8">
           <div>
-            <h2 className="text-xl font-semibold text-foreground mb-1">Core Agents</h2>
-            <p className="text-sm text-muted-foreground mb-4">These agents are included and active by default.</p>
+            <h2 className="text-xl font-semibold mb-1" style={{ color: colors.text.primary }}>Core Agents</h2>
+            <p className="text-sm mb-4" style={{ color: colors.text.muted }}>These agents are included and active by default.</p>
             <div className="flex flex-col gap-6">
               {coreAgents.map((agent) => (
-                <div 
-                  key={agent.serviceId} 
+                <div
+                  key={agent.serviceId}
                   id={agent.serviceId}
                   ref={(el) => { agentRefs.current[agent.serviceId] = el; }}
                   className={cn(
                     "transition-all duration-500",
-                    focusedAgentId === agent.serviceId && "ring-2 ring-primary ring-offset-2 ring-offset-background rounded-lg animate-pulse"
+                    focusedAgentId === agent.serviceId && "ring-2 ring-offset-2 rounded-lg animate-pulse"
                   )}
+                  style={focusedAgentId === agent.serviceId ? {
+                    "--tw-ring-color": colors.brand.purple,
+                    "--tw-ring-offset-color": "#FFFFFF"
+                  } as React.CSSProperties : undefined}
                 >
                   <AgentCard
                     serviceId={agent.serviceId}
@@ -153,18 +186,22 @@ export default function CrewPage() {
           </div>
 
           <div>
-            <h2 className="text-xl font-semibold text-foreground mb-1">Additional Agents</h2>
-            <p className="text-sm text-muted-foreground mb-4">Optional agents you can add or remove at any time.</p>
+            <h2 className="text-xl font-semibold mb-1" style={{ color: colors.text.primary }}>Additional Agents</h2>
+            <p className="text-sm mb-4" style={{ color: colors.text.muted }}>Optional agents you can add or remove at any time.</p>
             <div className="flex flex-col gap-6">
               {additionalAgents.map((agent) => (
-                <div 
-                  key={agent.serviceId} 
+                <div
+                  key={agent.serviceId}
                   id={agent.serviceId}
                   ref={(el) => { agentRefs.current[agent.serviceId] = el; }}
                   className={cn(
                     "transition-all duration-500",
-                    focusedAgentId === agent.serviceId && "ring-2 ring-primary ring-offset-2 ring-offset-background rounded-lg animate-pulse"
+                    focusedAgentId === agent.serviceId && "ring-2 ring-offset-2 rounded-lg animate-pulse"
                   )}
+                  style={focusedAgentId === agent.serviceId ? {
+                    "--tw-ring-color": colors.brand.purple,
+                    "--tw-ring-offset-color": "#FFFFFF"
+                  } as React.CSSProperties : undefined}
                 >
                   <AgentCard
                     serviceId={agent.serviceId}
@@ -186,6 +223,6 @@ export default function CrewPage() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

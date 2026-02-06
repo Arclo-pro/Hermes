@@ -1,8 +1,7 @@
-import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useSiteContext } from "@/hooks/useSiteContext";
 import { useTrafficDiagnosis, type DiagnosisInsight, type DimensionBreakdown } from "@/hooks/useOpsDashboard";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from "@/components/ui/GlassCard";
+import { colors, pageStyles, badgeStyles, gradients } from "@/lib/design-system";
 import {
   TrendingDown,
   TrendingUp,
@@ -21,8 +20,6 @@ import {
   ArrowDownRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const PAGE_BG = "bg-gradient-to-br from-gray-50 via-white to-purple-50/30";
 
 function getChangeIcon(change: number) {
   if (change > 0) return <TrendingUp className="h-4 w-4 text-green-600" />;
@@ -45,8 +42,8 @@ function InsightCard({ insight }: { insight: DiagnosisInsight }) {
   const style = severityStyles[insight.severity];
 
   return (
-    <Card className={cn("transition-all", style.bg, style.border)}>
-      <CardContent className="p-4">
+    <GlassCard variant="marketing"className={cn("transition-all", style.bg, style.border)}>
+      <GlassCardContent className="p-4">
         <div className="flex items-start justify-between mb-2">
           <Badge variant={style.badge}>{insight.severity.toUpperCase()}</Badge>
           <span className={cn("text-sm font-bold", insight.change < 0 ? "text-red-600" : "text-green-600")}>
@@ -55,8 +52,8 @@ function InsightCard({ insight }: { insight: DiagnosisInsight }) {
         </div>
         <h4 className={cn("font-semibold text-sm mb-1", style.text)}>{insight.title}</h4>
         <p className="text-sm text-gray-600">{insight.body}</p>
-      </CardContent>
-    </Card>
+      </GlassCardContent>
+    </GlassCard>
   );
 }
 
@@ -72,14 +69,14 @@ function BreakdownTable({
   if (!breakdowns || breakdowns.length === 0) return null;
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
+    <GlassCard variant="marketing">
+      <GlassCardHeader className="pb-3">
+        <GlassCardTitle className="text-base flex items-center gap-2">
           <Icon className="w-5 h-5 text-purple-600" />
           {title}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+        </GlassCardTitle>
+      </GlassCardHeader>
+      <GlassCardContent>
         <div className="space-y-2">
           {breakdowns.slice(0, 8).map((item, i) => (
             <div key={i} className="flex items-center justify-between py-2 border-b last:border-0">
@@ -115,8 +112,8 @@ function BreakdownTable({
             </div>
           ))}
         </div>
-      </CardContent>
-    </Card>
+      </GlassCardContent>
+    </GlassCard>
   );
 }
 
@@ -126,55 +123,53 @@ export default function TrafficInsights() {
 
   if (isLoading) {
     return (
-      <DashboardLayout className="dashboard-light">
-        <div className={`min-h-screen ${PAGE_BG} -m-6 p-6`}>
-          <div className="flex items-center justify-center py-24">
-            <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
-          </div>
+      <div className="min-h-screen p-6" style={pageStyles.background}>
+        <div className="flex items-center justify-center py-24">
+          <Loader2 className="w-8 h-8 animate-spin" style={{ color: colors.brand.purple }} />
         </div>
-      </DashboardLayout>
+      </div>
     );
   }
 
   if (isError || !data?.ok) {
     return (
-      <DashboardLayout className="dashboard-light">
-        <div className={`min-h-screen ${PAGE_BG} -m-6 p-6`}>
-          <div className="max-w-4xl mx-auto">
-            <Card className="border-amber-200 bg-amber-50">
-              <CardContent className="p-8 text-center">
-                <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-amber-800 mb-2">Unable to Load Traffic Data</h3>
-                <p className="text-amber-700 mb-4">
-                  {data?.message || "Connect Google Analytics to see traffic insights and diagnosis."}
-                </p>
-                <button
-                  onClick={() => refetch()}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
-                >
-                  <RefreshCw className={cn("w-4 h-4", isRefetching && "animate-spin")} />
-                  Retry
-                </button>
-              </CardContent>
-            </Card>
-          </div>
+      <div className="min-h-screen p-6" style={pageStyles.background}>
+        <div className="max-w-4xl mx-auto">
+          <GlassCard variant="marketing" tint="amber">
+            <GlassCardContent className="p-8 text-center">
+              <AlertCircle className="w-12 h-12 mx-auto mb-4" style={{ color: colors.brand.amber }} />
+              <h3 className="text-lg font-semibold mb-2" style={{ color: colors.text.primary }}>Unable to Load Traffic Data</h3>
+              <p className="mb-4" style={{ color: colors.text.secondary }}>
+                {data?.message || "Connect Google Analytics to see traffic insights and diagnosis."}
+              </p>
+              <button
+                onClick={() => refetch()}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-white transition-colors"
+                style={{ background: colors.brand.amber }}
+              >
+                <RefreshCw className={cn("w-4 h-4", isRefetching && "animate-spin")} />
+                Retry
+              </button>
+            </GlassCardContent>
+          </GlassCard>
         </div>
-      </DashboardLayout>
+      </div>
     );
   }
 
   const { summary, hasDrop, insights, breakdowns } = data;
 
   return (
-    <DashboardLayout className="dashboard-light">
-      <div className={`min-h-screen ${PAGE_BG} -m-6 p-6`}>
-        <div className="max-w-7xl mx-auto space-y-6">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Traffic Insights</h1>
-              <p className="text-gray-500 text-sm mt-1">{summary.periodLabel}</p>
-            </div>
+    <div className="min-h-screen p-6" style={pageStyles.background}>
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Page Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-4xl font-bold mb-2" style={{ color: colors.text.primary, letterSpacing: "-0.03em" }}>
+              <span style={gradients.brandText}>Traffic Insights</span>
+            </h1>
+            <p style={{ color: colors.text.secondary }}>{summary.periodLabel}</p>
+          </div>
             <button
               onClick={() => refetch()}
               disabled={isRefetching}
@@ -187,10 +182,10 @@ export default function TrafficInsights() {
 
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className={cn(
+            <GlassCard variant="marketing"className={cn(
               hasDrop ? "border-red-200 bg-red-50" : "border-green-200 bg-green-50"
             )}>
-              <CardContent className="p-6">
+              <GlassCardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Traffic Status</p>
@@ -207,11 +202,11 @@ export default function TrafficInsights() {
                     <CheckCircle2 className="w-10 h-10 text-green-400" />
                   )}
                 </div>
-              </CardContent>
-            </Card>
+              </GlassCardContent>
+            </GlassCard>
 
-            <Card>
-              <CardContent className="p-6">
+            <GlassCard variant="marketing">
+              <GlassCardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Users Change</p>
@@ -224,11 +219,11 @@ export default function TrafficInsights() {
                   </div>
                   {getChangeIcon(summary.usersChange)}
                 </div>
-              </CardContent>
-            </Card>
+              </GlassCardContent>
+            </GlassCard>
 
-            <Card>
-              <CardContent className="p-6">
+            <GlassCard variant="marketing">
+              <GlassCardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Sessions Change</p>
@@ -241,8 +236,8 @@ export default function TrafficInsights() {
                   </div>
                   {getChangeIcon(summary.sessionsChange)}
                 </div>
-              </CardContent>
-            </Card>
+              </GlassCardContent>
+            </GlassCard>
           </div>
 
           {/* Insights */}
@@ -288,18 +283,18 @@ export default function TrafficInsights() {
 
           {/* No Drop Message */}
           {!hasDrop && (!insights || insights.length === 0) && (
-            <Card className="border-green-200 bg-green-50">
-              <CardContent className="p-8 text-center">
+            <GlassCard variant="marketing"className="border-green-200 bg-green-50">
+              <GlassCardContent className="p-8 text-center">
                 <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-green-800 mb-2">Traffic Looks Healthy</h3>
-                <p className="text-green-700">
+                <p style={{ color: colors.semantic.success }}>
                   No significant traffic drops detected. Your site traffic is stable or growing.
                 </p>
-              </CardContent>
-            </Card>
+              </GlassCardContent>
+            </GlassCard>
           )}
         </div>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

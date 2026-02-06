@@ -1,8 +1,7 @@
-import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle, GlassCardDescription } from "@/components/ui/GlassCard";
 import { Button } from "@/components/ui/button";
+import { colors, pageStyles, badgeStyles, gradients } from "@/lib/design-system";
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useSiteContext } from "@/hooks/useSiteContext";
@@ -1149,31 +1148,43 @@ export default function Integrations() {
   };
 
   return (
-    <DashboardLayout className="dashboard-light">
-      <div className="space-y-6">
+    <div className="min-h-screen p-6" style={pageStyles.background}>
+      <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold tracking-tight text-foreground" data-testid="text-page-title">
-                Integrations
+              <h1
+                className="text-4xl font-bold"
+                style={{ color: colors.text.primary, letterSpacing: "-0.03em" }}
+                data-testid="text-page-title"
+              >
+                <span style={gradients.brandText}>Integrations</span>
               </h1>
               {cachedSummary?.isStale && (
-                <Badge variant="outline" className="text-xs border-semantic-warning-border text-semantic-warning" data-testid="badge-stale-cache">
+                <span
+                  className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold border"
+                  style={{ color: badgeStyles.amber.color, background: badgeStyles.amber.bg, borderColor: `${badgeStyles.amber.color}30` }}
+                  data-testid="badge-stale-cache"
+                >
                   <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
                   Updating...
-                </Badge>
+                </span>
               )}
               {cachedSummary?.lastRefreshError && (
-                <Badge variant="outline" className="text-xs border-gold-border text-gold" data-testid="badge-cache-error">
+                <span
+                  className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold border"
+                  style={{ color: badgeStyles.amber.color, background: badgeStyles.amber.bg, borderColor: `${badgeStyles.amber.color}30` }}
+                  data-testid="badge-cache-error"
+                >
                   <AlertTriangle className="w-3 h-3 mr-1" />
                   Showing cached data
-                </Badge>
+                </span>
               )}
             </div>
-            <p className="text-muted-foreground">
+            <p style={{ color: colors.text.secondary }}>
               Platform services, data sources, and their operational health
               {cachedSummary?.cachedAt && (
-                <span className="text-xs ml-2 text-muted-foreground/70">
+                <span className="text-xs ml-2" style={{ color: colors.text.muted }}>
                   (Last updated: {new Date(cachedSummary.cachedAt).toLocaleTimeString()})
                 </span>
               )}
@@ -1243,19 +1254,19 @@ export default function Integrations() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
         ) : !integrations || integrations.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
+          <GlassCard variant="marketing">
+            <GlassCardContent className="flex flex-col items-center justify-center py-12">
               <Link2 className="w-12 h-12 text-muted-foreground mb-4" />
               <p className="text-muted-foreground text-center mb-4">
                 No integrations configured. Click the button above to initialize platform integrations.
               </p>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         ) : (
           <>
             {/* Site Selection and Run Diagnosis */}
-            <Card className="mb-4 bg-card/80 backdrop-blur-sm border-border">
-              <CardContent className="py-4">
+            <GlassCard variant="marketing"className="mb-4 bg-card/80 backdrop-blur-sm border-border">
+              <GlassCardContent className="py-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
@@ -1278,8 +1289,8 @@ export default function Integrations() {
                     Run Daily Diagnosis
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
+              </GlassCardContent>
+            </GlassCard>
             
             <Tabs defaultValue="inventory" className="space-y-4">
               <TabsList>
@@ -1295,9 +1306,9 @@ export default function Integrations() {
 
             <TabsContent value="inventory" className="space-y-4">
               {/* Platform Dependencies Panel */}
-              <Card className="bg-card/80 backdrop-blur-sm border-border">
-                <CardHeader className="py-3">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2 text-foreground">
+              <GlassCard variant="marketing"className="bg-card/80 backdrop-blur-sm border-border">
+                <GlassCardHeader className="py-3">
+                  <GlassCardTitle className="text-sm font-medium flex items-center gap-2 text-foreground">
                     <Shield className="w-4 h-4 text-primary" />
                     Platform Dependencies
                     <Button
@@ -1308,9 +1319,9 @@ export default function Integrations() {
                     >
                       <RefreshCw className="w-3 h-3" />
                     </Button>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="py-2">
+                  </GlassCardTitle>
+                </GlassCardHeader>
+                <GlassCardContent className="py-2">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {/* Bitwarden Status */}
                     <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border">
@@ -1416,12 +1427,12 @@ export default function Integrations() {
                       {platformDeps.bitwarden.lastError}
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                </GlassCardContent>
+              </GlassCard>
 
               {/* Summary Stats Bar - Computed from Summary Endpoint */}
               <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-                <Card className="p-3" data-testid="stat-services">
+                <GlassCard variant="marketing"className="p-3" data-testid="stat-services">
                   <div className="flex items-center gap-2">
                     <Activity className="w-4 h-4 text-semantic-info" />
                     <div>
@@ -1429,8 +1440,8 @@ export default function Integrations() {
                       <p className="text-xs text-muted-foreground">Services</p>
                     </div>
                   </div>
-                </Card>
-                <Card className="p-3" data-testid="stat-built">
+                </GlassCard>
+                <GlassCard variant="marketing"className="p-3" data-testid="stat-built">
                   <div className="flex items-center gap-2">
                     <CheckCircle className="w-4 h-4 text-semantic-success" />
                     <div>
@@ -1438,8 +1449,8 @@ export default function Integrations() {
                       <p className="text-xs text-muted-foreground">Built</p>
                     </div>
                   </div>
-                </Card>
-                <Card className="p-3" data-testid="stat-ready">
+                </GlassCard>
+                <GlassCard variant="marketing"className="p-3" data-testid="stat-ready">
                   <div className="flex items-center gap-2">
                     <Zap className="w-4 h-4 text-semantic-info" />
                     <div>
@@ -1447,8 +1458,8 @@ export default function Integrations() {
                       <p className="text-xs text-muted-foreground">Ready</p>
                     </div>
                   </div>
-                </Card>
-                <Card className="p-3" data-testid="stat-ran24h">
+                </GlassCard>
+                <GlassCard variant="marketing"className="p-3" data-testid="stat-ran24h">
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-purple-accent" />
                     <div>
@@ -1456,8 +1467,8 @@ export default function Integrations() {
                       <p className="text-xs text-muted-foreground">Ran 24h</p>
                     </div>
                   </div>
-                </Card>
-                <Card className={cn("p-3", (siteSummary?.rollups?.failed ?? 0) > 0 && "border-semantic-danger-border bg-semantic-danger-soft")} data-testid="stat-failed">
+                </GlassCard>
+                <GlassCard variant="marketing"className={cn("p-3", (siteSummary?.rollups?.failed ?? 0) > 0 && "border-semantic-danger-border bg-semantic-danger-soft")} data-testid="stat-failed">
                   <div className="flex items-center gap-2">
                     <XCircle className={cn("w-4 h-4", (siteSummary?.rollups?.failed ?? 0) > 0 ? "text-semantic-danger" : "text-muted-foreground")} />
                     <div>
@@ -1465,9 +1476,9 @@ export default function Integrations() {
                       <p className={cn("text-xs", (siteSummary?.rollups?.failed ?? 0) > 0 ? "text-semantic-danger" : "text-muted-foreground")}>Failed</p>
                     </div>
                   </div>
-                </Card>
+                </GlassCard>
                 {(siteSummary?.rollups?.blocked ?? 0) > 0 && (
-                  <Card className="p-3 border-semantic-warning-border bg-semantic-warning-soft" data-testid="stat-blocked">
+                  <GlassCard variant="marketing"className="p-3 border-semantic-warning-border bg-semantic-warning-soft" data-testid="stat-blocked">
                     <div className="flex items-center gap-2">
                       <AlertTriangle className="w-4 h-4 text-semantic-warning" />
                       <div>
@@ -1475,20 +1486,20 @@ export default function Integrations() {
                         <p className="text-xs text-semantic-warning">Blocked</p>
                       </div>
                     </div>
-                  </Card>
+                  </GlassCard>
                 )}
               </div>
 
               {/* Next Actions Panel */}
               {siteSummary?.nextActions && siteSummary.nextActions.length > 0 && (
-                <Card className="border-gold bg-gold-soft" data-testid="next-actions-panel">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <GlassCard variant="marketing"className="border-gold bg-gold-soft" data-testid="next-actions-panel">
+                  <GlassCardHeader className="pb-2">
+                    <GlassCardTitle className="text-sm font-medium flex items-center gap-2">
                       <AlertTriangle className="w-4 h-4 text-gold" />
                       Next Actions ({siteSummary.nextActions.length})
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-0">
+                    </GlassCardTitle>
+                  </GlassCardHeader>
+                  <GlassCardContent className="pt-0">
                     <div className="space-y-2">
                       {siteSummary.nextActions.slice(0, 5).map((action, idx) => {
                         const service = siteSummary.services.find(s => s.slug === action.serviceSlug);
@@ -1522,8 +1533,8 @@ export default function Integrations() {
                         );
                       })}
                     </div>
-                  </CardContent>
-                </Card>
+                  </GlassCardContent>
+                </GlassCard>
               )}
 
               {/* Ask Hermes */}
@@ -1587,7 +1598,7 @@ export default function Integrations() {
                 </div>
               </div>
 
-              <Card>
+              <GlassCard variant="marketing">
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
@@ -1932,7 +1943,7 @@ export default function Integrations() {
                     </tbody>
                   </table>
                 </div>
-              </Card>
+              </GlassCard>
 
             </TabsContent>
 
@@ -1954,7 +1965,7 @@ export default function Integrations() {
                         const configState = integration.configState || "missing_config";
                         const buildState = integration.buildState || "planned";
                         return (
-                        <Card 
+                        <GlassCard variant="marketing"
                           key={integration.integrationId}
                           className={cn(
                             "transition-all hover:shadow-md cursor-pointer",
@@ -1974,22 +1985,22 @@ export default function Integrations() {
                           }}
                           data-testid={`card-integration-${integration.integrationId}`}
                         >
-                          <CardHeader className="pb-2">
+                          <GlassCardHeader className="pb-2">
                             <div className="flex items-start justify-between">
                               <div className="flex items-center gap-2">
                                 {getRunStateIcon(runState)}
-                                <CardTitle className="text-base">{integration.name}</CardTitle>
+                                <GlassCardTitle className="text-base">{integration.name}</GlassCardTitle>
                               </div>
                               <div className="flex gap-1">
                                 {getBuildStateBadge(buildState)}
                                 {getConfigStateBadge(configState)}
                               </div>
                             </div>
-                            <CardDescription className="text-sm">
+                            <GlassCardDescription className="text-sm">
                               {integration.description}
-                            </CardDescription>
-                          </CardHeader>
-                          <CardContent>
+                            </GlassCardDescription>
+                          </GlassCardHeader>
+                          <GlassCardContent>
                             <div className="space-y-3">
                               <div className="flex items-center justify-between text-sm">
                                 <span className="text-muted-foreground">Last Run</span>
@@ -2033,8 +2044,8 @@ export default function Integrations() {
                                 <ChevronRight className="w-4 h-4 text-muted-foreground" />
                               </div>
                             </div>
-                          </CardContent>
-                        </Card>
+                          </GlassCardContent>
+                        </GlassCard>
                       );
                       })}
                     </div>
@@ -3110,6 +3121,7 @@ export default function Integrations() {
           )}
         </DialogContent>
       </Dialog>
-    </DashboardLayout>
+      </div>
+    </div>
   );
 }

@@ -38,7 +38,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { GlassCard, GlassCardContent } from "@/components/ui/GlassCard";
+import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from "@/components/ui/GlassCard";
+import { colors, pageStyles, buttonStyles } from "@/lib/design-system";
 import {
   Table,
   TableBody,
@@ -78,7 +79,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { LeadsAnalytics } from "./leads/LeadsAnalytics";
@@ -881,11 +881,7 @@ function LeadDetailDrawer({ lead, open, onOpenChange, onUpdate }: LeadDetailDraw
 // Main Leads Page
 // ============================================
 
-const PAGE_BG = {
-  background: `radial-gradient(1200px circle at 10% 0%, rgba(59, 130, 246, 0.06), transparent 40%),
-               radial-gradient(1200px circle at 90% 10%, rgba(16, 185, 129, 0.04), transparent 40%),
-               #FFFFFF`,
-};
+const PAGE_BG = pageStyles.background;
 
 export default function Leads() {
   const { selectedSite } = useSiteContext();
@@ -1028,9 +1024,11 @@ export default function Leads() {
     return (
       <div className="min-h-screen flex items-center justify-center" style={PAGE_BG}>
         <div className="text-center">
-          <Contact className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">No Site Selected</h2>
-          <p className="text-gray-500">Please select a website to view leads.</p>
+          <Contact className="w-12 h-12 mx-auto mb-4" style={{ color: colors.text.placeholder }} />
+          <h2 className="text-xl font-semibold mb-2" style={{ color: colors.text.primary }}>
+            No Site Selected
+          </h2>
+          <p style={{ color: colors.text.muted }}>Please select a website to view leads.</p>
         </div>
       </div>
     );
@@ -1039,40 +1037,77 @@ export default function Leads() {
   return (
     <div className="min-h-screen p-6" style={PAGE_BG}>
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+        {/* Header - Dashboard style */}
+        <div className="mb-8 flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Leads</h1>
-            <p className="text-gray-500">Track and manage incoming leads</p>
+            <h1
+              className="text-4xl font-bold mb-2"
+              style={{ color: colors.text.primary, letterSpacing: "-0.03em" }}
+            >
+              Le<span
+                style={{
+                  backgroundImage: "linear-gradient(90deg, #7c3aed, #ec4899, #f59e0b)",
+                  WebkitBackgroundClip: "text",
+                  backgroundClip: "text",
+                  color: "transparent",
+                }}
+              >ads</span>
+            </h1>
+            <p style={{ color: colors.text.secondary }}>Track and manage incoming leads</p>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
+            <button
               onClick={handleRefresh}
               disabled={leadsFetching}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+              style={{
+                background: "linear-gradient(135deg, rgba(124,58,237,0.08), rgba(236,72,153,0.06))",
+                border: "1px solid rgba(124, 58, 237, 0.15)",
+                color: "#7c3aed",
+              }}
               title="Refresh data"
             >
               <RefreshCw className={`w-4 h-4 ${leadsFetching ? "animate-spin" : ""}`} />
-            </Button>
-            <Button onClick={() => setShowCreateModal(true)}>
-              <Plus className="w-4 h-4 mr-2" />
+              {leadsFetching ? "Refreshing..." : "Refresh"}
+            </button>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className={buttonStyles.primary.base}
+              style={buttonStyles.primary.purple}
+            >
+              <Plus className="w-4 h-4" />
               Add Lead
-            </Button>
+            </button>
           </div>
         </div>
 
-        {/* Tabs */}
+        {/* Tabs - Dashboard style */}
         <Tabs defaultValue="leads" className="w-full">
-          <TabsList className="bg-gray-100 border border-gray-200">
-            <TabsTrigger value="leads" className="flex items-center gap-2 text-gray-600 data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm">
+          <div
+            className="inline-flex rounded-xl p-1 mb-6"
+            style={{ background: "rgba(15, 23, 42, 0.04)", border: "1px solid rgba(15, 23, 42, 0.06)" }}
+          >
+            <TabsTrigger
+              value="leads"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all data-[state=active]:bg-white data-[state=active]:shadow-[0_1px_3px_rgba(15,23,42,0.08)] data-[state=inactive]:hover:bg-white/50"
+              style={{ color: colors.text.muted }}
+              data-active-style={{ color: colors.text.primary }}
+            >
               <List className="w-4 h-4" />
               Leads
             </TabsTrigger>
-            <TabsTrigger value="analytics" className="flex items-center gap-2 text-gray-600 data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm">
+            <TabsTrigger
+              value="analytics"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all data-[state=active]:bg-white data-[state=active]:shadow-[0_1px_3px_rgba(15,23,42,0.08)] data-[state=inactive]:hover:bg-white/50"
+              style={{ color: colors.text.muted }}
+            >
               <BarChart3 className="w-4 h-4" />
               Analytics
             </TabsTrigger>
+          </div>
+          <TabsList className="hidden">
+            <TabsTrigger value="leads">Leads</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
           </TabsList>
 
           <TabsContent value="analytics" className="mt-6">
@@ -1085,23 +1120,38 @@ export default function Leads() {
         <StatCards stats={stats} prevStats={prevStats} isLoading={statsLoading} hasPeriodComparison={true} />
 
         {/* Filters */}
-        <Card className="bg-white border-gray-200">
-          <CardContent className="p-4">
+        <GlassCard variant="marketing">
+          <GlassCardContent className="p-4">
             <div className="flex flex-wrap items-center gap-3">
               <div className="relative flex-1 min-w-[200px]">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input
+                <Search
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
+                  style={{ color: colors.text.disabled }}
+                />
+                <input
                   placeholder="Search by name, email, or phone..."
                   value={filters.search}
                   onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                  className="pl-9 bg-gray-50 border-gray-300 text-gray-900 placeholder:text-gray-400"
+                  className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+                  style={{
+                    background: "rgba(15, 23, 42, 0.04)",
+                    border: "1px solid rgba(15, 23, 42, 0.06)",
+                    color: colors.text.primary,
+                  }}
                 />
               </div>
               <Select
                 value={filters.status}
                 onValueChange={(value) => setFilters({ ...filters, status: value })}
               >
-                <SelectTrigger className="w-[150px] bg-gray-50 border-gray-300 text-gray-900">
+                <SelectTrigger
+                  className="w-[150px] rounded-xl"
+                  style={{
+                    background: "rgba(15, 23, 42, 0.04)",
+                    border: "1px solid rgba(15, 23, 42, 0.06)",
+                    color: colors.text.primary,
+                  }}
+                >
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1115,7 +1165,14 @@ export default function Leads() {
                 value={filters.outcome}
                 onValueChange={(value) => setFilters({ ...filters, outcome: value })}
               >
-                <SelectTrigger className="w-[150px] bg-gray-50 border-gray-300 text-gray-900">
+                <SelectTrigger
+                  className="w-[150px] rounded-xl"
+                  style={{
+                    background: "rgba(15, 23, 42, 0.04)",
+                    border: "1px solid rgba(15, 23, 42, 0.06)",
+                    color: colors.text.primary,
+                  }}
+                >
                   <SelectValue placeholder="Outcome" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1129,7 +1186,14 @@ export default function Leads() {
                 value={filters.serviceLine}
                 onValueChange={(value) => setFilters({ ...filters, serviceLine: value })}
               >
-                <SelectTrigger className="w-[180px] bg-gray-50 border-gray-300 text-gray-900">
+                <SelectTrigger
+                  className="w-[180px] rounded-xl"
+                  style={{
+                    background: "rgba(15, 23, 42, 0.04)",
+                    border: "1px solid rgba(15, 23, 42, 0.06)",
+                    color: colors.text.primary,
+                  }}
+                >
                   <SelectValue placeholder="Service" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1143,8 +1207,15 @@ export default function Leads() {
                 value={filters.month}
                 onValueChange={(value) => setFilters({ ...filters, month: value })}
               >
-                <SelectTrigger className="w-[160px] bg-gray-50 border-gray-300 text-gray-900">
-                  <Calendar className="w-4 h-4 mr-2 text-gray-500" />
+                <SelectTrigger
+                  className="w-[160px] rounded-xl"
+                  style={{
+                    background: "rgba(15, 23, 42, 0.04)",
+                    border: "1px solid rgba(15, 23, 42, 0.06)",
+                    color: colors.text.primary,
+                  }}
+                >
+                  <Calendar className="w-4 h-4 mr-2" style={{ color: colors.text.muted }} />
                   <SelectValue placeholder="Month" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1154,48 +1225,58 @@ export default function Leads() {
                 </SelectContent>
               </Select>
               {hasActiveFilters && (
-                <Button variant="ghost" size="sm" onClick={clearFilters} className="text-gray-600 hover:text-gray-900">
-                  <X className="w-4 h-4 mr-1" />
+                <button
+                  onClick={clearFilters}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors hover:bg-slate-100"
+                  style={{ color: colors.text.muted }}
+                >
+                  <X className="w-4 h-4" />
                   Clear
-                </Button>
+                </button>
               )}
             </div>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
         {/* Table */}
-        <Card className="bg-white border-gray-200">
-          <CardContent className="p-0">
+        <GlassCard variant="marketing" tint="purple">
+          <GlassCardContent className="p-0">
             {leadsLoading ? (
               <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+                <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#7c3aed" }} />
               </div>
             ) : !leadsData?.leads?.length ? (
               <div className="flex flex-col items-center justify-center py-12">
-                <Contact className="w-12 h-12 text-gray-400 mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">No leads found</h3>
-                <p className="text-gray-500 mb-4">
+                <Contact className="w-12 h-12 mb-4" style={{ color: colors.text.placeholder }} />
+                <h3 className="text-lg font-semibold mb-1" style={{ color: colors.text.primary }}>
+                  No leads found
+                </h3>
+                <p className="mb-4" style={{ color: colors.text.muted }}>
                   {hasActiveFilters ? "Try adjusting your filters" : "Add your first lead to get started"}
                 </p>
                 {!hasActiveFilters && (
-                  <Button onClick={() => setShowCreateModal(true)}>
-                    <Plus className="w-4 h-4 mr-2" />
+                  <button
+                    onClick={() => setShowCreateModal(true)}
+                    className={buttonStyles.primary.base}
+                    style={buttonStyles.primary.purple}
+                  >
+                    <Plus className="w-4 h-4" />
                     Add Lead
-                  </Button>
+                  </button>
                 )}
               </div>
             ) : (
               <Table>
                 <TableHeader>
-                  <TableRow className="border-gray-200">
-                    <TableHead className="w-[100px] text-gray-600">Created</TableHead>
-                    <TableHead className="text-gray-600">Name</TableHead>
-                    <TableHead className="text-gray-600">Contact</TableHead>
-                    <TableHead className="text-gray-600">Service</TableHead>
-                    <TableHead className="text-gray-600">Source</TableHead>
-                    <TableHead className="text-gray-600">Status</TableHead>
-                    <TableHead className="text-gray-600">Outcome</TableHead>
-                    <TableHead className="text-gray-600">Reason</TableHead>
+                  <TableRow style={{ borderBottom: "1px solid rgba(15, 23, 42, 0.08)" }}>
+                    <TableHead className="w-[100px]" style={{ color: colors.text.muted }}>Created</TableHead>
+                    <TableHead style={{ color: colors.text.muted }}>Name</TableHead>
+                    <TableHead style={{ color: colors.text.muted }}>Contact</TableHead>
+                    <TableHead style={{ color: colors.text.muted }}>Service</TableHead>
+                    <TableHead style={{ color: colors.text.muted }}>Source</TableHead>
+                    <TableHead style={{ color: colors.text.muted }}>Status</TableHead>
+                    <TableHead style={{ color: colors.text.muted }}>Outcome</TableHead>
+                    <TableHead style={{ color: colors.text.muted }}>Reason</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1273,12 +1354,12 @@ export default function Leads() {
                 </TableBody>
               </Table>
             )}
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
         {/* Total count */}
         {leadsData && leadsData.total > 0 && (
-          <p className="text-sm text-gray-500 text-center">
+          <p className="text-sm text-center" style={{ color: colors.text.muted }}>
             Showing {leadsData.leads.length} of {leadsData.total} leads
           </p>
         )}

@@ -730,7 +730,7 @@ function AddCompetitorDialog({ open, onOpenChange, siteId, onSuccess }: AddCompe
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!domain.trim()) {
       toast.error("Domain is required");
       return;
@@ -751,9 +751,18 @@ function AddCompetitorDialog({ open, onOpenChange, siteId, onSuccess }: AddCompe
         }),
       });
 
+      // Safely parse response
+      const responseText = await res.text();
+      let data: any = null;
+      try {
+        data = responseText ? JSON.parse(responseText) : null;
+      } catch {
+        // JSON parse failed - use raw response
+      }
+
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to add competitor");
+        const errorMsg = data?.error || data?.message || `Request failed (${res.status})`;
+        throw new Error(errorMsg);
       }
 
       toast.success("Competitor added successfully");
@@ -981,12 +990,18 @@ interface AgentSnapshot {
 }
 
 function TrendsPanel({ alerts, siteId }: { alerts: TrendAlert[]; siteId: string }) {
-  const { data: snapshots, isLoading } = useQuery<AgentSnapshot[]>({
+  const { data: snapshots, isLoading, isError, refetch } = useQuery<AgentSnapshot[]>({
     queryKey: ["natasha-snapshots", siteId],
     queryFn: async () => {
       const res = await fetch(`/api/snapshots/natasha?siteId=${siteId}&limit=30`);
       if (!res.ok) throw new Error("Failed to fetch snapshots");
-      return res.json();
+      const text = await res.text();
+      if (!text) return [];
+      try {
+        return JSON.parse(text);
+      } catch {
+        throw new Error("Invalid response format");
+      }
     },
     staleTime: 60000,
   });

@@ -1,11 +1,10 @@
-import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from "@/components/ui/GlassCard";
 import { Button } from "@/components/ui/button";
-import { 
-  HelpCircle, 
-  Book, 
-  MessageCircle, 
-  Mail, 
+import {
+  HelpCircle,
+  Book,
+  MessageCircle,
+  Mail,
   ExternalLink,
   Lightbulb,
   FileText,
@@ -13,6 +12,7 @@ import {
   Users
 } from "lucide-react";
 import { Link } from "wouter";
+import { colors, pageStyles, gradients } from "@/lib/design-system";
 
 const helpSections = [
   {
@@ -71,30 +71,32 @@ const externalResources = [
 
 export default function Help() {
   return (
-    <DashboardLayout className="dashboard-light">
-      <div className="p-6 space-y-6">
+    <div className="min-h-screen p-6" style={pageStyles.background}>
+      <div className="max-w-6xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-bold">Help Center</h1>
-          <p className="text-muted-foreground">Resources and guides to help you get the most out of Hermes</p>
+          <h1 className="text-4xl font-bold" style={{ color: colors.text.primary, letterSpacing: "-0.03em" }}>
+            <span style={gradients.brandText}>Help Center</span>
+          </h1>
+          <p className="text-sm mt-1" style={{ color: colors.text.muted }}>Resources and guides to help you get the most out of Hermes</p>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {helpSections.map((section) => {
             const Icon = section.icon;
             return (
-              <Card key={section.id} data-testid={`card-help-${section.id}`}>
-                <CardHeader>
+              <GlassCard key={section.id} variant="marketing" data-testid={`card-help-${section.id}`}>
+                <GlassCardHeader>
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Icon className="w-5 h-5 text-primary" />
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${colors.brand.purple}15` }}>
+                      <Icon className="w-5 h-5" style={{ color: colors.brand.purple }} />
                     </div>
                     <div>
-                      <CardTitle className="text-base">{section.title}</CardTitle>
-                      <CardDescription className="text-xs">{section.description}</CardDescription>
+                      <GlassCardTitle className="text-base" style={{ color: colors.text.primary }}>{section.title}</GlassCardTitle>
+                      <p className="text-xs" style={{ color: colors.text.muted }}>{section.description}</p>
                     </div>
                   </div>
-                </CardHeader>
-                <CardContent>
+                </GlassCardHeader>
+                <GlassCardContent>
                   <div className="space-y-2">
                     {section.links.map((link) => (
                       <Link key={link.href} href={link.href}>
@@ -109,18 +111,18 @@ export default function Help() {
                       </Link>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
+                </GlassCardContent>
+              </GlassCard>
             );
           })}
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>External Resources</CardTitle>
-            <CardDescription>Additional help and support channels</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <GlassCard variant="marketing">
+          <GlassCardHeader>
+            <GlassCardTitle style={{ color: colors.text.primary }}>External Resources</GlassCardTitle>
+            <p className="text-sm" style={{ color: colors.text.muted }}>Additional help and support channels</p>
+          </GlassCardHeader>
+          <GlassCardContent>
             <div className="grid gap-4 sm:grid-cols-3">
               {externalResources.map((resource) => {
                 const Icon = resource.icon;
@@ -130,40 +132,41 @@ export default function Help() {
                     href={resource.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-start gap-3 p-4 rounded-lg border hover:bg-muted/50 transition-colors"
+                    className="flex items-start gap-3 p-4 rounded-lg transition-colors hover:bg-slate-50"
+                    style={{ border: `1px solid ${colors.border.default}` }}
                     data-testid={`link-external-${resource.title.toLowerCase().replace(/\s+/g, "-")}`}
                   >
-                    <div className="w-8 h-8 rounded bg-muted flex items-center justify-center">
-                      <Icon className="w-4 h-4" />
+                    <div className="w-8 h-8 rounded flex items-center justify-center" style={{ backgroundColor: colors.background.muted }}>
+                      <Icon className="w-4 h-4" style={{ color: colors.text.muted }} />
                     </div>
                     <div className="flex-1">
-                      <p className="font-medium text-sm flex items-center gap-1">
+                      <p className="font-medium text-sm flex items-center gap-1" style={{ color: colors.text.primary }}>
                         {resource.title}
                         <ExternalLink className="w-3 h-3" />
                       </p>
-                      <p className="text-xs text-muted-foreground">{resource.description}</p>
+                      <p className="text-xs" style={{ color: colors.text.muted }}>{resource.description}</p>
                     </div>
                   </a>
                 );
               })}
             </div>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
-        <Card>
-          <CardContent className="py-8 text-center">
-            <HelpCircle className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="font-semibold mb-2">Still need help?</h3>
-            <p className="text-sm text-muted-foreground mb-4">
+        <GlassCard variant="marketing">
+          <GlassCardContent className="py-8 text-center">
+            <HelpCircle className="w-12 h-12 mx-auto mb-4" style={{ color: colors.text.muted }} />
+            <h3 className="font-semibold mb-2" style={{ color: colors.text.primary }}>Still need help?</h3>
+            <p className="text-sm mb-4" style={{ color: colors.text.muted }}>
               Can't find what you're looking for? Our support team is here to help.
             </p>
             <Button data-testid="btn-contact-support">
               <MessageCircle className="w-4 h-4 mr-2" />
               Contact Support
             </Button>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }
