@@ -339,3 +339,47 @@ export function useTechnicalSeo(siteId: string | null | undefined) {
     staleTime: 5 * 60 * 1000,
   });
 }
+
+// ============================================================
+// SERP Manual Refresh
+// ============================================================
+
+export interface SerpRefreshUsage {
+  used: number;
+  remaining: number;
+  limit: number;
+  lastRefresh: string | null;
+  monthKey: string;
+}
+
+export interface SerpRefreshResult {
+  success: boolean;
+  message: string;
+  used: number;
+  remaining: number;
+  limit: number;
+  upgradeRequired?: boolean;
+}
+
+export function useSerpRefreshUsage(siteId: string | null | undefined) {
+  return useQuery<SerpRefreshUsage>({
+    queryKey: ["/api/sites", siteId, "serp-refresh"],
+    queryFn: async () => {
+      const res = await fetch(`/api/sites/${encodeURIComponent(siteId!)}/serp-refresh`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch SERP refresh usage");
+      return res.json();
+    },
+    enabled: !!siteId,
+    staleTime: 30 * 1000, // 30 seconds
+  });
+}
+
+export async function triggerSerpRefresh(siteId: string): Promise<SerpRefreshResult> {
+  const res = await fetch(`/api/sites/${encodeURIComponent(siteId)}/serp-refresh`, {
+    method: "POST",
+    credentials: "include",
+  });
+  return res.json();
+}

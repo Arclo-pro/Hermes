@@ -2,12 +2,15 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
-import { Search, TrendingUp, TrendingDown, Minus, ArrowUp, ArrowDown, Target, Filter, Trophy, Crown, Loader2, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useState, useCallback } from "react";
+import { Search, TrendingUp, TrendingDown, Minus, ArrowUp, ArrowDown, Target, Filter, Trophy, Crown, Loader2, Sparkles, RefreshCw } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSiteContext } from "@/hooks/useSiteContext";
-import { useSerpKeywords, useSerpSnapshot, type SerpKeywordEntry, type KeywordIntent } from "@/hooks/useOpsDashboard";
+import { useSerpKeywords, useSerpSnapshot, useSerpRefreshUsage, triggerSerpRefresh, type SerpKeywordEntry, type KeywordIntent } from "@/hooks/useOpsDashboard";
+import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 function getDirectionIcon(direction: SerpKeywordEntry["direction"]) {
   switch (direction) {
@@ -79,14 +82,57 @@ const INTENT_LABELS: Record<NonNullable<KeywordIntent>, string> = {
 
 export default function KeywordRankings() {
   const { siteId } = useSiteContext();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [trendFilter, setTrendFilter] = useState<string>('all');
   const [positionFilter, setPositionFilter] = useState<string>('all');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const keywords = useSerpKeywords(siteId);
   const snapshot = useSerpSnapshot(siteId);
+  const refreshUsage = useSerpRefreshUsage(siteId);
 
   const isLoading = keywords.isLoading || snapshot.isLoading;
+
+  const handleRefresh = useCallback(async () => {
+    if (!siteId || isRefreshing) return;
+
+    setIsRefreshing(true);
+    try {
+      const result = await triggerSerpRefresh(siteId);
+
+      if (result.upgradeRequired) {
+        toast({
+          title: "Refresh limit reached",
+          description: `You've used all ${result.limit} monthly refreshes. Upgrade to get more.`,
+          variant: "destructive",
+        });
+      } else if (result.success) {
+        toast({
+          title: "Refresh started",
+          description: result.message,
+        });
+        // Invalidate queries to refresh data
+        await queryClient.invalidateQueries({ queryKey: ["/api/ops-dashboard", siteId] });
+        await queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId, "serp-refresh"] });
+      } else {
+        toast({
+          title: "Refresh failed",
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to trigger refresh",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [siteId, isRefreshing, queryClient, toast]);
 
   const allKeywords = keywords.data?.keywords || [];
 
@@ -213,6 +259,23 @@ export default function KeywordRankings() {
                     ? `Last checked: ${new Date(snapshotData.lastChecked).toLocaleDateString()}`
                     : 'Tracking keyword positions across search engines'}
                 </CardDescription>
+              </div>
+              <div className="flex items-center gap-3">
+                {refreshUsage.data && (
+                  <span className="text-sm text-muted-foreground">
+                    {refreshUsage.data.remaining}/{refreshUsage.data.limit} refreshes left
+                  </span>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRefresh}
+                  disabled={isRefreshing || (refreshUsage.data?.remaining === 0)}
+                  className="gap-2"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  {isRefreshing ? 'Refreshing...' : 'Refresh'}
+                </Button>
               </div>
             </div>
           </CardHeader>
