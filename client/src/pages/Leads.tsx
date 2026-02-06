@@ -906,11 +906,11 @@ export default function Leads() {
     month: format(new Date(), "yyyy-MM"), // Default to current month
   }));
 
-  // Generate month options for the last 18 months
+  // Generate month options for the last 12 months (1 year)
   const monthOptions = useMemo(() => {
     const options = [];
     const now = new Date();
-    for (let i = 0; i < 18; i++) {
+    for (let i = 0; i < 12; i++) {
       const date = subMonths(now, i);
       const value = format(date, "yyyy-MM");
       const label = format(date, "MMMM yyyy");
@@ -927,14 +927,12 @@ export default function Leads() {
     if (filters.outcome && filters.outcome !== "all") params.outcome = filters.outcome;
     if (filters.serviceLine && filters.serviceLine !== "all") params.serviceLine = filters.serviceLine;
 
-    // Handle month filter
-    if (filters.month && filters.month !== "all") {
-      const [year, month] = filters.month.split("-").map(Number);
-      const startDate = startOfMonth(new Date(year, month - 1));
-      const endDate = endOfMonth(new Date(year, month - 1));
-      params.startDate = startDate.toISOString();
-      params.endDate = endDate.toISOString();
-    }
+    // Handle month filter (always required)
+    const [year, month] = filters.month.split("-").map(Number);
+    const startDate = startOfMonth(new Date(year, month - 1));
+    const endDate = endOfMonth(new Date(year, month - 1));
+    params.startDate = startDate.toISOString();
+    params.endDate = endDate.toISOString();
 
     // Load all leads at once (grouped by month in UI)
     params.limit = "10000";
@@ -951,20 +949,16 @@ export default function Leads() {
   });
 
   // Compute date ranges for stats (current period + previous period for comparison)
-  const { statsStartDate, statsEndDate, prevStartDate, prevEndDate, hasMonthFilter } = useMemo(() => {
-    if (filters.month && filters.month !== "all") {
-      const [year, month] = filters.month.split("-").map(Number);
-      const current = new Date(year, month - 1);
-      const prev = subMonths(current, 1);
-      return {
-        statsStartDate: startOfMonth(current).toISOString(),
-        statsEndDate: endOfMonth(current).toISOString(),
-        prevStartDate: startOfMonth(prev).toISOString(),
-        prevEndDate: endOfMonth(prev).toISOString(),
-        hasMonthFilter: true,
-      };
-    }
-    return { statsStartDate: undefined, statsEndDate: undefined, prevStartDate: undefined, prevEndDate: undefined, hasMonthFilter: false };
+  const { statsStartDate, statsEndDate, prevStartDate, prevEndDate } = useMemo(() => {
+    const [year, month] = filters.month.split("-").map(Number);
+    const current = new Date(year, month - 1);
+    const prev = subMonths(current, 1);
+    return {
+      statsStartDate: startOfMonth(current).toISOString(),
+      statsEndDate: endOfMonth(current).toISOString(),
+      prevStartDate: startOfMonth(prev).toISOString(),
+      prevEndDate: endOfMonth(prev).toISOString(),
+    };
   }, [filters.month]);
 
   const { data: stats, isLoading: statsLoading } = useQuery({
@@ -977,7 +971,7 @@ export default function Leads() {
   const { data: prevStats } = useQuery({
     queryKey: ["leads-stats", siteId, prevStartDate, prevEndDate],
     queryFn: () => fetchLeadStats(siteId!, prevStartDate, prevEndDate),
-    enabled: !!siteId && hasMonthFilter,
+    enabled: !!siteId,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -994,10 +988,11 @@ export default function Leads() {
   };
 
   const clearFilters = () => {
-    setFilters({ search: "", status: "all", outcome: "all", serviceLine: "all", month: "all" });
+    setFilters({ search: "", status: "all", outcome: "all", serviceLine: "all", month: format(new Date(), "yyyy-MM") });
   };
 
-  const hasActiveFilters = filters.search || (filters.status && filters.status !== "all") || (filters.outcome && filters.outcome !== "all") || (filters.serviceLine && filters.serviceLine !== "all") || (filters.month && filters.month !== "all");
+  // Month is always set, so don't count it as an "active filter"
+  const hasActiveFilters = filters.search || (filters.status && filters.status !== "all") || (filters.outcome && filters.outcome !== "all") || (filters.serviceLine && filters.serviceLine !== "all");
 
   // Group leads by month for display
   const leadsByMonth = useMemo(() => {
@@ -1087,7 +1082,7 @@ export default function Leads() {
           <TabsContent value="leads" className="mt-6 space-y-6">
 
         {/* Stat Cards */}
-        <StatCards stats={stats} prevStats={prevStats} isLoading={statsLoading} hasPeriodComparison={hasMonthFilter} />
+        <StatCards stats={stats} prevStats={prevStats} isLoading={statsLoading} hasPeriodComparison={true} />
 
         {/* Filters */}
         <Card className="bg-white border-gray-200">
@@ -1153,7 +1148,6 @@ export default function Leads() {
                   <SelectValue placeholder="Month" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Time</SelectItem>
                   {monthOptions.map(({ value, label }) => (
                     <SelectItem key={value} value={value}>{label}</SelectItem>
                   ))}
