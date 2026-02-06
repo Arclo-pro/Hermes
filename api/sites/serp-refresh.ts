@@ -6,13 +6,9 @@
  */
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { Pool } from "@neondatabase/serverless";
+import { getPool } from "../_lib/db.js";
 
 const MONTHLY_LIMIT = 4;
-
-function getPool() {
-  return new Pool({ connectionString: process.env.DATABASE_URL });
-}
 
 // Get the current month key (YYYY-MM)
 function getCurrentMonthKey(): string {
@@ -183,7 +179,5 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } catch (error: any) {
     console.error("SERP refresh error:", error);
     return res.status(500).json({ error: error.message });
-  } finally {
-    await pool.end();
   }
 }
