@@ -59,6 +59,11 @@ const AUTHENTICATED_GET_PATHS = [
   "/api/websites",
   "/api/notifications",
   "/api/account",
+  "/api/hemingway",
+  "/api/atlas",
+  "/api/scotty",
+  "/api/speedster",
+  "/api/natasha",
 ];
 
 // Paths that allow unauthenticated POST access (only basic safe operations)
@@ -87,6 +92,11 @@ const DASHBOARD_POST_PATHS = [
   "/api/websites",
   "/api/notifications",
   "/api/account",
+  "/api/hemingway",
+  "/api/atlas",
+  "/api/scotty",
+  "/api/speedster",
+  "/api/natasha",
 ];
 
 // Paths that allow same-origin POST access (UI actions, protected by origin check)
