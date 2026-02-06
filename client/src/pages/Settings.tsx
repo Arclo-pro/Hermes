@@ -16,6 +16,7 @@ import {
   Users,
   UserPlus,
   Mail,
+  Send,
 } from "lucide-react";
 import { useSiteContext } from "@/hooks/useSiteContext";
 import { toast } from "sonner";
@@ -227,6 +228,25 @@ function TeamSection() {
     },
   });
 
+  const resendMutation = useMutation({
+    mutationFn: async (inviteId: number) => {
+      const res = await fetch('/api/account/invites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inviteId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to resend invitation');
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Invitation resent!");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
   return (
     <div className="space-y-6">
       <Card className="bg-white border-gray-200">
@@ -304,17 +324,30 @@ function TeamSection() {
                       Expires {formatDate(invite.expiresAt)}
                     </span>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => revokeMutation.mutate(invite.id)}
-                    disabled={revokeMutation.isPending}
-                    className="border-gray-300 text-gray-700 hover:bg-gray-100"
-                    data-testid={`button-revoke-invite-${invite.id}`}
-                  >
-                    <XCircle className="w-4 h-4 mr-1" />
-                    Revoke
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => resendMutation.mutate(invite.id)}
+                      disabled={resendMutation.isPending}
+                      className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                      data-testid={`button-resend-invite-${invite.id}`}
+                    >
+                      <Send className="w-4 h-4 mr-1" />
+                      {resendMutation.isPending ? 'Sending...' : 'Resend'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => revokeMutation.mutate(invite.id)}
+                      disabled={revokeMutation.isPending}
+                      className="border-gray-300 text-gray-700 hover:bg-gray-100"
+                      data-testid={`button-revoke-invite-${invite.id}`}
+                    >
+                      <XCircle className="w-4 h-4 mr-1" />
+                      Revoke
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>

@@ -481,19 +481,19 @@ function PagesNeedingImprovementTable({
     <div className="space-y-6">
       {renderGroup(
         "Critical",
-        <XCircle className="w-4 h-4 text-semantic-danger" />,
+        <XCircle className="w-4 h-4 text-red-600" />,
         groupedFindings.critical,
         "Quality score <60 or Grade >11 - fix immediately"
       )}
       {renderGroup(
         "Warning",
-        <AlertTriangle className="w-4 h-4 text-semantic-warning" />,
+        <AlertTriangle className="w-4 h-4 text-amber-600" />,
         groupedFindings.warning,
         "Quality 60-79 or Grade 9-11"
       )}
       {renderGroup(
         "Minor",
-        <Info className="w-4 h-4 text-semantic-info" />,
+        <Info className="w-4 h-4 text-blue-600" />,
         groupedFindings.minor,
         "Small improvements possible"
       )}
@@ -1097,9 +1097,9 @@ export default function HemingwayContent() {
   const customMetrics = (
     <div className="space-y-4">
       {isPreviewMode && (
-        <div className="flex items-center gap-2 p-3 rounded-lg border border-semantic-warning-border bg-semantic-warning-soft">
-          <Plug className="w-4 h-4 text-semantic-warning" />
-          <span className="text-sm text-semantic-warning">
+        <div className="flex items-center gap-2 p-3 rounded-lg border border-amber-300 bg-amber-50">
+          <Plug className="w-4 h-4 text-amber-600" />
+          <span className="text-sm text-amber-700">
             Preview Mode — Connect Hemingway worker for live data
           </span>
           <Button
