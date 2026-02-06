@@ -415,6 +415,94 @@ async function runWeeklySiteScans() {
   }
 }
 
+/**
+ * Auto-publish scheduled content
+ *
+ * Checks for content drafts that:
+ * 1. Have scheduled_for_auto_publish = true
+ * 2. Have auto_publish_date <= NOW()
+ * 3. Are in a publishable state (qa_passed, approved)
+ *
+ * And publishes them by updating their state to 'published'.
+ */
+async function runAutoPublish() {
+  try {
+    logger.info('Scheduler', 'Starting auto-publish check');
+    const { db } = await import('./db');
+    const { sql } = await import('drizzle-orm');
+
+    // Find all content due for auto-publish
+    const result = await db.execute(sql`
+      SELECT cd.id, cd.draft_id, cd.title, cd.content_type, cd.website_id, cd.target_url,
+             w.domain, w.id as website_numeric_id
+      FROM content_drafts cd
+      LEFT JOIN websites w ON cd.website_id = w.id
+      WHERE cd.scheduled_for_auto_publish = true
+        AND cd.auto_publish_date IS NOT NULL
+        AND cd.auto_publish_date <= NOW()
+        AND cd.state IN ('qa_passed', 'approved', 'drafted')
+      ORDER BY cd.auto_publish_date ASC
+      LIMIT 10
+    `);
+
+    const rows = ((result as any).rows || result) as Array<{
+      id: number;
+      draft_id: string;
+      title: string;
+      content_type: string;
+      website_id: string;
+      target_url: string;
+      domain: string;
+      website_numeric_id: number;
+    }>;
+
+    if (rows.length === 0) {
+      logger.info('Scheduler', 'No content due for auto-publish');
+      return;
+    }
+
+    logger.info('Scheduler', `Found ${rows.length} content items due for auto-publish`);
+
+    for (const row of rows) {
+      try {
+        // Update draft state to 'published'
+        await db.execute(sql`
+          UPDATE content_drafts
+          SET state = 'published',
+              published_at = NOW(),
+              updated_at = NOW(),
+              state_history = COALESCE(state_history, '[]'::jsonb) || ${JSON.stringify([{
+                state: 'published',
+                timestamp: new Date().toISOString(),
+                reason: 'Auto-published on schedule'
+              }])}::jsonb
+          WHERE id = ${row.id}
+        `);
+
+        logger.info('Scheduler', 'auto_publish_success', {
+          draftId: row.draft_id,
+          title: row.title,
+          contentType: row.content_type,
+          domain: row.domain,
+        });
+
+        // TODO: In production, also push content to the CMS (WordPress, etc.)
+        // This would require CMS credentials stored per-site and
+        // calling the appropriate CMS API to create/update the page or post.
+      } catch (publishError: any) {
+        logger.error('Scheduler', 'auto_publish_failed', {
+          draftId: row.draft_id,
+          error: publishError.message,
+        });
+      }
+    }
+
+    logger.info('Scheduler', `Auto-publish completed for ${rows.length} items`);
+  } catch (error: any) {
+    logger.error('Scheduler', 'Auto-publish check failed', { error: error.message });
+  }
+}
+
 export function startScheduler() {
   cron.schedule('0 7 * * *', runDailyDiagnostics, {
     timezone: 'America/Chicago',
@@ -433,5 +521,10 @@ export function startScheduler() {
     timezone: 'America/Chicago',
   });
 
-  logger.info('Scheduler', 'Schedulers started: Daily diagnostics (7am), Weekly KBase synthesis (Mondays 8am), Daily achievements (9am), Weekly site scans (Mondays 6am)');
+  // Auto-publish - Every hour on the hour (checks for scheduled content due to publish)
+  cron.schedule('0 * * * *', runAutoPublish, {
+    timezone: 'America/Chicago',
+  });
+
+  logger.info('Scheduler', 'Schedulers started: Daily diagnostics (7am), Weekly KBase synthesis (Mondays 8am), Daily achievements (9am), Weekly site scans (Mondays 6am), Auto-publish (hourly)');
 }

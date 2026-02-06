@@ -78,7 +78,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       case "serp-keywords":
         return res.json(buildSerpKeywords(fullReport));
       case "content-status":
-        return res.json(buildContentStatus(fullReport));
+        return res.json(await buildContentStatus(pool, domain, fullReport));
       case "changes-log":
         return res.json(buildChangesLog(scan));
       case "system-state":
@@ -381,7 +381,97 @@ function estimateSearchVolume(keyword: string): number {
   return Math.round(base * (0.8 + Math.random() * 0.4));
 }
 
-function buildContentStatus(fullReport?: any) {
+async function buildContentStatus(pool: any, domain: string, fullReport?: any) {
+  // First, try to find real content drafts from the database
+  try {
+    // Find the website ID for this domain
+    const websiteResult = await pool.query(
+      `SELECT id FROM websites
+       WHERE REPLACE(REPLACE(domain, 'https://', ''), 'http://', '') ILIKE $1
+       LIMIT 1`,
+      [`%${domain}%`]
+    );
+    const websiteId = websiteResult.rows[0]?.id || null;
+
+    if (websiteId) {
+      // Fetch real content drafts from database
+      const upcomingResult = await pool.query(
+        `SELECT draft_id, title, content_type, state, target_url, target_keywords,
+                qa_score, created_at, updated_at, auto_publish_date, scheduled_for_auto_publish
+         FROM content_drafts
+         WHERE website_id = $1
+           AND state IN ('drafted', 'qa_passed', 'approved', 'generating', 'revision_needed')
+         ORDER BY created_at DESC
+         LIMIT 10`,
+        [websiteId]
+      );
+
+      const publishedResult = await pool.query(
+        `SELECT draft_id, title, content_type, state, target_url, target_keywords,
+                qa_score, created_at, updated_at, published_at, auto_publish_date, scheduled_for_auto_publish
+         FROM content_drafts
+         WHERE website_id = $1
+           AND state = 'published'
+         ORDER BY COALESCE(published_at, updated_at) DESC
+         LIMIT 5`,
+        [websiteId]
+      );
+
+      const updatesResult = await pool.query(
+        `SELECT draft_id, title, content_type, state, target_url, target_keywords,
+                qa_score, created_at, updated_at, auto_publish_date, scheduled_for_auto_publish
+         FROM content_drafts
+         WHERE website_id = $1
+           AND content_type = 'page_edit'
+           AND state != 'published'
+         ORDER BY updated_at DESC
+         LIMIT 5`,
+        [websiteId]
+      );
+
+      const mapRow = (row: any) => ({
+        draftId: row.draft_id,
+        title: row.title,
+        contentType: row.content_type,
+        state: row.state,
+        targetUrl: row.target_url,
+        targetKeywords: row.target_keywords || [],
+        qaScore: row.qa_score,
+        createdAt: row.created_at?.toISOString?.() || row.created_at,
+        updatedAt: row.updated_at?.toISOString?.() || row.updated_at,
+        autoPublishDate: row.auto_publish_date?.toISOString?.() || row.auto_publish_date || null,
+        scheduledForAutoPublish: row.scheduled_for_auto_publish || false,
+      });
+
+      const upcoming = upcomingResult.rows.map(mapRow);
+      const recentlyPublished = publishedResult.rows.map(mapRow);
+      const contentUpdates = updatesResult.rows.map(mapRow);
+
+      // If we have real data, return it
+      if (upcoming.length > 0 || recentlyPublished.length > 0 || contentUpdates.length > 0) {
+        // Find next auto-publish date
+        const scheduledContent = upcoming.filter((c: any) => c.scheduledForAutoPublish && c.autoPublishDate);
+        const nextAutoPublish = scheduledContent.length > 0
+          ? scheduledContent.sort((a: any, b: any) =>
+              new Date(a.autoPublishDate).getTime() - new Date(b.autoPublishDate).getTime()
+            )[0].autoPublishDate
+          : null;
+
+        return {
+          upcoming,
+          recentlyPublished,
+          contentUpdates,
+          hasContent: true,
+          autoPublishEnabled: true,
+          nextAutoPublish,
+        };
+      }
+    }
+  } catch (dbError: any) {
+    console.warn("[ContentStatus] Database query failed, falling back to SERP-based recommendations:", dbError.message);
+  }
+
+  // Fallback: Generate content recommendations from SERP data
   const serpResults: any[] = fullReport?.serp_results || fullReport?.serp?.results || [];
 
   if (serpResults.length === 0) {
@@ -397,7 +487,6 @@ function buildContentStatus(fullReport?: any) {
 
   // Analyze SERP data to generate content recommendations
   const notRanking = serpResults.filter((r: any) => r.position == null);
-  const rankingPoorly = serpResults.filter((r: any) => r.position != null && r.position > 20);
   const nearPageOne = serpResults.filter((r: any) => r.position != null && r.position > 10 && r.position <= 20);
 
   const upcoming: any[] = [];

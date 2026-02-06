@@ -45,6 +45,7 @@ export function generateKeyId(): string {
 export const AVAILABLE_SCOPES = [
   { id: "read", label: "Read", description: "Read access to data" },
   { id: "write", label: "Write", description: "Write access to data" },
+  { id: "leads:write", label: "Leads Write", description: "Create leads via webhook" },
   { id: "empathy:apply", label: "Empathy Apply", description: "Apply changes to Empathy Health site" },
   { id: "empathy:preview", label: "Empathy Preview", description: "Preview changes to Empathy Health site" },
   { id: "diagnostics:run", label: "Run Diagnostics", description: "Run diagnostic scans" },

@@ -2,7 +2,7 @@
  * Leads Routes (ArcFlow)
  *
  * CRUD operations for lead management with filtering, search, and reporting.
- * Phase 1: Manual data entry only (no automation).
+ * Includes public webhook endpoint for automated lead capture from external forms.
  */
 
 import { Router } from "express";
@@ -11,6 +11,7 @@ import { randomUUID } from "crypto";
 import { storage } from "../storage";
 import { requireAuth } from "../auth/session";
 import { logger } from "../utils/logger";
+import { verifyApiKey } from "../utils/apiKeyUtils";
 import {
   LeadStatuses,
   LeadOutcomes,
@@ -23,6 +24,133 @@ import {
 } from "@shared/schema";
 
 const router = Router();
+
+// ════════════════════════════════════════════════════════════════════════════
+// Webhook Schema (public endpoint - API key authenticated)
+// ════════════════════════════════════════════════════════════════════════════
+
+const webhookLeadSchema = z
+  .object({
+    name: z.string().min(1, "Name is required"),
+    email: z.string().email().optional().nullable(),
+    phone: z.string().optional().nullable(),
+    serviceLine: z
+      .enum(["psychiatric_services", "therapy", "general_inquiry", "other"])
+      .optional()
+      .default("general_inquiry"),
+    formType: z.enum(["short", "long", "phone_click", "other"]).optional().default("short"),
+    landingPagePath: z.string().optional(),
+    sourcePath: z.string().optional(),
+    utmSource: z.string().optional(),
+    utmCampaign: z.string().optional(),
+    utmTerm: z.string().optional(),
+    utmMedium: z.string().optional(),
+    utmContent: z.string().optional(),
+    preferredContactMethod: z
+      .enum(["phone", "email", "text", "unknown"])
+      .optional()
+      .default("unknown"),
+    notes: z.string().optional(),
+  })
+  .refine((data) => data.email || data.phone, {
+    message: "Either email or phone is required",
+  });
+
+// ════════════════════════════════════════════════════════════════════════════
+// POST /api/leads/webhook - Public webhook for automated lead capture
+// Authenticated via X-API-Key header (not session)
+// ════════════════════════════════════════════════════════════════════════════
+
+router.post("/leads/webhook", async (req, res) => {
+  try {
+    // Extract API key from header
+    const apiKeyHeader =
+      (req.headers["x-api-key"] as string) ||
+      (req.headers.authorization?.startsWith("Bearer ")
+        ? req.headers.authorization.slice(7)
+        : null);
+
+    if (!apiKeyHeader) {
+      logger.warn("LeadsWebhook", "Missing API key");
+      return res.status(401).json({
+        error: "API key required",
+        hint: "Provide X-API-Key header or Authorization: Bearer <key>",
+      });
+    }
+
+    // Look up API key by prefix (first 16 chars)
+    const prefix = apiKeyHeader.slice(0, 16);
+    const apiKeyRecord = await storage.getApiKeyByPrefix(prefix);
+
+    if (!apiKeyRecord) {
+      logger.warn("LeadsWebhook", "API key not found", { prefix });
+      return res.status(401).json({ error: "Invalid API key" });
+    }
+
+    // Verify the full key against the stored hash
+    if (!verifyApiKey(apiKeyHeader, apiKeyRecord.hashedKey)) {
+      logger.warn("LeadsWebhook", "API key verification failed", { prefix });
+      return res.status(401).json({ error: "Invalid API key" });
+    }
+
+    // Check if key is revoked
+    if (apiKeyRecord.revokedAt) {
+      logger.warn("LeadsWebhook", "API key is revoked", { keyId: apiKeyRecord.keyId });
+      return res.status(401).json({ error: "API key has been revoked" });
+    }
+
+    // Check for required scope (leads:write or write)
+    const scopes = apiKeyRecord.scopes || [];
+    if (!scopes.includes("leads:write") && !scopes.includes("write")) {
+      logger.warn("LeadsWebhook", "API key missing leads:write scope", {
+        keyId: apiKeyRecord.keyId,
+        scopes,
+      });
+      return res.status(403).json({
+        error: "Insufficient permissions",
+        hint: "API key requires 'leads:write' or 'write' scope",
+      });
+    }
+
+    // Update last used timestamp
+    await storage.updateApiKeyLastUsed(apiKeyRecord.keyId);
+
+    // Validate request body
+    const parsed = webhookLeadSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        error: "Validation failed",
+        details: parsed.error.errors.map((e) => `${e.path.join(".")}: ${e.message}`),
+      });
+    }
+
+    // Create lead with siteId from API key
+    const leadId = `lead_${randomUUID()}`;
+    const lead = await storage.createLead({
+      ...parsed.data,
+      siteId: apiKeyRecord.siteId,
+      leadId,
+      leadSourceType: "form_submit",
+      createdByUserId: null, // No user session for webhook
+    });
+
+    logger.info("LeadsWebhook", "Lead created via webhook", {
+      leadId,
+      siteId: apiKeyRecord.siteId,
+      name: parsed.data.name,
+      keyId: apiKeyRecord.keyId,
+    });
+
+    res.status(201).json({
+      success: true,
+      leadId: lead.leadId,
+      message: "Lead created successfully",
+    });
+  } catch (error: any) {
+    logger.error("LeadsWebhook", "Webhook failed", { error: error.message });
+    res.status(500).json({ error: "Failed to create lead" });
+  }
+});
 
 // ════════════════════════════════════════════════════════════════════════════
 // Validation Schemas

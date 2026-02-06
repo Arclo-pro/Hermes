@@ -1475,7 +1475,12 @@ export const contentDrafts = pgTable("content_drafts", {
   // Escalation
   needsHumanReason: text("needs_human_reason"),
   assignedTo: text("assigned_to"),
-  
+
+  // Auto-publish scheduling
+  scheduledForAutoPublish: boolean("scheduled_for_auto_publish").default(false),
+  autoPublishDate: timestamp("auto_publish_date"),
+  publishedAt: timestamp("published_at"),
+
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -1484,6 +1489,7 @@ export const insertContentDraftSchema = createInsertSchema(contentDrafts).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+  publishedAt: true,
 });
 export type InsertContentDraft = z.infer<typeof insertContentDraftSchema>;
 export type ContentDraft = typeof contentDrafts.$inferSelect;
