@@ -15,14 +15,14 @@ import { useToast } from "@/hooks/use-toast";
 function getDirectionIcon(direction: SerpKeywordEntry["direction"]) {
   switch (direction) {
     case 'up':
-      return <TrendingUp className="h-4 w-4 text-semantic-success" />;
+      return <TrendingUp className="h-4 w-4 text-green-600" />;
     case 'down':
-      return <TrendingDown className="h-4 w-4 text-semantic-danger" />;
+      return <TrendingDown className="h-4 w-4 text-red-600" />;
     case 'new':
-      return <Sparkles className="h-4 w-4 text-semantic-info" />;
+      return <Sparkles className="h-4 w-4 text-blue-600" />;
     case 'stable':
     default:
-      return <Minus className="h-4 w-4 text-muted-foreground" />;
+      return <Minus className="h-4 w-4 text-gray-500" />;
   }
 }
 
@@ -66,10 +66,10 @@ function formatChange(value: number | null): string {
 }
 
 function getChangeColor(value: number | null): string {
-  if (value === null) return 'text-muted-foreground';
-  if (value > 0) return 'text-semantic-success';
-  if (value < 0) return 'text-semantic-danger';
-  return 'text-muted-foreground';
+  if (value === null) return 'text-gray-500';
+  if (value > 0) return 'text-green-600';
+  if (value < 0) return 'text-red-600';
+  return 'text-gray-500';
 }
 
 const INTENT_LABELS: Record<NonNullable<KeywordIntent>, string> = {
@@ -180,15 +180,15 @@ export default function KeywordRankings() {
               <div className="text-2xl font-bold" data-testid="stat-total-keywords">
                 {totalKeywords}
               </div>
-              <div className="text-sm text-muted-foreground">Total Keywords</div>
+              <div className="text-sm text-gray-500">Total Keywords</div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-semantic-info" data-testid="stat-ranking">
+              <div className="text-2xl font-bold text-blue-600" data-testid="stat-ranking">
                 {ranking}
               </div>
-              <div className="text-sm text-muted-foreground">Total Ranking</div>
+              <div className="text-sm text-gray-500">Total Ranking</div>
             </CardContent>
           </Card>
           <Card className="bg-gradient-to-br from-gold/10 to-gold/5 border-gold-border">
@@ -197,16 +197,16 @@ export default function KeywordRankings() {
                 <Crown className="h-5 w-5" />
                 {numberOne}
               </div>
-              <div className="text-sm text-muted-foreground">Top 1</div>
+              <div className="text-sm text-gray-500">Top 1</div>
             </CardContent>
           </Card>
           <Card className="bg-gradient-to-br from-muted-foreground/10 to-muted-foreground/5 border-border">
             <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-muted-foreground flex items-center gap-1" data-testid="stat-top-3">
+              <div className="text-2xl font-bold text-gray-500 flex items-center gap-1" data-testid="stat-top-3">
                 <Trophy className="h-4 w-4" />
                 {inTop3}
               </div>
-              <div className="text-sm text-muted-foreground">Top 3</div>
+              <div className="text-sm text-gray-500">Top 3</div>
             </CardContent>
           </Card>
           <Card className="bg-gradient-to-br from-gold/10 to-gold/5 border-gold-border">
@@ -215,7 +215,7 @@ export default function KeywordRankings() {
                 <Trophy className="h-4 w-4" />
                 {inTop10}
               </div>
-              <div className="text-sm text-muted-foreground">Top 10</div>
+              <div className="text-sm text-gray-500">Top 10</div>
             </CardContent>
           </Card>
           <Card>
@@ -223,25 +223,25 @@ export default function KeywordRankings() {
               <div className="text-2xl font-bold" data-testid="stat-avg-position">
                 {avgPosition}
               </div>
-              <div className="text-sm text-muted-foreground">Avg Position</div>
+              <div className="text-sm text-gray-500">Avg Position</div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-semantic-success flex items-center gap-1" data-testid="stat-improving">
+              <div className="text-2xl font-bold text-green-600 flex items-center gap-1" data-testid="stat-improving">
                 <ArrowUp className="h-4 w-4" />
                 {improving}
               </div>
-              <div className="text-sm text-muted-foreground">Improving</div>
+              <div className="text-sm text-gray-500">Improving</div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-semantic-danger flex items-center gap-1" data-testid="stat-declining">
+              <div className="text-2xl font-bold text-red-600 flex items-center gap-1" data-testid="stat-declining">
                 <ArrowDown className="h-4 w-4" />
                 {declining}
               </div>
-              <div className="text-sm text-muted-foreground">Declining</div>
+              <div className="text-sm text-gray-500">Declining</div>
             </CardContent>
           </Card>
         </div>
@@ -262,7 +262,7 @@ export default function KeywordRankings() {
               </div>
               <div className="flex items-center gap-3">
                 {refreshUsage.data && (
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-sm text-gray-500">
                     {refreshUsage.data.remaining}/{refreshUsage.data.limit} refreshes left
                   </span>
                 )}
@@ -283,7 +283,7 @@ export default function KeywordRankings() {
             <div className="flex flex-wrap gap-4 mb-4">
               <div className="flex-1 min-w-[200px]">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
                   <Input
                     placeholder="Search keywords..."
                     value={searchTerm}
@@ -320,7 +320,7 @@ export default function KeywordRankings() {
             </div>
 
             {isLoading ? (
-              <div className="flex items-center justify-center py-8 text-muted-foreground gap-2">
+              <div className="flex items-center justify-center py-8 text-gray-500 gap-2">
                 <Loader2 className="h-5 w-5 animate-spin" />
                 Loading keywords...
               </div>
@@ -343,7 +343,7 @@ export default function KeywordRankings() {
                   <TableBody>
                     {filteredKeywords.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={9} className="text-center py-8 text-gray-500">
                           {allKeywords.length === 0
                             ? 'No keywords tracked yet. Keywords will appear once Arclo analyzes your site.'
                             : 'No keywords match your filters.'}
@@ -352,7 +352,7 @@ export default function KeywordRankings() {
                     ) : (
                       filteredKeywords.map((kw, idx) => (
                         <TableRow key={kw.id} data-testid={`row-keyword-${kw.id}`}>
-                          <TableCell className="text-muted-foreground">{idx + 1}</TableCell>
+                          <TableCell className="text-gray-500">{idx + 1}</TableCell>
                           <TableCell>
                             <div className="font-medium">{kw.keyword}</div>
                           </TableCell>
@@ -371,7 +371,7 @@ export default function KeywordRankings() {
                           <TableCell className="text-center">
                             {getDirectionIcon(kw.direction)}
                           </TableCell>
-                          <TableCell className="text-center text-sm text-muted-foreground">
+                          <TableCell className="text-center text-sm text-gray-500">
                             {kw.volume?.toLocaleString() ?? '-'}
                           </TableCell>
                           <TableCell>
@@ -389,7 +389,7 @@ export default function KeywordRankings() {
               </div>
             )}
 
-            <div className="mt-4 text-sm text-muted-foreground">
+            <div className="mt-4 text-sm text-gray-500">
               Showing {filteredKeywords.length} of {allKeywords.length} keywords
             </div>
           </CardContent>

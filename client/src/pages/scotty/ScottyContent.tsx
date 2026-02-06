@@ -201,26 +201,26 @@ const MOCK_SCOTTY_DATA: ScottyData = {
 function getSeverityColor(severity: string): string {
   switch (severity) {
     case "critical":
-      return "text-semantic-danger bg-semantic-danger-soft border-semantic-danger-border";
+      return "text-red-700 bg-red-50 border-red-200";
     case "warning":
-      return "text-semantic-warning bg-semantic-warning-soft border-semantic-warning-border";
+      return "text-amber-700 bg-amber-50 border-amber-200";
     case "info":
-      return "text-semantic-info bg-semantic-info-soft border-semantic-info-border";
+      return "text-blue-700 bg-blue-50 border-blue-200";
     default:
-      return "text-muted-foreground bg-muted/50";
+      return "text-gray-600 bg-gray-50 border-gray-200";
   }
 }
 
 function getSeverityIcon(severity: string) {
   switch (severity) {
     case "critical":
-      return <XCircle className="w-4 h-4 text-semantic-danger" />;
+      return <XCircle className="w-4 h-4 text-red-600" />;
     case "warning":
-      return <AlertTriangle className="w-4 h-4 text-semantic-warning" />;
+      return <AlertTriangle className="w-4 h-4 text-amber-600" />;
     case "info":
-      return <Info className="w-4 h-4 text-semantic-info" />;
+      return <Info className="w-4 h-4 text-blue-600" />;
     default:
-      return <CheckCircle2 className="w-4 h-4 text-muted-foreground" />;
+      return <CheckCircle2 className="w-4 h-4 text-gray-500" />;
   }
 }
 
@@ -234,14 +234,14 @@ function FindingsTable({ findings, onFix }: { findings: TechnicalFinding[]; onFi
 
   const renderGroup = (title: string, icon: React.ReactNode, items: TechnicalFinding[], description: string) => {
     if (items.length === 0) return null;
-    
+
     return (
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           {icon}
-          <h4 className="font-semibold text-sm">{title}</h4>
+          <h4 className="font-semibold text-sm text-gray-900">{title}</h4>
           <Badge variant="secondary" className="text-xs">{items.length}</Badge>
-          <span className="text-xs text-muted-foreground ml-auto">{description}</span>
+          <span className="text-xs text-gray-500 ml-auto">{description}</span>
         </div>
         <div className="space-y-2">
           {items.map((finding) => (
@@ -260,8 +260,8 @@ function FindingsTable({ findings, onFix }: { findings: TechnicalFinding[]; onFi
                     <span className="font-medium text-sm">{finding.issueType}</span>
                     <Badge variant="outline" className="text-xs">{finding.category}</Badge>
                   </div>
-                  <p className="text-xs text-muted-foreground truncate">{finding.url}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{finding.description}</p>
+                  <p className="text-xs text-gray-500 truncate">{finding.url}</p>
+                  <p className="text-xs text-gray-500 mt-1">{finding.description}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 ml-4">
@@ -300,27 +300,27 @@ function FindingsTable({ findings, onFix }: { findings: TechnicalFinding[]; onFi
     <div className="space-y-6">
       {renderGroup(
         "Critical Issues",
-        <XCircle className="w-4 h-4 text-semantic-danger" />,
+        <XCircle className="w-4 h-4 text-red-600" />,
         groupedFindings.critical,
         "Blocking SEO - fix immediately"
       )}
       {renderGroup(
         "Warnings",
-        <AlertTriangle className="w-4 h-4 text-semantic-warning" />,
+        <AlertTriangle className="w-4 h-4 text-amber-600" />,
         groupedFindings.warning,
         "May impact rankings"
       )}
       {renderGroup(
         "Informational",
-        <Info className="w-4 h-4 text-semantic-info" />,
+        <Info className="w-4 h-4 text-blue-600" />,
         groupedFindings.info,
         "Optimization opportunities"
       )}
       {findings.length === 0 && (
         <div className="flex flex-col items-center justify-center py-12 text-center">
-          <CheckCircle2 className="w-12 h-12 text-semantic-success mb-3" />
-          <p className="font-medium">No technical issues found</p>
-          <p className="text-sm text-muted-foreground mt-1">
+          <CheckCircle2 className="w-12 h-12 text-green-600 mb-3" />
+          <p className="font-medium text-gray-900">No technical issues found</p>
+          <p className="text-sm text-gray-500 mt-1">
             Your site is technically healthy. Run a crawl to check for new issues.
           </p>
         </div>
@@ -334,12 +334,12 @@ function TrendChart({ data, dataKey, label, color }: { data: any[]; dataKey: str
   
   if (!data || data.length === 0) {
     return (
-      <div className="p-4 rounded-lg border bg-card/50">
+      <div className="p-4 rounded-lg border border-gray-200 bg-white">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm text-muted-foreground">{label}</span>
+          <span className="text-sm text-gray-500">{label}</span>
         </div>
-        <div className="text-2xl font-bold mb-3 text-muted-foreground">0{isPercentMetric ? "%" : ""}</div>
-        <div className="flex items-center justify-center h-12 text-xs text-muted-foreground">
+        <div className="text-2xl font-bold mb-3 text-gray-400">0{isPercentMetric ? "%" : ""}</div>
+        <div className="flex items-center justify-center h-12 text-xs text-gray-500">
           No data yet - run a crawl to populate
         </div>
       </div>
@@ -355,20 +355,20 @@ function TrendChart({ data, dataKey, label, color }: { data: any[]; dataKey: str
   const trend = latest - previous;
 
   return (
-    <div className="p-4 rounded-lg border bg-card/50">
+    <div className="p-4 rounded-lg border border-gray-200 bg-white">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-sm text-muted-foreground">{label}</span>
+        <span className="text-sm text-gray-500">{label}</span>
         <div className="flex items-center gap-1">
           {values.length > 1 && trend !== 0 && (
             <>
               {trend > 0 ? (
-                <TrendingUp className="w-3 h-3 text-semantic-success" />
+                <TrendingUp className="w-3 h-3 text-green-600" />
               ) : (
-                <TrendingDown className="w-3 h-3 text-semantic-danger" />
+                <TrendingDown className="w-3 h-3 text-red-600" />
               )}
               <span className={cn(
                 "text-xs font-medium",
-                trend > 0 ? "text-semantic-success" : "text-semantic-danger"
+                trend > 0 ? "text-green-600" : "text-red-600"
               )}>
                 {trend > 0 ? "+" : ""}{trend}
               </span>
@@ -376,7 +376,7 @@ function TrendChart({ data, dataKey, label, color }: { data: any[]; dataKey: str
           )}
         </div>
       </div>
-      <div className="text-2xl font-bold mb-3">{latest}{isPercentMetric ? "%" : ""}</div>
+      <div className="text-2xl font-bold text-gray-900 mb-3">{latest}{isPercentMetric ? "%" : ""}</div>
       <div className="flex items-end gap-1 h-12">
         {values.map((value, i) => (
           <div
@@ -391,8 +391,8 @@ function TrendChart({ data, dataKey, label, color }: { data: any[]; dataKey: str
         ))}
       </div>
       <div className="flex justify-between mt-1">
-        <span className="text-xs text-muted-foreground">{data[0]?.date?.slice(5) || ""}</span>
-        <span className="text-xs text-muted-foreground">{data[data.length - 1]?.date?.slice(5) || ""}</span>
+        <span className="text-xs text-gray-500">{data[0]?.date?.slice(5) || ""}</span>
+        <span className="text-xs text-gray-500">{data[data.length - 1]?.date?.slice(5) || ""}</span>
       </div>
     </div>
   );
@@ -727,7 +727,7 @@ export default function ScottyContent() {
         {health.lastCrawlAt && (
           <div className="pt-4 border-t">
             <h4 className="text-sm font-medium mb-2">Last Crawl</h4>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2 text-sm text-gray-500">
               <Clock className="w-4 h-4" />
               <span>{new Date(health.lastCrawlAt).toLocaleString()}</span>
             </div>
@@ -738,19 +738,19 @@ export default function ScottyContent() {
           <h4 className="text-sm font-medium mb-3">Crawl Summary</h4>
           <div className="space-y-3">
             <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">URLs Crawled</span>
+              <span className="text-sm text-gray-500">URLs Crawled</span>
               <span className="font-medium">{health.crawledUrls}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Healthy (200 OK)</span>
-              <span className="font-medium text-semantic-success">{health.healthyUrls}</span>
+              <span className="text-sm text-gray-500">Healthy (200 OK)</span>
+              <span className="font-medium text-green-600">{health.healthyUrls}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Indexed</span>
+              <span className="text-sm text-gray-500">Indexed</span>
               <span className="font-medium">{health.indexedUrls} / {health.eligibleUrls}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">CWV Passing</span>
+              <span className="text-sm text-gray-500">CWV Passing</span>
               <span className="font-medium">{health.cwvPassingUrls} / {health.cwvTotalUrls}</span>
             </div>
           </div>
@@ -772,7 +772,7 @@ export default function ScottyContent() {
         <div className="flex items-center justify-between">
           <div>
             <h4 className="font-semibold text-sm">Weekly Automated Fixes</h4>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-xs text-gray-500 mt-0.5">
               Fixable issues are automatically resolved every Monday at 6 AM
             </p>
           </div>
@@ -798,7 +798,7 @@ export default function ScottyContent() {
                       <span className="font-medium text-sm">{finding.issueType}</span>
                       <Badge variant="outline" className="text-xs">{finding.category}</Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground truncate">{finding.url}</p>
+                    <p className="text-xs text-gray-500 truncate">{finding.url}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 ml-4">
@@ -820,9 +820,9 @@ export default function ScottyContent() {
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-8 text-center">
-            <CheckCircle2 className="w-10 h-10 text-semantic-success mb-3" />
-            <p className="font-medium text-sm">No fixes needed</p>
-            <p className="text-xs text-muted-foreground mt-1">
+            <CheckCircle2 className="w-10 h-10 text-green-600 mb-3" />
+            <p className="font-medium text-sm text-gray-900">No fixes needed</p>
+            <p className="text-xs text-gray-500 mt-1">
               All fixable issues have been resolved.
             </p>
           </div>
@@ -874,9 +874,9 @@ export default function ScottyContent() {
           isRefreshing={crewIsRefreshing}
           dataUpdatedAt={crewDataUpdatedAt}
         >
-          <Card className="border-semantic-warning/30 bg-semantic-warning-soft">
+          <Card className="border-amber-300 bg-amber-50">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-semantic-warning">
+              <CardTitle className="flex items-center gap-2 text-amber-700">
                 <AlertTriangle className="w-5 h-5" />
                 Scotty Not Configured
               </CardTitle>

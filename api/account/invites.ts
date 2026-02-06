@@ -1,10 +1,12 @@
 /**
  * GET /api/account/invites - List pending invitations
+ * POST /api/account/invites/resend - Resend invitation email
  * DELETE /api/account/invites/:id - Revoke invitation (via rewrite)
  */
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getPool } from "../_lib/db.js";
 import { getSessionUser, setCorsHeaders } from "../_lib/auth.js";
+import { sendInviteEmail } from "../_lib/email.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCorsHeaders(res);
@@ -27,6 +29,67 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(401).json({ success: false, error: "User not found" });
     }
     const accountOwnerId = userResult.rows[0].account_id || userResult.rows[0].id;
+
+    // POST: Resend invitation email
+    if (req.method === "POST") {
+      const { inviteId } = req.body;
+      if (!inviteId) {
+        return res.status(400).json({ success: false, error: "Invitation ID required" });
+      }
+
+      // Get the invitation
+      const inviteResult = await pool.query(
+        `SELECT ai.id, ai.invite_token, ai.invited_email, ai.status, ai.expires_at,
+                u.email as inviter_email, u.display_name as inviter_name
+         FROM account_invitations ai
+         LEFT JOIN users u ON ai.invited_by_user_id = u.id
+         WHERE ai.id = $1 AND ai.invited_by_user_id = $2
+         LIMIT 1`,
+        [inviteId, accountOwnerId]
+      );
+
+      if (inviteResult.rows.length === 0) {
+        return res.status(404).json({ success: false, error: "Invitation not found" });
+      }
+
+      const invite = inviteResult.rows[0];
+
+      if (invite.status !== "pending") {
+        return res.status(400).json({
+          success: false,
+          error: `Cannot resend - invitation status is "${invite.status}"`,
+        });
+      }
+
+      // Check if expired
+      if (new Date() > new Date(invite.expires_at)) {
+        return res.status(400).json({
+          success: false,
+          error: "Invitation has expired. Please revoke and create a new one.",
+        });
+      }
+
+      // Send the email
+      const inviterName = invite.inviter_name || invite.inviter_email || "Your team";
+      const emailSent = await sendInviteEmail(
+        invite.invited_email,
+        invite.invite_token,
+        inviterName
+      );
+
+      if (!emailSent) {
+        return res.status(500).json({
+          success: false,
+          error: "Failed to send invitation email",
+        });
+      }
+
+      console.log(`[Account] Invitation resent to ${invite.invited_email} by user ${user.id}`);
+      return res.json({
+        success: true,
+        message: `Invitation resent to ${invite.invited_email}`,
+      });
+    }
 
     // DELETE: Revoke invitation
     if (req.method === "DELETE") {

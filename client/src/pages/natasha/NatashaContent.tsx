@@ -278,7 +278,7 @@ function ShareOfVoiceBar({
         <span className={cn("font-medium", isYou ? "text-purple-accent" : "text-foreground")}>
           {name} {isYou && <Badge variant="outline" className="text-xs ml-1 border-purple-accent text-purple-accent">You</Badge>}
         </span>
-        <span className={cn("font-bold", isYou ? "text-purple-accent" : "text-muted-foreground")}>{value}%</span>
+        <span className={cn("font-bold", isYou ? "text-purple-accent" : "text-gray-500")}>{value}%</span>
       </div>
       <div className="h-3 bg-muted rounded-full overflow-hidden">
         <div 
@@ -298,9 +298,9 @@ function CompetitorRow({
   onRemove?: (id: string) => void;
 }) {
   const typeLabels: Record<string, { label: string; color: string }> = {
-    direct: { label: "Direct", color: "bg-semantic-danger-soft text-semantic-danger" },
-    indirect: { label: "Indirect", color: "bg-semantic-warning-soft text-semantic-warning" },
-    "serp-only": { label: "SERP-only", color: "bg-muted text-muted-foreground" },
+    direct: { label: "Direct", color: "bg-red-50 text-red-600" },
+    indirect: { label: "Indirect", color: "bg-amber-50 text-amber-600" },
+    "serp-only": { label: "SERP-only", color: "bg-muted text-gray-500" },
   };
 
   const displayName = competitor.name || competitor.domain || "Unknown";
@@ -327,36 +327,36 @@ function CompetitorRow({
             </Badge>
           )}
         </div>
-        <p className="text-xs text-muted-foreground">{competitor.domain}</p>
+        <p className="text-xs text-gray-500">{competitor.domain}</p>
       </div>
       {competitor.marketOverlap !== undefined && (
         <div className="text-center px-3 hidden sm:block">
-          <p className="text-xs text-muted-foreground">Overlap</p>
+          <p className="text-xs text-gray-500">Overlap</p>
           <p className="font-bold text-foreground">{competitor.marketOverlap}%</p>
         </div>
       )}
       {(competitor as any).opportunity_score !== undefined && (
         <div className="text-center px-3 hidden sm:block">
-          <p className="text-xs text-muted-foreground">Opportunity</p>
-          <p className="font-bold text-semantic-success">{(competitor as any).opportunity_score}</p>
+          <p className="text-xs text-gray-500">Opportunity</p>
+          <p className="font-bold text-green-600">{(competitor as any).opportunity_score}</p>
         </div>
       )}
       {competitor.keywords !== undefined && (
         <div className="text-center px-3 hidden sm:block">
-          <p className="text-xs text-muted-foreground">Keywords</p>
+          <p className="text-xs text-gray-500">Keywords</p>
           <p className="font-bold text-foreground">{competitor.keywords}</p>
         </div>
       )}
       {(competitor as any).position !== undefined && (
         <div className="text-center px-3 hidden sm:block">
-          <p className="text-xs text-muted-foreground">Rank</p>
+          <p className="text-xs text-gray-500">Rank</p>
           <p className="font-bold text-foreground">#{(competitor as any).position}</p>
         </div>
       )}
       {competitor.deltaScore !== undefined && (
         <div className="text-center px-3">
-          <p className="text-xs text-muted-foreground">Delta</p>
-          <p className={cn("font-bold", competitor.deltaScore > 0 ? "text-semantic-success" : "text-semantic-danger")}>
+          <p className="text-xs text-gray-500">Delta</p>
+          <p className={cn("font-bold", competitor.deltaScore > 0 ? "text-green-600" : "text-red-600")}>
             {competitor.deltaScore > 0 ? "+" : ""}{competitor.deltaScore}
           </p>
         </div>
@@ -367,7 +367,7 @@ function CompetitorRow({
             <Button 
               variant="ghost" 
               size="icon" 
-              className="h-8 w-8 text-muted-foreground hover:text-semantic-danger shrink-0"
+              className="h-8 w-8 text-gray-500 hover:text-red-600 shrink-0"
               onClick={() => onRemove?.(competitorId)}
               data-testid={`button-remove-competitor-${competitorId}`}
             >
@@ -383,15 +383,15 @@ function CompetitorRow({
 
 function ContentGapCard({ gap, onAction }: { gap: ContentGap; onAction?: (action: string) => void }) {
   const opportunityColors = {
-    high: "bg-semantic-success-soft text-semantic-success border-semantic-success-border",
-    medium: "bg-semantic-warning-soft text-semantic-warning border-semantic-warning-border",
-    low: "bg-muted text-muted-foreground border-border",
+    high: "bg-green-50 text-green-600 border-green-200",
+    medium: "bg-amber-50 text-amber-600 border-amber-200",
+    low: "bg-muted text-gray-500 border-border",
   };
 
   const coverageLabels = {
-    none: { label: "No coverage", color: "text-semantic-danger" },
-    thin: { label: "Thin content", color: "text-semantic-warning" },
-    outdated: { label: "Outdated", color: "text-semantic-warning" },
+    none: { label: "No coverage", color: "text-red-600" },
+    thin: { label: "Thin content", color: "text-amber-600" },
+    outdated: { label: "Outdated", color: "text-amber-600" },
   };
 
   const actionLabels = {
@@ -410,7 +410,7 @@ function ContentGapCard({ gap, onAction }: { gap: ContentGap; onAction?: (action
               <Badge variant="secondary" className="text-xs">{gap.cluster}</Badge>
             )}
           </div>
-          <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1 flex-wrap">
+          <div className="flex items-center gap-3 text-xs text-gray-500 mt-1 flex-wrap">
             <span className="flex items-center gap-1">
               <Search className="w-3 h-3" />
               {gap.searchVolume.toLocaleString()}/mo
@@ -429,7 +429,7 @@ function ContentGapCard({ gap, onAction }: { gap: ContentGap; onAction?: (action
         </Badge>
       </div>
       <div className="flex items-center justify-between mt-3 gap-3">
-        <p className="text-sm text-muted-foreground flex-1">{gap.suggestedAction}</p>
+        <p className="text-sm text-gray-500 flex-1">{gap.suggestedAction}</p>
         <Button 
           variant="outline" 
           size="sm" 
@@ -450,17 +450,17 @@ function AuthorityGapCard({ gap }: { gap: AuthorityGap }) {
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-            <Link2 className="w-5 h-5 text-muted-foreground" />
+            <Link2 className="w-5 h-5 text-gray-500" />
           </div>
           <div>
             <h4 className="font-medium text-foreground">{gap.domain}</h4>
-            <p className="text-xs text-muted-foreground">DA: {gap.authority} • {gap.competitor} has this link</p>
+            <p className="text-xs text-gray-500">DA: {gap.authority} • {gap.competitor} has this link</p>
           </div>
         </div>
         <Badge variant="secondary" className="text-xs capitalize">{gap.linkType.replace("-", " ")}</Badge>
       </div>
       <div className="flex items-center justify-between mt-3 gap-3">
-        <p className="text-sm text-muted-foreground flex-1">{gap.suggestedAction}</p>
+        <p className="text-sm text-gray-500 flex-1">{gap.suggestedAction}</p>
         <Button variant="outline" size="sm" className="shrink-0" data-testid={`button-authority-action-${gap.id}`}>
           Pursue Link
         </Button>
@@ -493,11 +493,11 @@ function SerpFeatureGapCard({ gap }: { gap: SerpFeatureGap }) {
               <h4 className="font-medium text-foreground">{gap.keyword}</h4>
               <Badge variant="secondary" className="text-xs">{config.label}</Badge>
             </div>
-            <p className="text-xs text-muted-foreground">Owned by {gap.competitorOwning} • {gap.pageType}</p>
+            <p className="text-xs text-gray-500">Owned by {gap.competitorOwning} • {gap.pageType}</p>
           </div>
         </div>
       </div>
-      <p className="text-sm text-muted-foreground mt-2">{gap.structuralHint}</p>
+      <p className="text-sm text-gray-500 mt-2">{gap.structuralHint}</p>
       <div className="flex items-center justify-between mt-3 gap-3">
         <p className="text-sm text-purple-accent flex-1">{gap.suggestedAction}</p>
         <Button variant="outline" size="sm" className="shrink-0" data-testid={`button-serp-action-${gap.id}`}>
@@ -510,9 +510,9 @@ function SerpFeatureGapCard({ gap }: { gap: SerpFeatureGap }) {
 
 function TrendAlertCard({ alert }: { alert: TrendAlert }) {
   const severityConfig = {
-    info: { bg: "bg-muted", border: "border-border", icon: Info, iconColor: "text-muted-foreground" },
-    warning: { bg: "bg-semantic-warning-soft/30", border: "border-semantic-warning-border", icon: AlertTriangle, iconColor: "text-semantic-warning" },
-    critical: { bg: "bg-semantic-danger-soft/30", border: "border-semantic-danger-border", icon: AlertCircle, iconColor: "text-semantic-danger" },
+    info: { bg: "bg-muted", border: "border-border", icon: Info, iconColor: "text-gray-500" },
+    warning: { bg: "bg-amber-50/30", border: "border-amber-200", icon: AlertTriangle, iconColor: "text-amber-600" },
+    critical: { bg: "bg-red-50/30", border: "border-red-200", icon: AlertCircle, iconColor: "text-red-600" },
   };
 
   const config = severityConfig[alert.severity];
@@ -523,7 +523,7 @@ function TrendAlertCard({ alert }: { alert: TrendAlert }) {
       <Icon className={cn("w-5 h-5 shrink-0 mt-0.5", config.iconColor)} />
       <div className="flex-1 min-w-0">
         <p className="text-sm text-foreground">{alert.message}</p>
-        <p className="text-xs text-muted-foreground mt-1">
+        <p className="text-xs text-gray-500 mt-1">
           <Clock className="w-3 h-3 inline mr-1" />
           {new Date(alert.timestamp).toLocaleDateString()}
         </p>
@@ -554,10 +554,10 @@ function OverviewPanel({
   const hasData = data.competitors.length > 0 || data.shareOfVoice > 0;
   
   const statusConfig: Record<string, { label: string; icon: any; color: string; bg: string }> = {
-    ahead: { label: "Ahead", icon: Trophy, color: "text-semantic-success", bg: "bg-semantic-success-soft" },
-    parity: { label: "At parity", icon: Swords, color: "text-semantic-warning", bg: "bg-semantic-warning-soft" },
-    behind: { label: "Behind", icon: Shield, color: "text-semantic-danger", bg: "bg-semantic-danger-soft" },
-    unknown: { label: "Not analyzed", icon: Compass, color: "text-muted-foreground", bg: "bg-muted" },
+    ahead: { label: "Ahead", icon: Trophy, color: "text-green-600", bg: "bg-green-50" },
+    parity: { label: "At parity", icon: Swords, color: "text-amber-600", bg: "bg-amber-50" },
+    behind: { label: "Behind", icon: Shield, color: "text-red-600", bg: "bg-red-50" },
+    unknown: { label: "Not analyzed", icon: Compass, color: "text-gray-500", bg: "bg-muted" },
   };
 
   const posConfig = statusConfig[data.competitivePosition] || statusConfig.unknown;
@@ -571,7 +571,7 @@ function OverviewPanel({
             <Compass className="w-8 h-8 text-purple-accent" />
           </div>
           <h3 className="text-lg font-semibold text-foreground mb-2">Data not connected yet</h3>
-          <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">
+          <p className="text-sm text-gray-500 max-w-md mx-auto mb-6">
             Configure integration to activate this crew. Run an analysis to discover your competitors, track keyword rankings, and identify content opportunities.
           </p>
           <Button 
@@ -598,16 +598,16 @@ function OverviewPanel({
         
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-border">
           <div className="text-center p-4 rounded-xl bg-muted/30">
-            <Users className="w-5 h-5 text-muted-foreground mx-auto mb-2" />
-            <p className="text-xs text-muted-foreground">Competitor Detection</p>
+            <Users className="w-5 h-5 text-gray-500 mx-auto mb-2" />
+            <p className="text-xs text-gray-500">Competitor Detection</p>
           </div>
           <div className="text-center p-4 rounded-xl bg-muted/30">
-            <TrendingUp className="w-5 h-5 text-muted-foreground mx-auto mb-2" />
-            <p className="text-xs text-muted-foreground">Keyword Tracking</p>
+            <TrendingUp className="w-5 h-5 text-gray-500 mx-auto mb-2" />
+            <p className="text-xs text-gray-500">Keyword Tracking</p>
           </div>
           <div className="text-center p-4 rounded-xl bg-muted/30">
-            <Target className="w-5 h-5 text-muted-foreground mx-auto mb-2" />
-            <p className="text-xs text-muted-foreground">Gap Analysis</p>
+            <Target className="w-5 h-5 text-gray-500 mx-auto mb-2" />
+            <p className="text-xs text-gray-500">Gap Analysis</p>
           </div>
         </div>
       </div>
@@ -625,7 +625,7 @@ function OverviewPanel({
         </div>
         <div className="flex-1">
           <p className={cn("font-bold text-lg", posConfig.color)}>{posConfig.label} of competitors</p>
-          <p className="text-sm text-muted-foreground">{data.positionExplanation}</p>
+          <p className="text-sm text-gray-500">{data.positionExplanation}</p>
         </div>
       </div>
 
@@ -634,7 +634,7 @@ function OverviewPanel({
           <Info className="w-5 h-5 text-purple-accent shrink-0 mt-0.5" />
           <div className="space-y-2">
             <p className="text-sm text-foreground font-medium">Share of Voice</p>
-            <ul className="text-sm text-muted-foreground space-y-1">
+            <ul className="text-sm text-gray-500 space-y-1">
               <li><strong className="text-foreground">Market SOV</strong> — Your visibility across all target keywords (CTR-weighted from Lookout).</li>
               <li><strong className="text-foreground">Tracked SOV</strong> — Your visibility vs selected competitors.</li>
             </ul>
@@ -645,17 +645,17 @@ function OverviewPanel({
       <div className="grid grid-cols-2 gap-4">
         <div className="p-4 rounded-xl bg-card/60 border border-border text-center">
           <p className="text-3xl font-bold text-foreground">{marketSov}%</p>
-          <p className="text-sm text-muted-foreground mt-1">Market SOV</p>
+          <p className="text-sm text-gray-500 mt-1">Market SOV</p>
           {marketSovData && (
-            <p className="text-xs text-muted-foreground mt-2">
+            <p className="text-xs text-gray-500 mt-2">
               {marketSovData.rankingKeywords} of {marketSovData.totalKeywords} keywords ranking
             </p>
           )}
         </div>
         <div className="p-4 rounded-xl bg-card/60 border border-border text-center">
           <p className="text-3xl font-bold text-foreground">{trackedSov}%</p>
-          <p className="text-sm text-muted-foreground mt-1">Tracked SOV</p>
-          <p className="text-xs text-muted-foreground mt-2">
+          <p className="text-sm text-gray-500 mt-1">Tracked SOV</p>
+          <p className="text-xs text-gray-500 mt-2">
             vs {data.competitors.length} tracked competitors
           </p>
         </div>
@@ -666,16 +666,16 @@ function OverviewPanel({
           <h4 className="font-medium text-foreground mb-3">Position Distribution (from Lookout)</h4>
           <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
             {[
-              { label: "#1", value: marketSovData.breakdown.top1, color: "text-semantic-success" },
-              { label: "#2-3", value: marketSovData.breakdown.top3, color: "text-semantic-success" },
-              { label: "#4-10", value: marketSovData.breakdown.top10, color: "text-semantic-warning" },
-              { label: "#11-20", value: marketSovData.breakdown.top20, color: "text-semantic-warning" },
-              { label: "#21-50", value: marketSovData.breakdown.top50, color: "text-muted-foreground" },
-              { label: "Not ranking", value: marketSovData.breakdown.notRanking, color: "text-semantic-danger" },
+              { label: "#1", value: marketSovData.breakdown.top1, color: "text-green-600" },
+              { label: "#2-3", value: marketSovData.breakdown.top3, color: "text-green-600" },
+              { label: "#4-10", value: marketSovData.breakdown.top10, color: "text-amber-600" },
+              { label: "#11-20", value: marketSovData.breakdown.top20, color: "text-amber-600" },
+              { label: "#21-50", value: marketSovData.breakdown.top50, color: "text-gray-500" },
+              { label: "Not ranking", value: marketSovData.breakdown.notRanking, color: "text-red-600" },
             ].map((item) => (
               <div key={item.label} className="p-3 rounded-lg bg-muted/30 text-center">
                 <p className={cn("text-lg font-semibold", item.color)}>{item.value}</p>
-                <p className="text-xs text-muted-foreground">{item.label}</p>
+                <p className="text-xs text-gray-500">{item.label}</p>
               </div>
             ))}
           </div>
@@ -697,7 +697,7 @@ function OverviewPanel({
             ))}
           </div>
           {!hasCompetitorVisibility && data.competitors.length > 0 && (
-            <p className="text-xs text-muted-foreground mt-2 italic">
+            <p className="text-xs text-gray-500 mt-2 italic">
               Competitor visibility data not yet available. Run analysis to populate.
             </p>
           )}
@@ -705,7 +705,7 @@ function OverviewPanel({
       )}
 
       {data.lastRunAt && (
-        <p className="text-xs text-muted-foreground flex items-center gap-1">
+        <p className="text-xs text-gray-500 flex items-center gap-1">
           <Clock className="w-3 h-3" />
           Last analysis: {new Date(data.lastRunAt).toLocaleString()}
         </p>
@@ -863,8 +863,8 @@ function CompetitorsPanel({
   if (competitors.length === 0) {
     return (
       <div className="p-6 text-center">
-        <Users className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-        <p className="text-muted-foreground mb-4">No competitors detected yet</p>
+        <Users className="w-10 h-10 text-gray-500 mx-auto mb-3" />
+        <p className="text-gray-500 mb-4">No competitors detected yet</p>
         <div className="flex gap-2 justify-center">
           <Button variant="default" onClick={onFindCompetitors} disabled={isFinding} data-testid="button-find-competitors-empty">
             {isFinding ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
@@ -925,7 +925,7 @@ function GapAnalysisPanel({ data }: { data: CompetitiveOverview }) {
 
       <TabsContent value="content">
         {data.contentGaps.length === 0 ? (
-          <p className="text-center text-muted-foreground py-6">No content gaps found</p>
+          <p className="text-center text-gray-500 py-6">No content gaps found</p>
         ) : (
           <div className="space-y-3">
             {data.contentGaps.map((gap) => (
@@ -937,7 +937,7 @@ function GapAnalysisPanel({ data }: { data: CompetitiveOverview }) {
 
       <TabsContent value="authority">
         {data.authorityGaps.length === 0 ? (
-          <p className="text-center text-muted-foreground py-6">No authority gaps detected</p>
+          <p className="text-center text-gray-500 py-6">No authority gaps detected</p>
         ) : (
           <div className="space-y-3">
             {data.authorityGaps.map((gap) => (
@@ -949,7 +949,7 @@ function GapAnalysisPanel({ data }: { data: CompetitiveOverview }) {
 
       <TabsContent value="serp">
         {data.serpFeatureGaps.length === 0 ? (
-          <p className="text-center text-muted-foreground py-6">No SERP feature gaps</p>
+          <p className="text-center text-gray-500 py-6">No SERP feature gaps</p>
         ) : (
           <div className="space-y-3">
             {data.serpFeatureGaps.map((gap) => (
@@ -1015,8 +1015,8 @@ function TrendsPanel({ alerts, siteId }: { alerts: TrendAlert[]; siteId: string 
   if (isLoading) {
     return (
       <div className="p-6 text-center">
-        <RefreshCw className="w-8 h-8 text-muted-foreground mx-auto mb-2 animate-spin" />
-        <p className="text-sm text-muted-foreground">Loading trends...</p>
+        <RefreshCw className="w-8 h-8 text-gray-500 mx-auto mb-2 animate-spin" />
+        <p className="text-sm text-gray-500">Loading trends...</p>
       </div>
     );
   }
@@ -1024,9 +1024,9 @@ function TrendsPanel({ alerts, siteId }: { alerts: TrendAlert[]; siteId: string 
   if (!snapshots || snapshots.length === 0) {
     return (
       <div className="p-6 text-center">
-        <TrendingUp className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-        <p className="text-muted-foreground">No historical data yet</p>
-        <p className="text-sm text-muted-foreground mt-1">Run analysis to start tracking Market SOV over time.</p>
+        <TrendingUp className="w-10 h-10 text-gray-500 mx-auto mb-3" />
+        <p className="text-gray-500">No historical data yet</p>
+        <p className="text-sm text-gray-500 mt-1">Run analysis to start tracking Market SOV over time.</p>
       </div>
     );
   }
@@ -1040,7 +1040,7 @@ function TrendsPanel({ alerts, siteId }: { alerts: TrendAlert[]; siteId: string 
           {latestChange !== null && (
             <div className={cn(
               "flex items-center gap-1 text-sm font-medium",
-              latestChange > 0 ? "text-semantic-success" : latestChange < 0 ? "text-semantic-danger" : "text-muted-foreground"
+              latestChange > 0 ? "text-green-600" : latestChange < 0 ? "text-red-600" : "text-gray-500"
             )}>
               {latestChange > 0 ? <ArrowUp className="w-4 h-4" /> : latestChange < 0 ? <ArrowDown className="w-4 h-4" /> : null}
               {latestChange > 0 ? "+" : ""}{latestChange}% since last scan
@@ -1112,20 +1112,20 @@ function TrendsPanel({ alerts, siteId }: { alerts: TrendAlert[]; siteId: string 
                   fontSize: "12px",
                 }}
               />
-              <Area 
-                type="monotone" 
-                dataKey="top10" 
+              <Area
+                type="monotone"
+                dataKey="top10"
                 stackId="1"
-                stroke="hsl(var(--semantic-success))" 
-                fill="hsl(var(--semantic-success-soft))" 
+                stroke="#16a34a"
+                fill="#dcfce7"
                 name="Top 10"
               />
-              <Area 
-                type="monotone" 
-                dataKey="rankingKeywords" 
+              <Area
+                type="monotone"
+                dataKey="rankingKeywords"
                 stackId="2"
-                stroke="hsl(var(--semantic-warning))" 
-                fill="hsl(var(--semantic-warning-soft))" 
+                stroke="#d97706"
+                fill="#fef3c7"
                 name="Total Ranking"
               />
             </AreaChart>
@@ -1209,19 +1209,19 @@ function AchievementsPanel({ siteId }: { siteId: string }) {
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case "ranking": return "bg-semantic-success/20 text-semantic-success";
-      case "sov": return "bg-semantic-info/20 text-semantic-info";
+      case "ranking": return "bg-green-100 text-green-600";
+      case "sov": return "bg-blue-100 text-blue-600";
       case "milestone": return "bg-accent-gold/20 text-accent-gold";
-      case "competitor": return "bg-semantic-warning/20 text-semantic-warning";
-      default: return "bg-muted text-muted-foreground";
+      case "competitor": return "bg-amber-100 text-amber-600";
+      default: return "bg-muted text-gray-500";
     }
   };
 
   if (isLoading) {
     return (
       <div className="p-6 text-center">
-        <RefreshCw className="w-8 h-8 text-muted-foreground mx-auto mb-2 animate-spin" />
-        <p className="text-sm text-muted-foreground">Loading achievements...</p>
+        <RefreshCw className="w-8 h-8 text-gray-500 mx-auto mb-2 animate-spin" />
+        <p className="text-sm text-gray-500">Loading achievements...</p>
       </div>
     );
   }
@@ -1248,9 +1248,9 @@ function AchievementsPanel({ siteId }: { siteId: string }) {
 
       {achievements.length === 0 ? (
         <div className="p-6 text-center border border-dashed border-border rounded-lg">
-          <Trophy className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-          <p className="text-muted-foreground">No achievements yet</p>
-          <p className="text-sm text-muted-foreground mt-1">Run analysis and check for wins to track your progress.</p>
+          <Trophy className="w-10 h-10 text-gray-500 mx-auto mb-3" />
+          <p className="text-gray-500">No achievements yet</p>
+          <p className="text-sm text-gray-500 mt-1">Run analysis and check for wins to track your progress.</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -1271,9 +1271,9 @@ function AchievementsPanel({ siteId }: { siteId: string }) {
                   </Badge>
                 </div>
                 {achievement.description && (
-                  <p className="text-xs text-muted-foreground mt-1">{achievement.description}</p>
+                  <p className="text-xs text-gray-500 mt-1">{achievement.description}</p>
                 )}
-                <p className="text-xs text-muted-foreground/70 mt-1">
+                <p className="text-xs text-gray-500/70 mt-1">
                   {new Date(achievement.achievedAt).toLocaleDateString("en-US", { 
                     month: "short", 
                     day: "numeric", 

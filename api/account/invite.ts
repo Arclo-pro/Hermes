@@ -5,6 +5,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getPool } from "../_lib/db.js";
 import { getSessionUser, setCorsHeaders } from "../_lib/auth.js";
+import { sendInviteEmail } from "../_lib/email.js";
 import crypto from "crypto";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -120,8 +121,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const invitation = insertResult.rows[0];
 
-      // TODO: Send invitation email via email service
-      console.log(`[Account] Invitation created for ${normalizedEmail} by ${inviter.email}`);
+      // Send invitation email
+      const inviterName = inviter.display_name || inviter.email;
+      const emailSent = await sendInviteEmail(normalizedEmail, inviteToken, inviterName);
+      if (!emailSent) {
+        console.warn(`[Account] Invitation created but email failed for ${normalizedEmail}`);
+      }
+      console.log(`[Account] Invitation created for ${normalizedEmail} by ${inviter.email}, email sent: ${emailSent}`);
 
       return res.status(201).json({
         success: true,
