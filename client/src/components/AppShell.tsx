@@ -29,6 +29,7 @@ import {
   Link2,
   Contact,
   Trophy,
+  Activity,
 } from "lucide-react";
 import arcloLogo from "@assets/A_small_logo_1765393189114.png";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,7 @@ import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { path: "/app/overview", label: "Overview", icon: LayoutDashboard },
+  { path: "/app/traffic-insights", label: "Traffic Insights", icon: Activity },
   { path: "/app/competitive-analysis", label: "Competitive Analysis", icon: Users },
   { path: "/app/rankings", label: "Keyword Rankings", icon: TrendingUp },
   { path: "/app/performance", label: "Site Performance", icon: Gauge },
@@ -120,7 +122,7 @@ export default function AppShell({ children, lightMode = false }: AppShellProps)
 
   return (
     <div className={cn(
-      "min-h-screen flex",
+      "h-screen flex overflow-hidden",
       lightMode ? "bg-muted" : "bg-background"
     )}>
       <aside className={cn(

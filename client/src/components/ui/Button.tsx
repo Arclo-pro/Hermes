@@ -41,19 +41,19 @@ const variantClasses: Record<ButtonVariant, string> = {
   default:
     "bg-surface-primary text-text-primary shadow-card ring-1 ring-surface-border hover:bg-surface-soft focus:ring-brand-orange/50 focus:ring-offset-surface-primary",
   outline:
-    "border border-surface-border bg-transparent text-text-primary hover:bg-surface-soft focus:ring-brand-orange/50 focus:ring-offset-surface-primary",
+    "border border-gray-200 bg-white text-gray-700 shadow-sm hover:bg-gray-50 hover:shadow-md hover:border-gray-300 focus:ring-purple-400/50 focus:ring-offset-white transition-all",
   ghost:
     "text-text-primary hover:bg-surface-soft focus:ring-brand-orange/50 focus:ring-offset-surface-primary",
   link:
     "text-brand-orange underline-offset-4 hover:underline focus:ring-brand-orange/50 p-0 h-auto",
   danger:
-    "bg-red-600 text-white hover:bg-red-700 focus:ring-red-400/60 focus:ring-offset-surface-primary",
+    "bg-gradient-to-b from-red-500 to-red-600 text-white shadow-md shadow-red-500/25 hover:from-red-600 hover:to-red-700 focus:ring-red-400/60 focus:ring-offset-surface-primary transition-all",
   destructive:
-    "bg-red-600 text-white hover:bg-red-700 focus:ring-red-400/60 focus:ring-offset-surface-primary",
+    "bg-gradient-to-b from-red-500 to-red-600 text-white shadow-md shadow-red-500/25 hover:from-red-600 hover:to-red-700 focus:ring-red-400/60 focus:ring-offset-surface-primary transition-all",
   gold:
-    "bg-amber-500 text-white hover:bg-amber-600 focus:ring-amber-400/60 focus:ring-offset-surface-primary",
+    "bg-gradient-to-b from-amber-400 to-amber-500 text-white shadow-md shadow-amber-500/25 hover:from-amber-500 hover:to-amber-600 focus:ring-amber-400/60 focus:ring-offset-surface-primary transition-all",
   purple:
-    "bg-purple-600 text-white hover:bg-purple-700 focus:ring-purple-400/60 focus:ring-offset-surface-primary",
+    "bg-gradient-to-b from-purple-500 to-purple-600 text-white shadow-md shadow-purple-500/25 hover:from-purple-600 hover:to-purple-700 focus:ring-purple-400/60 focus:ring-offset-surface-primary transition-all",
 };
 
 /**

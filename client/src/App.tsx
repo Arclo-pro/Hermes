@@ -37,6 +37,7 @@ const Help = lazy(() => import("@/pages/Help"));
 const Benchmarks = lazy(() => import("@/pages/Benchmarks"));
 const TechnicalSeoDashboard = lazy(() => import("@/pages/TechnicalSeoDashboard"));
 const CompetitiveDashboard = lazy(() => import("@/pages/CompetitiveDashboard"));
+const TrafficInsights = lazy(() => import("@/pages/TrafficInsights"));
 const CrewPalette = lazy(() => import("@/pages/CrewPalette"));
 const DevLineage = lazy(() => import("@/pages/DevLineage"));
 const Speedster = lazy(() => import("@/pages/Speedster"));
@@ -242,6 +243,7 @@ function Router() {
       {/* APP ROUTES - Website-centric views */}
       {/* ============================================ */}
       <Route path={ROUTES.OVERVIEW}><ProtectedRoute component={Dashboard} lightMode /></Route>
+      <Route path={ROUTES.TRAFFIC_INSIGHTS}><ProtectedRoute component={TrafficInsights} lightMode /></Route>
       <Route path={ROUTES.COMPETITIVE_ANALYSIS}><ProtectedRoute component={CompetitiveDashboard} lightMode /></Route>
       <Route path={ROUTES.RANKINGS}><ProtectedRoute component={KeywordRankings} lightMode /></Route>
       <Route path={ROUTES.PERFORMANCE}><ProtectedRoute component={Speedster} lightMode /></Route>

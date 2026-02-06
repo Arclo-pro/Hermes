@@ -95,11 +95,11 @@ export function KeyMetricCard({
   return (
     <div
       className={cn(
-        "relative rounded-2xl bg-white p-5",
-        "border",
+        "relative rounded-2xl bg-gradient-to-br from-white via-white to-gray-50/50 p-5",
+        "border shadow-sm",
         !dynamicStyles && effectiveStyles.border,
         !dynamicStyles && effectiveStyles.glow,
-        "transition-all duration-300 hover:scale-[1.02]",
+        "transition-all duration-300 hover:scale-[1.02] hover:shadow-md",
         className
       )}
       style={dynamicStyles ? { ...dynamicStyles.border, ...dynamicStyles.glow } : undefined}

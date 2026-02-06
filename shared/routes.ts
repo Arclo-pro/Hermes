@@ -53,6 +53,7 @@ export const ROUTES = {
   // App core pages (authenticated) — website-centric views
   HOME: "/app",
   OVERVIEW: "/app/overview",
+  TRAFFIC_INSIGHTS: "/app/traffic-insights",
   COMPETITIVE_ANALYSIS: "/app/competitive-analysis",
   RANKINGS: "/app/rankings",
   PERFORMANCE: "/app/performance",

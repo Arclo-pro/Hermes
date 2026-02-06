@@ -39,6 +39,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useSiteContext } from "@/hooks/useSiteContext";
 import { useCrewStatus } from "@/hooks/useCrewStatus";
+import { useTechnicalSeo } from "@/hooks/useOpsDashboard";
 import { toast } from "sonner";
 import { getCrewMember } from "@/config/agents";
 import {
@@ -431,7 +432,10 @@ export default function SpeedsterContent() {
     },
     staleTime: 5 * 60 * 1000,
   });
-  
+
+  // Fallback: Use ops-dashboard technical-seo data if speedster summary has no CWV data
+  const { data: technicalSeoData, isLoading: isTechSeoLoading } = useTechnicalSeo(siteId);
+
   const runScanMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch('/api/crew/speedster/run', {
@@ -454,8 +458,22 @@ export default function SpeedsterContent() {
     },
   });
   
-  const metrics = speedsterData?.metrics || {};
-  
+  // Merge metrics from speedster API with fallback from ops-dashboard technical-seo
+  const speedsterMetrics = speedsterData?.metrics || {};
+  const fallbackCwv = technicalSeoData?.coreWebVitals;
+  const fallbackScore = technicalSeoData?.summary?.score;
+
+  // Use speedster metrics if available, otherwise fall back to technical-seo data
+  const metrics = {
+    ...speedsterMetrics,
+    'vitals.lcp': speedsterMetrics['vitals.lcp'] ?? fallbackCwv?.lcp ?? null,
+    'vitals.cls': speedsterMetrics['vitals.cls'] ?? fallbackCwv?.cls ?? null,
+    'vitals.inp': speedsterMetrics['vitals.inp'] ?? fallbackCwv?.fid ?? null, // FID is similar to INP
+    'vitals.fcp': speedsterMetrics['vitals.fcp'] ?? fallbackCwv?.fcp ?? null,
+    'vitals.ttfb': speedsterMetrics['vitals.ttfb'] ?? fallbackCwv?.ttfb ?? null,
+    'vitals.performance_score': speedsterMetrics['vitals.performance_score'] ?? fallbackScore ?? null,
+  };
+
   // Core Web Vitals (the 3 main metrics Google uses for ranking)
   const coreVitals: VitalMetric[] = [
     {
@@ -942,7 +960,8 @@ export default function SpeedsterContent() {
     },
   ], [coreVitals, additionalMetrics, allAdditionalMetricsMissing, missingAdditionalMetrics, isRefetching, refetch, speedsterData]);
 
-  if (isLoading) {
+  // Show loading state while either data source is loading
+  if (isLoading && isTechSeoLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />

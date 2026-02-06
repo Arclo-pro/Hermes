@@ -301,13 +301,13 @@ function getEmptyTrendsMeta(): MetaStatus {
 function getSeverityColor(severity: "critical" | "warning" | "minor"): string {
   switch (severity) {
     case "critical":
-      return "bg-red-50 border-red-200";
+      return "bg-gradient-to-br from-red-50 via-red-50 to-red-100/50 border-red-200 shadow-sm shadow-red-100";
     case "warning":
-      return "bg-amber-50 border-amber-200";
+      return "bg-gradient-to-br from-amber-50 via-amber-50 to-amber-100/50 border-amber-200 shadow-sm shadow-amber-100";
     case "minor":
-      return "bg-blue-50 border-blue-200";
+      return "bg-gradient-to-br from-blue-50 via-blue-50 to-blue-100/50 border-blue-200 shadow-sm shadow-blue-100";
     default:
-      return "bg-gray-50 border-gray-200";
+      return "bg-gradient-to-br from-gray-50 via-gray-50 to-gray-100/50 border-gray-200 shadow-sm";
   }
 }
 
