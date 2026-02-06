@@ -23,10 +23,15 @@ interface KeyMetricsGridProps {
 }
 
 export function KeyMetricsGrid({ metrics, accentColor, className }: KeyMetricsGridProps) {
+  // Use 4 columns for 4 metrics, or adjust dynamically based on count
+  const gridCols = metrics.length <= 4
+    ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
+    : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5";
+
   return (
     <div className={cn(
       "grid gap-4",
-      "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5",
+      gridCols,
       className
     )}>
       {metrics.map((metric) => (

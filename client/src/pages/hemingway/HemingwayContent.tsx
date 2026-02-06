@@ -301,34 +301,34 @@ function getEmptyTrendsMeta(): MetaStatus {
 function getSeverityColor(severity: "critical" | "warning" | "minor"): string {
   switch (severity) {
     case "critical":
-      return "bg-semantic-danger-soft border-semantic-danger-border";
+      return "bg-red-50 border-red-200";
     case "warning":
-      return "bg-semantic-warning-soft border-semantic-warning-border";
+      return "bg-amber-50 border-amber-200";
     case "minor":
-      return "bg-semantic-info-soft border-semantic-info-border";
+      return "bg-blue-50 border-blue-200";
     default:
-      return "bg-muted/50 border-muted";
+      return "bg-gray-50 border-gray-200";
   }
 }
 
 function getSeverityIcon(severity: "critical" | "warning" | "minor") {
   switch (severity) {
     case "critical":
-      return <XCircle className="w-4 h-4 text-semantic-danger" />;
+      return <XCircle className="w-4 h-4 text-red-600" />;
     case "warning":
-      return <AlertTriangle className="w-4 h-4 text-semantic-warning" />;
+      return <AlertTriangle className="w-4 h-4 text-amber-600" />;
     case "minor":
-      return <Info className="w-4 h-4 text-semantic-info" />;
+      return <Info className="w-4 h-4 text-blue-600" />;
     default:
-      return <CheckCircle2 className="w-4 h-4 text-muted-foreground" />;
+      return <CheckCircle2 className="w-4 h-4 text-gray-500" />;
   }
 }
 
 function getSeverityBadge(severity: "critical" | "warning" | "minor") {
   const variants = {
-    critical: "bg-semantic-danger-soft text-semantic-danger border-semantic-danger-border",
-    warning: "bg-semantic-warning-soft text-semantic-warning border-semantic-warning-border",
-    minor: "bg-semantic-info-soft text-semantic-info border-semantic-info-border",
+    critical: "bg-red-50 text-red-700 border-red-200",
+    warning: "bg-amber-50 text-amber-700 border-amber-200",
+    minor: "bg-blue-50 text-blue-700 border-blue-200",
   };
   return variants[severity] || "";
 }
@@ -363,9 +363,9 @@ function PagesNeedingImprovementTable({
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           {icon}
-          <h4 className="font-semibold text-sm">{title}</h4>
-          <Badge variant="secondary" className="text-xs">{items.length}</Badge>
-          <span className="text-xs text-muted-foreground ml-auto">{description}</span>
+          <h4 className="font-semibold text-sm text-gray-900">{title}</h4>
+          <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-700">{items.length}</Badge>
+          <span className="text-xs text-gray-500 ml-auto">{description}</span>
         </div>
         <div className="space-y-2">
           {items.map((finding) => (
@@ -381,29 +381,29 @@ function PagesNeedingImprovementTable({
                 {getSeverityIcon(finding.severity)}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <span className="font-medium text-sm truncate">{finding.title}</span>
-                    <Badge variant="outline" className="text-xs">
+                    <span className="font-medium text-sm truncate text-gray-900">{finding.title}</span>
+                    <Badge variant="outline" className="text-xs border-gray-300 text-gray-700">
                       Quality: {finding.qualityScore}
                     </Badge>
-                    <Badge variant="outline" className="text-xs">
+                    <Badge variant="outline" className="text-xs border-gray-300 text-gray-700">
                       Grade: {finding.readabilityGrade}
                     </Badge>
                   </div>
-                  <p className="text-xs text-muted-foreground truncate">{finding.url}</p>
+                  <p className="text-xs text-gray-600 truncate">{finding.url}</p>
                   <div className="flex items-center gap-2 mt-2 flex-wrap">
-                    <span className="text-xs text-muted-foreground">Keyword:</span>
-                    <Badge variant="secondary" className="text-xs">{finding.primaryKeyword}</Badge>
+                    <span className="text-xs text-gray-500">Keyword:</span>
+                    <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-700">{finding.primaryKeyword}</Badge>
                     {finding.issueTags.slice(0, 3).map((tag) => (
-                      <Badge 
-                        key={tag} 
-                        variant="outline" 
+                      <Badge
+                        key={tag}
+                        variant="outline"
                         className={cn("text-xs", getSeverityBadge(finding.severity))}
                       >
                         {tag}
                       </Badge>
                     ))}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">{finding.recommendedAction}</p>
+                  <p className="text-xs text-gray-600 mt-1">{finding.recommendedAction}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 ml-4 shrink-0">
@@ -537,20 +537,20 @@ function TrendChart({
   const trendIsGood = isGradeBased ? trend < 0 : trend > 0;
 
   return (
-    <div className="p-4 rounded-lg border bg-card/50">
+    <div className="p-4 rounded-lg border border-gray-200 bg-white">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-sm text-muted-foreground">{label}</span>
+        <span className="text-sm text-gray-600">{label}</span>
         <div className="flex items-center gap-1">
           {values.length > 1 && trend !== 0 && (
             <>
               {trendIsGood ? (
-                <TrendingUp className="w-3 h-3 text-semantic-success" />
+                <TrendingUp className="w-3 h-3 text-green-600" />
               ) : (
-                <TrendingDown className="w-3 h-3 text-semantic-danger" />
+                <TrendingDown className="w-3 h-3 text-red-600" />
               )}
               <span className={cn(
                 "text-xs font-medium",
-                trendIsGood ? "text-semantic-success" : "text-semantic-danger"
+                trendIsGood ? "text-green-600" : "text-red-600"
               )}>
                 {trend > 0 ? "+" : ""}{trend.toFixed(1)}
               </span>
@@ -558,7 +558,7 @@ function TrendChart({
           )}
         </div>
       </div>
-      <div className="text-2xl font-bold mb-3">
+      <div className="text-2xl font-bold text-gray-900 mb-3">
         {typeof latest === 'number' ? latest.toFixed(1) : latest}
         {dataKey.includes("Coverage") && "%"}
       </div>
@@ -576,8 +576,8 @@ function TrendChart({
         ))}
       </div>
       <div className="flex justify-between mt-1">
-        <span className="text-xs text-muted-foreground">{data[0]?.date?.slice(5) || ""}</span>
-        <span className="text-xs text-muted-foreground">{data[data.length - 1]?.date?.slice(5) || ""}</span>
+        <span className="text-xs text-gray-500">{data[0]?.date?.slice(5) || ""}</span>
+        <span className="text-xs text-gray-500">{data[data.length - 1]?.date?.slice(5) || ""}</span>
       </div>
     </div>
   );
@@ -621,15 +621,15 @@ function DualBarChart({
   const max = Math.max(...allValues, 1);
 
   return (
-    <div className="p-4 rounded-lg border bg-card/50">
+    <div className="p-4 rounded-lg border border-gray-200 bg-white">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-sm text-muted-foreground">{title}</span>
+        <span className="text-sm text-gray-600">{title}</span>
         <div className="flex items-center gap-4 text-xs">
-          <span className="flex items-center gap-1">
+          <span className="flex items-center gap-1 text-gray-700">
             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color1 }} />
             {label1}: {latest1}
           </span>
-          <span className="flex items-center gap-1">
+          <span className="flex items-center gap-1 text-gray-700">
             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color2 }} />
             {label2}: {latest2}
           </span>
@@ -658,26 +658,26 @@ function DualBarChart({
         ))}
       </div>
       <div className="flex justify-between mt-1">
-        <span className="text-xs text-muted-foreground">{data[0]?.date?.slice(5) || ""}</span>
-        <span className="text-xs text-muted-foreground">{data[data.length - 1]?.date?.slice(5) || ""}</span>
+        <span className="text-xs text-gray-500">{data[0]?.date?.slice(5) || ""}</span>
+        <span className="text-xs text-gray-500">{data[data.length - 1]?.date?.slice(5) || ""}</span>
       </div>
     </div>
   );
 }
 
-function DistributionBar({ 
-  data, 
-  title 
-}: { 
-  data: { range: string; count: number; color?: string }[]; 
+function DistributionBar({
+  data,
+  title
+}: {
+  data: { range: string; count: number; color?: string }[];
   title: string;
 }) {
   const total = data.reduce((sum, d) => sum + d.count, 0);
   const defaultColors = ["#3B82F6", "#22C55E", "#F59E0B", "#EF4444"];
 
   return (
-    <div className="p-4 rounded-lg border bg-card/50">
-      <span className="text-sm text-muted-foreground">{title}</span>
+    <div className="p-4 rounded-lg border border-gray-200 bg-white">
+      <span className="text-sm text-gray-600">{title}</span>
       <div className="flex h-6 rounded-lg overflow-hidden mt-3 mb-2">
         {data.map((d, i) => (
           <div
@@ -693,12 +693,12 @@ function DistributionBar({
       <div className="flex flex-wrap gap-3 mt-2">
         {data.map((d, i) => (
           <div key={d.range} className="flex items-center gap-1.5 text-xs">
-            <span 
-              className="w-2 h-2 rounded-full" 
-              style={{ backgroundColor: d.color || defaultColors[i % defaultColors.length] }} 
+            <span
+              className="w-2 h-2 rounded-full"
+              style={{ backgroundColor: d.color || defaultColors[i % defaultColors.length] }}
             />
-            <span className="text-muted-foreground">{d.range}</span>
-            <span className="font-medium">{d.count}</span>
+            <span className="text-gray-600">{d.range}</span>
+            <span className="font-medium text-gray-900">{d.count}</span>
           </div>
         ))}
       </div>
@@ -708,16 +708,16 @@ function DistributionBar({
 
 function IssuesBreakdown({ issues }: { issues: { issue: string; percent: number }[] }) {
   return (
-    <div className="p-4 rounded-lg border bg-card/50">
-      <span className="text-sm text-muted-foreground">Common Issues Breakdown</span>
+    <div className="p-4 rounded-lg border border-gray-200 bg-white">
+      <span className="text-sm text-gray-600">Common Issues Breakdown</span>
       <div className="space-y-3 mt-4">
         {issues.map((item) => (
           <div key={item.issue} className="space-y-1">
             <div className="flex justify-between text-xs">
-              <span className="text-foreground">{item.issue}</span>
-              <span className="text-muted-foreground">{item.percent}%</span>
+              <span className="text-gray-900">{item.issue}</span>
+              <span className="text-gray-500">{item.percent}%</span>
             </div>
-            <div className="h-2 bg-muted rounded-full overflow-hidden">
+            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
               <div
                 className="h-full rounded-full transition-all"
                 style={{

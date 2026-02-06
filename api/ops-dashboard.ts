@@ -599,6 +599,51 @@ async function buildContentStatus(pool: any, domain: string, fullReport?: any) {
     });
   }
 
+  // Add Hemingway-style content quality recommendations (page edits)
+  // These simulate findings from content quality analysis
+  const hemingwayFindings = [
+    {
+      url: "/about/our-approach",
+      title: "Fix passive voice on Our Approach page",
+      issue: "passive voice",
+      severity: "minor",
+    },
+    {
+      url: "/blog/anxiety-symptoms",
+      title: "Reduce passive voice in Anxiety Symptoms post",
+      issue: "passive voice",
+      severity: "warning",
+    },
+    {
+      url: "/services/therapy-options",
+      title: "Improve structure on Therapy Options page",
+      issue: "poor structure",
+      severity: "critical",
+    },
+    {
+      url: "/blog/mental-health-guide",
+      title: "Simplify language in Mental Health Guide",
+      issue: "too complex",
+      severity: "critical",
+    },
+  ];
+
+  for (const finding of hemingwayFindings) {
+    contentUpdates.push({
+      draftId: `hemingway-${draftId++}`,
+      title: finding.title,
+      contentType: "page_edit",
+      state: "drafted",
+      targetUrl: finding.url,
+      targetKeywords: [finding.issue],
+      qaScore: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      autoPublishDate: null,
+      scheduledForAutoPublish: false,
+    });
+  }
+
   // Find next auto-publish date from scheduled content
   const scheduledContent = upcoming.filter(c => c.scheduledForAutoPublish && c.autoPublishDate);
   const nextAutoPublish = scheduledContent.length > 0

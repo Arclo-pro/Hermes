@@ -20,39 +20,39 @@ interface KeyMetricCardProps {
 
 const statusStyles = {
   primary: {
-    border: "border-[var(--color-purple)]/30",
+    border: "border-purple-300",
     glow: "shadow-[0_0_20px_-5px_rgba(147,51,234,0.3)]",
-    accent: "bg-purple-accent",
-    text: "text-purple-accent",
-    iconBg: "bg-[var(--color-purple)]/10",
+    accent: "bg-purple-600",
+    text: "text-purple-600",
+    iconBg: "bg-purple-50",
   },
   good: {
-    border: "border-semantic-success/30",
+    border: "border-green-300",
     glow: "shadow-[0_0_20px_-5px_rgba(34,197,94,0.3)]",
-    accent: "bg-semantic-success",
-    text: "text-semantic-success",
-    iconBg: "bg-semantic-success/10",
+    accent: "bg-green-600",
+    text: "text-green-600",
+    iconBg: "bg-green-50",
   },
   warning: {
-    border: "border-semantic-warning/30",
+    border: "border-amber-300",
     glow: "shadow-[0_0_20px_-5px_rgba(234,179,8,0.3)]",
-    accent: "bg-semantic-warning",
-    text: "text-semantic-warning",
-    iconBg: "bg-semantic-warning/10",
+    accent: "bg-amber-500",
+    text: "text-amber-600",
+    iconBg: "bg-amber-50",
   },
   neutral: {
-    border: "border-border",
+    border: "border-gray-200",
     glow: "",
-    accent: "bg-muted-foreground",
-    text: "text-muted-foreground",
-    iconBg: "bg-muted/50",
+    accent: "bg-gray-400",
+    text: "text-gray-500",
+    iconBg: "bg-gray-100",
   },
   inactive: {
-    border: "border-border/50",
+    border: "border-gray-100",
     glow: "",
-    accent: "bg-muted-foreground/50",
-    text: "text-muted-foreground/70",
-    iconBg: "bg-muted/30",
+    accent: "bg-gray-300",
+    text: "text-gray-400",
+    iconBg: "bg-gray-50",
   },
 };
 
@@ -89,13 +89,13 @@ export function KeyMetricCard({
   const isBadTrend = (trendIsGood === "up" && isNegativeDelta) || (trendIsGood === "down" && isPositiveDelta);
 
   const TrendIcon = isPositiveDelta ? TrendingUp : isNegativeDelta ? TrendingDown : Minus;
-  const trendColor = isGoodTrend ? "text-semantic-success" : isBadTrend ? "text-semantic-danger" : "text-muted-foreground";
+  const trendColor = isGoodTrend ? "text-green-600" : isBadTrend ? "text-red-600" : "text-gray-500";
   const sparklineColor = isGoodTrend ? "success" : isBadTrend ? "danger" : "primary";
 
   return (
     <div
       className={cn(
-        "relative rounded-2xl bg-card/80 backdrop-blur-sm p-5",
+        "relative rounded-2xl bg-white p-5",
         "border",
         !dynamicStyles && effectiveStyles.border,
         !dynamicStyles && effectiveStyles.glow,
@@ -105,23 +105,23 @@ export function KeyMetricCard({
       style={dynamicStyles ? { ...dynamicStyles.border, ...dynamicStyles.glow } : undefined}
       data-testid={`metric-${label.toLowerCase().replace(/\s+/g, '-')}`}
     >
-      <div 
+      <div
         className={cn(
           "absolute top-0 left-4 right-4 h-0.5 rounded-full",
           !dynamicStyles && effectiveStyles.accent
         )}
         style={dynamicStyles?.accent}
       />
-      
+
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <p className={cn(
             "text-3xl font-bold tracking-tight",
-            isZero ? "text-muted-foreground/60" : "text-foreground"
+            isZero ? "text-gray-400" : "text-gray-900"
           )}>
             {typeof value === 'number' ? value.toLocaleString() : value}
           </p>
-          <p className="text-sm text-muted-foreground mt-1 truncate">
+          <p className="text-sm text-gray-600 mt-1 truncate">
             {label}
           </p>
           {hasDelta && (
@@ -131,7 +131,7 @@ export function KeyMetricCard({
                 {isPositiveDelta ? "+" : ""}{delta.toFixed(1)}%
               </span>
               {deltaLabel && (
-                <span className="text-xs text-muted-foreground ml-1">{deltaLabel}</span>
+                <span className="text-xs text-gray-500 ml-1">{deltaLabel}</span>
               )}
             </div>
           )}
