@@ -422,7 +422,7 @@ function PagesNeedingImprovementTable({
                     <TooltipTrigger asChild>
                       <Button
                         size="sm"
-                        variant={finding.fixType === "auto" ? "default" : "outline"}
+                        variant={finding.fixType === "auto" ? "purple" : "outline"}
                         onClick={() => onFix(finding)}
                         disabled={fixingIssueId === finding.id}
                         data-testid={`button-fix-${finding.id}`}
@@ -963,6 +963,7 @@ export default function HemingwayContent() {
       tooltip: "Run full analysis",
       onClick: () => analyzeContentMutation.mutate(),
       loading: analyzeContentMutation.isPending,
+      variant: "primary" as const,
     },
   ];
 

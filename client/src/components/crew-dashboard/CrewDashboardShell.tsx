@@ -279,7 +279,7 @@ export function CrewDashboardShell({
                   <TooltipTrigger asChild>
                     <Button
                       type="button"
-                      variant="outline"
+                      variant={(action.variant as any) || "outline"}
                       size="icon"
                       onClick={(e) => {
                         e.preventDefault();
