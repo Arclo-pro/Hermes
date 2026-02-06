@@ -515,6 +515,18 @@ export const insertSerpRankingSchema = createInsertSchema(serpRankings).omit({
 export type InsertSerpRanking = z.infer<typeof insertSerpRankingSchema>;
 export type SerpRanking = typeof serpRankings.$inferSelect;
 
+// SERP Manual Refresh Usage Tracking
+export const serpManualRefreshes = pgTable("serp_manual_refreshes", {
+  id: serial("id").primaryKey(),
+  siteId: text("site_id").notNull(),
+  monthKey: text("month_key").notNull(), // YYYY-MM format
+  domain: text("domain"),
+  userId: integer("user_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type SerpManualRefresh = typeof serpManualRefreshes.$inferSelect;
+
 // Keyword Improvement Actions
 export const keywordActions = pgTable("keyword_actions", {
   id: serial("id").primaryKey(),
