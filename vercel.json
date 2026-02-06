@@ -36,6 +36,8 @@
     { "source": "/api/leads/:leadId", "destination": "/api/leads-detail?leadId=:leadId" },
     { "source": "/api/sites/:siteId/traffic-diagnosis", "destination": "/api/sites/traffic-diagnosis?siteId=:siteId" },
     { "source": "/api/sites/:siteId/serp-refresh", "destination": "/api/sites/serp-refresh?siteId=:siteId" },
+    { "source": "/api/account/invite/:token", "destination": "/api/account/invite?token=:token" },
+    { "source": "/api/account/invites/:id", "destination": "/api/account/invites?id=:id" },
     { "source": "/:path*", "destination": "/index" }
   ]
 }

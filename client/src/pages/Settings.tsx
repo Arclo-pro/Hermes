@@ -311,26 +311,26 @@ function TeamSection() {
       )}
 
       {showInviteModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-card border border-border rounded-lg p-6 w-full max-w-md shadow-xl">
-            <h3 className="text-lg font-semibold mb-4">Invite Team Member</h3>
-            <p className="text-sm text-muted-foreground mb-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-6 w-full max-w-md shadow-2xl mx-4">
+            <h3 className="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Invite Team Member</h3>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
               Invited users will have full access to all your websites.
               They must create a new account to accept the invitation.
             </p>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Email Address</label>
+                <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">Email Address</label>
                 <input
                   type="email"
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
                   placeholder="colleague@company.com"
-                  className="w-full px-3 py-2 border rounded-md bg-background"
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary"
                   data-testid="input-invite-email"
                 />
               </div>
-              <div className="flex gap-2 justify-end">
+              <div className="flex gap-2 justify-end pt-2">
                 <Button variant="outline" onClick={() => setShowInviteModal(false)}>
                   Cancel
                 </Button>
