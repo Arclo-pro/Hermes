@@ -35,11 +35,14 @@ export function GlassCard({
   if (isMarketing) {
     // When tint is provided, use gradient border technique
     if (tint) {
+      // Extract flex-related classes to apply to outer wrapper for proper height inheritance
+      const hasFlexClasses = className?.includes("flex") || className?.includes("h-full");
       return (
         <div
           className={cn(
             "rounded-2xl p-[1.5px] transition-all duration-200",
             hover && "hover:-translate-y-1 cursor-pointer",
+            hasFlexClasses && "h-full flex flex-col",
           )}
           style={{
             background: tintGradients[tint],

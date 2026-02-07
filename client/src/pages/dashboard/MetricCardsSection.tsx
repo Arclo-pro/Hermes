@@ -134,7 +134,7 @@ function ConfigAwareMetricCard({
 
             {/* Metric value area - fixed height */}
             <div className="h-14 flex flex-col justify-center">
-              {metric.available && metric.value != null ? (
+              {metric?.available && metric.value != null ? (
                 <>
                   <p className="text-3xl font-bold" style={{ color: "#0F172A" }}>
                     {format(metric.value)}
@@ -162,7 +162,7 @@ function ConfigAwareMetricCard({
                 <>
                   <p className="text-3xl font-bold" style={{ color: "#CBD5E1" }}>&mdash;</p>
                   <p className="text-xs mt-1 leading-relaxed line-clamp-2" style={{ color: "#64748B" }}>
-                    {metric.reason || "Not available"}
+                    {metric?.reason || "Not available"}
                   </p>
                 </>
               )}
@@ -231,7 +231,7 @@ export function MetricCardsSection({ siteId }: MetricCardsSectionProps) {
 
   if (isError || !data) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-stretch">
         {METRIC_CARDS.map((card) => (
           <ConfigAwareMetricCard
             key={card.label}
@@ -250,10 +250,18 @@ export function MetricCardsSection({ siteId }: MetricCardsSectionProps) {
     );
   }
 
+  // Default fallback for missing metrics
+  const defaultMetric: MetricValue = {
+    value: null,
+    change7d: null,
+    available: false,
+    reason: "Metric not available",
+  };
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-stretch">
       {METRIC_CARDS.map((card) => {
-        const metric = data.metrics[card.key as keyof typeof data.metrics];
+        const metric = data.metrics?.[card.key as keyof typeof data.metrics] ?? defaultMetric;
         const explanation = explanations?.[card.key as MetricKey];
         return (
           <ConfigAwareMetricCard
