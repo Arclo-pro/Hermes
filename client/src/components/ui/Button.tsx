@@ -33,27 +33,27 @@ const sizeClasses: Record<ButtonSize, string> = {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "bg-brand-gradient text-white shadow-card hover:opacity-95 focus:ring-brand-pink/60 focus:ring-offset-surface-primary",
+    "bg-brand-gradient text-white shadow-md hover:opacity-95 focus:ring-purple-500/60 focus:ring-offset-white",
   primaryGradient:
-    "bg-brand-gradient text-white shadow-card hover:opacity-95 focus:ring-brand-pink/60 focus:ring-offset-surface-primary",
+    "bg-brand-gradient text-white shadow-md hover:opacity-95 focus:ring-purple-500/60 focus:ring-offset-white",
   secondary:
-    "bg-surface-primary text-text-primary shadow-card ring-1 ring-surface-border hover:bg-surface-soft focus:ring-brand-orange/50 focus:ring-offset-surface-primary",
+    "bg-card text-foreground shadow-sm ring-1 ring-border hover:bg-muted focus:ring-amber-500/50 focus:ring-offset-white",
   default:
-    "bg-surface-primary text-text-primary shadow-card ring-1 ring-surface-border hover:bg-surface-soft focus:ring-brand-orange/50 focus:ring-offset-surface-primary",
+    "bg-card text-foreground shadow-sm ring-1 ring-border hover:bg-muted focus:ring-amber-500/50 focus:ring-offset-white",
   outline:
     "border border-gray-200 bg-white text-gray-700 shadow-sm hover:bg-gray-50 hover:shadow-md hover:border-gray-300 focus:ring-purple-400/50 focus:ring-offset-white transition-all",
   ghost:
-    "text-text-primary hover:bg-surface-soft focus:ring-brand-orange/50 focus:ring-offset-surface-primary",
+    "text-foreground hover:bg-muted focus:ring-amber-500/50 focus:ring-offset-white",
   link:
-    "text-brand-orange underline-offset-4 hover:underline focus:ring-brand-orange/50 p-0 h-auto",
+    "text-amber-500 underline-offset-4 hover:underline focus:ring-amber-500/50 p-0 h-auto",
   danger:
-    "bg-gradient-to-b from-red-500 to-red-600 text-white shadow-md shadow-red-500/25 hover:from-red-600 hover:to-red-700 focus:ring-red-400/60 focus:ring-offset-surface-primary transition-all",
+    "bg-gradient-to-b from-red-500 to-red-600 text-white shadow-md shadow-red-500/25 hover:from-red-600 hover:to-red-700 focus:ring-red-400/60 focus:ring-offset-white transition-all",
   destructive:
-    "bg-gradient-to-b from-red-500 to-red-600 text-white shadow-md shadow-red-500/25 hover:from-red-600 hover:to-red-700 focus:ring-red-400/60 focus:ring-offset-surface-primary transition-all",
+    "bg-gradient-to-b from-red-500 to-red-600 text-white shadow-md shadow-red-500/25 hover:from-red-600 hover:to-red-700 focus:ring-red-400/60 focus:ring-offset-white transition-all",
   gold:
-    "bg-gradient-to-b from-amber-400 to-amber-500 text-white shadow-md shadow-amber-500/25 hover:from-amber-500 hover:to-amber-600 focus:ring-amber-400/60 focus:ring-offset-surface-primary transition-all",
+    "bg-gradient-to-b from-amber-400 to-amber-500 text-white shadow-md shadow-amber-500/25 hover:from-amber-500 hover:to-amber-600 focus:ring-amber-400/60 focus:ring-offset-white transition-all",
   purple:
-    "bg-gradient-to-b from-purple-500 to-purple-600 text-white shadow-md shadow-purple-500/25 hover:from-purple-600 hover:to-purple-700 focus:ring-purple-400/60 focus:ring-offset-surface-primary transition-all",
+    "bg-gradient-to-b from-purple-500 to-purple-600 text-white shadow-md shadow-purple-500/25 hover:from-purple-600 hover:to-purple-700 focus:ring-purple-400/60 focus:ring-offset-white transition-all",
 };
 
 /**

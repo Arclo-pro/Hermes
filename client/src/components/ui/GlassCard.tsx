@@ -1,17 +1,11 @@
 import { cn } from "@/lib/utils";
 import { ReactNode } from "react";
+import { gradients, colors } from "@/lib/design-system";
 
 type GlassCardTint = "cyan" | "purple" | "green" | "pink" | "amber" | "red" | "blue";
 
-const tintGradients: Record<GlassCardTint, string> = {
-  cyan: "linear-gradient(135deg, rgba(6,182,212,0.35), rgba(59,130,246,0.18))",
-  purple: "linear-gradient(135deg, rgba(168,85,247,0.30), rgba(236,72,153,0.18))",
-  green: "linear-gradient(135deg, rgba(34,197,94,0.30), rgba(16,185,129,0.18))",
-  pink: "linear-gradient(135deg, rgba(244,63,94,0.30), rgba(236,72,153,0.18))",
-  amber: "linear-gradient(135deg, rgba(245,158,11,0.30), rgba(234,179,8,0.18))",
-  red: "linear-gradient(135deg, rgba(239,68,68,0.30), rgba(244,63,94,0.18))",
-  blue: "linear-gradient(135deg, rgba(59,130,246,0.30), rgba(99,102,241,0.18))",
-};
+// Use centralized gradients from design-system.ts
+const tintGradients = gradients.tints;
 
 interface GlassCardProps {
   children: ReactNode;
@@ -56,8 +50,8 @@ export function GlassCard({
             className={cn("rounded-[calc(1rem-1.5px)] h-full", className)}
             style={{
               background: variant === "marketing-accent"
-                ? "linear-gradient(180deg, #FAFAFE, #F5F3FF)"
-                : "linear-gradient(180deg, #FFFFFF, #FAFBFF)",
+                ? colors.background.cardAccent
+                : colors.background.card,
             }}
           >
             {children}
@@ -75,11 +69,11 @@ export function GlassCard({
         )}
         style={{
           background: variant === "marketing-accent"
-            ? "linear-gradient(180deg, #FAFAFE, #F5F3FF)"
-            : "linear-gradient(180deg, #FFFFFF, #F8FAFC)",
+            ? colors.background.cardAccent
+            : colors.background.card,
           border: variant === "marketing-accent"
-            ? "1px solid rgba(124, 58, 237, 0.12)"
-            : "1px solid rgba(15, 23, 42, 0.06)",
+            ? `1px solid ${colors.border.accent}`
+            : `1px solid ${colors.border.default}`,
           boxShadow: hover
             ? undefined
             : "0 20px 40px rgba(15, 23, 42, 0.08)",
@@ -125,7 +119,7 @@ interface GlassCardTitleProps {
 
 export function GlassCardTitle({ children, className }: GlassCardTitleProps) {
   return (
-    <h3 className={cn("text-lg font-semibold text-gray-900", className)}>
+    <h3 className={cn("text-lg font-semibold", className)} style={{ color: colors.text.primary }}>
       {children}
     </h3>
   );
@@ -151,7 +145,7 @@ interface GlassCardDescriptionProps {
 
 export function GlassCardDescription({ children, className }: GlassCardDescriptionProps) {
   return (
-    <p className={cn("text-sm text-gray-500 mt-1", className)}>
+    <p className={cn("text-sm mt-1", className)} style={{ color: colors.text.muted }}>
       {children}
     </p>
   );
