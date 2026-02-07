@@ -37,15 +37,26 @@ export function LandingHero() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: normalizedUrl }),
       });
-      
+
+      const text = await res.text();
       if (!res.ok) {
-        throw new Error("Failed to start scan");
+        let errMsg = "Failed to start scan";
+        try {
+          const errData = JSON.parse(text);
+          errMsg = errData?.message || errData?.error || errMsg;
+        } catch {}
+        throw new Error(errMsg);
       }
-      
-      const data = await res.json();
+
+      let data: any;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error("Invalid response from server");
+      }
       navigate(`/scan/preview/${data.scanId || data.id}`);
-    } catch (err) {
-      setError("Something went wrong. Please try again.");
+    } catch (err: any) {
+      setError(err?.message || "Something went wrong. Please try again.");
       setLoading(false);
     }
   };

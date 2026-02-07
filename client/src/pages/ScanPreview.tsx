@@ -58,16 +58,22 @@ export default function ScanPreview() {
           body: payloadStr,
         });
 
+        const text = await res.text();
         if (!res.ok) {
           let errMsg = `Server returned ${res.status}`;
           try {
-            const errData = await res.json();
+            const errData = JSON.parse(text);
             errMsg = errData?.message || errData?.error || errMsg;
           } catch {}
           throw new Error(errMsg);
         }
 
-        const data = await res.json();
+        let data: any;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          throw new Error("Invalid response from server");
+        }
         const id = data.scanId || data.id;
         if (!id) throw new Error("Server did not return a scan ID");
 
@@ -89,11 +95,17 @@ export default function ScanPreview() {
       if (res.status === 404) {
         throw new Error("Scan not found. It may have expired — please start a new scan.");
       }
+      const text = await res.text();
       if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.message || data?.error || `Server error (${res.status})`);
+        let errData: any = null;
+        try { errData = JSON.parse(text); } catch {}
+        throw new Error(errData?.message || errData?.error || `Server error (${res.status})`);
       }
-      return res.json();
+      try {
+        return JSON.parse(text);
+      } catch {
+        throw new Error("Invalid response from server");
+      }
     },
     refetchInterval: (query) => {
       if (query.state.error) return false;

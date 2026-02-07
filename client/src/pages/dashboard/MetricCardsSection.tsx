@@ -1,10 +1,13 @@
 import { useMetricCards, type MetricValue } from "@/hooks/useOpsDashboard";
+import { useMetricExplanations } from "@/hooks/useMetricExplanations";
 import {
   GlassCard,
   GlassCardContent,
 } from "@/components/ui/GlassCard";
+import { WhatChangedMicroCard, WhatChangedMicroCardSkeleton } from "@/components/metrics/WhatChangedMicroCard";
 import { ArrowUp, ArrowDown, Clock, Users, MousePointerClick, UserPlus, Loader2 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import type { MetricKey, MetricExplanation } from "../../../../shared/types/metricExplanation";
 
 interface MetricCardConfig {
   key: keyof ReturnType<typeof useMetricCards>["data"] extends { metrics: infer M } ? M : never;
@@ -67,6 +70,8 @@ function ConfigAwareMetricCard({
   bgGrad,
   tint,
   format,
+  explanation,
+  explanationLoading,
 }: {
   label: string;
   metric: MetricValue;
@@ -75,57 +80,68 @@ function ConfigAwareMetricCard({
   bgGrad: string;
   tint: "cyan" | "purple" | "green" | "pink" | "amber";
   format: (v: number) => string;
+  explanation?: MetricExplanation;
+  explanationLoading?: boolean;
 }) {
   return (
-    <GlassCard variant="marketing" hover tint={tint}>
-      <GlassCardContent className="p-6">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-sm font-medium" style={{ color: "#475569" }}>{label}</p>
-          <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center"
-            style={{
-              background: `linear-gradient(135deg, ${bgGrad})`,
-              border: `1px solid ${color}20`,
-            }}
-          >
-            <Icon className="w-4 h-4" style={{ color }} />
+    <div className="flex flex-col">
+      <GlassCard variant="marketing" hover tint={tint}>
+        <GlassCardContent className="p-6">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-medium" style={{ color: "#475569" }}>{label}</p>
+            <div
+              className="w-9 h-9 rounded-xl flex items-center justify-center"
+              style={{
+                background: `linear-gradient(135deg, ${bgGrad})`,
+                border: `1px solid ${color}20`,
+              }}
+            >
+              <Icon className="w-4 h-4" style={{ color }} />
+            </div>
           </div>
-        </div>
 
-        {metric.available && metric.value != null ? (
-          <>
-            <p className="text-3xl font-bold" style={{ color: "#0F172A" }}>
-              {format(metric.value)}
-            </p>
-            {metric.change7d != null && (
-              <div className="flex items-center gap-1 mt-1">
-                {metric.change7d > 0 ? (
-                  <ArrowUp className="w-3.5 h-3.5" style={{ color: "#22c55e" }} />
-                ) : metric.change7d < 0 ? (
-                  <ArrowDown className="w-3.5 h-3.5" style={{ color: "#ef4444" }} />
-                ) : null}
-                <span
-                  className="text-xs font-medium"
-                  style={{
-                    color: metric.change7d > 0 ? "#22c55e" : metric.change7d < 0 ? "#ef4444" : "#94A3B8",
-                  }}
-                >
-                  {metric.change7d > 0 ? "+" : ""}
-                  {metric.change7d.toFixed(1)}% 7d
-                </span>
-              </div>
-            )}
-          </>
-        ) : (
-          <>
-            <p className="text-3xl font-bold" style={{ color: "#CBD5E1" }}>&mdash;</p>
-            <p className="text-xs mt-2 leading-relaxed" style={{ color: "#64748B" }}>
-              {metric.reason || "Not available"}
-            </p>
-          </>
-        )}
-      </GlassCardContent>
-    </GlassCard>
+          {metric.available && metric.value != null ? (
+            <>
+              <p className="text-3xl font-bold" style={{ color: "#0F172A" }}>
+                {format(metric.value)}
+              </p>
+              {metric.change7d != null && (
+                <div className="flex items-center gap-1 mt-1">
+                  {metric.change7d > 0 ? (
+                    <ArrowUp className="w-3.5 h-3.5" style={{ color: "#22c55e" }} />
+                  ) : metric.change7d < 0 ? (
+                    <ArrowDown className="w-3.5 h-3.5" style={{ color: "#ef4444" }} />
+                  ) : null}
+                  <span
+                    className="text-xs font-medium"
+                    style={{
+                      color: metric.change7d > 0 ? "#22c55e" : metric.change7d < 0 ? "#ef4444" : "#94A3B8",
+                    }}
+                  >
+                    {metric.change7d > 0 ? "+" : ""}
+                    {metric.change7d.toFixed(1)}% 7d
+                  </span>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <p className="text-3xl font-bold" style={{ color: "#CBD5E1" }}>&mdash;</p>
+              <p className="text-xs mt-2 leading-relaxed" style={{ color: "#64748B" }}>
+                {metric.reason || "Not available"}
+              </p>
+            </>
+          )}
+        </GlassCardContent>
+      </GlassCard>
+
+      {/* What Changed micro-card */}
+      {explanationLoading ? (
+        <WhatChangedMicroCardSkeleton />
+      ) : explanation ? (
+        <WhatChangedMicroCard explanation={explanation} />
+      ) : null}
+    </div>
   );
 }
 
@@ -135,20 +151,27 @@ interface MetricCardsSectionProps {
 
 export function MetricCardsSection({ siteId }: MetricCardsSectionProps) {
   const { data, isLoading, isError } = useMetricCards(siteId);
+  const {
+    data: explanations,
+    isLoading: explanationsLoading,
+  } = useMetricExplanations(siteId);
 
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {METRIC_CARDS.map((card) => (
-          <GlassCard key={card.label} variant="marketing" hover tint={card.tint}>
-            <GlassCardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-medium" style={{ color: "#475569" }}>{card.label}</p>
-                <Loader2 className="w-4 h-4 animate-spin" style={{ color: "#94A3B8" }} />
-              </div>
-              <div className="h-8 w-20 rounded bg-gray-100 animate-pulse" />
-            </GlassCardContent>
-          </GlassCard>
+          <div key={card.label} className="flex flex-col">
+            <GlassCard variant="marketing" hover tint={card.tint}>
+              <GlassCardContent className="p-6">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium" style={{ color: "#475569" }}>{card.label}</p>
+                  <Loader2 className="w-4 h-4 animate-spin" style={{ color: "#94A3B8" }} />
+                </div>
+                <div className="h-8 w-20 rounded bg-gray-100 animate-pulse" />
+              </GlassCardContent>
+            </GlassCard>
+            <WhatChangedMicroCardSkeleton />
+          </div>
         ))}
       </div>
     );
@@ -177,6 +200,7 @@ export function MetricCardsSection({ siteId }: MetricCardsSectionProps) {
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {METRIC_CARDS.map((card) => {
         const metric = data.metrics[card.key as keyof typeof data.metrics];
+        const explanation = explanations?.[card.key as MetricKey];
         return (
           <ConfigAwareMetricCard
             key={card.label}
@@ -187,6 +211,8 @@ export function MetricCardsSection({ siteId }: MetricCardsSectionProps) {
             bgGrad={card.bgGrad}
             tint={card.tint}
             format={card.format}
+            explanation={explanation}
+            explanationLoading={explanationsLoading}
           />
         );
       })}

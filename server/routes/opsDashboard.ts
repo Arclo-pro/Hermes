@@ -25,6 +25,9 @@ import {
   type WebsiteTrustLevel,
 } from '@shared/schema';
 import { generateInsights, type InsightsInput } from '../services/insightsTransformer';
+import { analyzeMetric, analyzeAllMetrics } from '../services/metricAnalyzer';
+import type { MetricKey } from '../../shared/types/metricExplanation';
+import { analyzeAcquisitionOverview, analyzeAcquisitionBudget } from '../services/acquisitionAnalyzer';
 import { eq, desc, and, gte, lte, sql, inArray, isNotNull, count } from 'drizzle-orm';
 import { logger } from '../utils/logger';
 
@@ -906,6 +909,92 @@ router.get('/:siteId/insights', async (req, res) => {
   } catch (error) {
     logger.error('[OpsDashboard] insights error', error as string);
     res.status(500).json({ error: 'Failed to generate insights' });
+  }
+});
+
+// ============================================================
+// 8. GET /api/ops-dashboard/:siteId/metric-explanations
+// Batch endpoint: "What Changed?" explanations for all 4 KPIs
+// ============================================================
+router.get('/:siteId/metric-explanations', async (req, res) => {
+  try {
+    const { siteId } = req.params;
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const explanations = await analyzeAllMetrics(siteId);
+    res.json(explanations);
+  } catch (error) {
+    logger.error('[OpsDashboard] metric-explanations error', error as string);
+    res.status(500).json({ error: 'Failed to generate metric explanations' });
+  }
+});
+
+// ============================================================
+// 9. GET /api/ops-dashboard/:siteId/metric-explanation/:metricKey
+// Single metric breakdown for the detailed analysis page
+// ============================================================
+router.get('/:siteId/metric-explanation/:metricKey', async (req, res) => {
+  try {
+    const { siteId, metricKey } = req.params;
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const validKeys: MetricKey[] = ['activeUsers', 'eventCount', 'newUsers', 'avgEngagement'];
+    if (!validKeys.includes(metricKey as MetricKey)) {
+      return res.status(400).json({
+        error: 'Invalid metric key',
+        validKeys,
+      });
+    }
+
+    const explanation = await analyzeMetric(siteId, metricKey as MetricKey);
+    res.json(explanation);
+  } catch (error) {
+    logger.error('[OpsDashboard] metric-explanation error', error as string);
+    res.status(500).json({ error: 'Failed to generate metric explanation' });
+  }
+});
+
+// ============================================================
+// 10. GET /api/ops-dashboard/:siteId/acquisition-overview
+// Paid vs Organic acquisition analysis for overview page
+// ============================================================
+router.get('/:siteId/acquisition-overview', async (req, res) => {
+  try {
+    const { siteId } = req.params;
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const overview = await analyzeAcquisitionOverview(siteId);
+    res.json(overview);
+  } catch (error) {
+    logger.error('[OpsDashboard] acquisition-overview error', error as string);
+    res.status(500).json({ error: 'Failed to generate acquisition overview' });
+  }
+});
+
+// ============================================================
+// 11. GET /api/ops-dashboard/:siteId/acquisition-budget
+// Budget sensitivity analysis and spend recommendations
+// ============================================================
+router.get('/:siteId/acquisition-budget', async (req, res) => {
+  try {
+    const { siteId } = req.params;
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const budget = await analyzeAcquisitionBudget(siteId);
+    if (!budget) {
+      return res.status(200).json({
+        error: 'Insufficient data',
+        message: 'Need at least 4 weeks of spend data for budget analysis.',
+      });
+    }
+    res.json(budget);
+  } catch (error) {
+    logger.error('[OpsDashboard] acquisition-budget error', error as string);
+    res.status(500).json({ error: 'Failed to generate budget analysis' });
   }
 });
 

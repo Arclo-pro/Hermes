@@ -416,3 +416,49 @@ export async function triggerSerpRefresh(siteId: string): Promise<SerpRefreshRes
     return { success: false, message: "Invalid response from server", used: 0, remaining: 0, limit: 0 };
   }
 }
+
+// ============================================================
+// Acquisition Efficiency Analysis
+// ============================================================
+
+import type {
+  AcquisitionOverviewResponse,
+  AcquisitionBudgetResponse,
+} from "../../../shared/types/acquisitionAnalysis";
+
+export function useAcquisitionOverview(siteId: string | null | undefined) {
+  return useQuery<AcquisitionOverviewResponse>({
+    queryKey: ["/api/ops-dashboard", siteId, "acquisition-overview"],
+    queryFn: () => fetchOpsDashboard<AcquisitionOverviewResponse>(siteId!, "acquisition-overview"),
+    enabled: !!siteId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+export function useAcquisitionBudget(siteId: string | null | undefined) {
+  return useQuery<AcquisitionBudgetResponse | null>({
+    queryKey: ["/api/ops-dashboard", siteId, "acquisition-budget"],
+    queryFn: async () => {
+      const res = await fetch(buildOpsDashboardUrl(siteId!, "acquisition-budget"), {
+        credentials: "include",
+      });
+      const text = await res.text();
+      if (!res.ok) {
+        throw new Error(`${res.status}: ${text || res.statusText}`);
+      }
+      if (!text) return null;
+      try {
+        const data = JSON.parse(text);
+        // Handle "insufficient data" response
+        if (data.error === "Insufficient data") {
+          return null;
+        }
+        return data as AcquisitionBudgetResponse;
+      } catch {
+        throw new Error(`Invalid JSON response: ${text.slice(0, 100)}`);
+      }
+    },
+    enabled: !!siteId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}

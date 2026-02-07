@@ -106,11 +106,18 @@ export default function FreeReport() {
     queryFn: async () => {
       const res = await fetch(apiUrl);
       if (res.status === 202) throw new Error("__GENERATING__");
+      const text = await res.text();
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
+        let err: any = {};
+        try { err = JSON.parse(text); } catch {}
         throw new Error(err.message || "Failed to load report");
       }
-      const data = await res.json();
+      let data: any;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error("Invalid response from server");
+      }
       if (!data.ok || !data.report) {
         throw new Error(data.message || "Invalid report response");
       }
@@ -145,8 +152,13 @@ export default function FreeReport() {
   const shareMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch(`/api/report/free/${reportId}/share`, { method: "POST" });
+      const text = await res.text();
       if (!res.ok) throw new Error("Failed to create share link");
-      return res.json();
+      try {
+        return JSON.parse(text);
+      } catch {
+        throw new Error("Invalid response from server");
+      }
     },
     onSuccess: (data) => {
       const url = `${window.location.origin}/report/free/${reportId}/share/${data.share_token}`;

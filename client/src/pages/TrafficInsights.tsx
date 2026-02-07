@@ -1,6 +1,7 @@
 import { useSiteContext } from "@/hooks/useSiteContext";
 import { useTrafficDiagnosis, type DiagnosisInsight, type DimensionBreakdown } from "@/hooks/useOpsDashboard";
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from "@/components/ui/GlassCard";
+import { Badge } from "@/components/ui/badge";
 import { colors, pageStyles, badgeStyles, gradients } from "@/lib/design-system";
 import {
   TrendingDown,
@@ -42,7 +43,7 @@ function InsightCard({ insight }: { insight: DiagnosisInsight }) {
   const style = severityStyles[insight.severity];
 
   return (
-    <GlassCard variant="marketing"className={cn("transition-all", style.bg, style.border)}>
+    <GlassCard variant="marketing" className={cn("transition-all", style.bg, style.border)}>
       <GlassCardContent className="p-4">
         <div className="flex items-start justify-between mb-2">
           <Badge variant={style.badge}>{insight.severity.toUpperCase()}</Badge>
@@ -170,130 +171,129 @@ export default function TrafficInsights() {
             </h1>
             <p style={{ color: colors.text.secondary }}>{summary.periodLabel}</p>
           </div>
-            <button
-              onClick={() => refetch()}
-              disabled={isRefetching}
-              className="inline-flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
-            >
-              <RefreshCw className={cn("w-4 h-4", isRefetching && "animate-spin")} />
-              Refresh
-            </button>
-          </div>
-
-          {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <GlassCard variant="marketing"className={cn(
-              hasDrop ? "border-red-200 bg-red-50" : "border-green-200 bg-green-50"
-            )}>
-              <GlassCardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">Traffic Status</p>
-                    <p className={cn(
-                      "text-2xl font-bold",
-                      hasDrop ? "text-red-700" : "text-green-700"
-                    )}>
-                      {hasDrop ? "Significant Drop" : "Stable"}
-                    </p>
-                  </div>
-                  {hasDrop ? (
-                    <TrendingDown className="w-10 h-10 text-red-400" />
-                  ) : (
-                    <CheckCircle2 className="w-10 h-10 text-green-400" />
-                  )}
-                </div>
-              </GlassCardContent>
-            </GlassCard>
-
-            <GlassCard variant="marketing">
-              <GlassCardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">Users Change</p>
-                    <p className={cn(
-                      "text-2xl font-bold",
-                      summary.usersChange > 0 ? "text-green-700" : summary.usersChange < 0 ? "text-red-700" : "text-gray-700"
-                    )}>
-                      {formatPercent(summary.usersChange)}
-                    </p>
-                  </div>
-                  {getChangeIcon(summary.usersChange)}
-                </div>
-              </GlassCardContent>
-            </GlassCard>
-
-            <GlassCard variant="marketing">
-              <GlassCardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">Sessions Change</p>
-                    <p className={cn(
-                      "text-2xl font-bold",
-                      summary.sessionsChange > 0 ? "text-green-700" : summary.sessionsChange < 0 ? "text-red-700" : "text-gray-700"
-                    )}>
-                      {formatPercent(summary.sessionsChange)}
-                    </p>
-                  </div>
-                  {getChangeIcon(summary.sessionsChange)}
-                </div>
-              </GlassCardContent>
-            </GlassCard>
-          </div>
-
-          {/* Insights */}
-          {insights && insights.length > 0 && (
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <AlertCircle className="w-5 h-5 text-amber-500" />
-                Key Findings ({insights.length})
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {insights.map((insight) => (
-                  <InsightCard key={insight.id} insight={insight} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Breakdowns */}
-          {breakdowns && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <BreakdownTable
-                title="By Channel"
-                icon={BarChart3}
-                breakdowns={breakdowns.channels || []}
-              />
-              <BreakdownTable
-                title="By Device"
-                icon={Smartphone}
-                breakdowns={breakdowns.devices || []}
-              />
-              <BreakdownTable
-                title="By Geography"
-                icon={Globe}
-                breakdowns={breakdowns.geos || []}
-              />
-              <BreakdownTable
-                title="By Landing Page"
-                icon={FileText}
-                breakdowns={breakdowns.landingPages || []}
-              />
-            </div>
-          )}
-
-          {/* No Drop Message */}
-          {!hasDrop && (!insights || insights.length === 0) && (
-            <GlassCard variant="marketing"className="border-green-200 bg-green-50">
-              <GlassCardContent className="p-8 text-center">
-                <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-green-800 mb-2">Traffic Looks Healthy</h3>
-                <p style={{ color: colors.semantic.success }}>
-                  No significant traffic drops detected. Your site traffic is stable or growing.
-                </p>
-              </GlassCardContent>
-            </GlassCard>
-          )}
+          <button
+            onClick={() => refetch()}
+            disabled={isRefetching}
+            className="inline-flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={cn("w-4 h-4", isRefetching && "animate-spin")} />
+            Refresh
+          </button>
         </div>
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <GlassCard variant="marketing" className={cn(
+            hasDrop ? "border-red-200 bg-red-50" : "border-green-200 bg-green-50"
+          )}>
+            <GlassCardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Traffic Status</p>
+                  <p className={cn(
+                    "text-2xl font-bold",
+                    hasDrop ? "text-red-700" : "text-green-700"
+                  )}>
+                    {hasDrop ? "Significant Drop" : "Stable"}
+                  </p>
+                </div>
+                {hasDrop ? (
+                  <TrendingDown className="w-10 h-10 text-red-400" />
+                ) : (
+                  <CheckCircle2 className="w-10 h-10 text-green-400" />
+                )}
+              </div>
+            </GlassCardContent>
+          </GlassCard>
+
+          <GlassCard variant="marketing">
+            <GlassCardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Users Change</p>
+                  <p className={cn(
+                    "text-2xl font-bold",
+                    summary.usersChange > 0 ? "text-green-700" : summary.usersChange < 0 ? "text-red-700" : "text-gray-700"
+                  )}>
+                    {formatPercent(summary.usersChange)}
+                  </p>
+                </div>
+                {getChangeIcon(summary.usersChange)}
+              </div>
+            </GlassCardContent>
+          </GlassCard>
+
+          <GlassCard variant="marketing">
+            <GlassCardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Sessions Change</p>
+                  <p className={cn(
+                    "text-2xl font-bold",
+                    summary.sessionsChange > 0 ? "text-green-700" : summary.sessionsChange < 0 ? "text-red-700" : "text-gray-700"
+                  )}>
+                    {formatPercent(summary.sessionsChange)}
+                  </p>
+                </div>
+                {getChangeIcon(summary.sessionsChange)}
+              </div>
+            </GlassCardContent>
+          </GlassCard>
+        </div>
+
+        {/* Insights */}
+        {insights && insights.length > 0 && (
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-amber-500" />
+              Key Findings ({insights.length})
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {insights.map((insight) => (
+                <InsightCard key={insight.id} insight={insight} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Breakdowns */}
+        {breakdowns && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <BreakdownTable
+              title="By Channel"
+              icon={BarChart3}
+              breakdowns={breakdowns.channels || []}
+            />
+            <BreakdownTable
+              title="By Device"
+              icon={Smartphone}
+              breakdowns={breakdowns.devices || []}
+            />
+            <BreakdownTable
+              title="By Geography"
+              icon={Globe}
+              breakdowns={breakdowns.geos || []}
+            />
+            <BreakdownTable
+              title="By Landing Page"
+              icon={FileText}
+              breakdowns={breakdowns.landingPages || []}
+            />
+          </div>
+        )}
+
+        {/* No Drop Message */}
+        {!hasDrop && (!insights || insights.length === 0) && (
+          <GlassCard variant="marketing" className="border-green-200 bg-green-50">
+            <GlassCardContent className="p-8 text-center">
+              <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-green-800 mb-2">Traffic Looks Healthy</h3>
+              <p style={{ color: colors.semantic.success }}>
+                No significant traffic drops detected. Your site traffic is stable or growing.
+              </p>
+            </GlassCardContent>
+          </GlassCard>
+        )}
       </div>
     </div>
   );

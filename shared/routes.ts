@@ -64,6 +64,12 @@ export const ROUTES = {
   AUTOMATION: "/app/automation",
   LEADS: "/app/leads",
 
+  // Insights pages
+  INSIGHTS_METRICS: "/app/insights/metrics",
+  INSIGHTS_METRIC_DETAIL: "/app/insights/metrics/:metricKey",
+  INSIGHTS_ACQUISITION: "/app/insights/acquisition",
+  INSIGHTS_ACQUISITION_BUDGET: "/app/insights/acquisition/budget",
+
   // Legacy website-centric routes (redirected)
   SITE_HEALTH: "/app/site-health",
   PAGES: "/app/pages",
@@ -138,6 +144,7 @@ export const buildRoute = {
   // App route builders
   agent: (agentId: string) => `/app/agents/${agentId}`,
   lead: (leadId: string) => `/app/leads/${leadId}`,
+  metricDetail: (metricKey: string) => `/app/insights/metrics/${metricKey}`,
   run: (runId: string) => `/app/runs/${runId}`,
   site: (siteId: string) => `/app/sites/${siteId}`,
   settingsTab: (tab: string) => `/app/settings?tab=${tab}`,

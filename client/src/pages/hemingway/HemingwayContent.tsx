@@ -753,7 +753,16 @@ export default function HemingwayContent() {
         if (!res.ok) {
           return { data: MOCK_HEMINGWAY_DATA, isPreviewMode: true, errorStatus: res.status };
         }
-        const jsonData = await res.json();
+        const text = await res.text();
+        if (!text) {
+          return { data: MOCK_HEMINGWAY_DATA, isPreviewMode: true, errorStatus: null };
+        }
+        let jsonData: any;
+        try {
+          jsonData = JSON.parse(text);
+        } catch {
+          return { data: MOCK_HEMINGWAY_DATA, isPreviewMode: true, errorStatus: null };
+        }
         if (!jsonData || (jsonData as any).status === "stub") {
           return { data: MOCK_HEMINGWAY_DATA, isPreviewMode: true, errorStatus: null };
         }
@@ -772,15 +781,21 @@ export default function HemingwayContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ site_id: siteId }),
       });
-      if (!res.ok) throw new Error("Failed to start analysis");
-      return res.json();
+      const text = await res.text();
+      if (!res.ok) throw new Error(text || "Failed to start analysis");
+      if (!text) return { ok: true };
+      try {
+        return JSON.parse(text);
+      } catch {
+        return { ok: true };
+      }
     },
     onSuccess: () => {
       toast.success("Content quality analysis started");
       queryClient.invalidateQueries({ queryKey: ["hemingway-data"] });
     },
-    onError: () => {
-      toast.error("Failed to start analysis");
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to start analysis");
     },
   });
 
@@ -791,15 +806,21 @@ export default function HemingwayContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ site_id: siteId }),
       });
-      if (!res.ok) throw new Error("Failed to identify weak pages");
-      return res.json();
+      const text = await res.text();
+      if (!res.ok) throw new Error(text || "Failed to identify weak pages");
+      if (!text) return { ok: true };
+      try {
+        return JSON.parse(text);
+      } catch {
+        return { ok: true };
+      }
     },
     onSuccess: () => {
       toast.success("Weak pages identified");
       queryClient.invalidateQueries({ queryKey: ["hemingway-data"] });
     },
-    onError: () => {
-      toast.error("Failed to identify weak pages");
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to identify weak pages");
     },
   });
 
@@ -811,7 +832,7 @@ export default function HemingwayContent() {
       const res = await fetch(`/api/hemingway/improve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           site_id: siteId,
           finding_id: finding?.id,
           url: finding?.url,
@@ -819,8 +840,14 @@ export default function HemingwayContent() {
           bulk: !finding,
         }),
       });
-      if (!res.ok) throw new Error("Failed to queue improvement");
-      return res.json();
+      const text = await res.text();
+      if (!res.ok) throw new Error(text || "Failed to queue improvement");
+      if (!text) return { ok: true };
+      try {
+        return JSON.parse(text);
+      } catch {
+        return { ok: true };
+      }
     },
     onSuccess: (_, finding) => {
       if (finding) {
@@ -830,8 +857,8 @@ export default function HemingwayContent() {
       }
       queryClient.invalidateQueries({ queryKey: ["hemingway-data"] });
     },
-    onError: () => {
-      toast.error("Failed to queue improvement");
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to queue improvement");
     },
     onSettled: () => {
       setFixingIssue(null);

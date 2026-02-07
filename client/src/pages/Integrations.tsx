@@ -1265,7 +1265,7 @@ export default function Integrations() {
         ) : (
           <>
             {/* Site Selection and Run Diagnosis */}
-            <GlassCard variant="marketing"className="mb-4 bg-card/80 backdrop-blur-sm border-border">
+            <GlassCard variant="marketing" className="mb-4 bg-card/80 backdrop-blur-sm border-border">
               <GlassCardContent className="py-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
@@ -1306,7 +1306,7 @@ export default function Integrations() {
 
             <TabsContent value="inventory" className="space-y-4">
               {/* Platform Dependencies Panel */}
-              <GlassCard variant="marketing"className="bg-card/80 backdrop-blur-sm border-border">
+              <GlassCard variant="marketing" className="bg-card/80 backdrop-blur-sm border-border">
                 <GlassCardHeader className="py-3">
                   <GlassCardTitle className="text-sm font-medium flex items-center gap-2 text-foreground">
                     <Shield className="w-4 h-4 text-primary" />
@@ -1432,7 +1432,7 @@ export default function Integrations() {
 
               {/* Summary Stats Bar - Computed from Summary Endpoint */}
               <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-                <GlassCard variant="marketing"className="p-3" data-testid="stat-services">
+                <GlassCard variant="marketing" className="p-3" data-testid="stat-services">
                   <div className="flex items-center gap-2">
                     <Activity className="w-4 h-4 text-semantic-info" />
                     <div>
@@ -1441,7 +1441,7 @@ export default function Integrations() {
                     </div>
                   </div>
                 </GlassCard>
-                <GlassCard variant="marketing"className="p-3" data-testid="stat-built">
+                <GlassCard variant="marketing" className="p-3" data-testid="stat-built">
                   <div className="flex items-center gap-2">
                     <CheckCircle className="w-4 h-4 text-semantic-success" />
                     <div>
@@ -1450,7 +1450,7 @@ export default function Integrations() {
                     </div>
                   </div>
                 </GlassCard>
-                <GlassCard variant="marketing"className="p-3" data-testid="stat-ready">
+                <GlassCard variant="marketing" className="p-3" data-testid="stat-ready">
                   <div className="flex items-center gap-2">
                     <Zap className="w-4 h-4 text-semantic-info" />
                     <div>
@@ -1459,7 +1459,7 @@ export default function Integrations() {
                     </div>
                   </div>
                 </GlassCard>
-                <GlassCard variant="marketing"className="p-3" data-testid="stat-ran24h">
+                <GlassCard variant="marketing" className="p-3" data-testid="stat-ran24h">
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-purple-accent" />
                     <div>
@@ -1468,7 +1468,7 @@ export default function Integrations() {
                     </div>
                   </div>
                 </GlassCard>
-                <GlassCard variant="marketing"className={cn("p-3", (siteSummary?.rollups?.failed ?? 0) > 0 && "border-semantic-danger-border bg-semantic-danger-soft")} data-testid="stat-failed">
+                <GlassCard variant="marketing" className={cn("p-3", (siteSummary?.rollups?.failed ?? 0) > 0 && "border-semantic-danger-border bg-semantic-danger-soft")} data-testid="stat-failed">
                   <div className="flex items-center gap-2">
                     <XCircle className={cn("w-4 h-4", (siteSummary?.rollups?.failed ?? 0) > 0 ? "text-semantic-danger" : "text-muted-foreground")} />
                     <div>
@@ -1478,7 +1478,7 @@ export default function Integrations() {
                   </div>
                 </GlassCard>
                 {(siteSummary?.rollups?.blocked ?? 0) > 0 && (
-                  <GlassCard variant="marketing"className="p-3 border-semantic-warning-border bg-semantic-warning-soft" data-testid="stat-blocked">
+                  <GlassCard variant="marketing" className="p-3 border-semantic-warning-border bg-semantic-warning-soft" data-testid="stat-blocked">
                     <div className="flex items-center gap-2">
                       <AlertTriangle className="w-4 h-4 text-semantic-warning" />
                       <div>
@@ -1492,7 +1492,7 @@ export default function Integrations() {
 
               {/* Next Actions Panel */}
               {siteSummary?.nextActions && siteSummary.nextActions.length > 0 && (
-                <GlassCard variant="marketing"className="border-gold bg-gold-soft" data-testid="next-actions-panel">
+                <GlassCard variant="marketing" className="border-gold bg-gold-soft" data-testid="next-actions-panel">
                   <GlassCardHeader className="pb-2">
                     <GlassCardTitle className="text-sm font-medium flex items-center gap-2">
                       <AlertTriangle className="w-4 h-4 text-gold" />
@@ -3121,7 +3121,6 @@ export default function Integrations() {
           )}
         </DialogContent>
       </Dialog>
-      </div>
     </div>
   );
 }

@@ -522,22 +522,28 @@ export default function ScottyContent() {
       const res = await fetch(`/api/scotty/fix-issue`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          site_id: siteId, 
+        body: JSON.stringify({
+          site_id: siteId,
           finding_id: finding.id,
           fix_action: finding.fixAction,
           url: finding.url,
         }),
       });
-      if (!res.ok) throw new Error("Failed to fix issue");
-      return res.json();
+      const text = await res.text();
+      if (!res.ok) throw new Error(text || "Failed to fix issue");
+      if (!text) return { ok: true };
+      try {
+        return JSON.parse(text);
+      } catch {
+        return { ok: true };
+      }
     },
     onSuccess: () => {
       toast.success("Issue fixed successfully");
       queryClient.invalidateQueries({ queryKey: ["scotty-data"] });
     },
-    onError: () => {
-      toast.error("Failed to fix issue");
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to fix issue");
     },
     onSettled: () => {
       setFixingIssue(null);

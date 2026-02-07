@@ -77,6 +77,10 @@ const WebsiteReportPage = lazy(() => import("@/pages/WebsiteReportPage"));
 const DeveloperReportPage = lazy(() => import("@/pages/DeveloperReportPage"));
 const SettingsIntegrations = lazy(() => import("@/pages/SettingsIntegrations"));
 const Leads = lazy(() => import("@/pages/Leads"));
+const MetricsOverview = lazy(() => import("@/pages/insights/MetricsOverview"));
+const MetricBreakdown = lazy(() => import("@/pages/insights/MetricBreakdown"));
+const AcquisitionOverview = lazy(() => import("@/pages/insights/acquisition/AcquisitionOverview"));
+const BudgetImpact = lazy(() => import("@/pages/insights/acquisition/BudgetImpact"));
 
 const persister = typeof window !== 'undefined' 
   ? createSyncStoragePersister({
@@ -253,6 +257,10 @@ function Router() {
       <Route path={ROUTES.LINK_BUILDING}><ProtectedRoute component={Authority} /></Route>
       <Route path={ROUTES.AUTOMATION}><ProtectedRoute component={Crew} /></Route>
       <Route path={ROUTES.LEADS}><ProtectedRoute component={Leads} lightMode /></Route>
+      <Route path={ROUTES.INSIGHTS_METRIC_DETAIL}><ProtectedRoute component={MetricBreakdown} lightMode /></Route>
+      <Route path={ROUTES.INSIGHTS_METRICS}><ProtectedRoute component={MetricsOverview} lightMode /></Route>
+      <Route path={ROUTES.INSIGHTS_ACQUISITION_BUDGET}><ProtectedRoute component={BudgetImpact} lightMode /></Route>
+      <Route path={ROUTES.INSIGHTS_ACQUISITION}><ProtectedRoute component={AcquisitionOverview} lightMode /></Route>
 
       {/* Legacy route redirects */}
       <Route path={ROUTES.SITE_HEALTH}><LegacyRedirect to={ROUTES.TECHNICAL_SEO} /></Route>
