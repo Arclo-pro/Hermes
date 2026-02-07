@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Loader2, Send, CheckCircle2, Mail, Building2, Phone } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { buildLeadPayload } from "@/hooks/useAnalyticsContext";
 
 export default function Contact() {
   const [name, setName] = useState("");
@@ -22,10 +23,12 @@ export default function Contact() {
 
   const contactMutation = useMutation({
     mutationFn: async (data: { name: string; email: string; company?: string; phone?: string; message: string }) => {
+      // Build payload with auto-captured context
+      const payload = buildLeadPayload(data);
       const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
       const result = await res.json();
       if (!res.ok) {

@@ -11,13 +11,7 @@ import { PlannedUpdatesSection } from "./dashboard/PlannedUpdatesSection";
 import { SetupCardsSection } from "./dashboard/SetupCardsSection";
 import { InsightsSection } from "./dashboard/InsightsSection";
 import { TechnicalSeoSection } from "./dashboard/TechnicalSeoSection";
-
-const DASHBOARD_BG = {
-  background: `radial-gradient(1200px circle at 10% 0%, rgba(139, 92, 246, 0.06), transparent 40%),
-               radial-gradient(1200px circle at 90% 10%, rgba(236, 72, 153, 0.04), transparent 40%),
-               radial-gradient(800px circle at 50% 80%, rgba(245, 158, 11, 0.03), transparent 40%),
-               #FFFFFF`,
-};
+import { pageStyles } from "@/lib/design-system";
 
 export default function Dashboard() {
   const { selectedSite } = useSiteContext();
@@ -32,7 +26,7 @@ export default function Dashboard() {
   const domain = selectedSite?.baseUrl?.replace(/^https?:\/\//, "").replace(/\/$/, "") || "";
 
   return (
-    <div className="min-h-screen p-6" style={DASHBOARD_BG}>
+    <div className="min-h-screen p-6" style={pageStyles.background}>
       {showConfigOverlay && (
         <ConfigureOverlay domain={domain} onClose={() => setShowConfigOverlay(false)} />
       )}

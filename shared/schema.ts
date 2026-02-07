@@ -4196,6 +4196,14 @@ export const leads = pgTable("leads", {
   contactAttemptsCount: integer("contact_attempts_count").default(0),
   notes: text("notes"),
 
+  // Extended Context (lead.v2 payload)
+  gclid: text("gclid"), // Google Click ID for ads tracking
+  wbraid: text("wbraid"), // iOS web-to-app click ID
+  gbraid: text("gbraid"), // iOS app-to-app click ID
+  referrer: text("referrer"), // HTTP referrer
+  userAgent: text("user_agent"), // Browser user agent
+  context: jsonb("context"), // Full LeadContext from lead.v2 schema
+
   // Timestamps
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

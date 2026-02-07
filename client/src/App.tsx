@@ -8,6 +8,7 @@ import { Toaster as SonnerToaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SiteProvider } from "@/hooks/useSiteContext";
 import { AuthProvider, useRequireAuth } from "@/hooks/useAuth";
+import { useAnalyticsContext } from "@/hooks/useAnalyticsContext";
 import AppShell from "@/components/AppShell";
 import NotFound from "@/pages/not-found";
 import { ROUTES, buildRoute, resolveAgentSlug } from "@shared/routes";
@@ -200,6 +201,8 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
 
 function Router() {
   const [location] = useLocation();
+  // Initialize analytics context for UTM tracking and session behavior
+  useAnalyticsContext();
   return (
     <ErrorBoundary>
     <Suspense fallback={
@@ -254,8 +257,8 @@ function Router() {
       <Route path={ROUTES.TECHNICAL_SEO}><ProtectedRoute component={TechnicalSeoDashboard} lightMode /></Route>
       <Route path={ROUTES.CONTENT}><ProtectedRoute component={ContentDashboard} lightMode /></Route>
       <Route path={ROUTES.AI_SEARCH}><ProtectedRoute component={AISearchDashboard} lightMode /></Route>
-      <Route path={ROUTES.LINK_BUILDING}><ProtectedRoute component={Authority} /></Route>
-      <Route path={ROUTES.AUTOMATION}><ProtectedRoute component={Crew} /></Route>
+      <Route path={ROUTES.LINK_BUILDING}><ProtectedRoute component={Authority} lightMode /></Route>
+      <Route path={ROUTES.AUTOMATION}><ProtectedRoute component={Crew} lightMode /></Route>
       <Route path={ROUTES.LEADS}><ProtectedRoute component={Leads} lightMode /></Route>
       <Route path={ROUTES.INSIGHTS_METRIC_DETAIL}><ProtectedRoute component={MetricBreakdown} lightMode /></Route>
       <Route path={ROUTES.INSIGHTS_METRICS}><ProtectedRoute component={MetricsOverview} lightMode /></Route>
@@ -273,38 +276,38 @@ function Router() {
         <Redirect to={ROUTES.AUTOMATION} />
       </Route>
       <Route path={ROUTES.AGENTS}><LegacyRedirect to={ROUTES.AUTOMATION} /></Route>
-      <Route path={ROUTES.AGENT_DETAIL}><ProtectedRoute component={AgentDetail} /></Route>
+      <Route path={ROUTES.AGENT_DETAIL}><ProtectedRoute component={AgentDetail} lightMode /></Route>
       <Route path={ROUTES.KEYWORDS}><LegacyRedirect to={ROUTES.RANKINGS} /></Route>
       <Route path={ROUTES.AUTHORITY}><LegacyRedirect to={ROUTES.LINK_BUILDING} /></Route>
       <Route path={ROUTES.SPEEDSTER}><LegacyRedirect to={ROUTES.PERFORMANCE} /></Route>
-      <Route path={ROUTES.SOCRATES}><ProtectedRoute component={Socrates} /></Route>
-      <Route path={ROUTES.TICKETS}><ProtectedRoute component={Tickets} /></Route>
-      <Route path={ROUTES.CHANGES}><ProtectedRoute component={SuggestedChanges} /></Route>
-      <Route path={ROUTES.RUNS}><ProtectedRoute component={Runs} /></Route>
-      <Route path={ROUTES.RUN_DETAIL}><ProtectedRoute component={RunDetail} /></Route>
+      <Route path={ROUTES.SOCRATES}><ProtectedRoute component={Socrates} lightMode /></Route>
+      <Route path={ROUTES.TICKETS}><ProtectedRoute component={Tickets} lightMode /></Route>
+      <Route path={ROUTES.CHANGES}><ProtectedRoute component={SuggestedChanges} lightMode /></Route>
+      <Route path={ROUTES.RUNS}><ProtectedRoute component={Runs} lightMode /></Route>
+      <Route path={ROUTES.RUN_DETAIL}><ProtectedRoute component={RunDetail} lightMode /></Route>
       <Route path={ROUTES.AUDIT}><LegacyRedirect to={ROUTES.TECHNICAL_SEO} /></Route>
       <Route path={ROUTES.BENCHMARKS}><LegacyRedirect to={ROUTES.COMPETITIVE_ANALYSIS} /></Route>
       <Route path={ROUTES.ACHIEVEMENTS}><LegacyRedirect to={ROUTES.OVERVIEW} /></Route>
-      <Route path={ROUTES.INTEGRATIONS}><ProtectedRoute component={Integrations} /></Route>
-      <Route path={ROUTES.NOTIFICATIONS}><ProtectedRoute component={Notifications} /></Route>
+      <Route path={ROUTES.INTEGRATIONS}><ProtectedRoute component={Integrations} lightMode /></Route>
+      <Route path={ROUTES.NOTIFICATIONS}><ProtectedRoute component={Notifications} lightMode /></Route>
       <Route path="/app/settings/integrations"><ProtectedRoute component={SettingsIntegrations} lightMode /></Route>
-      <Route path={ROUTES.SETTINGS}><ProtectedRoute component={Settings} /></Route>
-      <Route path={ROUTES.SETTINGS_WEBSITES}><ProtectedRoute component={WebsitesSettings} /></Route>
-      <Route path={ROUTES.SETTINGS_WEBSITE_DETAIL}><ProtectedRoute component={WebsiteDetail} /></Route>
+      <Route path={ROUTES.SETTINGS}><ProtectedRoute component={Settings} lightMode /></Route>
+      <Route path={ROUTES.SETTINGS_WEBSITES}><ProtectedRoute component={WebsitesSettings} lightMode /></Route>
+      <Route path={ROUTES.SETTINGS_WEBSITE_DETAIL}><ProtectedRoute component={WebsiteDetail} lightMode /></Route>
       <Route path={ROUTES.SITES}>
         <Redirect to={buildRoute.settingsTab("sites")} />
       </Route>
-      <Route path={ROUTES.SITE_NEW}><ProtectedRoute component={SiteDetail} /></Route>
-      <Route path={ROUTES.SITE_DETAIL}><ProtectedRoute component={SiteDetail} /></Route>
+      <Route path={ROUTES.SITE_NEW}><ProtectedRoute component={SiteDetail} lightMode /></Route>
+      <Route path={ROUTES.SITE_DETAIL}><ProtectedRoute component={SiteDetail} lightMode /></Route>
       <Route path={ROUTES.WEBSITE_REGISTRY_DETAIL}><ProtectedRoute component={WebsiteRegistryDetail} lightMode /></Route>
       <Route path={ROUTES.WEBSITES}><LegacyRedirect to={ROUTES.OVERVIEW} /></Route>
-      <Route path={ROUTES.HELP}><ProtectedRoute component={Help} /></Route>
-      <Route path={ROUTES.DEV_PALETTE}><ProtectedRoute component={CrewPalette} /></Route>
-      <Route path={ROUTES.DEV_LINEAGE}><ProtectedRoute component={DevLineage} /></Route>
+      <Route path={ROUTES.HELP}><ProtectedRoute component={Help} lightMode /></Route>
+      <Route path={ROUTES.DEV_PALETTE}><ProtectedRoute component={CrewPalette} lightMode /></Route>
+      <Route path={ROUTES.DEV_LINEAGE}><ProtectedRoute component={DevLineage} lightMode /></Route>
       
       {/* Report review pages */}
-      <Route path={ROUTES.WEBSITE_REPORT}><ProtectedRoute component={WebsiteReportPage} /></Route>
-      <Route path={ROUTES.DEVELOPER_REPORT}><ProtectedRoute component={DeveloperReportPage} /></Route>
+      <Route path={ROUTES.WEBSITE_REPORT}><ProtectedRoute component={WebsiteReportPage} lightMode /></Route>
+      <Route path={ROUTES.DEVELOPER_REPORT}><ProtectedRoute component={DeveloperReportPage} lightMode /></Route>
       
       {/* App home redirect */}
       <Route path={ROUTES.HOME}>

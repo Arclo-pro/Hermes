@@ -333,13 +333,75 @@ export async function registerRoutes(
     }
   });
 
-  const contactSchema = z.object({
+  // Contact form lead fields
+  const contactLeadSchema = z.object({
     name: z.string().min(1, "Name is required"),
     email: z.string().email("Valid email is required"),
     company: z.string().optional(),
     phone: z.string().optional(),
     message: z.string().min(1, "Message is required"),
   });
+
+  // Lead context schema (v2 auto-captured fields)
+  const contactContextSchema = z.object({
+    leadId: z.string().optional(),
+    submittedAt: z.string().optional(),
+    siteHost: z.string().optional(),
+    pageUrl: z.string().optional(),
+    pagePath: z.string().optional(),
+    pageTitle: z.string().optional(),
+    referrer: z.string().optional(),
+    userAgent: z.string().optional(),
+    utm: z.object({
+      utmSource: z.string().nullable().optional(),
+      utmMedium: z.string().nullable().optional(),
+      utmCampaign: z.string().nullable().optional(),
+      utmTerm: z.string().nullable().optional(),
+      utmContent: z.string().nullable().optional(),
+      gclid: z.string().nullable().optional(),
+      wbraid: z.string().nullable().optional(),
+      gbraid: z.string().nullable().optional(),
+    }).optional(),
+    attribution: z.object({
+      channel: z.string().optional(),
+      channelDetail: z.string().optional(),
+    }).optional(),
+    session: z.object({
+      sessionStartAt: z.string().optional(),
+      secondsToSubmit: z.number().optional(),
+      pagesViewedCount: z.number().optional(),
+      pagesViewed: z.array(z.string()).optional(),
+      firstTouch: z.object({
+        firstPageUrl: z.string().optional(),
+        firstPagePath: z.string().optional(),
+        firstReferrer: z.string().optional(),
+        firstSeenAt: z.string().optional(),
+      }).optional(),
+    }).optional(),
+    device: z.object({
+      deviceType: z.string().optional(),
+      viewport: z.object({ width: z.number().optional(), height: z.number().optional() }).optional(),
+      language: z.string().optional(),
+      timeZone: z.string().optional(),
+    }).optional(),
+    privacy: z.object({
+      trackingConsent: z.union([z.boolean(), z.literal("unknown")]).optional(),
+      doNotTrack: z.boolean().optional(),
+    }).optional(),
+  }).optional();
+
+  // v1 (flat) schema
+  const contactSchemaV1 = contactLeadSchema;
+
+  // v2 (nested) schema
+  const contactSchemaV2 = z.object({
+    schemaVersion: z.literal("lead.v2"),
+    lead: contactLeadSchema,
+    context: contactContextSchema,
+  });
+
+  // Combined schema
+  const contactSchema = z.union([contactSchemaV2, contactSchemaV1]);
 
   app.post("/api/contact", async (req, res) => {
     try {
@@ -352,12 +414,20 @@ export async function registerRoutes(
         });
       }
 
-      const data = parsed.data;
+      // Extract lead data from either v1 (flat) or v2 (nested) format
+      const isV2 = "schemaVersion" in parsed.data && parsed.data.schemaVersion === "lead.v2";
+      const leadData = isV2 ? (parsed.data as any).lead : parsed.data;
+      const context = isV2 ? (parsed.data as any).context : null;
 
       logger.info("Leads", "Contact form submission received", {
-        name: data.name,
-        email: data.email,
-        company: data.company,
+        name: leadData.name,
+        email: leadData.email,
+        company: leadData.company,
+        schemaVersion: isV2 ? "lead.v2" : "lead.v1",
+        channel: context?.attribution?.channel,
+        source: context?.utm?.utmSource,
+        referrer: context?.referrer,
+        pagesViewed: context?.session?.pagesViewedCount,
       });
 
       return res.json({

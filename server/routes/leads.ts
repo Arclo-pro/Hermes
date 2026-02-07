@@ -29,32 +29,97 @@ const router = Router();
 // Webhook Schema (public endpoint - API key authenticated)
 // ════════════════════════════════════════════════════════════════════════════
 
-const webhookLeadSchema = z
-  .object({
-    name: z.string().min(1, "Name is required"),
-    email: z.string().email().optional().nullable(),
-    phone: z.string().optional().nullable(),
-    serviceLine: z
-      .enum(["psychiatric_services", "therapy", "general_inquiry", "other"])
-      .optional()
-      .default("general_inquiry"),
-    formType: z.enum(["short", "long", "phone_click", "other"]).optional().default("short"),
-    landingPagePath: z.string().optional(),
-    sourcePath: z.string().optional(),
-    utmSource: z.string().optional(),
-    utmCampaign: z.string().optional(),
-    utmTerm: z.string().optional(),
-    utmMedium: z.string().optional(),
-    utmContent: z.string().optional(),
-    preferredContactMethod: z
-      .enum(["phone", "email", "text", "unknown"])
-      .optional()
-      .default("unknown"),
-    notes: z.string().optional(),
-  })
-  .refine((data) => data.email || data.phone, {
-    message: "Either email or phone is required",
-  });
+// Lead context schema (v2 auto-captured fields)
+const leadContextSchema = z.object({
+  leadId: z.string().optional(),
+  submittedAt: z.string().optional(),
+  siteHost: z.string().optional(),
+  pageUrl: z.string().optional(),
+  pagePath: z.string().optional(),
+  pageTitle: z.string().optional(),
+  referrer: z.string().optional(),
+  userAgent: z.string().optional(),
+  utm: z.object({
+    utmSource: z.string().nullable().optional(),
+    utmMedium: z.string().nullable().optional(),
+    utmCampaign: z.string().nullable().optional(),
+    utmTerm: z.string().nullable().optional(),
+    utmContent: z.string().nullable().optional(),
+    gclid: z.string().nullable().optional(),
+    wbraid: z.string().nullable().optional(),
+    gbraid: z.string().nullable().optional(),
+  }).optional(),
+  attribution: z.object({
+    channel: z.enum(["paid_search", "organic_search", "direct", "referral", "social", "email", "unknown"]).optional(),
+    channelDetail: z.string().optional(),
+  }).optional(),
+  session: z.object({
+    sessionStartAt: z.string().optional(),
+    secondsToSubmit: z.number().optional(),
+    pagesViewedCount: z.number().optional(),
+    pagesViewed: z.array(z.string()).optional(),
+    firstTouch: z.object({
+      firstPageUrl: z.string().optional(),
+      firstPagePath: z.string().optional(),
+      firstReferrer: z.string().optional(),
+      firstSeenAt: z.string().optional(),
+    }).optional(),
+  }).optional(),
+  device: z.object({
+    deviceType: z.enum(["mobile", "tablet", "desktop"]).optional(),
+    viewport: z.object({
+      width: z.number().optional(),
+      height: z.number().optional(),
+    }).optional(),
+    language: z.string().optional(),
+    timeZone: z.string().optional(),
+  }).optional(),
+  privacy: z.object({
+    trackingConsent: z.union([z.boolean(), z.literal("unknown")]).optional(),
+    doNotTrack: z.boolean().optional(),
+  }).optional(),
+}).optional();
+
+// Base lead fields schema (form data)
+const baseLeadFieldsSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email().optional().nullable(),
+  phone: z.string().optional().nullable(),
+  serviceLine: z
+    .enum(["psychiatric_services", "therapy", "general_inquiry", "other"])
+    .optional()
+    .default("general_inquiry"),
+  formType: z.enum(["short", "long", "phone_click", "other"]).optional().default("short"),
+  landingPagePath: z.string().optional(),
+  sourcePath: z.string().optional(),
+  utmSource: z.string().optional(),
+  utmCampaign: z.string().optional(),
+  utmTerm: z.string().optional(),
+  utmMedium: z.string().optional(),
+  utmContent: z.string().optional(),
+  preferredContactMethod: z
+    .enum(["phone", "email", "text", "unknown"])
+    .optional()
+    .default("unknown"),
+  notes: z.string().optional(),
+});
+
+// Legacy v1 schema (flat fields)
+const webhookLeadSchemaV1 = baseLeadFieldsSchema.refine((data) => data.email || data.phone, {
+  message: "Either email or phone is required",
+});
+
+// New v2 schema (lead + context blocks)
+const webhookLeadSchemaV2 = z.object({
+  schemaVersion: z.literal("lead.v2"),
+  lead: baseLeadFieldsSchema,
+  context: leadContextSchema,
+}).refine((data) => data.lead.email || data.lead.phone, {
+  message: "Either email or phone is required",
+});
+
+// Combined schema that accepts either format
+const webhookLeadSchema = z.union([webhookLeadSchemaV2, webhookLeadSchemaV1]);
 
 // ════════════════════════════════════════════════════════════════════════════
 // POST /api/leads/webhook - Public webhook for automated lead capture
@@ -124,21 +189,51 @@ router.post("/leads/webhook", async (req, res) => {
       });
     }
 
-    // Create lead with siteId from API key
-    const leadId = `lead_${randomUUID()}`;
-    const lead = await storage.createLead({
-      ...parsed.data,
+    // Extract lead fields from either v1 (flat) or v2 (nested) format
+    const isV2 = "schemaVersion" in parsed.data && parsed.data.schemaVersion === "lead.v2";
+    const leadFields = isV2 ? (parsed.data as any).lead : parsed.data;
+    const context = isV2 ? (parsed.data as any).context : null;
+
+    // Generate lead ID (prefer context.leadId if provided)
+    const leadId = context?.leadId || `lead_${randomUUID()}`;
+
+    // Extract UTM fields from context if present (v2 format stores them in context.utm)
+    const utmFromContext = context?.utm || {};
+
+    // Build the lead data, preferring context values over lead form values
+    const leadData = {
+      ...leadFields,
       siteId: apiKeyRecord.siteId,
       leadId,
       leadSourceType: "form_submit",
       createdByUserId: null, // No user session for webhook
-    });
+      // Prefer UTM from context if available
+      utmSource: utmFromContext.utmSource || leadFields.utmSource || null,
+      utmMedium: utmFromContext.utmMedium || leadFields.utmMedium || null,
+      utmCampaign: utmFromContext.utmCampaign || leadFields.utmCampaign || null,
+      utmTerm: utmFromContext.utmTerm || leadFields.utmTerm || null,
+      utmContent: utmFromContext.utmContent || leadFields.utmContent || null,
+      // New v2 fields
+      gclid: utmFromContext.gclid || null,
+      wbraid: utmFromContext.wbraid || null,
+      gbraid: utmFromContext.gbraid || null,
+      referrer: context?.referrer || null,
+      userAgent: context?.userAgent || null,
+      landingPagePath: context?.pagePath || leadFields.landingPagePath || null,
+      sourcePath: context?.session?.firstTouch?.firstPagePath || leadFields.sourcePath || null,
+      // Store full context as JSONB
+      context: context || null,
+    };
+
+    const lead = await storage.createLead(leadData);
 
     logger.info("LeadsWebhook", "Lead created via webhook", {
       leadId,
       siteId: apiKeyRecord.siteId,
-      name: parsed.data.name,
+      name: leadFields.name,
       keyId: apiKeyRecord.keyId,
+      schemaVersion: isV2 ? "lead.v2" : "lead.v1",
+      channel: context?.attribution?.channel || null,
     });
 
     res.status(201).json({
