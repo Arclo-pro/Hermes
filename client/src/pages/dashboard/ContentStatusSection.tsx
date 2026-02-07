@@ -407,10 +407,13 @@ function ContentEntry({
         <p className="font-medium text-sm truncate flex-1 pr-2" style={{ color: "#0F172A" }}>
           {entry.title || "Untitled"}
         </p>
-        <StateBadge
-          state={entry.state}
-          onClick={entry.state === "drafted" ? () => onDraftClick(entry) : undefined}
-        />
+        {/* Don't show Draft badge when scheduled - the green Scheduled badge is more relevant */}
+        {!(isScheduled && entry.state === "drafted") && (
+          <StateBadge
+            state={entry.state}
+            onClick={entry.state === "drafted" ? () => onDraftClick(entry) : undefined}
+          />
+        )}
       </div>
       <div className="flex items-center gap-3 text-xs" style={{ color: "#64748B" }}>
         <span>{typeLabel}</span>

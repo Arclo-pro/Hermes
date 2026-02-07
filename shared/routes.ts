@@ -70,6 +70,10 @@ export const ROUTES = {
   INSIGHTS_ACQUISITION: "/app/insights/acquisition",
   INSIGHTS_ACQUISITION_BUDGET: "/app/insights/acquisition/budget",
 
+  // Weekly Pipeline
+  UPDATE_PIPELINE: "/app/update-pipeline",
+  AGENT_PIPELINE: "/app/agents/:agentId/pipeline",
+
   // Legacy website-centric routes (redirected)
   SITE_HEALTH: "/app/site-health",
   PAGES: "/app/pages",
@@ -143,6 +147,7 @@ export const buildRoute = {
   
   // App route builders
   agent: (agentId: string) => `/app/agents/${agentId}`,
+  agentPipeline: (agentId: string) => `/app/agents/${agentId}/pipeline`,
   lead: (leadId: string) => `/app/leads/${leadId}`,
   metricDetail: (metricKey: string) => `/app/insights/metrics/${metricKey}`,
   run: (runId: string) => `/app/runs/${runId}`,

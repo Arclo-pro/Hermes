@@ -462,3 +462,126 @@ export function useAcquisitionBudget(siteId: string | null | undefined) {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
+
+// ============================================================
+// Weekly Plan Types
+// ============================================================
+
+export interface WeeklyPlanData {
+  id: number;
+  siteId: string;
+  weekString: string;
+  selectedSuggestionIds: string[] | null;
+  diversityApplied: boolean;
+  agentSpread: Record<string, number> | null;
+  status: string;
+  generatedAt: string | null;
+  publishedAt: string | null;
+  userOverrides: unknown | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SuggestionData {
+  suggestionId: string;
+  siteId: string;
+  title: string;
+  description: string | null;
+  severity: string;
+  category: string;
+  estimatedImpact: string | null;
+  estimatedEffort: string | null;
+  impactScore: number | null;
+  effortScore: number | null;
+  confidenceScore: number | null;
+  priorityScore: number | null;
+  pipelineStatus: string | null;
+  sourceAgentId: string | null;
+  sourceWorkers: string[] | null;
+  createdAt: string;
+}
+
+export interface WeeklyPlanResponse {
+  plan: WeeklyPlanData | null;
+  updates: SuggestionData[];
+}
+
+export interface PipelineViewResponse {
+  backlog: SuggestionData[];
+  proposed: SuggestionData[];
+  selected: SuggestionData[];
+  published: SuggestionData[];
+  skipped: SuggestionData[];
+}
+
+// ============================================================
+// Weekly Plan Hooks
+// ============================================================
+
+export function useWeeklyPlan(siteId: string | null | undefined) {
+  return useQuery<WeeklyPlanResponse>({
+    queryKey: ["/api/weekly-plan", siteId],
+    queryFn: async () => {
+      const res = await fetch(`/api/weekly-plan/${siteId}`, {
+        credentials: "include",
+      });
+      if (!res.ok) {
+        throw new Error(`Failed to fetch weekly plan: ${res.status}`);
+      }
+      return res.json();
+    },
+    enabled: !!siteId,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useWeeklyPlanHistory(siteId: string | null | undefined, limit = 12) {
+  return useQuery<{ plans: WeeklyPlanData[] }>({
+    queryKey: ["/api/weekly-plan", siteId, "history", limit],
+    queryFn: async () => {
+      const res = await fetch(`/api/weekly-plan/${siteId}/history?limit=${limit}`, {
+        credentials: "include",
+      });
+      if (!res.ok) {
+        throw new Error(`Failed to fetch plan history: ${res.status}`);
+      }
+      return res.json();
+    },
+    enabled: !!siteId,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useUpdatePipeline(siteId: string | null | undefined) {
+  return useQuery<PipelineViewResponse>({
+    queryKey: ["/api/update-pipeline", siteId],
+    queryFn: async () => {
+      const res = await fetch(`/api/update-pipeline/pipeline/${siteId}`, {
+        credentials: "include",
+      });
+      if (!res.ok) {
+        throw new Error(`Failed to fetch pipeline: ${res.status}`);
+      }
+      return res.json();
+    },
+    enabled: !!siteId,
+    staleTime: 2 * 60 * 1000, // 2 minutes, more frequent updates
+  });
+}
+
+export function useAgentPipeline(siteId: string | null | undefined, agentId: string | null) {
+  return useQuery<PipelineViewResponse>({
+    queryKey: ["/api/update-pipeline", siteId, "agent", agentId],
+    queryFn: async () => {
+      const res = await fetch(`/api/update-pipeline/pipeline/${siteId}/agent/${agentId}`, {
+        credentials: "include",
+      });
+      if (!res.ok) {
+        throw new Error(`Failed to fetch agent pipeline: ${res.status}`);
+      }
+      return res.json();
+    },
+    enabled: !!siteId && !!agentId,
+    staleTime: 2 * 60 * 1000,
+  });
+}

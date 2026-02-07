@@ -170,6 +170,9 @@ import {
   seoKbaseInsights,
   type SeoKbaseInsight,
   type InsertSeoKbaseInsight,
+  weeklyPlans,
+  type WeeklyPlan,
+  type InsertWeeklyPlan,
   seoRuns,
   type SeoRun,
   type InsertSeoRun,
@@ -259,7 +262,7 @@ import {
   type LeadStats,
   type LeadAnalytics,
 } from "@shared/schema";
-import { eq, desc, and, gte, lte, sql, asc, or, isNull, arrayContains } from "drizzle-orm";
+import { eq, desc, and, gte, lte, sql, asc, or, isNull, arrayContains, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // OAuth Token Management
@@ -535,7 +538,18 @@ export interface IStorage {
   getSeoSuggestionById(suggestionId: string): Promise<SeoSuggestion | undefined>;
   getSuggestionsByAgent(siteId: string, agentId: string, limit?: number): Promise<SeoSuggestion[]>;
   getFindingsByAgent(siteId: string, agentId: string, limit?: number): Promise<Finding[]>;
-  
+
+  // Weekly Publisher Pipeline
+  getSuggestionsByPipelineStatus(siteId: string, statuses: string[]): Promise<SeoSuggestion[]>;
+  getSuggestionsByIds(suggestionIds: string[]): Promise<SeoSuggestion[]>;
+  getAllSuggestionsForSite(siteId: string): Promise<SeoSuggestion[]>;
+  updateSuggestionsPipelineStatus(suggestionIds: string[], newStatus: string, weekString?: string): Promise<void>;
+  updateSuggestionPipelineStatus(suggestionId: string, newStatus: string, reason?: string): Promise<void>;
+  upsertWeeklyPlan(plan: InsertWeeklyPlan): Promise<WeeklyPlan>;
+  getWeeklyPlan(siteId: string, weekString: string): Promise<WeeklyPlan | null>;
+  getWeeklyPlanHistory(siteId: string, limit?: number): Promise<WeeklyPlan[]>;
+  getAllActiveSites(): Promise<{ siteId: string }[]>;
+
   // SEO KBase Insights
   saveSeoKbaseInsight(insight: InsertSeoKbaseInsight): Promise<SeoKbaseInsight>;
   saveSeoKbaseInsights(insights: InsertSeoKbaseInsight[]): Promise<SeoKbaseInsight[]>;
@@ -4865,6 +4879,144 @@ class DBStorage implements IStorage {
         updatedAt: new Date(),
       })
       .where(eq(leads.leadId, leadId));
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // Weekly Publisher Pipeline Methods
+  // ══════════════════════════════════════════════════════════════════════
+
+  async getSuggestionsByPipelineStatus(
+    siteId: string,
+    statuses: string[]
+  ): Promise<SeoSuggestion[]> {
+    return db
+      .select()
+      .from(seoSuggestions)
+      .where(
+        and(
+          eq(seoSuggestions.siteId, siteId),
+          inArray(seoSuggestions.pipelineStatus, statuses)
+        )
+      )
+      .orderBy(desc(seoSuggestions.priorityScore), desc(seoSuggestions.createdAt));
+  }
+
+  async getSuggestionsByIds(suggestionIds: string[]): Promise<SeoSuggestion[]> {
+    if (suggestionIds.length === 0) return [];
+    return db
+      .select()
+      .from(seoSuggestions)
+      .where(inArray(seoSuggestions.suggestionId, suggestionIds));
+  }
+
+  async getAllSuggestionsForSite(siteId: string): Promise<SeoSuggestion[]> {
+    return db
+      .select()
+      .from(seoSuggestions)
+      .where(eq(seoSuggestions.siteId, siteId))
+      .orderBy(desc(seoSuggestions.createdAt));
+  }
+
+  async updateSuggestionsPipelineStatus(
+    suggestionIds: string[],
+    newStatus: string,
+    weekString?: string
+  ): Promise<void> {
+    if (suggestionIds.length === 0) return;
+
+    const updates: Partial<SeoSuggestion> = {
+      pipelineStatus: newStatus,
+      updatedAt: new Date(),
+    };
+
+    if (newStatus === "selected" && weekString) {
+      updates.selectedForWeek = weekString;
+      updates.selectedAt = new Date();
+    } else if (newStatus === "published") {
+      updates.publishedAt = new Date();
+    }
+
+    await db
+      .update(seoSuggestions)
+      .set(updates)
+      .where(inArray(seoSuggestions.suggestionId, suggestionIds));
+  }
+
+  async updateSuggestionPipelineStatus(
+    suggestionId: string,
+    newStatus: string,
+    reason?: string
+  ): Promise<void> {
+    const updates: Partial<SeoSuggestion> = {
+      pipelineStatus: newStatus,
+      updatedAt: new Date(),
+    };
+
+    if (newStatus === "skipped" && reason) {
+      updates.skippedReason = reason;
+    } else if (newStatus === "selected") {
+      updates.selectedAt = new Date();
+    } else if (newStatus === "published") {
+      updates.publishedAt = new Date();
+    }
+
+    await db
+      .update(seoSuggestions)
+      .set(updates)
+      .where(eq(seoSuggestions.suggestionId, suggestionId));
+  }
+
+  // Weekly Plans
+  async upsertWeeklyPlan(plan: InsertWeeklyPlan): Promise<WeeklyPlan> {
+    // Check if a plan for this site/week already exists
+    const existing = await this.getWeeklyPlan(plan.siteId, plan.weekString);
+
+    if (existing) {
+      const [updated] = await db
+        .update(weeklyPlans)
+        .set({
+          ...plan,
+          updatedAt: new Date(),
+        })
+        .where(eq(weeklyPlans.id, existing.id))
+        .returning();
+      return updated;
+    }
+
+    const [created] = await db.insert(weeklyPlans).values(plan).returning();
+    return created;
+  }
+
+  async getWeeklyPlan(siteId: string, weekString: string): Promise<WeeklyPlan | null> {
+    const [plan] = await db
+      .select()
+      .from(weeklyPlans)
+      .where(
+        and(
+          eq(weeklyPlans.siteId, siteId),
+          eq(weeklyPlans.weekString, weekString)
+        )
+      )
+      .limit(1);
+    return plan ?? null;
+  }
+
+  async getWeeklyPlanHistory(siteId: string, limit = 12): Promise<WeeklyPlan[]> {
+    return db
+      .select()
+      .from(weeklyPlans)
+      .where(eq(weeklyPlans.siteId, siteId))
+      .orderBy(desc(weeklyPlans.weekString))
+      .limit(limit);
+  }
+
+  async getAllActiveSites(): Promise<{ siteId: string }[]> {
+    // Get all sites that have at least one suggestion
+    const result = await db
+      .selectDistinct({ siteId: sites.siteId })
+      .from(sites)
+      .where(sql`${sites.siteId} IN (SELECT DISTINCT site_id FROM seo_suggestions)`);
+    return result;
   }
 }
 

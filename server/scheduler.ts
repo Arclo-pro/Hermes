@@ -9,6 +9,7 @@ import { googleAuth } from './auth/google-oauth';
 import { logger } from './utils/logger';
 import { storage } from './storage';
 import { v4 as uuidv4 } from 'uuid';
+import { runWeeklyPublishAll } from './services/weeklyPublisher';
 
 async function runDailyDiagnostics() {
   try {
@@ -526,5 +527,18 @@ export function startScheduler() {
     timezone: 'America/Chicago',
   });
 
-  logger.info('Scheduler', 'Schedulers started: Daily diagnostics (7am), Weekly KBase synthesis (Mondays 8am), Daily achievements (9am), Weekly site scans (Mondays 6am), Auto-publish (hourly)');
+  // Weekly Update Publisher - Mondays at 7 AM (selects and publishes top 1-3 updates per site)
+  cron.schedule('0 7 * * 1', async () => {
+    try {
+      logger.info('Scheduler', 'Starting weekly update publish...');
+      await runWeeklyPublishAll();
+      logger.info('Scheduler', 'Weekly update publish completed');
+    } catch (error: any) {
+      logger.error('Scheduler', 'Weekly update publish failed', { error: error.message });
+    }
+  }, {
+    timezone: 'America/Chicago',
+  });
+
+  logger.info('Scheduler', 'Schedulers started: Daily diagnostics (7am), Weekly KBase synthesis (Mondays 8am), Daily achievements (9am), Weekly site scans (Mondays 6am), Auto-publish (hourly), Weekly update publish (Mondays 7am)');
 }

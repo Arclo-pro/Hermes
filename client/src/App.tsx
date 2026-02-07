@@ -82,6 +82,7 @@ const MetricsOverview = lazy(() => import("@/pages/insights/MetricsOverview"));
 const MetricBreakdown = lazy(() => import("@/pages/insights/MetricBreakdown"));
 const AcquisitionOverview = lazy(() => import("@/pages/insights/acquisition/AcquisitionOverview"));
 const BudgetImpact = lazy(() => import("@/pages/insights/acquisition/BudgetImpact"));
+const UpdatePipeline = lazy(() => import("@/pages/UpdatePipeline"));
 
 const persister = typeof window !== 'undefined' 
   ? createSyncStoragePersister({
@@ -264,6 +265,7 @@ function Router() {
       <Route path={ROUTES.INSIGHTS_METRICS}><ProtectedRoute component={MetricsOverview} lightMode /></Route>
       <Route path={ROUTES.INSIGHTS_ACQUISITION_BUDGET}><ProtectedRoute component={BudgetImpact} lightMode /></Route>
       <Route path={ROUTES.INSIGHTS_ACQUISITION}><ProtectedRoute component={AcquisitionOverview} lightMode /></Route>
+      <Route path={ROUTES.UPDATE_PIPELINE}><ProtectedRoute component={UpdatePipeline} lightMode /></Route>
 
       {/* Legacy route redirects */}
       <Route path={ROUTES.SITE_HEALTH}><LegacyRedirect to={ROUTES.TECHNICAL_SEO} /></Route>

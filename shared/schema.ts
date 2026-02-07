@@ -1957,7 +1957,20 @@ export const seoSuggestions = pgTable("seo_suggestions", {
   
   // Source tracking
   sourceWorkers: text("source_workers").array(), // Which workers contributed to this suggestion
-  
+
+  // Pipeline scoring (for weekly publish ranking)
+  impactScore: integer("impact_score"), // 1-100 computed score
+  effortScore: integer("effort_score"), // 1-100 effort estimate
+  confidenceScore: integer("confidence_score"), // 1-100 data confidence
+  priorityScore: integer("priority_score"), // Computed ranking score
+
+  // Pipeline workflow status
+  pipelineStatus: text("pipeline_status").default("backlog"), // backlog, proposed, selected, published, skipped
+  selectedForWeek: text("selected_for_week"), // ISO week string e.g., "2026-W06"
+  selectedAt: timestamp("selected_at"),
+  publishedAt: timestamp("published_at"),
+  skippedReason: text("skipped_reason"),
+
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -1969,6 +1982,39 @@ export const insertSeoSuggestionSchema = createInsertSchema(seoSuggestions).omit
 });
 export type InsertSeoSuggestion = z.infer<typeof insertSeoSuggestionSchema>;
 export type SeoSuggestion = typeof seoSuggestions.$inferSelect;
+
+// Weekly Plans - tracks top 1-3 suggestions selected each week for publish
+export const weeklyPlans = pgTable("weekly_plans", {
+  id: serial("id").primaryKey(),
+  siteId: text("site_id").notNull(), // Links to sites.siteId
+  weekString: text("week_string").notNull(), // ISO week e.g., "2026-W06"
+
+  // Selected updates (1-3 suggestion IDs)
+  selectedSuggestionIds: text("selected_suggestion_ids").array(), // max 3
+
+  // Selection metadata
+  diversityApplied: boolean("diversity_applied").default(false),
+  agentSpread: jsonb("agent_spread"), // { "scotty": 1, "natasha": 1 }
+
+  // Lifecycle status
+  status: text("status").notNull().default("draft"), // draft, published, archived
+  generatedAt: timestamp("generated_at").defaultNow(),
+  publishedAt: timestamp("published_at"),
+
+  // User overrides
+  userOverrides: jsonb("user_overrides"), // { added: [], removed: [], reordered: [] }
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertWeeklyPlanSchema = createInsertSchema(weeklyPlans).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertWeeklyPlan = z.infer<typeof insertWeeklyPlanSchema>;
+export type WeeklyPlan = typeof weeklyPlans.$inferSelect;
 
 // Knowledge Base Insights - cached KB insights generated per run
 export const seoKbaseInsights = pgTable("seo_kbase_insights", {

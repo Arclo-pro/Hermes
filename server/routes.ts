@@ -60,6 +60,7 @@ import billingRoutes from './routes/billing';
 import { synthesisRouter } from './routes/synthesis';
 import orchestrationRouter from './routes/orchestration';
 import opsDashboardRouter from './routes/opsDashboard';
+import weeklyPlanRouter from './routes/weeklyPlan';
 import systemControlRoutes from './routes/systemControl';
 import contentRoutes from './routes/content';
 import notificationRoutes from './routes/notifications';
@@ -21176,6 +21177,8 @@ Return JSON in this exact format:
   app.use('/api', governanceRoutes);
   app.use('/api', websiteRoutes);
   app.use('/api/ops-dashboard', opsDashboardRouter);
+  app.use('/api/weekly-plan', weeklyPlanRouter);
+  app.use('/api/update-pipeline', weeklyPlanRouter);  // Alias for pipeline routes
   app.use('/api/synthesis', synthesisRouter);
   app.use('/api/orchestration', orchestrationRouter);
   app.use('/api/system', systemControlRoutes); // Step 10.6: Kill switches & system control

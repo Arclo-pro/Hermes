@@ -11,6 +11,7 @@ import { PlannedUpdatesSection } from "./dashboard/PlannedUpdatesSection";
 import { SetupCardsSection } from "./dashboard/SetupCardsSection";
 import { InsightsSection } from "./dashboard/InsightsSection";
 import { TechnicalSeoSection } from "./dashboard/TechnicalSeoSection";
+import { WeeklyPlanSection } from "./dashboard/WeeklyPlanSection";
 import { pageStyles } from "@/lib/design-system";
 
 export default function Dashboard() {
@@ -42,6 +43,9 @@ export default function Dashboard() {
 
         {/* Actionable Insights — tips derived from cached worker data */}
         <InsightsSection siteId={siteId} />
+
+        {/* Weekly Plan — top 1-3 agent-recommended updates for this week */}
+        <WeeklyPlanSection siteId={siteId} />
 
         {/* Section 2: Keyword Rankings (combined SERP snapshot + keywords table) */}
         <KeywordRankingsSection siteId={siteId} />
