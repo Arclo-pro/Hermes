@@ -51,7 +51,7 @@ export function generateRecommendations(input: RecommendationInput): Recommendat
     if (decliningPages.length > 0) {
       recommendations.push({
         title: "Investigate underperforming pages",
-        why: `These pages contributed most to the ${metricKey === "avgEngagement" ? "engagement" : "traffic"} decline.`,
+        why: `These pages contributed most to the ${metricKey === "avgTimeToLeadSubmit" ? "conversion time" : "traffic"} decline.`,
         targetUrls: decliningPages.map(p => p.label),
         suggestedActions: [
           "Review recent changes to these pages",

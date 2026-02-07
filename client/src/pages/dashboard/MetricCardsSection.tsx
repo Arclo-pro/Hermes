@@ -5,7 +5,7 @@ import {
   GlassCardContent,
 } from "@/components/ui/GlassCard";
 import { WhatChangedMicroCard, WhatChangedMicroCardSkeleton } from "@/components/metrics/WhatChangedMicroCard";
-import { ArrowUp, ArrowDown, Clock, Users, MousePointerClick, UserPlus, Loader2 } from "lucide-react";
+import { ArrowUp, ArrowDown, Clock, Users, MousePointerClick, UserPlus, Loader2, Timer } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { MetricKey, MetricExplanation } from "../../../../shared/types/metricExplanation";
 import { Link } from "wouter";
@@ -70,10 +70,10 @@ const METRIC_CARDS: MetricCardConfig[] = [
     },
   },
   {
-    key: "avgEngagement" as any,
-    metricKey: "avgEngagement",
-    label: "Avg Engagement",
-    icon: Clock,
+    key: "avgTimeToLeadSubmit" as any,
+    metricKey: "avgTimeToLeadSubmit",
+    label: "Time to Lead",
+    icon: Timer,
     color: "#f59e0b",
     bgGrad: "rgba(245,158,11,0.12), rgba(236,72,153,0.08)",
     tint: "amber",
@@ -83,8 +83,8 @@ const METRIC_CARDS: MetricCardConfig[] = [
       return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
     },
     explainer: {
-      what: "How long visitors actively interact before leaving.",
-      why: "Changes often point to content edits, layout changes, or page relevance.",
+      what: "How long visitors browse before submitting a lead form.",
+      why: "Shorter times can mean easier conversions; longer times suggest more research.",
     },
   },
 ];
@@ -115,14 +115,14 @@ function ConfigAwareMetricCard({
   explanationLoading?: boolean;
 }) {
   return (
-    <div className="flex flex-col">
-      <Link href={buildRoute.metricDetail(metricKey)}>
-        <GlassCard variant="marketing" hover tint={tint} className="cursor-pointer">
-          <GlassCardContent className="p-6">
+    <div className="flex flex-col h-full">
+      <Link href={buildRoute.metricDetail(metricKey)} className="flex-1 flex flex-col">
+        <GlassCard variant="marketing" hover tint={tint} className="cursor-pointer h-full flex flex-col">
+          <GlassCardContent className="p-6 flex flex-col flex-1">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm font-medium" style={{ color: "#475569" }}>{label}</p>
               <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center"
+                className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                 style={{
                   background: `linear-gradient(135deg, ${bgGrad})`,
                   border: `1px solid ${color}20`,
@@ -132,45 +132,48 @@ function ConfigAwareMetricCard({
               </div>
             </div>
 
-            {metric.available && metric.value != null ? (
-              <>
-                <p className="text-3xl font-bold" style={{ color: "#0F172A" }}>
-                  {format(metric.value)}
-                </p>
-                {metric.change7d != null && (
-                  <div className="flex items-center gap-1 mt-1">
-                    {metric.change7d > 0 ? (
-                      <ArrowUp className="w-3.5 h-3.5" style={{ color: "#22c55e" }} />
-                    ) : metric.change7d < 0 ? (
-                      <ArrowDown className="w-3.5 h-3.5" style={{ color: "#ef4444" }} />
-                    ) : null}
-                    <span
-                      className="text-xs font-medium"
-                      style={{
-                        color: metric.change7d > 0 ? "#22c55e" : metric.change7d < 0 ? "#ef4444" : "#94A3B8",
-                      }}
-                    >
-                      {metric.change7d > 0 ? "+" : ""}
-                      {metric.change7d.toFixed(1)}% 7d
-                    </span>
-                  </div>
-                )}
-              </>
-            ) : (
-              <>
-                <p className="text-3xl font-bold" style={{ color: "#CBD5E1" }}>&mdash;</p>
-                <p className="text-xs mt-2 leading-relaxed" style={{ color: "#64748B" }}>
-                  {metric.reason || "Not available"}
-                </p>
-              </>
-            )}
+            {/* Metric value area - fixed height */}
+            <div className="h-14 flex flex-col justify-center">
+              {metric.available && metric.value != null ? (
+                <>
+                  <p className="text-3xl font-bold" style={{ color: "#0F172A" }}>
+                    {format(metric.value)}
+                  </p>
+                  {metric.change7d != null && (
+                    <div className="flex items-center gap-1 mt-1">
+                      {metric.change7d > 0 ? (
+                        <ArrowUp className="w-3.5 h-3.5" style={{ color: "#22c55e" }} />
+                      ) : metric.change7d < 0 ? (
+                        <ArrowDown className="w-3.5 h-3.5" style={{ color: "#ef4444" }} />
+                      ) : null}
+                      <span
+                        className="text-xs font-medium"
+                        style={{
+                          color: metric.change7d > 0 ? "#22c55e" : metric.change7d < 0 ? "#ef4444" : "#94A3B8",
+                        }}
+                      >
+                        {metric.change7d > 0 ? "+" : ""}
+                        {metric.change7d.toFixed(1)}% 7d
+                      </span>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <p className="text-3xl font-bold" style={{ color: "#CBD5E1" }}>&mdash;</p>
+                  <p className="text-xs mt-1 leading-relaxed line-clamp-2" style={{ color: "#64748B" }}>
+                    {metric.reason || "Not available"}
+                  </p>
+                </>
+              )}
+            </div>
 
             {/* KPI Explainer - visible by default under the metric */}
-            <div className="mt-3 pt-3 border-t border-slate-100">
-              <p className="text-xs leading-relaxed" style={{ color: "#64748B" }}>
+            <div className="mt-3 pt-3 border-t border-slate-100 flex-1">
+              <p className="text-xs leading-relaxed line-clamp-2" style={{ color: "#64748B" }}>
                 {explainer.what}
               </p>
-              <p className="text-xs leading-relaxed mt-1" style={{ color: "#94A3B8" }}>
+              <p className="text-xs leading-relaxed mt-1 line-clamp-2" style={{ color: "#94A3B8" }}>
                 {explainer.why}
               </p>
             </div>
@@ -201,16 +204,22 @@ export function MetricCardsSection({ siteId }: MetricCardsSectionProps) {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-stretch">
         {METRIC_CARDS.map((card) => (
-          <div key={card.label} className="flex flex-col">
-            <GlassCard variant="marketing" hover tint={card.tint}>
-              <GlassCardContent className="p-6">
+          <div key={card.label} className="flex flex-col h-full">
+            <GlassCard variant="marketing" hover tint={card.tint} className="flex-1 flex flex-col">
+              <GlassCardContent className="p-6 flex flex-col flex-1">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-sm font-medium" style={{ color: "#475569" }}>{card.label}</p>
                   <Loader2 className="w-4 h-4 animate-spin" style={{ color: "#94A3B8" }} />
                 </div>
-                <div className="h-8 w-20 rounded bg-gray-100 animate-pulse" />
+                <div className="h-14 flex items-center">
+                  <div className="h-8 w-20 rounded bg-gray-100 animate-pulse" />
+                </div>
+                <div className="mt-3 pt-3 border-t border-slate-100 flex-1">
+                  <div className="h-3 w-full rounded bg-gray-100 animate-pulse" />
+                  <div className="h-3 w-3/4 rounded bg-gray-100 animate-pulse mt-2" />
+                </div>
               </GlassCardContent>
             </GlassCard>
             <WhatChangedMicroCardSkeleton />

@@ -47,7 +47,8 @@ export function getMetricValue(row: GA4Row, metricKey: MetricKey): number {
     case "newUsers":
       // GA4 doesn't separate new users in daily data; approximate with users
       return row.users ?? 0;
-    case "avgEngagement":
-      return row.avgSessionDuration ?? 0;
+    case "avgTimeToLeadSubmit":
+      // This metric is not from GA4 data, it's computed from leads
+      return 0;
   }
 }

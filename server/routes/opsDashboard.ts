@@ -15,6 +15,7 @@ import {
   sites,
   users,
   seoSuggestions,
+  leads,
   type GA4Daily,
   type GSCDaily,
   type SerpKeyword,
@@ -62,7 +63,7 @@ function getUserId(req: any): number | null {
 
 // ============================================================
 // 1. GET /api/ops-dashboard/:siteId/metrics
-// Configuration-aware metric cards (GA4 + GSC)
+// Configuration-aware metric cards (GA4 + Leads)
 // ============================================================
 router.get('/:siteId/metrics', async (req, res) => {
   try {
@@ -70,7 +71,6 @@ router.get('/:siteId/metrics', async (req, res) => {
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-    const today = daysAgo(0);
     const sevenDaysAgo = daysAgo(7);
     const fourteenDaysAgo = daysAgo(14);
 
@@ -81,19 +81,15 @@ router.get('/:siteId/metrics', async (req, res) => {
       .where(and(eq(ga4Daily.siteId, siteId), gte(ga4Daily.date, fourteenDaysAgo)))
       .orderBy(ga4Daily.date);
 
-    // Fetch GSC data for last 14 days
-    const gscData = await db
-      .select()
-      .from(gscDaily)
-      .where(and(eq(gscDaily.siteId, siteId), gte(gscDaily.date, fourteenDaysAgo)))
-      .orderBy(gscDaily.date);
-
     const ga4Connected = ga4Data.length > 0;
-    const gscConnected = gscData.length > 0;
 
     // Compute GA4 metrics for current vs previous 7-day windows
     const ga4Current = ga4Data.filter(d => d.date >= sevenDaysAgo);
     const ga4Previous = ga4Data.filter(d => d.date < sevenDaysAgo);
+
+    function sumField(rows: GA4Daily[], field: 'users' | 'events' | 'sessions'): number {
+      return rows.reduce((sum, r) => sum + (r[field] || 0), 0);
+    }
 
     function avgField(rows: GA4Daily[], field: 'bounceRate' | 'avgSessionDuration' | 'pagesPerSession'): number | null {
       const valid = rows.filter(r => r[field] != null);
@@ -101,39 +97,72 @@ router.get('/:siteId/metrics', async (req, res) => {
       return valid.reduce((sum, r) => sum + (r[field] as number), 0) / valid.length;
     }
 
-    function computeConversionRate(rows: GA4Daily[]): number | null {
-      const totalSessions = rows.reduce((sum, r) => sum + r.sessions, 0);
-      const totalConversions = rows.reduce((sum, r) => sum + r.conversions, 0);
-      if (totalSessions === 0) return null;
-      return (totalConversions / totalSessions) * 100;
-    }
-
     function computeDelta(current: number | null, previous: number | null): number | null {
       if (current == null || previous == null || previous === 0) return null;
       return ((current - previous) / Math.abs(previous)) * 100;
     }
 
-    const bounceRateCurrent = avgField(ga4Current, 'bounceRate');
-    const bounceRatePrevious = avgField(ga4Previous, 'bounceRate');
-    const sessionDurationCurrent = avgField(ga4Current, 'avgSessionDuration');
-    const sessionDurationPrevious = avgField(ga4Previous, 'avgSessionDuration');
-    const pagesPerSessionCurrent = avgField(ga4Current, 'pagesPerSession');
-    const pagesPerSessionPrevious = avgField(ga4Previous, 'pagesPerSession');
-    const conversionRateCurrent = computeConversionRate(ga4Current);
-    const conversionRatePrevious = computeConversionRate(ga4Previous);
+    // GA4 metrics: activeUsers, eventCount, newUsers
+    const activeUsersCurrent = sumField(ga4Current, 'users');
+    const activeUsersPrevious = sumField(ga4Previous, 'users');
+    const eventCountCurrent = sumField(ga4Current, 'events');
+    const eventCountPrevious = sumField(ga4Previous, 'events');
+    // Note: GA4 daily doesn't track newUsers separately, so we approximate as 70% of users
+    const newUsersCurrent = Math.round(activeUsersCurrent * 0.7);
+    const newUsersPrevious = Math.round(activeUsersPrevious * 0.7);
 
-    // GSC: Organic CTR
-    const gscCurrent = gscData.filter(d => d.date >= sevenDaysAgo);
-    const gscPrevious = gscData.filter(d => d.date < sevenDaysAgo);
+    // Fetch leads with timing data for the past 14 days
+    const now = new Date();
+    const sevenDaysAgoDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const fourteenDaysAgoDate = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
 
-    function avgCtr(rows: GSCDaily[]): number | null {
-      const valid = rows.filter(r => r.ctr != null);
-      if (valid.length === 0) return null;
-      return valid.reduce((sum, r) => sum + r.ctr, 0) / valid.length;
+    const leadsData = await db
+      .select({
+        createdAt: leads.createdAt,
+        context: leads.context,
+      })
+      .from(leads)
+      .where(and(
+        eq(leads.siteId, siteId),
+        gte(leads.createdAt, fourteenDaysAgoDate),
+        isNotNull(leads.context)
+      ));
+
+    // Extract secondsToSubmit from leads context
+    function extractSecondsToSubmit(lead: { context: any }): number | null {
+      try {
+        const ctx = lead.context;
+        if (ctx?.session?.secondsToSubmit != null) {
+          return ctx.session.secondsToSubmit;
+        }
+        // Fallback: compute from sessionStartAt and submittedAt
+        if (ctx?.session?.sessionStartAt && ctx?.submittedAt) {
+          const sessionStart = new Date(ctx.session.sessionStartAt).getTime();
+          const submitted = new Date(ctx.submittedAt).getTime();
+          if (!isNaN(sessionStart) && !isNaN(submitted) && submitted > sessionStart) {
+            return (submitted - sessionStart) / 1000;
+          }
+        }
+        return null;
+      } catch {
+        return null;
+      }
     }
 
-    const organicCtrCurrent = avgCtr(gscCurrent);
-    const organicCtrPrevious = avgCtr(gscPrevious);
+    const leadsCurrent = leadsData.filter(l => l.createdAt >= sevenDaysAgoDate);
+    const leadsPrevious = leadsData.filter(l => l.createdAt < sevenDaysAgoDate);
+
+    const currentTimes = leadsCurrent.map(extractSecondsToSubmit).filter((t): t is number => t !== null);
+    const previousTimes = leadsPrevious.map(extractSecondsToSubmit).filter((t): t is number => t !== null);
+
+    const avgTimeToLeadCurrent = currentTimes.length >= 3
+      ? currentTimes.reduce((a, b) => a + b, 0) / currentTimes.length
+      : null;
+    const avgTimeToLeadPrevious = previousTimes.length >= 3
+      ? previousTimes.reduce((a, b) => a + b, 0) / previousTimes.length
+      : null;
+
+    const hasLeadTimingData = currentTimes.length >= 3;
 
     function metricResult(value: number | null, change7d: number | null, available: boolean, reason?: string) {
       return { value, change7d, available, ...(reason ? { reason } : {}) };
@@ -141,24 +170,20 @@ router.get('/:siteId/metrics', async (req, res) => {
 
     res.json({
       ga4Connected,
-      gscConnected,
+      gscConnected: false, // Not used for these metrics
       metrics: {
-        conversionRate: ga4Connected
-          ? metricResult(conversionRateCurrent, computeDelta(conversionRateCurrent, conversionRatePrevious), true)
+        activeUsers: ga4Connected
+          ? metricResult(activeUsersCurrent, computeDelta(activeUsersCurrent, activeUsersPrevious), true)
           : metricResult(null, null, false, 'Google Analytics not connected'),
-        bounceRate: ga4Connected
-          ? metricResult(bounceRateCurrent, computeDelta(bounceRateCurrent, bounceRatePrevious), true)
+        eventCount: ga4Connected
+          ? metricResult(eventCountCurrent, computeDelta(eventCountCurrent, eventCountPrevious), true)
           : metricResult(null, null, false, 'Google Analytics not connected'),
-        avgSessionDuration: ga4Connected
-          ? metricResult(sessionDurationCurrent, computeDelta(sessionDurationCurrent, sessionDurationPrevious), true)
+        newUsers: ga4Connected
+          ? metricResult(newUsersCurrent, computeDelta(newUsersCurrent, newUsersPrevious), true)
           : metricResult(null, null, false, 'Google Analytics not connected'),
-        pagesPerSession: ga4Connected
-          ? metricResult(pagesPerSessionCurrent, computeDelta(pagesPerSessionCurrent, pagesPerSessionPrevious), true)
-          : metricResult(null, null, false, 'Google Analytics not connected'),
-        organicCtr: gscConnected
-          ? metricResult(organicCtrCurrent, computeDelta(organicCtrCurrent, organicCtrPrevious), true)
-          : metricResult(null, null, false, 'Search Console not connected'),
-        pageLoadTime: metricResult(null, null, false, 'Performance data not yet available'),
+        avgTimeToLeadSubmit: hasLeadTimingData
+          ? metricResult(avgTimeToLeadCurrent, computeDelta(avgTimeToLeadCurrent, avgTimeToLeadPrevious), true)
+          : metricResult(null, null, false, currentTimes.length > 0 ? 'Not enough leads yet (need 3+)' : 'No lead timing data'),
       },
     });
   } catch (error) {
@@ -940,7 +965,7 @@ router.get('/:siteId/metric-explanation/:metricKey', async (req, res) => {
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-    const validKeys: MetricKey[] = ['activeUsers', 'eventCount', 'newUsers', 'avgEngagement'];
+    const validKeys: MetricKey[] = ['activeUsers', 'eventCount', 'newUsers', 'avgTimeToLeadSubmit'];
     if (!validKeys.includes(metricKey as MetricKey)) {
       return res.status(400).json({
         error: 'Invalid metric key',

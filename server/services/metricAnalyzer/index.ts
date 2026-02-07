@@ -26,7 +26,7 @@ import { generateSummary } from "./utils/summarizer";
 import { calculateConfidence } from "./utils/confidence";
 import { generateRecommendations } from "./utils/recommendations";
 
-const METRIC_KEYS: MetricKey[] = ["activeUsers", "eventCount", "newUsers", "avgEngagement"];
+const METRIC_KEYS: MetricKey[] = ["activeUsers", "eventCount", "newUsers", "avgTimeToLeadSubmit"];
 
 // Helper: get date string N days ago
 function daysAgo(n: number): string {
@@ -224,17 +224,17 @@ export async function analyzeAllMetrics(
   siteId: string
 ): Promise<MetricExplanationsResponse> {
   // Run all analyses in parallel
-  const [activeUsers, eventCount, newUsers, avgEngagement] = await Promise.all([
+  const [activeUsers, eventCount, newUsers, avgTimeToLeadSubmit] = await Promise.all([
     analyzeMetric(siteId, "activeUsers"),
     analyzeMetric(siteId, "eventCount"),
     analyzeMetric(siteId, "newUsers"),
-    analyzeMetric(siteId, "avgEngagement"),
+    analyzeMetric(siteId, "avgTimeToLeadSubmit"),
   ]);
 
   return {
     activeUsers,
     eventCount,
     newUsers,
-    avgEngagement,
+    avgTimeToLeadSubmit,
   };
 }

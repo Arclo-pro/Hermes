@@ -5,7 +5,7 @@
  * Used by both frontend and backend.
  */
 
-export type MetricKey = "activeUsers" | "eventCount" | "newUsers" | "avgEngagement";
+export type MetricKey = "activeUsers" | "eventCount" | "newUsers" | "avgTimeToLeadSubmit";
 
 export type ExplanationStatus =
   | "improving"
@@ -76,7 +76,7 @@ export interface MetricExplanationsResponse {
   activeUsers: MetricExplanation;
   eventCount: MetricExplanation;
   newUsers: MetricExplanation;
-  avgEngagement: MetricExplanation;
+  avgTimeToLeadSubmit: MetricExplanation;
 }
 
 // Metric definitions for the breakdown page "What it means" section
@@ -93,8 +93,8 @@ export const METRIC_DEFINITIONS: Record<MetricKey, { title: string; definition: 
     title: "New Users",
     definition: "Users who visited your site for the first time during the selected period. This metric indicates how well your marketing and SEO efforts are attracting fresh audiences.",
   },
-  avgEngagement: {
-    title: "Average Engagement Time",
-    definition: "The average time users actively spend on your site per session. Longer engagement times suggest more valuable, relevant content that keeps visitors interested.",
+  avgTimeToLeadSubmit: {
+    title: "Time to Lead Submit",
+    definition: "The average time visitors browse your site before submitting a lead form. Shorter times can indicate easy conversions, while longer times may suggest visitors are doing more research before contacting you.",
   },
 };

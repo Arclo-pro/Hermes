@@ -8,7 +8,7 @@ const METRIC_NAMES: Record<MetricKey, string> = {
   activeUsers: "active users",
   eventCount: "events",
   newUsers: "new users",
-  avgEngagement: "engagement time",
+  avgTimeToLeadSubmit: "time to lead submit",
 };
 
 function capitalize(str: string): string {

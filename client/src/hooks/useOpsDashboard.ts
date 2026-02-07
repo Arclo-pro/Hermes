@@ -18,7 +18,7 @@ export interface MetricsData {
     activeUsers: MetricValue;
     eventCount: MetricValue;
     newUsers: MetricValue;
-    avgEngagement: MetricValue;
+    avgTimeToLeadSubmit: MetricValue;
   };
 }
 
